@@ -83,7 +83,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon className="w-5 h-5 flex-shrink-0 text-sidebar-primary" />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );

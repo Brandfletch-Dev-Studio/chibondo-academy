@@ -34,7 +34,17 @@ export default function Register() {
     setLoading(true);
     try {
       await base44.auth.register({ email: derivedEmail, password });
-      setShowOtp(true);
+      // Phone-first users: skip OTP (synthetic email can't receive mail), go straight to onboarding
+      if (!email.trim()) {
+        // Try to auto-verify — if that fails, just redirect anyway
+        try {
+          const result = await base44.auth.loginViaEmailPassword(derivedEmail, password);
+          if (result?.access_token) base44.auth.setToken(result.access_token);
+        } catch (_) {}
+        window.location.href = "/onboarding";
+      } else {
+        setShowOtp(true);
+      }
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
@@ -101,12 +111,14 @@ export default function Register() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Join thousands of students learning with Chibondo Academy"
+      title="Welcome to The Chibondo Academy"
+      subtitle="Create your account and start your learning journey today"
       footer={
         <>
           Already have an account?{" "}
           <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+          {" · "}
+          <Link to="/register/teacher" className="text-primary font-medium hover:underline">Apply as Teacher</Link>
         </>
       }
     >

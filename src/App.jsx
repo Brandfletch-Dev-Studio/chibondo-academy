@@ -13,6 +13,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import Onboarding from '@/pages/Onboarding';
+import TeacherRegister from '@/pages/TeacherRegister';
 
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
@@ -89,6 +90,7 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/register/teacher" element={<TeacherRegister />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>

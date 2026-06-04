@@ -12,7 +12,7 @@ export default function TopBar({ user, notificationCount = 0 }) {
       <div className="flex-1 flex items-center">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <Button variant="ghost" size="icon" className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent">
               <Menu className="w-5 h-5" />
             </Button>
           </SheetTrigger>

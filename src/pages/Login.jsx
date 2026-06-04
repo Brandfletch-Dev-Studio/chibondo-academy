@@ -46,8 +46,8 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Welcome back, scholar"
-      subtitle="Sign in to continue your learning journey"
+      title="Welcome Back"
+      subtitle="Continue from where you left off"
       footer={
         <>
           New to the academy?{" "}
