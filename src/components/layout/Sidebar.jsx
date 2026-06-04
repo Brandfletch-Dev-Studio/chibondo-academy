@@ -47,15 +47,21 @@ export default function Sidebar({ user, collapsed, onToggle }) {
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Logo / Brand */}
-      <div className={`flex items-center border-b border-sidebar-border flex-shrink-0 ${collapsed ? 'justify-center p-4' : 'gap-3 p-4'}`}>
-        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-          <GraduationCap className="w-5 h-5 text-accent-foreground" />
-        </div>
-        {!collapsed && (
-          <div className="overflow-hidden">
-            <h1 className="font-display font-bold text-sm leading-tight">Chibondo</h1>
-            <p className="text-[10px] opacity-70">Academy</p>
-          </div>
+      <div className={`flex items-center border-b border-sidebar-border flex-shrink-0 ${collapsed ? 'justify-center p-3' : 'p-3'}`}>
+        {collapsed ? (
+          /* Square icon logo when collapsed */
+          <img
+            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+            alt="Chibondo Academy"
+            className="w-10 h-10 rounded-lg object-cover"
+          />
+        ) : (
+          /* Rectangle banner logo when expanded */
+          <img
+            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+            alt="Chibondo Academy"
+            className="h-11 w-full object-contain object-left"
+          />
         )}
       </div>
 

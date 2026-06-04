@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Menu, GraduationCap } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
@@ -23,11 +23,12 @@ export default function TopBar({ user, notificationCount = 0 }) {
       </div>
 
       {/* Center: Logo */}
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-          <GraduationCap className="w-4 h-4 text-primary-foreground" />
-        </div>
-        <span className="font-display font-bold text-sm tracking-wide hidden sm:block">Chibondo Academy</span>
+      <div className="flex items-center">
+        <img
+          src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+          alt="Chibondo Academy"
+          className="h-9 w-auto object-contain"
+        />
       </div>
 
       {/* Right: Actions */}

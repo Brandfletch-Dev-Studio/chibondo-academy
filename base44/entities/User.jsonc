@@ -65,5 +65,14 @@
         "type": "string"
       }
     }
-  }
+  },
+  "required": [
+    "phone",
+    "avatar_url",
+    "bio",
+    "form_id",
+    "form_name",
+    "last_study_date",
+    "subjects_teaching"
+  ]
 }

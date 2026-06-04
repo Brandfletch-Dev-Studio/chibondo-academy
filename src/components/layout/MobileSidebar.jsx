@@ -5,6 +5,7 @@ import {
   Users, Settings, CreditCard, MessageSquare, Library,
   ClipboardList, PenTool, LogOut
 } from 'lucide-react';
+// GraduationCap kept for adminNav usage
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 
@@ -46,13 +47,12 @@ export default function MobileSidebar({ user }) {
 
   return (
     <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
-      <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-          <GraduationCap className="w-5 h-5 text-accent-foreground" />
-        </div>
-        <div>
-          <h1 className="font-display font-bold text-sm">Chibondo Academy</h1>
-        </div>
+      <div className="p-4 flex items-center border-b border-sidebar-border">
+        <img
+          src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+          alt="Chibondo Academy"
+          className="h-10 w-full object-contain object-left"
+        />
       </div>
       <nav className="flex-1 py-4 px-2 space-y-1">
         {navItems.map((item) => {

@@ -49,11 +49,24 @@ const AuthenticatedApp = () => {
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-muted border-t-primary rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-muted-foreground mt-3 font-body">Loading Chibondo Academy...</p>
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'hsl(222 47% 8%)' }}>
+        <div className="text-center flex flex-col items-center gap-6">
+          <img
+            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+            alt="Chibondo Academy"
+            className="w-32 h-32 rounded-2xl object-cover shadow-2xl"
+            style={{ boxShadow: '0 0 60px rgba(184,144,55,0.3)' }}
+          />
+          <div>
+            <p className="text-lg font-display tracking-widest uppercase" style={{ color: 'hsl(43 74% 52%)' }}>Chibondo Academy</p>
+            <div className="flex items-center justify-center gap-1.5 mt-3">
+              {[0,1,2].map(i => (
+                <div key={i} className="w-2 h-2 rounded-full" style={{ background: 'hsl(43 74% 52%)', animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+          </div>
         </div>
+        <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(0);opacity:0.3} 40%{transform:scale(1);opacity:1} }`}</style>
       </div>
     );
   }
