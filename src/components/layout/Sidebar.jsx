@@ -39,6 +39,7 @@ const teacherNav = [
 const adminNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
   { label: 'Users', icon: Users, path: '/admin/users' },
+  { label: 'Teachers', icon: GraduationCap, path: '/admin/teachers' },
   { label: 'Academic', icon: GraduationCap, path: '/admin/academic' },
   { label: 'Subscriptions', icon: CreditCard, path: '/admin/subscriptions' },
   { label: 'Settings', icon: Settings, path: '/admin/settings' },
