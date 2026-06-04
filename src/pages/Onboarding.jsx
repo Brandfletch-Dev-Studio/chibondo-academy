@@ -71,7 +71,7 @@ export default function Onboarding() {
       is_distance_learner: isDistanceLearner,
       onboarding_complete: true,
     });
-    await base44.auth.updateMe({ full_name: fullName.trim() });
+    await base44.auth.updateMe({ full_name: fullName.trim(), role: "student" });
     window.location.href = "/";
   };
 
