@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Home, BookOpen, GraduationCap, FileText, BarChart3,
+  Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
   Trophy, PenTool, LayoutDashboard
@@ -23,6 +23,7 @@ const studentNav = [
   { label: 'Assignments', icon: FileText, path: '/my-assignments' },
   { label: 'Discussions', icon: MessageSquare, path: '/discussions' },
   { label: 'Progress', icon: BarChart3, path: '/progress' },
+  { label: 'Analytics', icon: TrendingUp, path: '/progress/analytics' },
   { label: 'Subscription', icon: CreditCard, path: '/subscription' },
   { label: 'Settings', icon: Settings, path: '/settings' },
 ];

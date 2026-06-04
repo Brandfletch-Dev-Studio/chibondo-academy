@@ -29,6 +29,7 @@ import QuizPage from '@/pages/QuizPage';
 import MyAssignments from '@/pages/MyAssignments';
 import DiscussionsPage from '@/pages/DiscussionsPage';
 import ProgressPage from '@/pages/ProgressPage';
+import ProgressAnalytics from '@/pages/ProgressAnalytics';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 
@@ -113,6 +114,7 @@ const AuthenticatedApp = () => {
           <Route path="/my-assignments" element={<MyAssignments />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/progress/analytics" element={<ProgressAnalytics />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
 

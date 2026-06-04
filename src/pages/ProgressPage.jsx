@@ -1,10 +1,11 @@
 import React from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Trophy, Clock, Flame, Target } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Trophy, Clock, Flame, Target, TrendingUp } from 'lucide-react';
 
 export default function ProgressPage() {
   const { user } = useOutletContext();
@@ -31,9 +32,17 @@ export default function ProgressPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">My Progress</h1>
-        <p className="text-sm text-muted-foreground mt-1">Track your learning journey</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-bold">My Progress</h1>
+          <p className="text-sm text-muted-foreground mt-1">Track your learning journey</p>
+        </div>
+        <Link to="/progress/analytics">
+          <Button variant="outline" size="sm" className="gap-2">
+            <TrendingUp className="w-4 h-4" />
+            View Analytics
+          </Button>
+        </Link>
       </div>
 
       {/* Overview Stats */}
