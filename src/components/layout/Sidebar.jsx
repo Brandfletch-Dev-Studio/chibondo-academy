@@ -23,20 +23,15 @@ const studentNav = [
 const teacherNav = [
   { label: 'Dashboard', icon: Home, path: '/teacher' },
   { label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
-  { label: 'Quizzes', icon: ClipboardList, path: '/teacher/quizzes' },
-  { label: 'Assignments', icon: PenTool, path: '/teacher/assignments' },
-  { label: 'Students', icon: Users, path: '/teacher/students' },
-  { label: 'Analytics', icon: BarChart3, path: '/teacher/analytics' },
+  { label: 'Quiz Builder', icon: ClipboardList, path: '/teacher/quizzes' },
+  { label: 'Grading', icon: PenTool, path: '/teacher/grading' },
 ];
 
 const adminNav = [
   { label: 'Dashboard', icon: Home, path: '/admin' },
   { label: 'Users', icon: Users, path: '/admin/users' },
   { label: 'Academic', icon: GraduationCap, path: '/admin/academic' },
-  { label: 'Content', icon: BookOpen, path: '/admin/content' },
   { label: 'Subscriptions', icon: CreditCard, path: '/admin/subscriptions' },
-  { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
-  { label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
   { label: 'Settings', icon: Settings, path: '/admin/settings' },
 ];
 
