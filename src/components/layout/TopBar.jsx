@@ -1,25 +1,24 @@
 import React from 'react';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
-import MobileSidebar from './MobileSidebar';
 
-export default function TopBar({ user, notificationCount = 0 }) {
+export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
+  const role = user?.role === 'admin' ? 'admin' : user?.role === 'teacher' ? 'teacher' : 'student';
+  const settingsPath = role === 'admin' ? '/admin/settings' : role === 'teacher' ? '/teacher/settings' : '/settings';
+
   return (
     <header className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30" style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}>
       {/* Left: Mobile menu */}
       <div className="flex-1 flex items-center">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent">
-              <Menu className="w-5 h-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64">
-            <MobileSidebar user={user} />
-          </SheetContent>
-        </Sheet>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
+          onClick={onMenuClick}
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Center: Logo */}
@@ -43,9 +42,9 @@ export default function TopBar({ user, notificationCount = 0 }) {
             )}
           </Button>
         </Link>
-        <Link to="/admin/settings">
+        <Link to={settingsPath}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
-            {user?.full_name?.[0] || 'U'}
+            {user?.full_name?.[0]?.toUpperCase() || 'U'}
           </div>
         </Link>
       </div>

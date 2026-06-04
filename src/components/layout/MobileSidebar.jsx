@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, BookOpen, GraduationCap, FileText, BarChart3, 
+import {
+  Home, BookOpen, GraduationCap, FileText, BarChart3,
   Users, Settings, CreditCard, MessageSquare, Library,
-  ClipboardList, PenTool, LogOut
+  ClipboardList, PenTool, LogOut, LayoutDashboard
 } from 'lucide-react';
-// GraduationCap kept for adminNav usage
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 
@@ -18,58 +17,81 @@ const studentNav = [
   { label: 'Discussions', icon: MessageSquare, path: '/discussions' },
   { label: 'Progress', icon: BarChart3, path: '/progress' },
   { label: 'Subscription', icon: CreditCard, path: '/subscription' },
+  { label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 const teacherNav = [
-  { label: 'Dashboard', icon: Home, path: '/teacher' },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/teacher' },
   { label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
-  { label: 'Quizzes', icon: ClipboardList, path: '/teacher/quizzes' },
-  { label: 'Assignments', icon: PenTool, path: '/teacher/assignments' },
-  { label: 'Students', icon: Users, path: '/teacher/students' },
-  { label: 'Analytics', icon: BarChart3, path: '/teacher/analytics' },
+  { label: 'Quiz Builder', icon: ClipboardList, path: '/teacher/quizzes' },
+  { label: 'Grading', icon: PenTool, path: '/teacher/grading' },
+  { label: 'Settings', icon: Settings, path: '/teacher/settings' },
 ];
 
 const adminNav = [
-  { label: 'Dashboard', icon: Home, path: '/admin' },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
   { label: 'Users', icon: Users, path: '/admin/users' },
   { label: 'Academic', icon: GraduationCap, path: '/admin/academic' },
-  { label: 'Content', icon: BookOpen, path: '/admin/content' },
   { label: 'Subscriptions', icon: CreditCard, path: '/admin/subscriptions' },
-  { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
-  { label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
   { label: 'Settings', icon: Settings, path: '/admin/settings' },
 ];
 
-export default function MobileSidebar({ user }) {
+export default function MobileSidebar({ user, onClose }) {
   const location = useLocation();
-  const role = user?.role || 'student';
+  const role = user?.role === 'admin' ? 'admin' : user?.role === 'teacher' ? 'teacher' : 'student';
   const navItems = role === 'admin' ? adminNav : role === 'teacher' ? teacherNav : studentNav;
+
+  const handleNav = () => {
+    if (onClose) onClose();
+  };
 
   return (
     <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
-      <div className="p-4 flex items-center border-b border-sidebar-border">
+      <div className="h-16 px-4 flex items-center border-b border-sidebar-border flex-shrink-0">
         <img
           src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
           alt="Chibondo Academy"
           className="h-10 w-full object-contain object-left"
         />
       </div>
-      <nav className="flex-1 py-4 px-2 space-y-1">
+
+      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+          const isActive = location.pathname === item.path ||
+            (item.path !== '/' && location.pathname.startsWith(item.path));
           return (
-            <Link key={item.path} to={item.path} className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all",
-              isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
-            )}>
-              <item.icon className="w-5 h-5 text-sidebar-primary" />
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={handleNav}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                isActive
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              )}
+            >
+              <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-sidebar-primary-foreground" : "text-sidebar-primary")} />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="border-t border-sidebar-border p-3">
-        <button onClick={() => base44.auth.logout()} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground w-full">
+
+      <div className="border-t border-sidebar-border p-3 space-y-1 flex-shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-sidebar-accent/50 mb-1">
+          <div className="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground flex-shrink-0">
+            {user?.full_name?.[0]?.toUpperCase() || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate">{user?.full_name || 'User'}</p>
+            <p className="text-[10px] text-sidebar-foreground/50 capitalize">{role}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => base44.auth.logout()}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+        >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>
         </button>

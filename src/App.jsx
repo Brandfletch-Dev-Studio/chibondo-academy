@@ -46,6 +46,13 @@ import UserManagement from '@/pages/admin/UserManagement';
 import AdminSubscriptions from '@/pages/admin/AdminSubscriptions';
 import AdminSettings from '@/pages/admin/AdminSettings';
 
+// Settings pages
+import StudentSettings from '@/pages/settings/StudentSettings';
+import TeacherSettings from '@/pages/settings/TeacherSettings';
+
+// RBAC
+import RoleGuard from '@/components/RoleGuard';
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
@@ -109,19 +116,23 @@ const AuthenticatedApp = () => {
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
 
+          {/* Student Settings */}
+          <Route path="/settings" element={<StudentSettings />} />
+
           {/* Teacher */}
-          <Route path="/teacher" element={<TeacherDashboard />} />
-          <Route path="/teacher/courses" element={<TeacherCourses />} />
-          <Route path="/teacher/courses/:subjectId" element={<CourseBuilder />} />
-          <Route path="/teacher/quizzes" element={<QuizBuilder />} />
-          <Route path="/teacher/grading" element={<AssignmentGrading />} />
+          <Route path="/teacher" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherDashboard /></RoleGuard>} />
+          <Route path="/teacher/courses" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherCourses /></RoleGuard>} />
+          <Route path="/teacher/courses/:subjectId" element={<RoleGuard allowed={['teacher', 'admin']}><CourseBuilder /></RoleGuard>} />
+          <Route path="/teacher/quizzes" element={<RoleGuard allowed={['teacher', 'admin']}><QuizBuilder /></RoleGuard>} />
+          <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher', 'admin']}><AssignmentGrading /></RoleGuard>} />
+          <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
 
           {/* Admin */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/academic" element={<AcademicManagement />} />
-          <Route path="/admin/users" element={<UserManagement />} />
-          <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin" element={<RoleGuard allowed={['admin']}><AdminDashboard /></RoleGuard>} />
+          <Route path="/admin/academic" element={<RoleGuard allowed={['admin']}><AcademicManagement /></RoleGuard>} />
+          <Route path="/admin/users" element={<RoleGuard allowed={['admin']}><UserManagement /></RoleGuard>} />
+          <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
+          <Route path="/admin/settings" element={<RoleGuard allowed={['admin']}><AdminSettings /></RoleGuard>} />
         </Route>
       </Route>
 
