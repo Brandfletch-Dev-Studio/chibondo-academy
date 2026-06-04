@@ -47,6 +47,7 @@ import UserManagement from '@/pages/admin/UserManagement';
 import AdminSubscriptions from '@/pages/admin/AdminSubscriptions';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import TeacherApplications from '@/pages/admin/TeacherApplications';
+import StudentProgressTracker from '@/pages/teacher/StudentProgressTracker';
 
 // Settings pages
 import StudentSettings from '@/pages/settings/StudentSettings';
@@ -128,6 +129,7 @@ const AuthenticatedApp = () => {
           <Route path="/teacher/courses/:subjectId" element={<RoleGuard allowed={['teacher', 'admin']}><CourseBuilder /></RoleGuard>} />
           <Route path="/teacher/quizzes" element={<RoleGuard allowed={['teacher', 'admin']}><QuizBuilder /></RoleGuard>} />
           <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher', 'admin']}><AssignmentGrading /></RoleGuard>} />
+          <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher', 'admin']}><StudentProgressTracker /></RoleGuard>} />
           <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
 
           {/* Admin */}

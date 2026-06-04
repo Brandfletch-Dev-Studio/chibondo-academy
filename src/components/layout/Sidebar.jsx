@@ -33,6 +33,7 @@ const teacherNav = [
   { label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
   { label: 'Quiz Builder', icon: ClipboardList, path: '/teacher/quizzes' },
   { label: 'Grading', icon: PenTool, path: '/teacher/grading' },
+  { label: 'Student Progress', icon: TrendingUp, path: '/teacher/progress' },
   { label: 'Settings', icon: Settings, path: '/teacher/settings' },
 ];
 

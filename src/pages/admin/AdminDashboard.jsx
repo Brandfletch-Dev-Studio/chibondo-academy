@@ -1,118 +1,196 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, BookOpen, CreditCard, TrendingUp, GraduationCap, Activity } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-
-function StatCard({ icon: Icon, label, value, color }) {
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold font-display">{value}</p>
-            <p className="text-xs text-muted-foreground">{label}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Star, Save, TrendingUp, Users, BookOpen } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
-  const { data: users = [] } = useQuery({
-    queryKey: ['adminUsers'],
-    queryFn: () => base44.entities.User.list('-created_date', 1000),
-  });
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const queryClient = useQueryClient();
 
+  // Fetch all data
   const { data: subjects = [] } = useQuery({
-    queryKey: ['adminSubjects'],
-    queryFn: () => base44.entities.Subject.list('-created_date', 100),
-  });
-
-  const { data: payments = [] } = useQuery({
-    queryKey: ['adminPayments'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 100),
+    queryKey: ['allSubjects'],
+    queryFn: () => base44.entities.Subject.filter({}),
   });
 
   const { data: enrollments = [] } = useQuery({
-    queryKey: ['adminEnrollments'],
-    queryFn: () => base44.entities.Enrollment.list('-created_date', 1000),
+    queryKey: ['allEnrollments'],
+    queryFn: () => base44.entities.Enrollment.filter({}),
   });
 
-  const students = users.filter(u => u.role === 'student' || !u.role);
-  const teachers = users.filter(u => u.role === 'teacher');
-  const totalRevenue = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const { data: students = [] } = useQuery({
+    queryKey: ['allStudents'],
+    queryFn: () => base44.entities.StudentProfile.filter({}),
+  });
+
+  const { data: teachers = [] } = useQuery({
+    queryKey: ['allTeachers'],
+    queryFn: () => base44.entities.User.filter({ role: 'teacher' }),
+  });
+
+  const { data: applications = [] } = useQuery({
+    queryKey: ['teacherApplications'],
+    queryFn: () => base44.entities.TeacherApplication.filter({}),
+  });
+
+  const { data: subscriptions = [] } = useQuery({
+    queryKey: ['allSubscriptions'],
+    queryFn: () => base44.entities.Subscription.filter({}),
+  });
+
+  // Calculate stats
+  const totalStudents = students.length;
+  const totalTeachers = teachers.length;
+  const totalSubjects = subjects.length;
+  const totalEnrollments = enrollments.length;
+  const pendingApplications = applications.filter(a => a.status === 'pending').length;
+  const activeSubscriptions = subscriptions.filter(s => s.status === 'active').length;
+
+  const avgProgress = enrollments.length > 0
+    ? Math.round(enrollments.reduce((sum, e) => sum + (e.progress_percentage || 0), 0) / enrollments.length)
+    : 0;
+
+  const revenue = subscriptions.reduce((sum, s) => sum + (s.amount_paid || 0), 0);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold">Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Platform overview and management</p>
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Platform overview and analytics</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Students" value={students.length} color="bg-primary/10 text-primary" />
-        <StatCard icon={GraduationCap} label="Teachers" value={teachers.length} color="bg-accent/10 text-accent" />
-        <StatCard icon={BookOpen} label="Subjects" value={subjects.length} color="bg-success/10 text-success" />
-        <StatCard icon={CreditCard} label="Revenue (MWK)" value={totalRevenue.toLocaleString()} color="bg-destructive/10 text-destructive" />
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Students */}
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-display">Recent Students</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {students.slice(0, 8).map(student => (
-                <div key={student.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                    {student.full_name?.[0] || '?'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{student.full_name || 'Unknown'}</p>
-                    <p className="text-xs text-muted-foreground">{student.email}</p>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                    {student.subscription_plan || 'free'}
-                  </span>
-                </div>
-              ))}
-              {students.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-4">No students yet</p>
-              )}
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{totalStudents}</p>
+                <p className="text-sm text-muted-foreground">Total Students</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-display">Active Enrollments</CardTitle>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{totalTeachers}</p>
+                <p className="text-sm text-muted-foreground">Teachers</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-success" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{avgProgress}%</p>
+                <p className="text-sm text-muted-foreground">Avg Progress</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <Star className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{activeSubscriptions}</p>
+                <p className="text-sm text-muted-foreground">Active Subs</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Platform Metrics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Total Subjects</span>
+              <span className="font-medium">{totalSubjects}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Total Enrollments</span>
+              <span className="font-medium">{totalEnrollments}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Pending Applications</span>
+              <Badge variant={pendingApplications > 0 ? 'destructive' : 'default'}>
+                {pendingApplications}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Revenue (MWK)</span>
+              <span className="font-medium">{revenue.toLocaleString()}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/admin/users'}>
+              Manage Users
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/admin/teachers'}>
+              Review Applications
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/admin/academic'}>
+              Academic Management
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/admin/subscriptions'}>
+              View Subscriptions
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {enrollments.slice(0, 8).map(e => (
-                <div key={e.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                  <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
-                    <Activity className="w-4 h-4 text-success" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{e.subject_name || 'Subject'}</p>
-                    <p className="text-xs text-muted-foreground">{e.form_name}</p>
-                  </div>
-                  <span className="text-xs font-semibold text-primary">{e.progress_percentage || 0}%</span>
+            {applications.slice(0, 5).map((app) => (
+              <div key={app.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div className="text-sm">
+                  <p className="font-medium">{app.full_name}</p>
+                  <p className="text-xs text-muted-foreground">Applied to teach</p>
                 </div>
-              ))}
-              {enrollments.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-4">No enrollments yet</p>
-              )}
-            </div>
+                <Badge variant={app.status === 'pending' ? 'secondary' : 'default'} className="text-xs">
+                  {app.status}
+                </Badge>
+              </div>
+            ))}
+            {applications.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+            )}
           </CardContent>
         </Card>
       </div>
