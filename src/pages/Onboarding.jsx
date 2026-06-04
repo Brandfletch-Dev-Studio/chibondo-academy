@@ -51,28 +51,28 @@ export default function Onboarding() {
   };
 
   const handleFinish = async () => {
-    if (!user) return;
     setLoading(true);
-    try {
-      // Save profile
-      await base44.entities.StudentProfile.create({
-        user_id: user.id,
-        full_name: fullName.trim(),
-        phone_number: user.phone_number || "",
-        form,
-        subjects,
-        school_name: isDistanceLearner ? "" : schoolName.trim(),
-        is_distance_learner: isDistanceLearner,
-        onboarding_complete: true,
-      });
-      // Update the user's display name
-      await base44.auth.updateMe({ full_name: fullName.trim() });
-      window.location.href = "/";
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    // Re-fetch user in case state hasn't loaded yet
+    let currentUser = user;
+    if (!currentUser) {
+      currentUser = await base44.auth.me();
     }
+    if (!currentUser) {
+      window.location.href = "/login";
+      return;
+    }
+    await base44.entities.StudentProfile.create({
+      user_id: currentUser.id,
+      full_name: fullName.trim(),
+      phone_number: currentUser.phone_number || "",
+      form,
+      subjects,
+      school_name: isDistanceLearner ? "" : schoolName.trim(),
+      is_distance_learner: isDistanceLearner,
+      onboarding_complete: true,
+    });
+    await base44.auth.updateMe({ full_name: fullName.trim() });
+    window.location.href = "/";
   };
 
   const progressPct = ((step) / STEP_LABELS.length) * 100;
