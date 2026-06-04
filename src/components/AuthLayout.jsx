@@ -1,27 +1,28 @@
 import React from "react";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+export default function AuthLayout({ title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'hsl(222 47% 8%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
       <div className="w-full max-w-md">
-        {/* Logo Banner */}
+        {/* Brand header */}
         <div className="text-center mb-8">
           <img
-            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
-            alt="Chibondo Academy"
-            className="h-16 w-auto mx-auto object-contain"
+            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+            alt="The Chibondo Academy"
+            className="w-20 h-20 rounded-2xl object-cover mx-auto shadow-md"
           />
-          {subtitle && <p className="mt-3 text-sm" style={{ color: 'hsl(43 74% 66%)' }}>{subtitle}</p>}
-          {title && <h1 className="text-xl font-display mt-1 tracking-wider" style={{ color: 'hsl(43 30% 90%)' }}>{title}</h1>}
+          <h1 className="text-xl font-bold mt-3 text-gray-900">The Chibondo Academy</h1>
+          {title && <p className="text-base font-semibold text-gray-700 mt-1">{title}</p>}
+          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border p-8" style={{ background: 'hsl(222 40% 12%)', borderColor: 'hsl(222 35% 22%)' }}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           {children}
         </div>
 
         {footer && (
-          <p className="text-center text-sm mt-6" style={{ color: 'hsl(43 20% 65%)' }}>{footer}</p>
+          <p className="text-center text-sm text-gray-500 mt-6">{footer}</p>
         )}
       </div>
     </div>

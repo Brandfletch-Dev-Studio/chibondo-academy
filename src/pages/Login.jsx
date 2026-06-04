@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 
@@ -34,14 +34,13 @@ export default function Login() {
 
   return (
     <AuthLayout
-      icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
+      title="Welcome back, scholar"
+      subtitle="Sign in to continue your learning journey"
       footer={
         <>
-          Don't have an account?{" "}
+          New to the academy?{" "}
           <Link to="/register" className="text-primary font-medium hover:underline">
-            Create one
+            Join us
           </Link>
         </>
       }

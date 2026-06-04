@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -73,9 +73,8 @@ export default function Register() {
   if (showOtp) {
     return (
       <AuthLayout
-        icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        title="One last step"
+        subtitle={`We sent a verification code to ${email} — enter it below to activate your account`}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -126,14 +125,13 @@ export default function Register() {
 
   return (
     <AuthLayout
-      icon={UserPlus}
-      title="Create your account"
-      subtitle="Sign up to get started"
+      title="Join The Chibondo Academy"
+      subtitle="Create your account and start learning today"
       footer={
         <>
-          Already have an account?{" "}
+          Already enrolled?{" "}
           <Link to="/login" className="text-primary font-medium hover:underline">
-            Log in
+            Sign in
           </Link>
         </>
       }
