@@ -114,12 +114,16 @@ export default function Register() {
       title="Welcome to The Chibondo Academy"
       subtitle="Create your account and start your learning journey today"
       footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
-          {" · "}
-          <Link to="/register/teacher" className="text-primary font-medium hover:underline">Apply as Teacher</Link>
-        </>
+        <div className="space-y-3">
+          <div>
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+          </div>
+          <div className="pt-2 border-t border-gray-200">
+            Interested in teaching?{" "}
+            <Link to="/register/teacher" className="text-primary font-medium hover:underline">Apply as Teacher</Link>
+          </div>
+        </div>
       }
     >
       <Button variant="outline" className="w-full h-12 text-sm font-medium mb-6" onClick={handleGoogle}>

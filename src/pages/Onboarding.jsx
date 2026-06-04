@@ -233,9 +233,9 @@ export default function Onboarding() {
               Continue
             </Button>
           ) : (
-            <Button className="flex-1 h-12 font-semibold" disabled={!canProceed() || loading} onClick={handleFinish}>
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : "Start Learning 🎉"}
-            </Button>
+           <Button className="flex-1 h-12 font-semibold" disabled={loading} onClick={handleFinish}>
+             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : "Start Learning 🎉"}
+           </Button>
           )}
         </div>
       </div>
