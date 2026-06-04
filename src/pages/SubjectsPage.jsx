@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, Lock, ChevronRight, Search } from 'lucide-react';
+import { BookOpen, Lock, ChevronRight, Search, Users, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { format } from 'date-fns';
 
 export default function SubjectsPage() {
   const { user } = useOutletContext();
@@ -45,8 +45,8 @@ export default function SubjectsPage() {
         <p className="text-muted-foreground text-sm mt-1">Browse and enroll in subjects for your form</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3">
+        <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Search subjects..." 
@@ -55,14 +55,25 @@ export default function SubjectsPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <Tabs value={selectedForm} onValueChange={setSelectedForm}>
-          <TabsList className="bg-muted">
-            <TabsTrigger value="all">All Forms</TabsTrigger>
-            {forms.map(f => (
-              <TabsTrigger key={f.id} value={f.id}>{f.name}</TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {/* Form filter — scrollable on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {['all', ...forms.map(f => f.id)].map((id) => {
+            const label = id === 'all' ? 'All Forms' : forms.find(f => f.id === id)?.name;
+            return (
+              <button
+                key={id}
+                onClick={() => setSelectedForm(id)}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                  selectedForm === id
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {isLoading ? (
@@ -81,7 +92,7 @@ export default function SubjectsPage() {
           <p className="text-muted-foreground">No subjects found</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredSubjects.map(subject => {
             const enrollment = enrollmentMap[subject.id];
             const isPremium = subject.is_premium;
@@ -91,46 +102,65 @@ export default function SubjectsPage() {
               <Link 
                 key={subject.id}
                 to={`/subjects/${subject.id}`}
-                className="bg-card rounded-xl border border-border p-5 hover:border-primary/30 hover:shadow-md transition-all group"
+                className="bg-card rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-200 group flex flex-col"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex items-center gap-2">
+                {/* Thumbnail */}
+                <div className="relative h-36 w-full overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
+                  {subject.cover_image ? (
+                    <img src={subject.cover_image} alt={subject.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="w-12 h-12 text-primary/30" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  {/* Badges overlaid on image */}
+                  <div className="absolute top-3 right-3 flex gap-1.5">
                     {isPremium && (
-                      <Badge variant="secondary" className="text-[10px] bg-accent/10 text-accent border-accent/20">
+                      <Badge className="text-[10px] bg-accent text-accent-foreground border-0 shadow">
                         <Lock className="w-2.5 h-2.5 mr-1" />Premium
                       </Badge>
                     )}
                     {isEnrolled && (
-                      <Badge className="text-[10px] bg-success/10 text-success border-success/20">Enrolled</Badge>
+                      <Badge className="text-[10px] bg-success text-success-foreground border-0 shadow">Enrolled</Badge>
                     )}
                   </div>
-                </div>
-                
-                <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">
-                  {subject.name}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">{subject.form_name}</p>
-                {subject.description && (
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{subject.description}</p>
-                )}
-                
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-xs text-muted-foreground">
-                    {subject.total_topics || 0} topics · {subject.total_lessons || 0} lessons
+                  <div className="absolute bottom-2 left-3">
+                    <span className="text-[10px] text-white/80 font-medium bg-black/30 px-2 py-0.5 rounded-full">{subject.form_name}</span>
                   </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 flex flex-col flex-1">
+                  <h3 className="font-display font-semibold text-sm leading-snug group-hover:text-primary transition-colors">
+                    {subject.name}
+                  </h3>
+                  {subject.description && (
+                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{subject.description}</p>
+                  )}
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{subject.total_lessons || 0} lessons</span>
+                    {subject.updated_date && (
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{format(new Date(subject.updated_date), 'MMM yyyy')}</span>
+                    )}
+                  </div>
+
+                  {/* Progress if enrolled */}
                   {isEnrolled && (
-                    <div className="flex items-center gap-2">
-                      <Progress value={enrollment.progress_percentage || 0} className="w-12 h-1.5" />
-                      <span className="text-xs font-medium text-primary">{enrollment.progress_percentage || 0}%</span>
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">Progress</span>
+                        <span className="text-xs font-semibold text-primary">{enrollment.progress_percentage || 0}%</span>
+                      </div>
+                      <Progress value={enrollment.progress_percentage || 0} className="h-1.5" />
                     </div>
                   )}
-                </div>
-                
-                <div className="flex items-center text-primary text-xs font-medium mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {isEnrolled ? 'Continue Learning' : 'View Subject'} <ChevronRight className="w-3 h-3 ml-1" />
+
+                  <div className="flex items-center text-primary text-xs font-medium mt-auto pt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isEnrolled ? 'Continue Learning' : 'View Subject'} <ChevronRight className="w-3 h-3 ml-1" />
+                  </div>
                 </div>
               </Link>
             );

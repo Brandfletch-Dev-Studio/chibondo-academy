@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ChevronRight, ArrowLeft, Clock } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -82,73 +82,82 @@ export default function SubjectDetail() {
       </Link>
 
       {/* Subject Header */}
-      <div className="bg-card rounded-2xl border border-border p-6 lg:p-8">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-          <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <BookOpen className="w-8 h-8 text-primary" />
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        {/* Banner */}
+        {subject.cover_image ? (
+          <div className="h-40 lg:h-56 w-full relative">
+            <img src={subject.cover_image} alt={subject.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="secondary" className="text-[10px]">{subject.form_name || 'Form'}</Badge>
-              {subject.is_premium && (
-                <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">Premium</Badge>
+        ) : (
+          <div className="h-32 lg:h-44 w-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center">
+            <BookOpen className="w-16 h-16 text-primary-foreground/30" />
+          </div>
+        )}
+        <div className="p-6 lg:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge variant="secondary" className="text-[10px]">{subject.form_name || 'Form'}</Badge>
+                {subject.is_premium && (
+                  <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">Premium</Badge>
+                )}
+              </div>
+              <h1 className="text-2xl lg:text-3xl font-display font-bold">{subject.name}</h1>
+              {subject.description && (
+                <p className="text-muted-foreground text-sm mt-2 leading-relaxed max-w-2xl">{subject.description}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" />{topics.length} topics · {totalLessons} lessons</span>
+                {subject.teacher_name && <span>Taught by <span className="font-medium text-foreground">{subject.teacher_name}</span></span>}
+              </div>
+            </div>
+            <div className="flex flex-col items-start lg:items-end gap-3 flex-shrink-0">
+              {enrollment ? (
+                <div className="bg-muted/50 rounded-xl p-4 text-center min-w-[120px]">
+                  <div className="text-3xl font-bold text-primary font-display">{progressPct}%</div>
+                  <p className="text-xs text-muted-foreground mb-2">Complete</p>
+                  <Progress value={progressPct} className="h-2" />
+                </div>
+              ) : (
+                <Button onClick={() => enrollMutation.mutate()} className="bg-primary hover:bg-primary/90 px-8">
+                  Enroll Now
+                </Button>
               )}
             </div>
-            <h1 className="text-2xl font-display font-bold">{subject.name}</h1>
-            {subject.description && (
-              <p className="text-muted-foreground text-sm mt-1">{subject.description}</p>
-            )}
-            <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-              <span>{topics.length} topics</span>
-              <span>{totalLessons} lessons</span>
-              {subject.teacher_name && <span>By {subject.teacher_name}</span>}
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-3">
-            {enrollment ? (
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary font-display">{progressPct}%</div>
-                <p className="text-xs text-muted-foreground">Complete</p>
-                <Progress value={progressPct} className="w-32 h-2 mt-2" />
-              </div>
-            ) : (
-              <Button onClick={() => enrollMutation.mutate()} className="bg-primary hover:bg-primary/90">
-                Enroll Now
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
       {/* Topics & Lessons */}
-      <div className="bg-card rounded-xl border border-border">
-        <div className="p-5 border-b border-border">
-          <h2 className="font-display font-semibold text-lg">Course Content</h2>
-          <p className="text-xs text-muted-foreground mt-1">
+      <div className="bg-card rounded-2xl border border-border">
+        <div className="px-6 lg:px-8 py-5 border-b border-border">
+          <h2 className="font-display font-semibold text-xl">Course Content</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             {topics.length} topics · {totalLessons} lessons
           </p>
         </div>
-        <Accordion type="multiple" className="px-2">
+        <Accordion type="multiple" className="px-4 lg:px-6 py-2">
           {topics.map((topic, idx) => {
             const topicLessons = lessonsByTopic[topic.id] || [];
             const completedInTopic = topicLessons.filter(l => completedLessons.includes(l.id)).length;
             return (
-              <AccordionItem key={topic.id} value={topic.id}>
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-3 text-left">
-                    <span className="w-7 h-7 rounded-full bg-muted text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <AccordionItem key={topic.id} value={topic.id} className="border-border">
+                <AccordionTrigger className="py-4 hover:no-underline">
+                  <div className="flex items-center gap-4 text-left">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
                       {idx + 1}
                     </span>
                     <div>
-                      <p className="font-medium text-sm">{topic.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {topicLessons.length} lessons · {completedInTopic}/{topicLessons.length} done
+                      <p className="font-semibold text-sm">{topic.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {topicLessons.length} lessons · {completedInTopic}/{topicLessons.length} completed
                       </p>
                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 pb-3">
-                  <div className="space-y-1 ml-10">
+                <AccordionContent className="pb-4">
+                  <div className="space-y-1.5 ml-12">
                     {topicLessons.map(lesson => {
                       const isCompleted = completedLessons.includes(lesson.id);
                       const isLocked = !enrollment && !lesson.is_free;
@@ -156,8 +165,8 @@ export default function SubjectDetail() {
                         <Link
                           key={lesson.id}
                           to={isLocked ? '#' : `/lesson/${lesson.id}`}
-                          className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors ${
-                            isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50'
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
+                            isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50 hover:text-primary'
                           }`}
                         >
                           {isCompleted ? (
@@ -167,10 +176,10 @@ export default function SubjectDetail() {
                           ) : (
                             <PlayCircle className="w-4 h-4 text-primary flex-shrink-0" />
                           )}
-                          <span className="flex-1">{lesson.title}</span>
-                          <div className="flex items-center gap-2">
+                          <span className="flex-1 leading-snug">{lesson.title}</span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             {lesson.is_free && (
-                              <Badge variant="secondary" className="text-[9px]">Free</Badge>
+                              <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/20">Free</Badge>
                             )}
                             {lesson.estimated_minutes > 0 && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">

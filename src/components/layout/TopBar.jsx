@@ -1,18 +1,15 @@
-import React, { useState } from 'react';
-import { Bell, Menu, Search, X } from 'lucide-react';
+import React from 'react';
+import { Bell, Menu, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
 import MobileSidebar from './MobileSidebar';
 
 export default function TopBar({ user, notificationCount = 0 }) {
-  const [searchOpen, setSearchOpen] = useState(false);
-
   return (
-    <header className="h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
-      <div className="flex items-center gap-3">
+    <header className="h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center px-4 lg:px-6 sticky top-0 z-30">
+      {/* Left: Mobile menu */}
+      <div className="flex-1 flex items-center">
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="lg:hidden">
@@ -23,22 +20,18 @@ export default function TopBar({ user, notificationCount = 0 }) {
             <MobileSidebar user={user} />
           </SheetContent>
         </Sheet>
-        
-        {searchOpen ? (
-          <div className="flex items-center gap-2">
-            <Input placeholder="Search subjects, lessons..." className="w-48 sm:w-64 h-8 text-sm" autoFocus />
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSearchOpen(false)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSearchOpen(true)}>
-            <Search className="w-4 h-4" />
-          </Button>
-        )}
       </div>
 
+      {/* Center: Logo */}
       <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+          <GraduationCap className="w-4 h-4 text-primary-foreground" />
+        </div>
+        <span className="font-display font-bold text-sm tracking-wide hidden sm:block">Chibondo Academy</span>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex-1 flex items-center justify-end gap-2">
         <Link to="/notifications">
           <Button variant="ghost" size="icon" className="relative h-8 w-8">
             <Bell className="w-4 h-4" />
@@ -49,11 +42,9 @@ export default function TopBar({ user, notificationCount = 0 }) {
             )}
           </Button>
         </Link>
-        <Link to="/profile">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary cursor-pointer hover:bg-primary/20 transition-colors">
-            {user?.full_name?.[0] || 'U'}
-          </div>
-        </Link>
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+          {user?.full_name?.[0] || 'U'}
+        </div>
       </div>
     </header>
   );

@@ -22,12 +22,12 @@ export default function UpcomingItems({ quizzes = [], assignments = [] }) {
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
+    <div className="bg-card rounded-xl border border-border p-5 flex flex-col min-h-0">
       <h3 className="font-display font-semibold text-lg mb-4">Upcoming</h3>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            <div className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center ${
               item.itemType === 'quiz' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'
             }`}>
               {item.itemType === 'quiz' ? <ClipboardList className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
@@ -40,7 +40,7 @@ export default function UpcomingItems({ quizzes = [], assignments = [] }) {
                 </p>
               )}
             </div>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-[10px] flex-shrink-0">
               {item.itemType === 'quiz' ? 'Quiz' : 'Assignment'}
             </Badge>
           </div>

@@ -46,8 +46,8 @@ export default function Sidebar({ user, collapsed, onToggle }) {
       "fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground z-40 transition-all duration-300 flex flex-col",
       collapsed ? "w-16" : "w-64"
     )}>
-      {/* Logo */}
-      <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
+      {/* Logo / Brand */}
+      <div className={`flex items-center border-b border-sidebar-border flex-shrink-0 ${collapsed ? 'justify-center p-4' : 'gap-3 p-4'}`}>
         <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
           <GraduationCap className="w-5 h-5 text-accent-foreground" />
         </div>
@@ -68,8 +68,10 @@ export default function Sidebar({ user, collapsed, onToggle }) {
             <Link
               key={item.path}
               to={item.path}
+              title={collapsed ? item.label : undefined}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all",
+                collapsed && "justify-center",
                 isActive 
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
@@ -83,10 +85,10 @@ export default function Sidebar({ user, collapsed, onToggle }) {
       </nav>
 
       {/* User & Collapse */}
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border p-3 flex-shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-bold flex-shrink-0">
               {user?.full_name?.[0] || 'U'}
             </div>
             <div className="flex-1 min-w-0">
@@ -95,17 +97,19 @@ export default function Sidebar({ user, collapsed, onToggle }) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center ${collapsed ? 'flex-col gap-2' : 'gap-2'}`}>
           <button 
             onClick={() => base44.auth.logout()} 
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors flex-1"
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors ${collapsed ? 'w-full justify-center' : 'flex-1'}`}
+            title="Sign Out"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 flex-shrink-0" />
             {!collapsed && <span>Sign Out</span>}
           </button>
           <button 
             onClick={onToggle}
-            className="p-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors hidden lg:block"
+            className="p-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors hidden lg:flex items-center justify-center"
+            title={collapsed ? 'Expand' : 'Collapse'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
