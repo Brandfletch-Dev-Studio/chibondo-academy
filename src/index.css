@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -35,9 +35,9 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --radius: 0.625rem;
-    --font-heading: 'Cinzel', Georgia, serif;
-    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Cinzel', Georgia, serif;
+    --font-heading: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Nunito', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     /* Sidebar = dark navy like the logo background */
     --sidebar-background: 222 47% 11%;

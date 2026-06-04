@@ -69,7 +69,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || 
-            (item.path !== '/' && location.pathname.startsWith(item.path));
+            (item.path !== '/' && item.path.length > 1 && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.path}
@@ -106,7 +106,10 @@ export default function Sidebar({ user, collapsed, onToggle }) {
         <div className={`flex items-center ${collapsed ? 'flex-col gap-2' : 'gap-2'}`}>
           <button 
             onClick={() => base44.auth.logout()} 
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors ${collapsed ? 'w-full justify-center' : 'flex-1'}`}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${collapsed ? 'w-full justify-center' : 'flex-1'}`}
+            style={{ color: 'hsl(43 20% 70%)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'hsl(43 74% 66%)'; e.currentTarget.style.background = 'hsl(222 40% 18%)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'hsl(43 20% 70%)'; e.currentTarget.style.background = 'transparent'; }}
             title="Sign Out"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />

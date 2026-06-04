@@ -58,7 +58,7 @@ const AuthenticatedApp = () => {
             style={{ boxShadow: '0 0 60px rgba(184,144,55,0.3)' }}
           />
           <div>
-            <p className="text-lg font-display tracking-widest uppercase" style={{ color: 'hsl(43 74% 52%)' }}>Chibondo Academy</p>
+            <p className="text-lg font-display tracking-widest uppercase" style={{ color: 'hsl(43 74% 52%)' }}>The Chibondo Academy</p>
             <div className="flex items-center justify-center gap-1.5 mt-3">
               {[0,1,2].map(i => (
                 <div key={i} className="w-2 h-2 rounded-full" style={{ background: 'hsl(43 74% 52%)', animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />

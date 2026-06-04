@@ -7,7 +7,7 @@ import MobileSidebar from './MobileSidebar';
 
 export default function TopBar({ user, notificationCount = 0 }) {
   return (
-    <header className="h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center px-4 lg:px-6 sticky top-0 z-30">
+    <header className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30" style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}>
       {/* Left: Mobile menu */}
       <div className="flex-1 flex items-center">
         <Sheet>
@@ -34,7 +34,7 @@ export default function TopBar({ user, notificationCount = 0 }) {
       {/* Right: Actions */}
       <div className="flex-1 flex items-center justify-end gap-2">
         <Link to="/notifications">
-          <Button variant="ghost" size="icon" className="relative h-8 w-8">
+          <Button variant="ghost" size="icon" className="relative h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent">
             <Bell className="w-4 h-4" />
             {notificationCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent text-accent-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
@@ -43,9 +43,11 @@ export default function TopBar({ user, notificationCount = 0 }) {
             )}
           </Button>
         </Link>
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-          {user?.full_name?.[0] || 'U'}
-        </div>
+        <Link to="/admin/settings">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            {user?.full_name?.[0] || 'U'}
+          </div>
+        </Link>
       </div>
     </header>
   );
