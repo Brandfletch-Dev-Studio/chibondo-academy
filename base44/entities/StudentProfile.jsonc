@@ -1,0 +1,44 @@
+{
+  "name": "StudentProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "phone_number": {
+      "type": "string"
+    },
+    "form": {
+      "type": "string",
+      "enum": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4"
+      ]
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "school_name": {
+      "type": "string"
+    },
+    "is_distance_learner": {
+      "type": "boolean",
+      "default": false
+    },
+    "onboarding_complete": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

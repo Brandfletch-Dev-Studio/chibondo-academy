@@ -2,7 +2,7 @@ import React from "react";
 
 export default function AuthLayout({ title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-gray-50">
       <div className="w-full max-w-md">
         {/* Brand header */}
         <div className="text-center mb-8">
