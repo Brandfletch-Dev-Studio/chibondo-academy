@@ -17,9 +17,9 @@ export default function SubscriptionPage() {
   const currentPlan = user?.subscription_plan || 'free';
 
   const [pricing, setPricing] = useState({
-    monthly_price: 3500,
-    quarterly_price: 9000,
-    annual_price: 30000,
+    monthly_price: 10000,
+    annual_price: 80000,
+    biannual_price: 150000,
   });
 
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -40,9 +40,9 @@ export default function SubscriptionPage() {
   useEffect(() => {
     if (pricingData) {
       setPricing({
-        monthly_price: pricingData.monthly_price || 3500,
-        quarterly_price: pricingData.quarterly_price || 9000,
-        annual_price: pricingData.annual_price || 30000,
+        monthly_price: pricingData.monthly_price || 10000,
+        annual_price: pricingData.annual_price || 80000,
+        biannual_price: pricingData.biannual_price || 150000,
       });
     }
   }, [pricingData]);
@@ -68,21 +68,21 @@ export default function SubscriptionPage() {
       color: 'border-primary',
     },
     {
-      id: 'quarterly',
-      name: 'Quarterly',
-      price: pricing.quarterly_price,
-      period: '/3 months',
-      icon: Crown,
-      features: ['Everything in Monthly', 'Mock examinations', 'Priority support', 'Downloadable resources', `Save MWK ${pricing.monthly_price * 3 - pricing.quarterly_price}`],
-      color: 'border-accent',
-    },
-    {
       id: 'annual',
       name: 'Annual',
       price: pricing.annual_price,
       period: '/year',
       icon: Crown,
-      features: ['Everything in Quarterly', 'Exam tips & strategies', 'Certificate of completion', 'Offline access', `Save MWK ${pricing.monthly_price * 12 - pricing.annual_price}`],
+      features: ['All lessons & videos', 'All quizzes & past papers', 'Assignment submissions', 'Progress tracking', 'Priority support', `Save MWK ${pricing.monthly_price * 12 - pricing.annual_price}`],
+      color: 'border-accent',
+    },
+    {
+      id: 'biannual',
+      name: 'Biannual',
+      price: pricing.biannual_price,
+      period: '/2 years',
+      icon: Crown,
+      features: ['Everything in Annual', 'Exam tips & strategies', 'Certificate of completion', 'Offline access', 'Dedicated support', `Save MWK ${pricing.monthly_price * 24 - pricing.biannual_price}`],
       color: 'border-accent',
     },
   ];
@@ -137,7 +137,7 @@ export default function SubscriptionPage() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
         {plans.map(plan => {
           const isCurrent = currentPlan === plan.id;
           return (

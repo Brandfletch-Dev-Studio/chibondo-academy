@@ -15,6 +15,16 @@ Deno.serve(async (req) => {
 
     const { planKey, value } = await req.json();
 
+    // Validate pricing structure
+    if (planKey === 'pricing') {
+      const allowedKeys = ['monthly_price', 'annual_price', 'biannual_price', 'currency', 'free_lessons_per_subject'];
+      for (const key of Object.keys(value)) {
+        if (!allowedKeys.includes(key)) {
+          return Response.json({ error: `Invalid pricing key: ${key}` }, { status: 400 });
+        }
+      }
+    }
+
     // Fetch existing settings or create new
     const existing = await base44.entities.PlatformSettings.filter({ key: planKey });
     

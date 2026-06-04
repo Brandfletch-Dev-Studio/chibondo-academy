@@ -24,9 +24,9 @@ export default function AdminSettings() {
   });
 
   const [pricing, setPricing] = useState({
-    monthly_price: 5000,
-    quarterly_price: 13500,
-    annual_price: 48000,
+    monthly_price: 10000,
+    annual_price: 80000,
+    biannual_price: 150000,
     currency: 'MWK',
     free_lessons_per_subject: 2,
   });
@@ -165,12 +165,12 @@ export default function AdminSettings() {
             <Input className="mt-1" type="number" value={pricing.monthly_price} onChange={e => setPricing({ ...pricing, monthly_price: Number(e.target.value) })} />
           </div>
           <div>
-            <Label>Quarterly Plan Price</Label>
-            <Input className="mt-1" type="number" value={pricing.quarterly_price} onChange={e => setPricing({ ...pricing, quarterly_price: Number(e.target.value) })} />
-          </div>
-          <div>
             <Label>Annual Plan Price</Label>
             <Input className="mt-1" type="number" value={pricing.annual_price} onChange={e => setPricing({ ...pricing, annual_price: Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label>Biannual Plan Price (2 Years)</Label>
+            <Input className="mt-1" type="number" value={pricing.biannual_price} onChange={e => setPricing({ ...pricing, biannual_price: Number(e.target.value) })} />
           </div>
         </div>
         <div className="flex justify-end pt-2">

@@ -7,9 +7,9 @@ Deno.serve(async (req) => {
     const settings = await base44.entities.PlatformSettings.filter({ key: 'pricing' });
     
     const defaultPricing = {
-      monthly_price: 5000,
-      quarterly_price: 13500,
-      annual_price: 48000,
+      monthly_price: 10000,
+      annual_price: 80000,
+      biannual_price: 150000,
       currency: 'MWK',
     };
     
@@ -18,8 +18,8 @@ Deno.serve(async (req) => {
     return Response.json({ 
       pricing: {
         monthly_price: pricing.monthly_price || defaultPricing.monthly_price,
-        quarterly_price: pricing.quarterly_price || defaultPricing.quarterly_price,
         annual_price: pricing.annual_price || defaultPricing.annual_price,
+        biannual_price: pricing.biannual_price || defaultPricing.biannual_price,
       }
     });
   } catch (error) {
