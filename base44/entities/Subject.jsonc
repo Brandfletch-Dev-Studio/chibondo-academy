@@ -1,0 +1,61 @@
+{
+  "name": "Subject",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "cover_image": {
+      "type": "string"
+    },
+    "form_id": {
+      "type": "string",
+      "description": "ID of the AcademicForm"
+    },
+    "form_name": {
+      "type": "string"
+    },
+    "teacher_id": {
+      "type": "string",
+      "description": "Assigned teacher user ID"
+    },
+    "teacher_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "draft",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "is_premium": {
+      "type": "boolean",
+      "default": true
+    },
+    "total_topics": {
+      "type": "number",
+      "default": 0
+    },
+    "total_lessons": {
+      "type": "number",
+      "default": 0
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "form_id"
+  ]
+}

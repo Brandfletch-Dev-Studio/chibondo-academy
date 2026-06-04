@@ -1,0 +1,50 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "subscription_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "MWK"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "airtel_money",
+        "tnm_mpamba",
+        "bank_transfer"
+      ]
+    },
+    "reference": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "student_id",
+    "amount"
+  ]
+}

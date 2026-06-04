@@ -1,0 +1,53 @@
+{
+  "name": "Discussion",
+  "type": "object",
+  "properties": {
+    "lesson_id": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "author_id": {
+      "type": "string"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "author_role": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "parent_id": {
+      "type": "string",
+      "description": "For replies"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_answer": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "hidden",
+        "deleted"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "content",
+    "author_id"
+  ]
+}

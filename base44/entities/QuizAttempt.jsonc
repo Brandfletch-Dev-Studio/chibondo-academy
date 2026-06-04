@@ -1,0 +1,60 @@
+{
+  "name": "QuizAttempt",
+  "type": "object",
+  "properties": {
+    "quiz_id": {
+      "type": "string"
+    },
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "is_correct": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "score": {
+      "type": "number"
+    },
+    "total_points": {
+      "type": "number"
+    },
+    "percentage": {
+      "type": "number"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "time_taken_seconds": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed",
+        "timed_out"
+      ],
+      "default": "in_progress"
+    }
+  },
+  "required": [
+    "quiz_id",
+    "student_id"
+  ]
+}

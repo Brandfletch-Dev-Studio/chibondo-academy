@@ -1,0 +1,54 @@
+{
+  "name": "AssignmentSubmission",
+  "type": "object",
+  "properties": {
+    "assignment_id": {
+      "type": "string"
+    },
+    "student_id": {
+      "type": "string"
+    },
+    "student_name": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "marks": {
+      "type": "number"
+    },
+    "feedback": {
+      "type": "string"
+    },
+    "graded_by": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "graded",
+        "returned"
+      ],
+      "default": "submitted"
+    }
+  },
+  "required": [
+    "assignment_id",
+    "student_id"
+  ]
+}

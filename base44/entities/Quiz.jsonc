@@ -1,0 +1,97 @@
+{
+  "name": "Quiz",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "lesson_id": {
+      "type": "string"
+    },
+    "topic_id": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "form_id": {
+      "type": "string"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "multiple_choice",
+              "multiple_select",
+              "true_false",
+              "fill_blank",
+              "short_answer"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correct_answer": {
+            "type": "string"
+          },
+          "correct_answers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "points": {
+            "type": "number",
+            "default": 1
+          }
+        }
+      }
+    },
+    "time_limit_minutes": {
+      "type": "number",
+      "default": 0
+    },
+    "pass_percentage": {
+      "type": "number",
+      "default": 50
+    },
+    "max_attempts": {
+      "type": "number",
+      "default": 3
+    },
+    "randomize": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "draft"
+      ],
+      "default": "draft"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

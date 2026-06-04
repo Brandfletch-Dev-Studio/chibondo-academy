@@ -1,0 +1,35 @@
+{
+  "name": "AcademicForm",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "e.g. Form 3, Form 4"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "coming_soon",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "cover_image": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

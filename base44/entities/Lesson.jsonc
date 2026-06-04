@@ -1,0 +1,90 @@
+{
+  "name": "Lesson",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Rich HTML content / notes"
+    },
+    "topic_id": {
+      "type": "string"
+    },
+    "topic_title": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "subject_name": {
+      "type": "string"
+    },
+    "form_id": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "video_provider": {
+      "type": "string",
+      "enum": [
+        "youtube",
+        "bunny",
+        "upload",
+        "none"
+      ],
+      "default": "none"
+    },
+    "video_duration": {
+      "type": "number",
+      "default": 0
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "draft"
+      ],
+      "default": "draft"
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": false
+    },
+    "estimated_minutes": {
+      "type": "number",
+      "default": 15
+    }
+  },
+  "required": [
+    "title",
+    "topic_id",
+    "subject_id"
+  ]
+}

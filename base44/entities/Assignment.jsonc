@@ -1,0 +1,61 @@
+{
+  "name": "Assignment",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "instructions": {
+      "type": "string"
+    },
+    "lesson_id": {
+      "type": "string"
+    },
+    "topic_id": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "form_id": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_marks": {
+      "type": "number",
+      "default": 100
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "draft"
+      ],
+      "default": "draft"
+    }
+  },
+  "required": [
+    "title",
+    "subject_id"
+  ]
+}

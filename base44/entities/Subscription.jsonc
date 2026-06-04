@@ -1,0 +1,63 @@
+{
+  "name": "Subscription",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "monthly",
+        "quarterly",
+        "annual"
+      ],
+      "default": "free"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "cancelled",
+        "trial"
+      ],
+      "default": "active"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "amount_paid": {
+      "type": "number",
+      "default": 0
+    },
+    "currency": {
+      "type": "string",
+      "default": "MWK"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "airtel_money",
+        "tnm_mpamba",
+        "bank_transfer",
+        "free"
+      ],
+      "default": "free"
+    },
+    "auto_renew": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "student_id",
+    "plan"
+  ]
+}
