@@ -174,21 +174,37 @@ export default function LessonPage() {
       </Tabs>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-4 border-t border-border">
+      <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
         {prevLesson ? (
-          <Link to={`/lesson/${prevLesson.id}`}>
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-1.5" /> Previous
-            </Button>
+          <Link to={`/lesson/${prevLesson.id}`} className="block">
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors group">
+              <ArrowLeft className="w-5 h-5 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Previous</p>
+                <p className="text-sm font-semibold truncate leading-tight mt-0.5">{prevLesson.title}</p>
+              </div>
+            </div>
           </Link>
         ) : <div />}
         {nextLesson ? (
-          <Link to={`/lesson/${nextLesson.id}`}>
-            <Button size="sm">
-              Next <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
+          <Link to={`/lesson/${nextLesson.id}`} className="block">
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors group justify-end text-right">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-primary font-medium">Next</p>
+                <p className="text-sm font-semibold truncate leading-tight mt-0.5">{nextLesson.title}</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
+            </div>
           </Link>
-        ) : <div />}
+        ) : (
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-success/30 bg-success/5">
+            <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-success">All done!</p>
+              <p className="text-xs text-muted-foreground">You've reached the end</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

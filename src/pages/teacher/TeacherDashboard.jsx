@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, Users, ClipboardList, BarChart3, Plus, ArrowRight } from 'lucide-react';
+import { BookOpen, Users, ArrowRight, Plus, CheckCircle2, Clock, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function TeacherDashboard() {
   const { user } = useOutletContext();
+  const [expandedSubject, setExpandedSubject] = useState(null);
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['teacherSubjects', user?.id],
@@ -16,93 +17,177 @@ export default function TeacherDashboard() {
     enabled: !!user?.id,
   });
 
-  const subjectIds = subjects.map(s => s.id);
-
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ['teacherEnrollments', subjectIds],
+  const { data: allEnrollments = [] } = useQuery({
+    queryKey: ['teacherEnrollments', subjects.map(s => s.id).join(',')],
     queryFn: async () => {
-      if (subjectIds.length === 0) return [];
-      const allEnrollments = [];
-      for (const sid of subjectIds) {
-        const e = await base44.entities.Enrollment.filter({ subject_id: sid }, '-created_date', 100);
-        allEnrollments.push(...e);
+      const results = [];
+      for (const s of subjects) {
+        const e = await base44.entities.Enrollment.filter({ subject_id: s.id }, '-created_date', 200);
+        results.push(...e.map(en => ({ ...en, subject_name: s.name })));
       }
-      return allEnrollments;
+      return results;
     },
-    enabled: subjectIds.length > 0,
+    enabled: subjects.length > 0,
   });
 
+  const { data: studentProfiles = [] } = useQuery({
+    queryKey: ['studentProfiles'],
+    queryFn: () => base44.entities.StudentProfile.list('-created_date', 200),
+    enabled: allEnrollments.length > 0,
+  });
+
+  const profileByUserId = Object.fromEntries(studentProfiles.map(p => [p.user_id, p]));
+
+  const uniqueStudentIds = [...new Set(allEnrollments.map(e => e.student_id))];
+
   const stats = [
-    { label: 'My Subjects', value: subjects.length, icon: BookOpen, color: 'bg-primary/10 text-primary' },
-    { label: 'Students Enrolled', value: enrollments.length, icon: Users, color: 'bg-accent/10 text-accent' },
-    { label: 'Published', value: subjects.filter(s => s.status === 'published').length, icon: ClipboardList, color: 'bg-success/10 text-success' },
+    { label: 'My Subjects', value: subjects.length, icon: BookOpen, color: 'text-primary bg-primary/10' },
+    { label: 'Total Students', value: uniqueStudentIds.length, icon: Users, color: 'text-accent bg-accent/10' },
+    { label: 'Published', value: subjects.filter(s => s.status === 'published').length, icon: CheckCircle2, color: 'text-success bg-success/10' },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold">Teacher Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Welcome back, {user?.full_name?.split(' ')[0]}</p>
+          <h1 className="text-2xl font-display font-bold">Welcome, {user?.full_name?.split(' ')[0]} 👋</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your subjects and track student progress</p>
         </div>
         <Link to="/teacher/courses">
-          <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Manage Courses</Button>
+          <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Manage Content</Button>
         </Link>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((stat) => (
+        {stats.map(stat => (
           <Card key={stat.label}>
-            <CardContent className="p-5">
-              <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${stat.color}`}>
-                  <stat.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold font-display">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${stat.color}`}>
+                <stat.icon className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold font-display">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-display">My Subjects</CardTitle>
-            <Link to="/teacher/courses" className="text-sm text-primary flex items-center gap-1 hover:underline">
-              View All <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* My Subjects */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-display">My Subjects</CardTitle>
+              <Link to="/teacher/courses" className="text-sm text-primary flex items-center gap-1 hover:underline">
+                Manage <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {subjects.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No subjects assigned yet. Contact an admin.</p>
+            )}
             {subjects.map(s => {
-              const subEnrollments = enrollments.filter(e => e.subject_id === s.id);
+              const enrolled = allEnrollments.filter(e => e.subject_id === s.id);
+              const isExpanded = expandedSubject === s.id;
+              const subjectStudents = enrolled
+                .map(e => ({ ...e, profile: profileByUserId[e.student_id] }))
+                .filter(e => e.profile);
+
               return (
-                <Link key={s.id} to={`/teacher/courses/${s.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">{s.form_name}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="secondary" className="text-[10px]">{s.status}</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{subEnrollments.length} students</p>
-                  </div>
-                </Link>
+                <div key={s.id} className="rounded-lg border border-border overflow-hidden">
+                  <button
+                    onClick={() => setExpandedSubject(isExpanded ? null : s.id)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{s.name}</p>
+                      <p className="text-xs text-muted-foreground">{s.form_name} · {enrolled.length} student{enrolled.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={s.status === 'published' ? 'default' : 'secondary'} className="text-[10px]">{s.status}</Badge>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/30 px-3 py-2 space-y-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Enrolled Students</p>
+                        <Link to={`/teacher/courses/${s.id}`}>
+                          <Button variant="outline" size="sm" className="h-6 text-xs px-2">Edit Content</Button>
+                        </Link>
+                      </div>
+                      {subjectStudents.length === 0 && (
+                        <p className="text-xs text-muted-foreground py-2 text-center">No students enrolled yet</p>
+                      )}
+                      {subjectStudents.map(e => (
+                        <div key={e.id} className="flex items-center gap-2 py-1.5">
+                          <div className="w-6 h-6 rounded-full bg-sidebar flex items-center justify-center text-[10px] font-bold text-sidebar-primary flex-shrink-0">
+                            {e.profile.full_name?.[0] || '?'}
+                          </div>
+                          <p className="text-sm flex-1 truncate">{e.profile.full_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${e.progress_percentage || 0}%` }} />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground w-7">{e.progress_percentage || 0}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })}
-            {subjects.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-6">No subjects assigned. Ask an admin to assign you.</p>
+          </CardContent>
+        </Card>
+
+        {/* All Students */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" /> Enrolled Students
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {uniqueStudentIds.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No students enrolled in your subjects yet.</p>
             )}
-          </div>
-        </CardContent>
-      </Card>
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {uniqueStudentIds.map(sid => {
+                const profile = profileByUserId[sid];
+                const studentEnrollments = allEnrollments.filter(e => e.student_id === sid);
+                if (!profile) return null;
+                return (
+                  <div key={sid} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-sidebar flex items-center justify-center text-xs font-bold text-sidebar-primary flex-shrink-0">
+                      {profile.full_name?.[0] || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{profile.full_name}</p>
+                      <p className="text-xs text-muted-foreground">{profile.form} · {profile.school_name || 'Distance learner'}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="flex items-center gap-1 justify-end">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{studentEnrollments.length} subject{studentEnrollments.length !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
