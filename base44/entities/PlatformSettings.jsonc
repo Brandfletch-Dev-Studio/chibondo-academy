@@ -1,0 +1,21 @@
+{
+  "name": "PlatformSettings",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Unique settings key (e.g., 'pricing', 'general')"
+    },
+    "value": {
+      "type": "object",
+      "description": "Settings value as JSON object"
+    },
+    "updated_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "key",
+    "value"
+  ]
+}
