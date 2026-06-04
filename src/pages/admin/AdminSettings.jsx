@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, School, CreditCard, Bell, Shield, Save } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Settings, School, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function AdminSettings() {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+
   const [general, setGeneral] = useState({
     school_name: 'The Chibondo Academy',
     tagline: 'Excellence in Malawian Secondary Education',
@@ -31,8 +37,28 @@ export default function AdminSettings() {
     email_on_submission: false,
   });
 
-  const handleSave = (section) => {
-    toast.success(`${section} settings saved successfully!`);
+  const handleSave = async (section) => {
+    setLoading(true);
+    try {
+      if (section === 'Pricing') {
+        await base44.functions.invoke('savePlatformSettings', { planKey: 'pricing', value: pricing });
+      } else if (section === 'General') {
+        await base44.functions.invoke('savePlatformSettings', { planKey: 'general', value: general });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['platformSettings'] });
+      toast.success(`${section} settings saved successfully!`);
+    } catch (error) {
+      toast.error(`Failed to save ${section} settings`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyWebhookUrl = () => {
+    const webhookUrl = `${window.location.origin}/api/functions/payChanguWebhook`;
+    navigator.clipboard.writeText(webhookUrl);
+    toast.success('Webhook URL copied to clipboard! Configure this in your PayChangu dashboard.');
   };
 
   return (
@@ -41,6 +67,43 @@ export default function AdminSettings() {
         <h1 className="text-2xl font-display font-bold">Platform Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">Configure your academy platform</p>
       </div>
+
+      {/* PayChangu Integration */}
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" />
+            PayChangu Payment Integration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Configure your PayChangu webhook to receive payment notifications automatically.
+          </p>
+          <div className="bg-background rounded-lg p-4 border border-border">
+            <Label className="text-xs font-medium">Webhook URL</Label>
+            <div className="flex gap-2 mt-2">
+              <Input 
+                readOnly 
+                value={`${window.location.origin}/api/functions/payChanguWebhook`}
+                className="font-mono text-xs"
+              />
+              <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Add this URL to your PayChangu dashboard under Settings → Webhooks
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+            <ExternalLink className="w-3 h-3" />
+            <a href="https://dashboard.paychangu.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+              Open PayChangu Dashboard
+            </a>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* General */}
       <div className="bg-card rounded-xl border border-border p-6 space-y-4">
@@ -71,7 +134,7 @@ export default function AdminSettings() {
           </div>
         </div>
         <div className="flex justify-end pt-2">
-          <Button onClick={() => handleSave('General')}><Save className="w-4 h-4 mr-1" /> Save</Button>
+          <Button onClick={() => handleSave('General')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
         </div>
       </div>
 
@@ -111,7 +174,7 @@ export default function AdminSettings() {
           </div>
         </div>
         <div className="flex justify-end pt-2">
-          <Button onClick={() => handleSave('Pricing')}><Save className="w-4 h-4 mr-1" /> Save</Button>
+          <Button onClick={() => handleSave('Pricing')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
         </div>
       </div>
 
@@ -134,7 +197,7 @@ export default function AdminSettings() {
           ))}
         </div>
         <div className="flex justify-end pt-2">
-          <Button onClick={() => handleSave('Notification')}><Save className="w-4 h-4 mr-1" /> Save</Button>
+          <Button onClick={() => handleSave('Notification')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
         </div>
       </div>
 
