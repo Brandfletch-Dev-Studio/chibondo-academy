@@ -58,7 +58,7 @@ export default function Register() {
       const result = await base44.auth.verifyOtp({ email: email.trim(), otpCode: otpCode.trim() });
       if (result?.access_token) {
         await base44.auth.setToken(result.access_token);
-        window.location.href = '/onboarding';
+        window.location.href = '/dashboard';
       }
     } catch (err) {
       setVerifyError(err.message || "Invalid code. Please try again.");
@@ -81,7 +81,7 @@ export default function Register() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/onboarding");
+    base44.auth.loginWithProvider("google", "/dashboard");
   };
 
   if (emailSent) {

@@ -13,7 +13,7 @@ function RoleHome() {
   if (!user) return null;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
-  return <StudentDashboard />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 // Auth pages
@@ -21,7 +21,6 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-import Onboarding from '@/pages/Onboarding';
 import TeacherRegister from '@/pages/TeacherRegister';
 
 // Layout
@@ -114,7 +113,6 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
 
       {/* Protected Routes */}
