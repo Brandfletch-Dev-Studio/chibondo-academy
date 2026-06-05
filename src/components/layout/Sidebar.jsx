@@ -4,7 +4,7 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  Trophy, PenTool, LayoutDashboard, Gift, Layers
+  Trophy, PenTool, LayoutDashboard, Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -42,7 +42,6 @@ const adminNav = [
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
   { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
-  { label: 'Classes',        icon: Layers,          path: '/admin/academic' },
   { label: 'Students',       icon: Users,           path: '/admin/users' },
   { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },
   { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },

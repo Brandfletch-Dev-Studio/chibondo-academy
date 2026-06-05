@@ -53,7 +53,6 @@ import AssignmentGrading from '@/pages/teacher/AssignmentGrading';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
-import AcademicManagement from '@/pages/admin/AcademicManagement';
 import UserManagement from '@/pages/admin/UserManagement';
 import AdminSubscriptions from '@/pages/admin/AdminSubscriptions';
 import AdminSettings from '@/pages/admin/AdminSettings';
@@ -154,7 +153,7 @@ const AuthenticatedApp = () => {
 
           {/* Admin */}
           <Route path="/admin" element={<RoleGuard allowed={['admin']}><AdminDashboard /></RoleGuard>} />
-          <Route path="/admin/academic" element={<RoleGuard allowed={['admin']}><AcademicManagement /></RoleGuard>} />
+
           <Route path="/admin/users" element={<RoleGuard allowed={['admin']}><UserManagement /></RoleGuard>} />
           <Route path="/admin/teachers" element={<RoleGuard allowed={['admin']}><TeacherApplications /></RoleGuard>} />
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />

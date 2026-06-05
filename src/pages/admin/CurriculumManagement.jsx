@@ -13,12 +13,99 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Plus, Edit2, Trash2, GraduationCap, BookOpen, Layers,
-  BookMarked, Loader2, Users, ChevronRight, Eye, UserCheck, CheckCircle2, Clock
+  BookMarked, Loader2, Users, UserCheck, CheckCircle2, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
 
-// ─── COURSE (SUBJECT) MANAGER ────────────────────────────────────────────────
+// ─── FORM MANAGER ─────────────────────────────────────────────────────────────
+function FormManager() {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const empty = { name: '', description: '', order: 0, status: 'active' };
+  const [form, setForm] = useState(empty);
+
+  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => base44.entities.AcademicForm.list('order', 50) });
+  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
+
+  const saveMutation = useMutation({
+    mutationFn: () => editing ? base44.entities.AcademicForm.update(editing.id, form) : base44.entities.AcademicForm.create(form),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['forms'] }); closeDialog(); toast.success(editing ? 'Form updated' : 'Form created'); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.AcademicForm.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['forms'] }); toast.success('Form deleted'); },
+  });
+
+  const openEdit = (f) => { setEditing(f); setForm(f); setOpen(true); };
+  const closeDialog = () => { setOpen(false); setEditing(null); setForm(empty); };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-base">Academic Forms / Classes</h3>
+        <Button size="sm" onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-1" /> Add Form</Button>
+      </div>
+      <div className="space-y-3">
+        {forms.map(f => {
+          const subjectCount = subjects.filter(s => s.form_id === f.id).length;
+          return (
+            <div key={f.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <GraduationCap className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold">{f.name}</p>
+                <p className="text-xs text-muted-foreground">{f.description || 'No description'} · {subjectCount} subject{subjectCount !== 1 ? 's' : ''}</p>
+              </div>
+              <Badge variant="secondary" className={`text-[10px] ${f.status === 'active' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+                {f.status}
+              </Badge>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(f)}><Edit2 className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(f.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+              </div>
+            </div>
+          );
+        })}
+        {forms.length === 0 && <div className="text-center py-10 text-sm text-muted-foreground border border-dashed border-border rounded-xl">No forms yet. Click "Add Form" to create one.</div>}
+      </div>
+
+      <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? 'Edit Form' : 'New Academic Form'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div><Label>Form Name</Label><Input className="mt-1" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Form 3" /></div>
+            <div><Label>Description</Label><Textarea className="mt-1" value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description..." /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Display Order</Label><Input type="number" className="mt-1" value={form.order} onChange={e => setForm({ ...form, order: parseInt(e.target.value) || 0 })} /></div>
+              <div><Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="coming_soon">Coming Soon</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={closeDialog}>Cancel</Button>
+              <Button className="flex-1" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                {editing ? 'Save Changes' : 'Create Form'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── COURSE (SUBJECT) MANAGER ─────────────────────────────────────────────────
 function CourseManager() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -74,7 +161,7 @@ function CourseManager() {
 
       {forms.length === 0 ? (
         <div className="text-center py-10 text-sm text-muted-foreground border border-dashed border-border rounded-xl">
-          No forms found. Create forms in Academic Settings first.
+          No forms found. Create forms in the Classes tab first.
         </div>
       ) : (
         <Accordion type="multiple" className="space-y-2">
@@ -193,7 +280,112 @@ function CourseManager() {
   );
 }
 
-// ─── PENDING COURSE APPROVALS ────────────────────────────────────────────────
+// ─── TOPIC MANAGER ─────────────────────────────────────────────────────────────
+function TopicManager() {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [filterSubject, setFilterSubject] = useState('all');
+  const empty = { title: '', description: '', subject_id: '', form_id: '', order: 0, status: 'draft' };
+  const [formData, setFormData] = useState(empty);
+
+  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
+  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => base44.entities.Topic.list('order', 500) });
+  const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => base44.entities.Lesson.list('order', 1000) });
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      const sub = subjects.find(s => s.id === formData.subject_id);
+      const data = { ...formData, subject_name: sub?.name || '', form_id: sub?.form_id || '' };
+      return editing ? base44.entities.Topic.update(editing.id, data) : base44.entities.Topic.create(data);
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allTopics'] }); closeDialog(); toast.success(editing ? 'Topic updated' : 'Topic created'); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Topic.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allTopics'] }); toast.success('Topic deleted'); },
+  });
+
+  const openEdit = (t) => { setEditing(t); setFormData(t); setOpen(true); };
+  const closeDialog = () => { setOpen(false); setEditing(null); setFormData(empty); };
+  const filteredTopics = filterSubject === 'all' ? topics : topics.filter(t => t.subject_id === filterSubject);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-base">Topics</h3>
+        <div className="flex gap-2">
+          <Select value={filterSubject} onValueChange={setFilterSubject}>
+            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="All Subjects" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Subjects</SelectItem>
+              {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.form_name})</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-1" /> Add Topic</Button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {filteredTopics.map(t => {
+          const lessonCount = lessons.filter(l => l.topic_id === t.id).length;
+          return (
+            <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card">
+              <Layers className="w-4 h-4 text-accent flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{t.title}</p>
+                <p className="text-xs text-muted-foreground">{t.subject_name} · {lessonCount} lesson{lessonCount !== 1 ? 's' : ''}</p>
+              </div>
+              <Badge className={`text-[9px] ${t.status === 'published' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>{t.status}</Badge>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(t)}><Edit2 className="w-3 h-3" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(t.id)}><Trash2 className="w-3 h-3" /></Button>
+              </div>
+            </div>
+          );
+        })}
+        {filteredTopics.length === 0 && <div className="text-center py-8 text-sm text-muted-foreground border border-dashed border-border rounded-xl">No topics found.</div>}
+      </div>
+
+      <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? 'Edit Topic' : 'New Topic'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div><Label>Topic Title</Label><Input className="mt-1" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Algebra Basics" /></div>
+            <div><Label>Description</Label><Textarea className="mt-1" value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Subject</Label>
+                <Select value={formData.subject_id || ''} onValueChange={v => setFormData({ ...formData, subject_id: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select subject" /></SelectTrigger>
+                  <SelectContent>{subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.form_name})</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Order</Label><Input type="number" className="mt-1" value={formData.order || 0} onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} /></div>
+            </div>
+            <div><Label>Status</Label>
+              <Select value={formData.status} onValueChange={v => setFormData({ ...formData, status: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={closeDialog}>Cancel</Button>
+              <Button className="flex-1" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !formData.title || !formData.subject_id}>
+                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                {editing ? 'Save Changes' : 'Create Topic'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── PENDING COURSE APPROVALS ─────────────────────────────────────────────────
 function PendingApprovals() {
   const queryClient = useQueryClient();
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.filter({ pending_approval: true }) });
@@ -213,11 +405,7 @@ function PendingApprovals() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="font-semibold mb-0.5">Tutor Course Proposals</h3>
-        <p className="text-sm text-muted-foreground">Review and approve courses proposed by tutors</p>
-      </div>
-
+      <p className="text-sm text-muted-foreground">Review and approve courses proposed by tutors</p>
       {pendingCourses.length === 0 ? (
         <div className="text-center py-12 text-sm text-muted-foreground border border-dashed border-border rounded-xl">
           <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-success opacity-40" />
@@ -242,9 +430,7 @@ function PendingApprovals() {
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10"
-                      onClick={() => rejectMutation.mutate(s.id)} disabled={rejectMutation.isPending}>
-                      Reject
-                    </Button>
+                      onClick={() => rejectMutation.mutate(s.id)} disabled={rejectMutation.isPending}>Reject</Button>
                     <Button size="sm" className="bg-success hover:bg-success/90 text-white"
                       onClick={() => approveMutation.mutate(s.id)} disabled={approveMutation.isPending}>
                       <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
@@ -260,7 +446,7 @@ function PendingApprovals() {
   );
 }
 
-// ─── TUTOR ALLOCATION ────────────────────────────────────────────────────────
+// ─── TUTOR ALLOCATION ─────────────────────────────────────────────────────────
 function TutorAllocation() {
   const queryClient = useQueryClient();
   const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 100) });
@@ -275,14 +461,12 @@ function TutorAllocation() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Assign or reassign tutors to courses. Each course can have one primary tutor.</p>
-
+      <p className="text-sm text-muted-foreground">Assign or reassign tutors to courses.</p>
       {teachers.length === 0 && (
         <div className="text-center py-10 text-sm text-muted-foreground border border-dashed border-border rounded-xl">
           No tutors found. Approve teacher applications first.
         </div>
       )}
-
       {teachers.map(teacher => {
         const assignedCourses = subjects.filter(s => s.teacher_id === teacher.id);
         const totalStudents = assignedCourses.reduce((sum, s) => sum + enrollments.filter(e => e.subject_id === s.id).length, 0);
@@ -315,7 +499,6 @@ function TutorAllocation() {
           </div>
         );
       })}
-
       <div className="mt-4">
         <h4 className="font-semibold text-sm mb-3 text-muted-foreground uppercase tracking-wide">Unassigned Courses</h4>
         <div className="space-y-2">
@@ -344,7 +527,7 @@ function TutorAllocation() {
   );
 }
 
-// ─── ENROLLED STUDENTS PER COURSE ────────────────────────────────────────────
+// ─── COURSE ENROLLMENTS ───────────────────────────────────────────────────────
 function CourseEnrollments() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
@@ -352,9 +535,7 @@ function CourseEnrollments() {
   const { data: students = [] } = useQuery({ queryKey: ['allStudents'], queryFn: () => base44.entities.StudentProfile.filter({}) });
   const { data: users = [] } = useQuery({ queryKey: ['allUsers'], queryFn: () => base44.entities.User.filter({ role: 'user' }) });
 
-  const courseEnrollments = selectedSubject
-    ? enrollments.filter(e => e.subject_id === selectedSubject)
-    : [];
+  const courseEnrollments = selectedSubject ? enrollments.filter(e => e.subject_id === selectedSubject) : [];
 
   const getStudentName = (studentId) => {
     const sp = students.find(s => s.user_id === studentId);
@@ -374,7 +555,6 @@ function CourseEnrollments() {
           </SelectContent>
         </Select>
       </div>
-
       {selectedSubject && (
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -395,8 +575,7 @@ function CourseEnrollments() {
                   <div className="flex-1">
                     <p className="font-medium text-sm">{getStudentName(e.student_id)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {e.completed_lessons?.length || 0} lessons completed ·
-                      Last active {e.last_accessed ? new Date(e.last_accessed).toLocaleDateString() : 'Never'}
+                      {e.completed_lessons?.length || 0} lessons completed · Last active {e.last_accessed ? new Date(e.last_accessed).toLocaleDateString() : 'Never'}
                     </p>
                   </div>
                   <div className="text-right">
@@ -416,28 +595,32 @@ function CourseEnrollments() {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function CurriculumManagement() {
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
+  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => base44.entities.AcademicForm.list('order', 50) });
+  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => base44.entities.Topic.list('order', 500) });
   const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
   const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.entities.Enrollment.filter({}) });
   const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => base44.entities.Lesson.filter({}) });
 
   const stats = [
-    { label: 'Total Courses', value: subjects.length, icon: BookOpen, color: 'text-primary bg-primary/10' },
-    { label: 'Active Tutors', value: teachers.length, icon: UserCheck, color: 'text-accent bg-accent/10' },
-    { label: 'Total Lessons', value: lessons.length, icon: BookMarked, color: 'text-success bg-success/10' },
-    { label: 'Enrollments', value: enrollments.length, icon: Users, color: 'text-destructive bg-destructive/10' },
+    { label: 'Classes', value: forms.length, icon: GraduationCap, color: 'text-primary bg-primary/10' },
+    { label: 'Courses', value: subjects.length, icon: BookOpen, color: 'text-accent bg-accent/10' },
+    { label: 'Topics', value: topics.length, icon: Layers, color: 'text-success bg-success/10' },
+    { label: 'Lessons', value: lessons.length, icon: BookMarked, color: 'text-destructive bg-destructive/10' },
+    { label: 'Tutors', value: teachers.length, icon: UserCheck, color: 'text-primary bg-primary/10' },
+    { label: 'Enrollments', value: enrollments.length, icon: Users, color: 'text-accent bg-accent/10' },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold">Curriculum Management</h1>
-        <p className="text-sm text-muted-foreground mt-1">Create and manage courses, assign tutors, and track student enrollment</p>
+        <h1 className="text-2xl font-display font-bold">Courses</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage classes, courses, topics, tutors, and student enrollments</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {stats.map(s => (
           <div key={s.label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${s.color}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${s.color}`}>
               <s.icon className="w-4 h-4" />
             </div>
             <div>
@@ -451,13 +634,15 @@ export default function CurriculumManagement() {
       <Tabs defaultValue="courses">
         <TabsList className="flex flex-wrap gap-1 h-auto">
           <TabsTrigger value="courses"><BookOpen className="w-4 h-4 mr-1.5" /> Courses</TabsTrigger>
-          <TabsTrigger value="approvals" className="relative">
-            <Clock className="w-4 h-4 mr-1.5" /> Approvals
-          </TabsTrigger>
-          <TabsTrigger value="tutors"><UserCheck className="w-4 h-4 mr-1.5" /> Tutor Allocation</TabsTrigger>
+          <TabsTrigger value="classes"><GraduationCap className="w-4 h-4 mr-1.5" /> Classes</TabsTrigger>
+          <TabsTrigger value="topics"><Layers className="w-4 h-4 mr-1.5" /> Topics</TabsTrigger>
+          <TabsTrigger value="approvals"><Clock className="w-4 h-4 mr-1.5" /> Approvals</TabsTrigger>
+          <TabsTrigger value="tutors"><UserCheck className="w-4 h-4 mr-1.5" /> Tutors</TabsTrigger>
           <TabsTrigger value="enrollments"><Users className="w-4 h-4 mr-1.5" /> Enrollments</TabsTrigger>
         </TabsList>
         <TabsContent value="courses" className="mt-5"><CourseManager /></TabsContent>
+        <TabsContent value="classes" className="mt-5"><FormManager /></TabsContent>
+        <TabsContent value="topics" className="mt-5"><TopicManager /></TabsContent>
         <TabsContent value="approvals" className="mt-5"><PendingApprovals /></TabsContent>
         <TabsContent value="tutors" className="mt-5"><TutorAllocation /></TabsContent>
         <TabsContent value="enrollments" className="mt-5"><CourseEnrollments /></TabsContent>
