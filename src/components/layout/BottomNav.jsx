@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Classes', icon: BookOpen, path: '/subjects' },
-  { label: 'Library', icon: Library, path: '/revision' },
+  { label: 'Library', icon: Library, path: '/library' },
   { label: 'Fees', icon: CreditCard, path: '/subscription' },
   { label: 'Forums', icon: MessageSquare, path: '/discussions' },
   { label: 'Referrals', icon: Gift, path: '/referrals' },

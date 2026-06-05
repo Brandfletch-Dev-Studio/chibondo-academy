@@ -21,6 +21,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [user, setUser] = useState(null);
 
   const [fullName, setFullName] = useState("");
@@ -65,19 +66,23 @@ export default function Onboarding() {
       await base44.entities.StudentProfile.create({
         user_id: currentUser.id,
         full_name: fullName.trim(),
-        phone_number: currentUser.phone_number || "",
+        phone_number: "",
         form,
         subjects,
         school_name: isDistanceLearner ? "" : schoolName.trim(),
         is_distance_learner: isDistanceLearner,
         onboarding_complete: true,
       });
-      await base44.auth.updateMe({ full_name: fullName.trim(), role: "student" });
+      try {
+        await base44.auth.updateMe({ full_name: fullName.trim(), role: "student" });
+      } catch (_) {
+        // ignore — profile already saved
+      }
       window.location.href = "/";
     } catch (err) {
       console.error("Onboarding error:", err);
       setLoading(false);
-      alert("Failed to save profile. Please try again.");
+      setError("Failed to save profile. Please check your connection and try again.");
     }
   };
 
@@ -227,8 +232,15 @@ export default function Onboarding() {
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
         {/* Navigation */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-3 mt-4">
           {step > 0 && (
             <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(s => s - 1)}>
               Back
