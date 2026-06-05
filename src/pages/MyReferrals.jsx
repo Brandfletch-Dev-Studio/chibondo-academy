@@ -10,9 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import {
-  Gift, DollarSign, Users, TrendingUp, Copy, Check, Share2,
-  Smartphone, Building2, Loader2, Wallet, Settings, Link2,
-  BarChart3, Clock, CheckCircle2
+  Gift, DollarSign, Users, Copy, Check, Share2,
+  Loader2, Wallet, Settings, Link2, BarChart3, Clock, CheckCircle2,
+  Trophy
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,7 +23,6 @@ const statusColors = {
   rewarded: 'bg-green-100 text-green-700',
 };
 
-// ─── OVERVIEW TAB ─────────────────────────────────────────────────────────────
 function AffiliateOverview({ referrals, commissionSettings }) {
   const stats = {
     total: referrals.length,
@@ -42,7 +41,6 @@ function AffiliateOverview({ referrals, commissionSettings }) {
 
   return (
     <div className="space-y-6">
-      {/* Commission Rate Banner */}
       <div className="bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 rounded-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center flex-shrink-0">
@@ -51,14 +49,11 @@ function AffiliateOverview({ referrals, commissionSettings }) {
           <div className="flex-1">
             <h3 className="font-semibold text-sm mb-1">Your Commission Rate</h3>
             <p className="text-lg font-bold text-accent">{rateDisplay}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Minimum payout: MWK {(commissionSettings?.min_payout || 5000).toLocaleString()}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Minimum payout: MWK {(commissionSettings?.min_payout || 5000).toLocaleString()}</p>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
         {[
           { label: 'Total Referrals', value: stats.total, icon: Users, color: 'text-primary bg-primary/10' },
@@ -89,7 +84,6 @@ function AffiliateOverview({ referrals, commissionSettings }) {
   );
 }
 
-// ─── LINK GENERATOR TAB ───────────────────────────────────────────────────────
 function LinkGenerator({ referralCode }) {
   const [copied, setCopied] = useState('');
   const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
@@ -115,11 +109,7 @@ ${referralLink}`;
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: 'Join Chibondo Academy',
-        text: shareMessage,
-        url: referralLink,
-      });
+      navigator.share({ title: 'Join Chibondo Academy', text: shareMessage, url: referralLink });
     } else {
       copy(shareMessage);
     }
@@ -162,21 +152,15 @@ ${referralLink}`;
             Share Message
           </Button>
         </div>
-      </div>
 
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h4 className="font-semibold text-sm mb-2">How Sharing Works</h4>
-        <ol className="space-y-2 text-xs text-muted-foreground">
-          <li className="flex gap-2"><span className="font-semibold text-foreground">1.</span> Share your unique link or code</li>
-          <li className="flex gap-2"><span className="font-semibold text-foreground">2.</span> Friend registers using your link</li>
-          <li className="flex gap-2"><span className="font-semibold text-foreground">3.</span> You earn rewards when they pay fees</li>
-        </ol>
+        <div className="bg-white/10 rounded-xl p-3 text-xs leading-relaxed whitespace-pre-line opacity-80 mt-3">
+          {shareMessage}
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── PAYOUTS TAB ──────────────────────────────────────────────────────────────
 function PayoutsTab({ referrals, commissionSettings }) {
   const queryClient = useQueryClient();
   const { user } = useOutletContext();
@@ -189,12 +173,8 @@ function PayoutsTab({ referrals, commissionSettings }) {
     enabled: !!user?.id,
   });
 
-  const pendingEarnings = referrals.filter(r => r.reward_status === 'pending' && r.reward_amount > 0)
-    .reduce((acc, r) => acc + (r.reward_amount || 0), 0);
-  
-  const paidEarnings = referrals.filter(r => r.reward_status === 'paid')
-    .reduce((acc, r) => acc + (r.reward_amount || 0), 0);
-
+  const pendingEarnings = referrals.filter(r => r.reward_status === 'pending' && r.reward_amount > 0).reduce((acc, r) => acc + (r.reward_amount || 0), 0);
+  const paidEarnings = referrals.filter(r => r.reward_status === 'paid').reduce((acc, r) => acc + (r.reward_amount || 0), 0);
   const minPayout = commissionSettings?.min_payout || 5000;
   const canRequestPayout = pendingEarnings >= minPayout;
 
@@ -218,22 +198,11 @@ function PayoutsTab({ referrals, commissionSettings }) {
     },
   });
 
-  const methodLabels = { 
-    airtel_money: 'Airtel Money', 
-    tnm_mpamba: 'TNM Mpamba', 
-    bank_transfer: 'Bank Transfer' 
-  };
-
-  const statusColors = {
-    pending: 'bg-yellow-500/10 text-yellow-600',
-    approved: 'bg-blue-500/10 text-blue-600',
-    paid: 'bg-success/10 text-success',
-    rejected: 'bg-destructive/10 text-destructive',
-  };
+  const methodLabels = { airtel_money: 'Airtel Money', tnm_mpamba: 'TNM Mpamba', bank_transfer: 'Bank Transfer' };
+  const payoutStatusColors = { pending: 'bg-yellow-500/10 text-yellow-600', approved: 'bg-blue-500/10 text-blue-600', paid: 'bg-success/10 text-success', rejected: 'bg-destructive/10 text-destructive' };
 
   return (
     <div className="space-y-6">
-      {/* Earnings Summary */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Pending</p>
@@ -245,32 +214,18 @@ function PayoutsTab({ referrals, commissionSettings }) {
         </div>
       </div>
 
-      {/* Request Payout Button */}
       <Dialog open={requestDialog} onOpenChange={setRequestDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Request Payout</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Request Payout</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Amount (MWK)</Label>
-              <Input 
-                type="number" 
-                value={payoutData.amount || pendingEarnings} 
-                onChange={e => setPayoutData({ ...payoutData, amount: e.target.value })}
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Min: MWK {minPayout.toLocaleString()} · Available: MWK {pendingEarnings.toLocaleString()}
-              </p>
+              <Input type="number" value={payoutData.amount || pendingEarnings} onChange={e => setPayoutData({ ...payoutData, amount: e.target.value })} className="mt-1" />
+              <p className="text-xs text-muted-foreground mt-1">Min: MWK {minPayout.toLocaleString()} · Available: MWK {pendingEarnings.toLocaleString()}</p>
             </div>
             <div>
               <Label>Payment Method</Label>
-              <select 
-                className="w-full mt-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                value={payoutData.method}
-                onChange={e => setPayoutData({ ...payoutData, method: e.target.value })}
-              >
+              <select className="w-full mt-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm" value={payoutData.method} onChange={e => setPayoutData({ ...payoutData, method: e.target.value })}>
                 <option value="airtel_money">Airtel Money</option>
                 <option value="tnm_mpamba">TNM Mpamba</option>
                 <option value="bank_transfer">Bank Transfer</option>
@@ -278,18 +233,9 @@ function PayoutsTab({ referrals, commissionSettings }) {
             </div>
             <div>
               <Label>Payment Details</Label>
-              <Input 
-                placeholder={payoutData.method === 'bank_transfer' ? 'Bank account details' : 'Phone number'}
-                value={payoutData.details}
-                onChange={e => setPayoutData({ ...payoutData, details: e.target.value })}
-                className="mt-1"
-              />
+              <Input placeholder={payoutData.method === 'bank_transfer' ? 'Bank account details' : 'Phone number'} value={payoutData.details} onChange={e => setPayoutData({ ...payoutData, details: e.target.value })} className="mt-1" />
             </div>
-            <Button 
-              className="w-full" 
-              onClick={() => requestMutation.mutate()}
-              disabled={requestMutation.isPending || !canRequestPayout}
-            >
+            <Button className="w-full" onClick={() => requestMutation.mutate()} disabled={requestMutation.isPending || !canRequestPayout}>
               {requestMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</> : 'Submit Request'}
             </Button>
           </div>
@@ -300,9 +246,7 @@ function PayoutsTab({ referrals, commissionSettings }) {
         <div className="bg-muted/50 border border-border rounded-xl p-6 text-center">
           <Wallet className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
           <p className="text-sm font-semibold mb-1">Minimum Payout Not Reached</p>
-          <p className="text-xs text-muted-foreground">
-            You need MWK {minPayout.toLocaleString()} to request a payout. Keep referring more students!
-          </p>
+          <p className="text-xs text-muted-foreground">You need MWK {minPayout.toLocaleString()} to request a payout. Keep referring more students!</p>
         </div>
       ) : (
         <Button className="w-full" onClick={() => setRequestDialog(true)}>
@@ -311,7 +255,6 @@ function PayoutsTab({ referrals, commissionSettings }) {
         </Button>
       )}
 
-      {/* Payout History */}
       {payoutRequests.length > 0 && (
         <div>
           <h3 className="font-semibold mb-3">Payout History</h3>
@@ -320,11 +263,9 @@ function PayoutsTab({ referrals, commissionSettings }) {
               <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card text-sm">
                 <div className="flex-1">
                   <p className="font-medium">MWK {(req.amount || 0).toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {methodLabels[req.payment_method]} · {new Date(req.created_date).toLocaleDateString()}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{methodLabels[req.payment_method]} · {new Date(req.created_date).toLocaleDateString()}</p>
                 </div>
-                <Badge className={`text-[10px] capitalize ${statusColors[req.status]}`}>{req.status}</Badge>
+                <Badge className={`text-[10px] capitalize ${payoutStatusColors[req.status]}`}>{req.status}</Badge>
               </div>
             ))}
           </div>
@@ -334,7 +275,6 @@ function PayoutsTab({ referrals, commissionSettings }) {
   );
 }
 
-// ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
 function AffiliateSettings() {
   const { user } = useOutletContext();
   const queryClient = useQueryClient();
@@ -361,22 +301,11 @@ function AffiliateSettings() {
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div>
           <Label>Current Code</Label>
-          <Input
-            value={customCode}
-            onChange={e => setCustomCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
-            placeholder="CHIBXXXXXX"
-            className="mt-1 font-mono"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Leave blank to use auto-generated code
-          </p>
+          <Input value={customCode} onChange={e => setCustomCode(e.target.value.toUpperCase().replace(/\s/g, ''))} placeholder="CHIBXXXXXX" className="mt-1 font-mono" />
+          <p className="text-xs text-muted-foreground mt-1">Leave blank to use auto-generated code</p>
         </div>
 
-        <Button 
-          className="w-full" 
-          onClick={() => updateMutation.mutate()}
-          disabled={updateMutation.isPending || !customCode.trim()}
-        >
+        <Button className="w-full" onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || !customCode.trim()}>
           {updateMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Code'}
         </Button>
       </div>
@@ -392,32 +321,77 @@ function AffiliateSettings() {
   );
 }
 
-// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function MyAffiliates() {
+function Leaderboard() {
+  const { user } = useOutletContext();
+  const { data: allReferrals = [] } = useQuery({ queryKey: ['all-referrals-leaderboard'], queryFn: () => base44.entities.Referral.list('-created_date', 500) });
+
+  const leaderboard = Object.values(allReferrals.reduce((acc, r) => {
+    if (!r.referrer_id) return acc;
+    if (!acc[r.referrer_id]) { acc[r.referrer_id] = { referrer_id: r.referrer_id, name: r.referrer_name || 'Unknown', total: 0, paid: 0 }; }
+    acc[r.referrer_id].total += 1;
+    if (['paid', 'rewarded'].includes(r.status)) acc[r.referrer_id].paid += 1;
+    return acc;
+  }, {})).sort((a, b) => b.paid - a.paid || b.total - a.total).slice(0, 10);
+
+  return (
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+        <Trophy className="w-5 h-5 text-accent" />
+        <h2 className="font-semibold">Top Referrers</h2>
+        <span className="text-xs text-muted-foreground ml-auto">Ranked by paid referrals</span>
+      </div>
+      {leaderboard.length === 0 ? (
+        <div className="text-center py-10">
+          <Trophy className="w-10 h-10 mx-auto text-muted-foreground/20 mb-2" />
+          <p className="text-sm text-muted-foreground">No referrals yet — be the first!</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {leaderboard.map((entry, idx) => {
+            const isMe = entry.referrer_id === user?.id;
+            const rankColors = ['text-yellow-500', 'text-slate-400', 'text-amber-600'];
+            const rankBg = ['bg-yellow-500/10', 'bg-slate-400/10', 'bg-amber-600/10'];
+            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+            return (
+              <div key={entry.referrer_id} className={`flex items-center gap-4 px-5 py-3 transition-colors ${isMe ? 'bg-accent/5 border-l-2 border-accent' : ''}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${idx < 3 ? rankBg[idx] : 'bg-muted'} ${idx < 3 ? rankColors[idx] : 'text-muted-foreground'}`}>
+                  {medal || idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold truncate ${isMe ? 'text-accent' : ''}`}>{entry.name} {isMe && <span className="text-xs font-normal text-muted-foreground">(you)</span>}</p>
+                  <p className="text-xs text-muted-foreground">{entry.total} invited · {entry.paid} paid</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-lg font-bold font-display ${idx < 3 ? rankColors[idx] : 'text-foreground'}`}>{entry.paid}</p>
+                  <p className="text-[10px] text-muted-foreground">paid</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function MyReferrals() {
   const { user } = useOutletContext();
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
+  const queryClient = useQueryClient();
 
-  const { data: referrals = [] } = useQuery({
-    queryKey: ['myReferrals', user?.id],
-    queryFn: () => base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 50),
-    enabled: !!user?.id,
-  });
-
-  const { data: commissionSettingsData = [] } = useQuery({
-    queryKey: ['affiliateSettings'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }),
-  });
+  const { data: referrals = [] } = useQuery({ queryKey: ['myReferrals', user?.id], queryFn: () => base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 50), enabled: !!user?.id });
+  const { data: commissionSettingsData = [] } = useQuery({ queryKey: ['affiliateSettings'], queryFn: () => base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }) });
   const commissionSettings = commissionSettingsData[0]?.value || {};
 
   if (!user) return null;
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-          <Gift className="w-6 h-6 text-accent" /> My Affiliates
+          <Gift className="w-6 h-6 text-accent" /> Affiliate Program
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">Track your referrals and earn rewards</p>
+        <p className="text-muted-foreground text-sm mt-1">Invite friends & earn rewards when they pay their fees</p>
       </div>
 
       <Tabs defaultValue="overview">
@@ -428,52 +402,51 @@ export default function MyAffiliates() {
           <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-1.5" /> Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-5">
-          <AffiliateOverview referrals={referrals} commissionSettings={commissionSettings} />
-        </TabsContent>
-
-        <TabsContent value="links" className="mt-5">
-          <LinkGenerator referralCode={referralCode} />
-        </TabsContent>
-
-        <TabsContent value="payouts" className="mt-5">
-          <PayoutsTab referrals={referrals} commissionSettings={commissionSettings} />
-        </TabsContent>
-
-        <TabsContent value="settings" className="mt-5">
-          <AffiliateSettings />
-        </TabsContent>
+        <TabsContent value="overview" className="mt-5"><AffiliateOverview referrals={referrals} commissionSettings={commissionSettings} /></TabsContent>
+        <TabsContent value="links" className="mt-5"><LinkGenerator referralCode={referralCode} /></TabsContent>
+        <TabsContent value="payouts" className="mt-5"><PayoutsTab referrals={referrals} commissionSettings={commissionSettings} /></TabsContent>
+        <TabsContent value="settings" className="mt-5"><AffiliateSettings /></TabsContent>
       </Tabs>
 
-      {/* Referrals List */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="font-semibold">Your Referrals</h2>
-          <p className="text-xs text-muted-foreground">{referrals.length} total referrals</p>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-border">
+            <h2 className="font-semibold">Your Referrals</h2>
+            <p className="text-xs text-muted-foreground">{referrals.length} total referrals</p>
+          </div>
+          {referrals.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
+              <p className="text-sm text-muted-foreground">No referrals yet. Start sharing your link!</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {referrals.map(r => (
+                <div key={r.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{r.referred_name || r.referred_email || 'Pending'}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(r.created_date).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {r.reward_amount > 0 && <span className="text-xs font-semibold text-accent">+MWK {r.reward_amount.toLocaleString()}</span>}
+                    <Badge className={`text-xs capitalize ${statusColors[r.status]}`}>{r.status}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        {referrals.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
-            <p className="text-sm text-muted-foreground">No referrals yet. Start sharing your link!</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {referrals.map(r => (
-              <div key={r.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{r.referred_name || r.referred_email || 'Pending'}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(r.created_date).toLocaleDateString()}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {r.reward_amount > 0 && (
-                    <span className="text-xs font-semibold text-accent">+MWK {r.reward_amount.toLocaleString()}</span>
-                  )}
-                  <Badge className={`text-xs capitalize ${statusColors[r.status]}`}>{r.status}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Leaderboard />
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 text-sm">
+        <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+          <Gift className="w-4 h-4 text-accent" />
+        </div>
+        <div>
+          <p className="font-medium">Questions about rewards or payouts?</p>
+          <p className="text-xs text-muted-foreground">Contact us at <a href="mailto:support@chibondoacademy.com" className="text-primary hover:underline">support@chibondoacademy.com</a></p>
+        </div>
       </div>
     </div>
   );

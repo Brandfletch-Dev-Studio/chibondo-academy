@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Library', icon: Library, path: '/library' },
   { label: 'Fees', icon: CreditCard, path: '/subscription' },
   { label: 'Forums', icon: MessageSquare, path: '/discussions' },
-  { label: 'Referrals', icon: Gift, path: '/referrals' },
+  { label: 'My Referrals', icon: Gift, path: '/my-referrals' },
 ];
 
 export default function BottomNav() {

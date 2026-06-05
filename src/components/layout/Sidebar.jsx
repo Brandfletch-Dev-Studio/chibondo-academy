@@ -24,7 +24,7 @@ const studentNav = [
   { label: 'Discussions', icon: MessageSquare, path: '/discussions' },
   { label: 'Progress', icon: BarChart3, path: '/progress' },
   { label: 'Analytics', icon: TrendingUp, path: '/progress/analytics' },
-  { label: 'My Affiliates', icon: Gift, path: '/my-affiliates' },
+  { label: 'My Referrals', icon: Gift, path: '/my-referrals' },
   { label: 'School Fees', icon: CreditCard, path: '/subscription' },
   { label: 'Settings', icon: Settings, path: '/settings' },
 ];
@@ -32,6 +32,7 @@ const studentNav = [
 const teacherNav = [
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/teacher' },
   { label: 'My Courses',     icon: BookOpen,        path: '/teacher/courses' },
+  { label: 'Library',        icon: Library,         path: '/teacher/library' },
   { label: 'Quiz Builder',   icon: ClipboardList,   path: '/teacher/quizzes' },
   { label: 'Grading',        icon: PenTool,         path: '/teacher/grading' },
   { label: 'Student Progress', icon: TrendingUp,    path: '/teacher/progress' },
@@ -42,6 +43,7 @@ const teacherNav = [
 const adminNav = [
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
   { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Library',        icon: Library,         path: '/admin/library' },
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Students',       icon: Users,           path: '/admin/users' },
   { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },

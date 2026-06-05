@@ -40,9 +40,9 @@ import ProgressPage from '@/pages/ProgressPage';
 import ProgressAnalytics from '@/pages/ProgressAnalytics';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
-import ReferralsPage from '@/pages/ReferralsPage';
 import LibraryPage from '@/pages/LibraryPage';
-import MyAffiliates from '@/pages/MyAffiliates';
+import MyReferrals from '@/pages/MyReferrals';
+import LibraryManagement from '@/pages/admin/LibraryManagement';
 
 // Teacher pages
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
@@ -136,9 +136,8 @@ const AuthenticatedApp = () => {
           <Route path="/progress/analytics" element={<ProgressAnalytics />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/referrals" element={<ReferralsPage />} />
           <Route path="/library" element={<LibraryPage />} />
-          <Route path="/my-affiliates" element={<MyAffiliates />} />
+          <Route path="/my-referrals" element={<MyReferrals />} />
 
           {/* Student Settings */}
           <Route path="/settings" element={<StudentSettings />} />
@@ -165,7 +164,8 @@ const AuthenticatedApp = () => {
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
-          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><TeacherLibrary /></RoleGuard>} />
+          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
+          <Route path="/teacher/library" element={<RoleGuard allowed={['teacher', 'admin']}><LibraryManagement /></RoleGuard>} />
         </Route>
       </Route>
 
