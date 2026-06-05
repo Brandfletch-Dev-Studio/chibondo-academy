@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, School, BookOpen, User, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 const SUBJECTS = [
   "English", "Chichewa", "Mathematics", "Biology", "Agriculture",
@@ -19,10 +20,14 @@ const STEP_LABELS = ["Your Name", "Your Class", "Subjects", "Your School"];
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref');
+  
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
+  const [referralTracked, setReferralTracked] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [form, setForm] = useState("");
@@ -36,8 +41,23 @@ export default function Onboarding() {
       setUser(u);
       // Pre-fill name if available
       if (u.full_name) setFullName(u.full_name);
+      
+      // Track referral if code exists and not already tracked
+      if (refCode && !referralTracked) {
+        trackReferral(refCode, u.id);
+      }
     });
   }, []);
+
+  const trackReferral = async (code, userId) => {
+    try {
+      await base44.functions.invoke('trackReferral', { referralCode: code });
+      setReferralTracked(true);
+      toast.success('Referral tracked! Your friend will receive rewards when you pay fees.');
+    } catch (err) {
+      console.error('Failed to track referral:', err);
+    }
+  };
 
   const toggleSubject = (s) => {
     setSubjects(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -78,6 +98,16 @@ export default function Onboarding() {
       } catch (_) {
         // ignore — profile already saved
       }
+      
+      // Track referral one final time if not done yet
+      if (refCode && !referralTracked) {
+        try {
+          await base44.functions.invoke('trackReferral', { referralCode: refCode });
+        } catch (e) {
+          console.error('Final referral tracking failed:', e);
+        }
+      }
+      
       window.location.href = "/";
     } catch (err) {
       console.error("Onboarding error:", err);
@@ -256,6 +286,11 @@ export default function Onboarding() {
            </Button>
           )}
         </div>
+        {refCode && (
+          <p className="text-xs text-center text-muted-foreground mt-3">
+            Referral code <span className="font-mono">{refCode}</span> applied ✓
+          </p>
+        )}
       </div>
 
       <p className="text-xs text-gray-400 mt-6 text-center">Step {step + 1} of {STEP_LABELS.length}</p>

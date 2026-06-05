@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 
 export default function Register() {
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref');
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,6 +19,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [newUserId, setNewUserId] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,8 +30,12 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await base44.auth.register({ email: email.trim(), password });
+      const result = await base44.auth.register({ email: email.trim(), password });
       setEmailSent(true);
+      // Store the new user ID for tracking referral after OTP verification
+      if (result?.user?.id) {
+        setNewUserId(result.user.id);
+      }
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
@@ -55,6 +63,11 @@ export default function Register() {
             <p className="text-sm text-gray-600">
               Click the link in the email to verify your account and complete your registration.
             </p>
+            {refCode && (
+              <p className="text-xs text-accent font-medium">
+                Your referral code <span className="font-mono">{refCode}</span> has been saved. We'll track it once you verify your email!
+              </p>
+            )}
             <p className="text-xs text-gray-400">
               Didn't receive the email? Check your spam folder.
             </p>
@@ -100,6 +113,13 @@ export default function Register() {
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm">{error}</div>
+      )}
+
+      {refCode && (
+        <div className="mb-4 p-3 rounded-lg bg-accent/10 border border-accent/20 text-sm">
+          <p className="font-semibold text-accent">Referral Code Applied</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Code: <span className="font-mono">{refCode}</span></p>
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
