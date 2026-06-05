@@ -4,37 +4,26 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Phone, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 
 export default function Login() {
-  const [identifier, setIdentifier] = useState(""); // phone or email
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Detect if the identifier looks like a phone number
-  const isPhone = /^[+\d\s()-]{7,}$/.test(identifier.trim()) && !identifier.includes("@");
-
-  // Derive email for Base44 auth
-  const loginEmail = isPhone
-    ? `${identifier.replace(/\D/g, "")}@chibondo.ac.mw`
-    : identifier.trim();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(loginEmail, password);
+      await base44.auth.loginViaEmailPassword(email.trim(), password);
       window.location.href = "/";
     } catch (err) {
-      setError(isPhone
-        ? "Incorrect phone number or password. Please try again."
-        : "Incorrect email or password. Please try again."
-      );
+      setError("Incorrect email or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -73,25 +62,21 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="identifier">Phone Number or Email</Label>
+          <Label htmlFor="email">Email Address</Label>
           <div className="relative">
-            {isPhone
-              ? <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              : <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            }
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              id="identifier"
-              type="text"
+              id="email"
+              type="email"
               autoFocus
-              autoComplete="username"
-              placeholder="+265 99 123 4567 or email"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="pl-10 h-12"
               required
             />
           </div>
-          <p className="text-xs text-gray-400">You can sign in with your phone number or email</p>
         </div>
 
         <div className="space-y-2">
