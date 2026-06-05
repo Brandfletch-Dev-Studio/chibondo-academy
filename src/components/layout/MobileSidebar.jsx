@@ -3,13 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, GraduationCap, FileText, BarChart3,
   Users, Settings, CreditCard, MessageSquare, Library,
-  ClipboardList, PenTool, LogOut, LayoutDashboard
+  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 
 const studentNav = [
-  { label: 'Dashboard', icon: Home, path: '/' },
+  { label: 'Dashboard', icon: Home, path: '/dashboard' },
   { label: 'My Subjects', icon: BookOpen, path: '/subjects' },
   { label: 'Revision Hub', icon: Library, path: '/revision' },
   { label: 'My Quizzes', icon: ClipboardList, path: '/my-quizzes' },
@@ -21,19 +21,23 @@ const studentNav = [
 ];
 
 const teacherNav = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/teacher' },
-  { label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
-  { label: 'Quiz Builder', icon: ClipboardList, path: '/teacher/quizzes' },
-  { label: 'Grading', icon: PenTool, path: '/teacher/grading' },
-  { label: 'Settings', icon: Settings, path: '/teacher/settings' },
+  { label: 'Dashboard',       icon: LayoutDashboard, path: '/teacher' },
+  { label: 'My Courses',      icon: BookOpen,        path: '/teacher/courses' },
+  { label: 'Quiz Builder',    icon: ClipboardList,   path: '/teacher/quizzes' },
+  { label: 'Grading',         icon: PenTool,         path: '/teacher/grading' },
+  { label: 'Student Progress',icon: TrendingUp,      path: '/teacher/progress' },
+  { label: 'Notifications',   icon: Bell,            path: '/teacher/notifications' },
+  { label: 'Settings',        icon: Settings,        path: '/teacher/settings' },
 ];
 
 const adminNav = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-  { label: 'Users', icon: Users, path: '/admin/users' },
-  { label: 'Academic', icon: GraduationCap, path: '/admin/academic' },
-  { label: 'Subscriptions', icon: CreditCard, path: '/admin/subscriptions' },
-  { label: 'Settings', icon: Settings, path: '/admin/settings' },
+  { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
+  { label: 'Users',         icon: Users,           path: '/admin/users' },
+  { label: 'Teachers',      icon: GraduationCap,   path: '/admin/teachers' },
+  { label: 'Academic',      icon: GraduationCap,   path: '/admin/academic' },
+  { label: 'Subscriptions', icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Notifications', icon: Bell,            path: '/admin/notifications' },
+  { label: 'Settings',      icon: Settings,        path: '/admin/settings' },
 ];
 
 export default function MobileSidebar({ user, onClose }) {
@@ -58,7 +62,7 @@ export default function MobileSidebar({ user, onClose }) {
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
-            (item.path !== '/' && location.pathname.startsWith(item.path));
+            (item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
           return (
             <Link
               key={item.path}

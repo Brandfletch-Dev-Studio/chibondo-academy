@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 
 const studentNav = [
-  { label: 'Dashboard', icon: Home, path: '/' },
+  { label: 'Dashboard', icon: Home, path: '/dashboard' },
   { label: 'My Subjects', icon: BookOpen, path: '/subjects' },
   { label: 'Revision Hub', icon: Library, path: '/revision' },
   { label: 'My Quizzes', icon: ClipboardList, path: '/my-quizzes' },
@@ -29,21 +29,23 @@ const studentNav = [
 ];
 
 const teacherNav = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/teacher' },
-  { label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
-  { label: 'Quiz Builder', icon: ClipboardList, path: '/teacher/quizzes' },
-  { label: 'Grading', icon: PenTool, path: '/teacher/grading' },
-  { label: 'Student Progress', icon: TrendingUp, path: '/teacher/progress' },
-  { label: 'Settings', icon: Settings, path: '/teacher/settings' },
+  { label: 'Dashboard',      icon: LayoutDashboard, path: '/teacher' },
+  { label: 'My Courses',     icon: BookOpen,        path: '/teacher/courses' },
+  { label: 'Quiz Builder',   icon: ClipboardList,   path: '/teacher/quizzes' },
+  { label: 'Grading',        icon: PenTool,         path: '/teacher/grading' },
+  { label: 'Student Progress', icon: TrendingUp,    path: '/teacher/progress' },
+  { label: 'Notifications',  icon: Bell,            path: '/teacher/notifications' },
+  { label: 'Settings',       icon: Settings,        path: '/teacher/settings' },
 ];
 
 const adminNav = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-  { label: 'Users', icon: Users, path: '/admin/users' },
-  { label: 'Teachers', icon: GraduationCap, path: '/admin/teachers' },
-  { label: 'Academic', icon: GraduationCap, path: '/admin/academic' },
-  { label: 'Subscriptions', icon: CreditCard, path: '/admin/subscriptions' },
-  { label: 'Settings', icon: Settings, path: '/admin/settings' },
+  { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
+  { label: 'Users',          icon: Users,           path: '/admin/users' },
+  { label: 'Teachers',       icon: GraduationCap,   path: '/admin/teachers' },
+  { label: 'Academic',       icon: GraduationCap,   path: '/admin/academic' },
+  { label: 'Subscriptions',  icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
+  { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
 
 export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {

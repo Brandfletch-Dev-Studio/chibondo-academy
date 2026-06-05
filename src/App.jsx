@@ -6,6 +6,15 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { useOutletContext } from 'react-router-dom';
+
+function RoleHome() {
+  const { user } = useOutletContext();
+  if (!user) return null;
+  if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
+  return <StudentDashboard />;
+}
 
 // Auth pages
 import Login from '@/pages/Login';
@@ -50,6 +59,8 @@ import AdminSubscriptions from '@/pages/admin/AdminSubscriptions';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import TeacherApplications from '@/pages/admin/TeacherApplications';
 import StudentProgressTracker from '@/pages/teacher/StudentProgressTracker';
+import AdminNotifications from '@/pages/admin/AdminNotifications';
+import TeacherNotifications from '@/pages/teacher/TeacherNotifications';
 
 // Settings pages
 import StudentSettings from '@/pages/settings/StudentSettings';
@@ -107,8 +118,10 @@ const AuthenticatedApp = () => {
       {/* Protected Routes */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
+          {/* Role-based home redirect */}
+          <Route path="/" element={<RoleHome />} />
           {/* Student */}
-          <Route path="/" element={<StudentDashboard />} />
+          <Route path="/dashboard" element={<StudentDashboard />} />
           <Route path="/subjects" element={<SubjectsPage />} />
           <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
           <Route path="/lesson/:lessonId" element={<LessonPage />} />
@@ -135,6 +148,7 @@ const AuthenticatedApp = () => {
           <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher', 'admin']}><AssignmentGrading /></RoleGuard>} />
           <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher', 'admin']}><StudentProgressTracker /></RoleGuard>} />
           <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
+          <Route path="/teacher/notifications" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherNotifications /></RoleGuard>} />
 
           {/* Admin */}
           <Route path="/admin" element={<RoleGuard allowed={['admin']}><AdminDashboard /></RoleGuard>} />
@@ -143,6 +157,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/teachers" element={<RoleGuard allowed={['admin']}><TeacherApplications /></RoleGuard>} />
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
           <Route path="/admin/settings" element={<RoleGuard allowed={['admin']}><AdminSettings /></RoleGuard>} />
+          <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
         </Route>
       </Route>
 
