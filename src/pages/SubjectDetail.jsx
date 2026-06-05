@@ -277,6 +277,7 @@ export default function SubjectDetail() {
             <Progress value={progressPct} className="h-2" />
           </div>
 
+          <div className="pt-2">
           {hasPaidFees ? (
             <Link to={`/lesson/${firstLesson.id}`} onClick={() => !enrollment && enrollMutation.mutate()}>
               <Button className="w-full h-12 text-base font-semibold" size="lg">
@@ -291,6 +292,7 @@ export default function SubjectDetail() {
               </Button>
             </Link>
           )}
+          </div>
         </div>
       )}
 

@@ -285,15 +285,20 @@ function AffiliateSettings() {
     mutationFn: async () => {
       const code = customCode.trim().toUpperCase();
       if (!code) throw new Error('Referral code cannot be empty');
+      if (code.length < 4) throw new Error('Code must be at least 4 characters');
+      // Check uniqueness — no other user should have this code
+      const existing = await base44.entities.User.list('-created_date', 500);
+      const taken = existing.find(u => u.id !== user.id && u.referral_code === code);
+      if (taken) throw new Error('This code is already taken. Please choose another.');
       return base44.auth.updateMe({ referral_code: code });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      toast.success('Referral code saved successfully!', { description: `Your new code is: ${customCode.trim().toUpperCase()}` });
+      toast.success('Referral code saved!', { description: `Your code: ${customCode.trim().toUpperCase()}` });
     },
     onError: (error) => {
-      toast.error('Failed to save referral code', { description: error.message });
+      toast.error('Could not save code', { description: error.message });
     },
   });
 

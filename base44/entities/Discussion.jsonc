@@ -2,6 +2,10 @@
   "name": "Discussion",
   "type": "object",
   "properties": {
+    "title": {
+      "type": "string",
+      "description": "Topic title \u2014 only for root posts (no parent_id)"
+    },
     "lesson_id": {
       "type": "string"
     },
@@ -22,9 +26,21 @@
     },
     "parent_id": {
       "type": "string",
-      "description": "For replies"
+      "description": "For replies \u2014 parent discussion ID"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Optional attached image URL"
+    },
+    "voice_note_url": {
+      "type": "string",
+      "description": "Optional voice note audio file URL"
     },
     "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "reply_count": {
       "type": "number",
       "default": 0
     },
