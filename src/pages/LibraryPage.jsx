@@ -26,7 +26,7 @@ const TYPE_ICON_BG = {
 };
 
 export default function LibraryPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
@@ -44,7 +44,7 @@ export default function LibraryPage() {
 
   const { data: subscription } = useQuery({
     queryKey: ['subscription', user?.id],
-    queryFn: () => base44.entities.Subscription.filter({ student_id: user.id, status: 'active' }, '-created_date', 1),
+    queryFn: () => base44.entities.Subscription.filter({ student_id: user?.id, status: 'active' }, '-created_date', 1),
     enabled: !!user?.id,
     select: data => data[0] || null,
   });

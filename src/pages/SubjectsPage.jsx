@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import SEO from '@/components/SEO';
 
 export default function SubjectsPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const [selectedForm, setSelectedForm] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -26,7 +26,7 @@ export default function SubjectsPage() {
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['myEnrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }, '-created_date', 100),
+    queryFn: () => base44.entities.Enrollment.filter({ student_id: user?.id }, '-created_date', 100),
     enabled: !!user?.id,
   });
 
