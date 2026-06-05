@@ -32,36 +32,72 @@ function getYouTubeId(url) {
   return null;
 }
 
+const EMBED_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share; screen-wake-lock";
+
 function VideoPlayer({ lesson }) {
   const { video_url, video_provider } = lesson;
   if (!video_url) return null;
 
   // YouTube — extract ID properly
-  if (video_provider === 'youtube' || getYouTubeId(video_url)) {
-    const ytId = getYouTubeId(video_url);
-    if (ytId) {
-      return (
-        <div className="relative aspect-video bg-black rounded-none w-full">
-          <iframe
-            src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&color=white`}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            title={lesson.title}
-          />
-        </div>
-      );
-    }
+  const ytId = getYouTubeId(video_url);
+  if (ytId) {
+    return (
+      <div className="relative aspect-video bg-black w-full">
+        <iframe
+          src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&color=white&enablejsapi=1`}
+          className="absolute inset-0 w-full h-full"
+          allow={EMBED_ALLOW}
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          title={lesson.title}
+        />
+      </div>
+    );
   }
 
   // Bunny.net stream embed
-  if (video_provider === 'bunny' || video_url?.includes('iframe.mediadelivery.net') || video_url?.includes('bunny.net')) {
+  if (video_provider === 'bunny' || video_url?.includes('iframe.mediadelivery.net') || video_url?.includes('b-cdn.net')) {
     return (
       <div className="relative aspect-video bg-black w-full">
         <iframe
           src={video_url}
           className="absolute inset-0 w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow={EMBED_ALLOW}
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          title={lesson.title}
+        />
+      </div>
+    );
+  }
+
+  // Vimeo
+  if (video_url?.includes('vimeo.com')) {
+    const vimeoId = video_url.match(/vimeo\.com\/(\d+)/)?.[1];
+    const embedUrl = vimeoId ? `https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0` : video_url;
+    return (
+      <div className="relative aspect-video bg-black w-full">
+        <iframe
+          src={embedUrl}
+          className="absolute inset-0 w-full h-full"
+          allow={EMBED_ALLOW}
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          title={lesson.title}
+        />
+      </div>
+    );
+  }
+
+  // Loom
+  if (video_url?.includes('loom.com')) {
+    const embedUrl = video_url.replace('loom.com/share/', 'loom.com/embed/');
+    return (
+      <div className="relative aspect-video bg-black w-full">
+        <iframe
+          src={embedUrl}
+          className="absolute inset-0 w-full h-full"
+          allow={EMBED_ALLOW}
           allowFullScreen
           title={lesson.title}
         />
@@ -78,27 +114,28 @@ function VideoPlayer({ lesson }) {
           src={video_url}
           controls
           className="absolute inset-0 w-full h-full"
-          controlsList="nodownload"
           playsInline
+          preload="metadata"
         >
           <source src={video_url} type="video/mp4" />
           <source src={video_url} type="video/webm" />
           <source src={video_url} type="video/ogg" />
-          Your browser does not support the video tag.
         </video>
       </div>
     );
   }
 
-  // Fallback: try as iframe (Vimeo, Loom, etc.)
+  // Generic iframe fallback (any other embed URL)
   return (
     <div className="relative aspect-video bg-black w-full">
       <iframe
         src={video_url}
         className="absolute inset-0 w-full h-full"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allow={EMBED_ALLOW}
         allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
         title={lesson.title}
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-presentation"
       />
     </div>
   );

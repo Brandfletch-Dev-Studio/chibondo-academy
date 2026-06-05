@@ -161,7 +161,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
-          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><AcademicManagement /></RoleGuard>} />
+          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
         </Route>
       </Route>
 
