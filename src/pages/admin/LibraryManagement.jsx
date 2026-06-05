@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BookOpen, FileText, Plus, Search, Upload, Trash2, Edit } from 'lucide-react';
+import { BookOpen, FileText, Plus, Search, Upload, Trash2, Edit, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LibraryManagement() {
@@ -16,6 +16,8 @@ export default function LibraryManagement() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -56,9 +58,46 @@ export default function LibraryManagement() {
       queryClient.invalidateQueries({ queryKey: ['libraryResources'] });
       toast.success('Resource added!');
       setDialogOpen(false);
+      setSelectedFile(null);
       resetForm();
     },
   });
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a PDF or Word document');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const result = await base44.integrations.Core.UploadFile({ file });
+      if (result.file_url) {
+        setSelectedFile({ name: file.name, url: result.file_url });
+        toast.success('File uploaded successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to upload file');
+      console.error(error);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+  };
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
@@ -97,6 +136,7 @@ export default function LibraryManagement() {
       year: new Date().getFullYear(),
       is_premium: true,
     });
+    setSelectedFile(null);
   };
 
   const handleSubmit = () => {
@@ -104,10 +144,14 @@ export default function LibraryManagement() {
       toast.error('Please fill in all required fields');
       return;
     }
+    const finalData = {
+      ...formData,
+      file_url: selectedFile?.url || editingResource?.file_url || null,
+    };
     if (editingResource) {
-      updateMutation.mutate({ id: editingResource.id, data: formData });
+      updateMutation.mutate({ id: editingResource.id, data: finalData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(finalData);
     }
   };
 
@@ -122,6 +166,7 @@ export default function LibraryManagement() {
       year: resource.year,
       is_premium: resource.is_premium,
     });
+    setSelectedFile(resource.file_url ? { name: 'Current file', url: resource.file_url } : null);
     setDialogOpen(true);
   };
 
@@ -168,6 +213,42 @@ export default function LibraryManagement() {
                 <Label>Description</Label>
                 <Input value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="mt-1" placeholder="Brief description" />
               </div>
+              
+              {/* File Upload */}
+              <div>
+                <Label>Upload File (PDF/Word)</Label>
+                {!selectedFile ? (
+                  <div className="mt-1 border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                    <input
+                      type="file"
+                      id="file-upload"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileUpload}
+                      disabled={uploadingFile}
+                      className="hidden"
+                    />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {uploadingFile ? 'Uploading...' : 'Click to upload or drag and drop'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">PDF or Word (max 10MB)</p>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">Ready to upload</p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={removeFile} disabled={uploadingFile}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Type *</Label>
@@ -206,7 +287,7 @@ export default function LibraryManagement() {
               </div>
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+                <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending || uploadingFile}>
                   {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingResource ? 'Update' : 'Create'}
                 </Button>
               </div>
@@ -248,6 +329,14 @@ function ResourceList({ resources, onEdit, onDelete, typeLabels }) {
     r.subject_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleDownload = (resource) => {
+    if (resource.file_url) {
+      window.open(resource.file_url, '_blank');
+    } else {
+      toast.error('No file attached to this resource');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -278,6 +367,11 @@ function ResourceList({ resources, onEdit, onDelete, typeLabels }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {resource.file_url && (
+                  <Button variant="ghost" size="icon" onClick={() => handleDownload(resource)} title="Download file">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={() => onEdit(resource)}>
                   <Edit className="w-4 h-4" />
                 </Button>
