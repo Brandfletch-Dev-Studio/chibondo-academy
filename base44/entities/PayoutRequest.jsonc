@@ -1,0 +1,53 @@
+{
+  "name": "PayoutRequest",
+  "type": "object",
+  "properties": {
+    "affiliate_id": {
+      "type": "string"
+    },
+    "affiliate_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "airtel_money",
+        "tnm_mpamba",
+        "bank_transfer"
+      ]
+    },
+    "payment_details": {
+      "type": "string",
+      "description": "Phone number or bank details"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "paid",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "referral_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of referrals included in this payout"
+    }
+  },
+  "required": [
+    "affiliate_id",
+    "amount",
+    "payment_method"
+  ]
+}

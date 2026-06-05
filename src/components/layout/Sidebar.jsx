@@ -39,6 +39,7 @@ const teacherNav = [
 ];
 
 const adminNav = [
+  { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
   { section: 'School Management' },
   { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
   { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },
@@ -51,7 +52,6 @@ const adminNav = [
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
   { section: 'System' },
-  { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
   { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
