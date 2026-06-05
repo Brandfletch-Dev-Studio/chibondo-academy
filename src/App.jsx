@@ -32,6 +32,7 @@ import ProgressPage from '@/pages/ProgressPage';
 import ProgressAnalytics from '@/pages/ProgressAnalytics';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
+import ReferralsPage from '@/pages/ReferralsPage';
 
 // Teacher pages
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
@@ -119,6 +120,7 @@ const AuthenticatedApp = () => {
           <Route path="/progress/analytics" element={<ProgressAnalytics />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/referrals" element={<ReferralsPage />} />
 
           {/* Student Settings */}
           <Route path="/settings" element={<StudentSettings />} />

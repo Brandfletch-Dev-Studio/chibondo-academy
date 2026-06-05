@@ -1,0 +1,57 @@
+{
+  "name": "Referral",
+  "type": "object",
+  "properties": {
+    "referrer_id": {
+      "type": "string",
+      "description": "User ID of the person who referred"
+    },
+    "referrer_name": {
+      "type": "string"
+    },
+    "referred_email": {
+      "type": "string"
+    },
+    "referred_user_id": {
+      "type": "string",
+      "description": "User ID once the referred person registers"
+    },
+    "referred_name": {
+      "type": "string"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "Unique code used by the referrer"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "registered",
+        "paid",
+        "rewarded"
+      ],
+      "default": "pending"
+    },
+    "reward_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "reward_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "referrer_id",
+    "referral_code"
+  ]
+}

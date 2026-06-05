@@ -1,0 +1,170 @@
+import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Copy, Check, Gift, Users, DollarSign, Share2, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+
+const statusColors = {
+  pending: 'bg-muted text-muted-foreground',
+  registered: 'bg-blue-100 text-blue-700',
+  paid: 'bg-yellow-100 text-yellow-700',
+  rewarded: 'bg-green-100 text-green-700',
+};
+
+export default function ReferralsPage() {
+  const { user } = useOutletContext();
+  const [copied, setCopied] = useState(false);
+
+  // Generate a deterministic referral code from user ID
+  const referralCode = user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '';
+  const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
+
+  const { data: referrals = [], isLoading } = useQuery({
+    queryKey: ['referrals', user?.id],
+    queryFn: () => base44.entities.Referral.filter({ referrer_id: user.id }, '-created_date', 50),
+    enabled: !!user?.id,
+  });
+
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join Chibondo Academy',
+        text: `Use my referral code ${referralCode} to join Chibondo Academy and get started!`,
+        url: referralLink,
+      });
+    } else {
+      handleCopy(referralLink);
+    }
+  };
+
+  const stats = {
+    total: referrals.length,
+    registered: referrals.filter(r => ['registered', 'paid', 'rewarded'].includes(r.status)).length,
+    paid: referrals.filter(r => ['paid', 'rewarded'].includes(r.status)).length,
+    earned: referrals.filter(r => r.reward_status === 'paid').reduce((acc, r) => acc + (r.reward_amount || 0), 0),
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+          <Gift className="w-6 h-6 text-accent" /> Referral Program
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">Invite friends & earn rewards when they pay their fees</p>
+      </div>
+
+      {/* How it works */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <h2 className="font-semibold mb-4 text-sm uppercase tracking-wide text-muted-foreground">How It Works</h2>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { step: '1', label: 'Share your code', desc: 'Send your unique link to friends' },
+            { step: '2', label: 'They register', desc: 'Friend signs up using your link' },
+            { step: '3', label: 'Earn rewards', desc: 'Get rewarded when they pay fees' },
+          ].map(({ step, label, desc }) => (
+            <div key={step} className="space-y-1.5">
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center mx-auto text-sm font-bold text-accent">{step}</div>
+              <p className="text-xs font-semibold">{label}</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Referral Code Card */}
+      <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+        <p className="text-xs font-medium opacity-70 mb-2 uppercase tracking-wide">Your Referral Code</p>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-3xl font-display font-bold tracking-widest">{referralCode}</span>
+        </div>
+        <div className="bg-white/10 rounded-xl p-3 text-xs font-mono break-all mb-4 opacity-80">
+          {referralLink}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="flex-1 bg-white/20 hover:bg-white/30 text-primary-foreground border-0"
+            onClick={() => handleCopy(referralCode)}
+          >
+            {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+            Copy Code
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="flex-1 bg-white/20 hover:bg-white/30 text-primary-foreground border-0"
+            onClick={handleShare}
+          >
+            <Share2 className="w-4 h-4 mr-1.5" />
+            Share Link
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Referrals', value: stats.total, icon: Users },
+          { label: 'Registered', value: stats.registered, icon: ChevronRight },
+          { label: 'Fees Paid', value: stats.paid, icon: DollarSign },
+          { label: 'MWK Earned', value: stats.earned.toLocaleString(), icon: Gift },
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
+            <Icon className="w-5 h-5 text-accent mx-auto mb-1.5" />
+            <p className="text-xl font-bold font-display">{value}</p>
+            <p className="text-xs text-muted-foreground">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Referrals List */}
+      <div>
+        <h2 className="font-semibold mb-3">Your Referrals</h2>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-14 bg-muted animate-pulse rounded-xl" />)}
+          </div>
+        ) : referrals.length === 0 ? (
+          <div className="text-center py-12 bg-card border border-border rounded-2xl">
+            <Users className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-muted-foreground text-sm">No referrals yet. Share your code to get started!</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {referrals.map(r => (
+              <div key={r.id} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">{r.referred_name || r.referred_email || 'Pending registration'}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(r.created_date).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {r.reward_amount > 0 && (
+                    <span className="text-xs font-semibold text-accent">+MWK {r.reward_amount.toLocaleString()}</span>
+                  )}
+                  <Badge className={`text-xs capitalize ${statusColors[r.status]}`}>{r.status}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Contact for payout */}
+      <div className="text-center text-xs text-muted-foreground pb-6">
+        <p>For reward payouts, contact us at <span className="text-primary">admin@chibondo.ac.mw</span></p>
+      </div>
+    </div>
+  );
+}

@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import BottomNav from './BottomNav';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import MobileSidebar from './MobileSidebar';
@@ -56,10 +57,11 @@ export default function AppLayout() {
         collapsed ? "lg:ml-16" : "lg:ml-64"
       )}>
         <TopBar user={user} notificationCount={notifications.length} onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6 w-full max-w-7xl mx-auto">
+        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto">
           <Outlet context={{ user, notifications }} />
         </main>
       </div>
+      <BottomNav />
     </div>
   );
 }
