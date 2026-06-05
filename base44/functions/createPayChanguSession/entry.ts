@@ -11,13 +11,13 @@ Deno.serve(async (req) => {
 
     const { plan, phone, provider } = await req.json();
 
-    if (!phone || !provider) {
-      return Response.json({ error: 'Phone number and provider are required' }, { status: 400 });
+    if (!phone || !provider || !plan) {
+      return Response.json({ error: 'Phone number, provider and plan are required' }, { status: 400 });
     }
 
     // Fetch pricing
-    const settings = await base44.entities.PlatformSettings.filter({ key: 'pricing' });
-    let pricing = { monthly_price: 5000, quarterly_price: 13500, annual_price: 48000 };
+    const settings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'pricing' });
+    let pricing = { monthly_price: 10000, annual_price: 80000, biannual_price: 150000 };
     if (settings.length > 0 && settings[0].value) {
       pricing = { ...pricing, ...settings[0].value };
     }
@@ -27,33 +27,35 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid plan or price' }, { status: 400 });
     }
 
-    // Call PayChangu Mobile Money API
-    const publicKey = Deno.env.get('PAYCHANGU_PUBLIC_KEY');
     const secretKey = Deno.env.get('PAYCHANGU_SECRET_KEY');
-
-    if (!publicKey || !secretKey) {
+    if (!secretKey) {
       return Response.json({ error: 'PayChangu credentials not configured' }, { status: 500 });
     }
 
-    const txRef = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const txRef = `TCA-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
 
-    const paychanguResponse = await fetch('https://api.paychangu.com/v1/charge/mobile-money', {
+    // PayChangu Direct Mobile Money Charge (USSD Push)
+    const paychanguResponse = await fetch('https://api.paychangu.com/mobile-money', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${secretKey}`,
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
-        amount,
+        amount: String(amount),
         currency: 'MWK',
+        email: user.email,
+        first_name: user.full_name?.split(' ')[0] || 'Student',
+        last_name: user.full_name?.split(' ').slice(1).join(' ') || 'Student',
+        callback_url: `${req.headers.get('origin') || 'https://app.chibondo.ac.mw'}/api/functions/payChanguWebhook`,
+        return_url: `${req.headers.get('origin') || 'https://app.chibondo.ac.mw'}/subscription`,
         tx_ref: txRef,
-        customer: {
-          email: user.email,
-          first_name: user.full_name?.split(' ')[0] || 'Student',
-          last_name: user.full_name?.split(' ').slice(1).join(' ') || '',
-          phone: phone.replace(/[^0-9]/g, ''),
+        customization: {
+          title: 'Chibondo Academy School Fees',
+          description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} school fees payment`,
         },
-        provider: provider === 'airtel' ? 'airtel_money' : 'tnm_mpamba',
         meta: {
           student_id: user.id,
           plan,
@@ -61,31 +63,54 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const data = await paychanguResponse.json();
+    const responseText = await paychanguResponse.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      return Response.json({ error: 'Invalid response from payment gateway', raw: responseText }, { status: 500 });
+    }
 
-    if (!paychanguResponse.ok || data.status !== 'success') {
+    if (!paychanguResponse.ok || (data.status && data.status !== 'success')) {
       return Response.json({ 
-        error: data.message || 'Payment initiation failed',
+        error: data.message || data.error || 'Payment initiation failed',
         details: data 
       }, { status: 400 });
     }
 
+    // Create Payment record
+    await base44.asServiceRole.entities.Payment.create({
+      student_id: user.id,
+      student_name: user.full_name || '',
+      amount,
+      currency: 'MWK',
+      method: provider === 'airtel' ? 'airtel_money' : 'tnm_mpamba',
+      reference: txRef,
+      status: 'pending',
+      description: `${plan} plan - ${cleanPhone}`,
+    });
+
     // Create pending subscription record
-    const subscription = await base44.entities.Subscription.create({
+    await base44.asServiceRole.entities.Subscription.create({
       student_id: user.id,
       plan,
-      status: 'trial', // Pending payment
+      status: 'trial',
       start_date: new Date().toISOString(),
       amount_paid: amount,
       currency: 'MWK',
       payment_method: provider === 'airtel' ? 'airtel_money' : 'tnm_mpamba',
     });
 
+    // If PayChangu returns a redirect URL (hosted checkout), return it
+    const redirectUrl = data.data?.checkout_url || data.data?.link || data.link || null;
+
     return Response.json({ 
-      success: true, 
-      transaction_id: data.data?.transaction_id || txRef,
-      subscription_id: subscription.id,
-      message: 'USSD prompt sent to your phone. Please enter your PIN to complete payment.',
+      success: true,
+      tx_ref: txRef,
+      redirect_url: redirectUrl,
+      message: redirectUrl 
+        ? 'Redirecting to payment page...' 
+        : 'USSD prompt sent to your phone. Please enter your PIN to complete payment.',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

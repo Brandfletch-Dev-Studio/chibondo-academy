@@ -9,16 +9,18 @@ import UpcomingItems from '@/components/dashboard/UpcomingItems';
 
 export default function StudentDashboard() {
   const { user } = useOutletContext();
+  const userId = user?.id;
 
   const { data: enrollments = [] } = useQuery({
-    queryKey: ['enrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 20),
-    enabled: !!user?.id,
+    queryKey: ['enrollments', userId],
+    queryFn: () => base44.entities.Enrollment.filter({ student_id: userId }, '-last_accessed', 20),
+    enabled: !!userId,
   });
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['upcomingAssignments'],
     queryFn: () => base44.entities.Assignment.filter({ status: 'published' }, '-created_date', 5),
+    enabled: true,
   });
 
   const completedCount = enrollments.reduce((acc, e) => acc + (e.completed_lessons?.length || 0), 0);

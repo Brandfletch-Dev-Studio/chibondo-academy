@@ -101,9 +101,15 @@ export default function SubscriptionPage() {
       return res.data;
     },
     onSuccess: (data) => {
-      toast.success(data.message || 'Payment initiated! Check your phone for PIN prompt.');
-      setPaymentDialogOpen(false);
       setProcessing(false);
+      setPaymentDialogOpen(false);
+      if (data.redirect_url) {
+        // PayChangu wants us to redirect to hosted checkout
+        window.open(data.redirect_url, '_blank');
+        toast.success('Redirecting to payment page. Complete payment in the new tab.');
+      } else {
+        toast.success(data.message || 'USSD prompt sent! Check your phone and enter your PIN.');
+      }
     },
     onError: (error) => {
       toast.error(error.message || 'Payment failed. Please try again.');

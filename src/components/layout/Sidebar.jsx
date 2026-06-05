@@ -82,7 +82,7 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path ||
-              (item.path !== '/' && item.path.length > 1 && location.pathname.startsWith(item.path));
+              (item.path !== '/' && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
 
             const linkEl = (
               <Link

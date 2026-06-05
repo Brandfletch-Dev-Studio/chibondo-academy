@@ -3,80 +3,81 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    // Parse webhook payload
+
     const payload = await req.json();
-    
-    console.log('PayChangu webhook received:', payload);
-    
-    // Verify this is a payment completion event
+    console.log('PayChangu webhook received:', JSON.stringify(payload));
+
+    // PayChangu sends status=success and event=charge.completed on successful payment
     if (payload.status === 'success' && payload.event === 'charge.completed') {
-      const { tx_ref, amount, customer, meta } = payload.data;
-      
-      if (!meta?.student_id || !meta?.plan) {
-        return Response.json({ error: 'Invalid webhook payload' }, { status: 400 });
+      const { charge_id, amount, customer } = payload.data || {};
+
+      if (!charge_id) {
+        console.error('Webhook missing charge_id');
+        return Response.json({ error: 'Missing charge_id' }, { status: 400 });
       }
-      
+
+      // Find the pending payment by charge_id (stored as reference)
+      const payments = await base44.asServiceRole.entities.Payment.filter({
+        reference: charge_id,
+        status: 'pending',
+      });
+
+      if (payments.length === 0) {
+        console.error(`No pending payment found for charge_id: ${charge_id}`);
+        return Response.json({ error: 'Payment record not found' }, { status: 404 });
+      }
+
+      const payment = payments[0];
+      const subscriptionId = payment.subscription_id;
+      const studentId = payment.student_id;
+
       // Find the pending subscription
-      const subscriptions = await base44.asServiceRole.entities.Subscription.filter({ 
-        student_id: meta.student_id,
+      const subscriptions = await base44.asServiceRole.entities.Subscription.filter({
+        student_id: studentId,
         status: 'trial',
       });
-      
+
       if (subscriptions.length === 0) {
-        return Response.json({ error: 'No pending subscription found' }, { status: 404 });
+        console.error(`No pending subscription for student ${studentId}`);
+        return Response.json({ error: 'Subscription not found' }, { status: 404 });
       }
-      
-      const sub = subscriptions[0];
-      
+
+      // Use the one matching subscription_id if multiple exist
+      const sub = subscriptions.find(s => s.id === subscriptionId) || subscriptions[0];
+
       // Calculate end date based on plan
       const startDate = new Date();
-      let endDate = new Date();
-      
-      if (meta.plan === 'monthly') {
+      const endDate = new Date();
+
+      if (sub.plan === 'monthly') {
         endDate.setMonth(endDate.getMonth() + 1);
-      } else if (meta.plan === 'quarterly') {
-        endDate.setMonth(endDate.getMonth() + 3);
-      } else if (meta.plan === 'annual') {
+      } else if (sub.plan === 'annual') {
         endDate.setFullYear(endDate.getFullYear() + 1);
+      } else if (sub.plan === 'biannual') {
+        endDate.setFullYear(endDate.getFullYear() + 2);
+      } else if (sub.plan === 'quarterly') {
+        endDate.setMonth(endDate.getMonth() + 3);
       }
-      
-      // Update subscription to active
+
+      // Activate the subscription
       await base44.asServiceRole.entities.Subscription.update(sub.id, {
         status: 'active',
-        amount_paid: amount,
-        payment_method: meta?.provider || 'airtel_money',
-        reference: tx_ref,
+        amount_paid: amount || sub.amount_paid,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
       });
-      
-      // Update user metadata
-      try {
-        const user = await base44.asServiceRole.entities.User.filter({ id: meta.student_id });
-        if (user.length > 0) {
-          // Note: We can't directly update User entity, but we've updated the subscription
-        }
-      } catch (e) {
-        console.error('Error updating user:', e);
-      }
-      
-      // Create payment record
-      await base44.asServiceRole.entities.Payment.create({
-        student_id: meta.student_id,
-        student_name: customer?.first_name + ' ' + (customer?.last_name || ''),
-        subscription_id: sub.id,
-        amount,
-        currency: 'MWK',
-        method: meta?.provider || 'airtel_money',
-        reference: tx_ref,
+
+      // Mark the payment as completed
+      await base44.asServiceRole.entities.Payment.update(payment.id, {
         status: 'completed',
-        description: `Payment for ${meta.plan} plan via PayChangu`,
+        description: `${sub.plan} school fees — payment confirmed`,
       });
-      
-      console.log(`Subscription ${sub.id} activated for student ${meta.student_id}`);
+
+      console.log(`✅ Subscription ${sub.id} activated for student ${studentId} — plan: ${sub.plan} until ${endDate.toISOString()}`);
+    } else {
+      console.log(`Webhook event ignored: status=${payload.status}, event=${payload.event}`);
     }
-    
+
     return Response.json({ received: true });
   } catch (error) {
     console.error('Webhook error:', error);
