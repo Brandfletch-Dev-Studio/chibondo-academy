@@ -324,93 +324,104 @@ function LinkGenerator({ users }) {
 }
 
 // ─── PAYOUT REQUESTS ─────────────────────────────────────────────────────────
-function PayoutRequests({ referrals }) {
+function PayoutRequests() {
   const queryClient = useQueryClient();
-  const pendingPayouts = referrals.filter(r => r.reward_status === 'pending' && (r.reward_amount || 0) > 0);
-  const paidPayouts = referrals.filter(r => r.reward_status === 'paid');
+  const [notes, setNotes] = useState({});
 
-  const approveAll = useMutation({
-    mutationFn: async (affiliateId) => {
-      const toApprove = pendingPayouts.filter(r => r.referrer_id === affiliateId);
-      await Promise.all(toApprove.map(r => base44.entities.Referral.update(r.id, { reward_status: 'paid' })));
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allReferrals'] }); toast.success('Payouts marked as paid'); },
+  const { data: requests = [] } = useQuery({
+    queryKey: ['allPayoutRequests'],
+    queryFn: () => base44.entities.PayoutRequest.list('-created_date', 100),
   });
 
-  const cancelAll = useMutation({
-    mutationFn: async (affiliateId) => {
-      const toCancel = pendingPayouts.filter(r => r.referrer_id === affiliateId);
-      await Promise.all(toCancel.map(r => base44.entities.Referral.update(r.id, { reward_status: 'cancelled' })));
+  const updateMutation = useMutation({
+    mutationFn: ({ id, status, admin_notes }) =>
+      base44.entities.PayoutRequest.update(id, { status, admin_notes }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['allPayoutRequests'] });
+      toast.success(`Request ${vars.status}`);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allReferrals'] }); toast.success('Payouts cancelled'); },
   });
 
-  const pendingByAffiliate = pendingPayouts.reduce((acc, r) => {
-    if (!acc[r.referrer_id]) acc[r.referrer_id] = { name: r.referrer_name || r.referrer_id, total: 0, items: [] };
-    acc[r.referrer_id].total += r.reward_amount || 0;
-    acc[r.referrer_id].items.push(r);
-    return acc;
-  }, {});
+  const pending  = requests.filter(r => r.status === 'pending');
+  const resolved = requests.filter(r => r.status !== 'pending');
+
+  const methodLabels = { airtel_money: 'Airtel Money', tnm_mpamba: 'TNM Mpamba', bank_transfer: 'Bank Transfer' };
+  const reqStatusColors = {
+    pending:  'bg-yellow-500/10 text-yellow-600',
+    approved: 'bg-blue-500/10 text-blue-600',
+    paid:     'bg-success/10 text-success',
+    rejected: 'bg-destructive/10 text-destructive',
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-semibold mb-0.5">Pending Payout Requests</h3>
-        <p className="text-sm text-muted-foreground">Approve or cancel earned commissions</p>
+        <h3 className="font-semibold mb-0.5">Payout Requests</h3>
+        <p className="text-sm text-muted-foreground">Review and approve affiliate payout requests</p>
       </div>
 
-      {Object.keys(pendingByAffiliate).length === 0 ? (
+      {pending.length === 0 ? (
         <div className="text-center py-12 text-sm text-muted-foreground border border-dashed border-border rounded-xl">
           <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-success opacity-40" />
-          No pending payouts — all settled.
+          No pending payout requests.
         </div>
       ) : (
         <div className="space-y-3">
-          {Object.entries(pendingByAffiliate).map(([id, aff]) => (
-            <div key={id} className="border border-border rounded-xl bg-card p-4">
-              <div className="flex items-center gap-4">
+          {pending.map(req => (
+            <div key={req.id} className="border border-yellow-500/20 rounded-xl bg-card p-4 space-y-3">
+              <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center font-bold text-yellow-600 text-sm flex-shrink-0">
-                  {aff.name?.[0]?.toUpperCase() || 'A'}
+                  {req.affiliate_name?.[0]?.toUpperCase() || 'A'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold">{aff.name}</p>
-                  <p className="text-xs text-muted-foreground">{aff.items.length} referral{aff.items.length !== 1 ? 's' : ''} · MWK {aff.total.toLocaleString()}</p>
+                  <p className="font-semibold">{req.affiliate_name || 'Affiliate'}</p>
+                  <p className="text-xs text-muted-foreground">MWK {(req.amount || 0).toLocaleString()} · {methodLabels[req.payment_method] || req.payment_method}</p>
+                  <p className="text-xs font-mono mt-0.5 text-muted-foreground">{req.payment_details}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(req.created_date).toLocaleDateString()}</p>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10"
-                    onClick={() => cancelAll.mutate(id)} disabled={cancelAll.isPending}>
-                    Cancel
-                  </Button>
-                  <Button size="sm" className="bg-success hover:bg-success/90 text-white"
-                    onClick={() => approveAll.mutate(id)} disabled={approveAll.isPending}>
-                    {approveAll.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-1" /> Approve</>}
-                  </Button>
-                </div>
+                <Badge className="bg-yellow-500/10 text-yellow-600 text-[10px] flex-shrink-0">Pending</Badge>
+              </div>
+              <div className="flex gap-2 items-center">
+                <input
+                  className="flex-1 h-8 rounded-md border border-input bg-transparent px-3 py-1 text-xs"
+                  placeholder="Admin note (optional)"
+                  value={notes[req.id] || ''}
+                  onChange={e => setNotes(n => ({ ...n, [req.id]: e.target.value }))}
+                />
+                <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10"
+                  onClick={() => updateMutation.mutate({ id: req.id, status: 'rejected', admin_notes: notes[req.id] || '' })}
+                  disabled={updateMutation.isPending}>
+                  Reject
+                </Button>
+                <Button size="sm" className="bg-success hover:bg-success/90 text-white"
+                  onClick={() => updateMutation.mutate({ id: req.id, status: 'paid', admin_notes: notes[req.id] || '' })}
+                  disabled={updateMutation.isPending}>
+                  <CheckCircle2 className="w-4 h-4 mr-1" /> Mark Paid
+                </Button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <div>
-        <h3 className="font-semibold mb-3">Payment History</h3>
-        {paidPayouts.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No paid payouts yet.</p>
-        ) : (
+      {resolved.length > 0 && (
+        <div>
+          <h3 className="font-semibold mb-3">History</h3>
           <div className="space-y-2">
-            {paidPayouts.slice(0, 20).map(r => (
-              <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card text-sm">
-                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="font-medium">{r.referrer_name || 'Affiliate'} → {r.referred_name || r.referred_email}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(r.updated_date).toLocaleDateString()}</p>
+            {resolved.slice(0, 30).map(req => (
+              <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{req.affiliate_name} · MWK {(req.amount || 0).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{methodLabels[req.payment_method]} · {new Date(req.updated_date).toLocaleDateString()}
+                    {req.admin_notes && <> · <em>{req.admin_notes}</em></>}
+                  </p>
                 </div>
-                <Badge className="bg-success/10 text-success text-[10px]">MWK {(r.reward_amount || 0).toLocaleString()}</Badge>
+                <Badge className={`text-[10px] capitalize flex-shrink-0 ${reqStatusColors[req.status]}`}>{req.status}</Badge>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -543,7 +554,11 @@ export default function AffiliateManagement() {
   });
   const commissionSettings = commissionSettingsData[0]?.value || {};
 
-  const pendingCount = referrals.filter(r => r.reward_status === 'pending' && (r.reward_amount || 0) > 0).length;
+  const { data: payoutRequests = [] } = useQuery({
+    queryKey: ['allPayoutRequests'],
+    queryFn: () => base44.entities.PayoutRequest.list('-created_date', 100),
+  });
+  const pendingCount = payoutRequests.filter(r => r.status === 'pending').length;
 
   return (
     <div className="space-y-6">
@@ -565,7 +580,7 @@ export default function AffiliateManagement() {
         </TabsList>
         <TabsContent value="overview" className="mt-5"><AffiliateOverview referrals={referrals} users={users} commissionSettings={commissionSettings} /></TabsContent>
         <TabsContent value="affiliates" className="mt-5"><AffiliateList referrals={referrals} users={users} /></TabsContent>
-        <TabsContent value="payouts" className="mt-5"><PayoutRequests referrals={referrals} /></TabsContent>
+        <TabsContent value="payouts" className="mt-5"><PayoutRequests /></TabsContent>
         <TabsContent value="links" className="mt-5"><LinkGenerator users={users} /></TabsContent>
         <TabsContent value="settings" className="mt-5"><CommissionSettings /></TabsContent>
       </Tabs>
