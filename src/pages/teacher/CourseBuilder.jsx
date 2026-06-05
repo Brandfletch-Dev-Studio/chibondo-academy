@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -110,7 +109,7 @@ function LessonForm({ topicId, subjectId, subjectName, topicTitle, formId, lesso
   const queryClient = useQueryClient();
   const [data, setData] = useState(lesson || { 
     title: '', description: '', content: '', video_url: '', 
-    video_provider: 'none', order: 0, status: 'draft', is_free: false, estimated_minutes: 15 
+    video_provider: 'none', order: 0, status: 'draft', estimated_minutes: 15 
   });
 
   const saveMutation = useMutation({
@@ -153,10 +152,6 @@ function LessonForm({ topicId, subjectId, subjectName, topicTitle, formId, lesso
         <div><Label>Order</Label><Input type="number" value={data.order} onChange={e => setData({ ...data, order: parseInt(e.target.value) || 0 })} /></div>
       </div>
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Switch checked={data.is_free} onCheckedChange={v => setData({ ...data, is_free: v })} />
-          <Label>Free preview</Label>
-        </div>
         <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -273,7 +268,6 @@ export default function CourseBuilder() {
                     <div key={lesson.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 group">
                       <PlayCircle className="w-4 h-4 text-primary flex-shrink-0" />
                       <span className="text-sm flex-1">{lesson.title}</span>
-                      {lesson.is_free && <Badge variant="secondary" className="text-[9px]">Free</Badge>}
                       <Badge variant="secondary" className="text-[9px]">{lesson.status}</Badge>
                       <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => setLessonDialog({ open: true, lesson, topicId: topic.id, topicTitle: topic.title })}>
                         <Edit2 className="w-3 h-3" />

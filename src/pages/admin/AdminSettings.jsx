@@ -252,10 +252,6 @@ export default function AdminSettings() {
                 </Select>
               </div>
               <div>
-                <Label>Free Lessons per Subject</Label>
-                <Input className="mt-1" type="number" value={pricing.free_lessons_per_subject} onChange={e => setPricing({ ...pricing, free_lessons_per_subject: Number(e.target.value) })} />
-              </div>
-              <div>
                 <Label>Monthly Plan Price</Label>
                 <Input className="mt-1" type="number" value={pricing.monthly_price} onChange={e => setPricing({ ...pricing, monthly_price: Number(e.target.value) })} />
               </div>

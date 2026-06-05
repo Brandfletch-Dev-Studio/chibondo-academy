@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, Clock, FileText } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -48,21 +48,15 @@ export default function SubjectDetail() {
     queryFn: async () => {
       if (!user?.id) return null;
       const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
-      return results[0] || null;
+      if (!results[0]) return null;
+      const sub = results[0];
+      if (sub.end_date && new Date(sub.end_date) < new Date()) return null;
+      return sub;
     },
     enabled: !!user?.id,
   });
 
-  const { data: platformSettings } = useQuery({
-    queryKey: ['platformSettings', 'pricing'],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('getPricing', {});
-      return res.data.pricing;
-    },
-  });
-
-  const hasPaidFees = subscription?.status === 'active';
-  const freeLessonsPerSubject = platformSettings?.free_lessons_per_subject ?? 2;
+  const hasPaidFees = !!subscription;
 
   const enrollMutation = useMutation({
     mutationFn: () => base44.entities.Enrollment.create({
@@ -75,9 +69,16 @@ export default function SubjectDetail() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['enrollment'] });
-      toast.success('Enrolled successfully!');
     },
   });
+
+  // Auto-enroll when student clicks a lesson (if not already enrolled)
+  const handleLessonClick = async (lessonId) => {
+    if (!hasPaidFees) return; // blocked
+    if (!enrollment) {
+      await enrollMutation.mutateAsync();
+    }
+  };
 
   const lessonsByTopic = {};
   lessons.forEach(l => {
@@ -134,19 +135,15 @@ export default function SubjectDetail() {
                 {subject.teacher_name && <span>Taught by <span className="font-medium text-foreground">{subject.teacher_name}</span></span>}
               </div>
             </div>
-            <div className="flex flex-col items-start lg:items-end gap-3 flex-shrink-0">
-              {enrollment ? (
+            {enrollment && (
+              <div className="flex flex-col items-start lg:items-end gap-3 flex-shrink-0">
                 <div className="bg-muted/50 rounded-xl p-4 text-center min-w-[120px]">
                   <div className="text-3xl font-bold text-primary font-display">{progressPct}%</div>
                   <p className="text-xs text-muted-foreground mb-2">Complete</p>
                   <Progress value={progressPct} className="h-2" />
                 </div>
-              ) : (
-                <Button onClick={() => enrollMutation.mutate()} className="bg-primary hover:bg-primary/90 px-8">
-                  Enroll Now
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -174,13 +171,11 @@ export default function SubjectDetail() {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
-                  {topicLessons.map((lesson, lessonIdx) => {
+                  {topicLessons.map((lesson) => {
                     const isCompleted = completedLessons.includes(lesson.id);
-                    const isSampleLesson = lesson.is_free || lessonIdx < freeLessonsPerSubject;
-                    const isLocked = !hasPaidFees && !isSampleLesson;
+                    const isLocked = !hasPaidFees;
                     const hasVideo = !!lesson.video_url;
 
-                    // Format duration as MM:SS if stored as minutes, else show raw
                     const duration = lesson.estimated_minutes > 0
                       ? `${String(Math.floor(lesson.estimated_minutes)).padStart(2, '0')}:00`
                       : null;
@@ -188,11 +183,10 @@ export default function SubjectDetail() {
                     return (
                       <Link
                         key={lesson.id}
-                        to={isLocked ? '#' : `/lesson/${lesson.id}`}
+                        to={isLocked ? '/subscription' : `/lesson/${lesson.id}`}
+                        onClick={() => !isLocked && handleLessonClick(lesson.id)}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-border/50 last:border-b-0 text-sm transition-colors ${
-                          isLocked
-                            ? 'cursor-not-allowed opacity-60'
-                            : 'hover:bg-muted/40'
+                          isLocked ? 'opacity-60 hover:bg-muted/20' : 'hover:bg-muted/40'
                         } ${isCompleted ? 'bg-success/5' : ''}`}
                       >
                         {/* Format icon */}
@@ -214,13 +208,13 @@ export default function SubjectDetail() {
                           <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums">{duration}</span>
                         )}
 
-                        {/* Lock / Free badge */}
+                        {/* Lock / View icon */}
                         <span className="flex-shrink-0">
                           {isLocked ? (
                             <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                          ) : isSampleLesson && !hasPaidFees ? (
-                            <Badge className="text-[9px] bg-success/10 text-success border-success/20 px-1.5">Free</Badge>
-                          ) : null}
+                          ) : (
+                            <Eye className="w-3.5 h-3.5 text-primary" />
+                          )}
                         </span>
                       </Link>
                     );

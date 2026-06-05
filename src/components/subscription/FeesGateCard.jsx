@@ -33,9 +33,7 @@ export default function FeesGateCard() {
           </Button>
         </Link>
       </div>
-      <p className="text-xs text-muted-foreground mt-4">
-        Sample lessons are still available for free below ↓
-      </p>
+
     </div>
   );
 }

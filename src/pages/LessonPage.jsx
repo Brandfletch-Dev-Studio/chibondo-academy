@@ -237,25 +237,10 @@ export default function LessonPage() {
     enabled: !!user?.id,
   });
 
-  const { data: pricingSettings } = useQuery({
-    queryKey: ['platformSettings', 'pricing'],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('getPricing', {});
-      return res.data.pricing;
-    },
-  });
+  const hasPaidFees = !!subscription;
 
-  const freeLessonsPerSubject = pricingSettings?.free_lessons_per_subject ?? 2;
-  const hasPaidFees = subscription?.status === 'active';
-
-  // Helper: is a given lesson locked for this user?
-  const isLessonLocked = (l, indexInSubject) => {
-    if (hasPaidFees) return false;
-    if (l.is_free) return false;
-    // Count how many free lessons come before this one across all lessons (ordered)
-    const idx = allLessons.findIndex(x => x.id === l.id);
-    return idx >= freeLessonsPerSubject;
-  };
+  // Every lesson is locked unless student has active subscription
+  const isLessonLocked = () => !hasPaidFees;
 
   const markCompleteMutation = useMutation({
     mutationFn: async () => {
@@ -307,19 +292,18 @@ export default function LessonPage() {
     );
   }
 
-  // ── HARD GATE: block direct access to locked lessons ──────────────────────
-  // Only check once allLessons and subscription have loaded (avoid flash)
-  const dataLoaded = allLessons.length > 0 && subscription !== undefined && pricingSettings !== undefined;
-  if (dataLoaded && isLessonLocked(lesson)) {
+  // ── HARD GATE: block direct access if no active subscription ──────────────
+  const dataLoaded = subscription !== undefined;
+  if (dataLoaded && isLessonLocked()) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
           <Lock className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-xl font-display font-bold">This lesson is locked</h2>
+        <h2 className="text-xl font-display font-bold">Pay Fees to Access This Lesson</h2>
         <p className="text-sm text-muted-foreground max-w-sm">
-          This lesson is only available to students who have paid their school fees.
-          The first {freeLessonsPerSubject} lesson{freeLessonsPerSubject !== 1 ? 's' : ''} per subject are free — pay to unlock everything.
+          All lessons are available exclusively to students who have paid their school fees.
+          Pay now to unlock everything on the platform.
         </p>
         <div className="flex gap-3 flex-wrap justify-center">
           <Link to="/subscription">
