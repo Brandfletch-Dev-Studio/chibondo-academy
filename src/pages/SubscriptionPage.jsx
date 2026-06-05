@@ -7,9 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Check, GraduationCap, Zap, Crown, Loader2, BookOpen, Calendar, Users, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function SubscriptionPage() {
   const { user } = useOutletContext();
@@ -21,10 +18,6 @@ export default function SubscriptionPage() {
     biannual_price: 150000,
   });
 
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [phone, setPhone] = useState('');
-  const [provider, setProvider] = useState('airtel');
   const [processing, setProcessing] = useState(false);
 
   const { data: pricingData, isLoading } = useQuery({
@@ -96,19 +89,16 @@ export default function SubscriptionPage() {
   ];
 
   const initiatePayment = useMutation({
-    mutationFn: async ({ plan, phone, provider }) => {
-      const res = await base44.functions.invoke('createPayChanguSession', { plan, phone, provider });
+    mutationFn: async (plan) => {
+      const res = await base44.functions.invoke('createPayChanguSession', { plan });
       return res.data;
     },
     onSuccess: (data) => {
       setProcessing(false);
-      setPaymentDialogOpen(false);
-      if (data.redirect_url) {
-        // PayChangu wants us to redirect to hosted checkout
-        window.open(data.redirect_url, '_blank');
-        toast.success('Redirecting to payment page. Complete payment in the new tab.');
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
       } else {
-        toast.success(data.message || 'USSD prompt sent! Check your phone and enter your PIN.');
+        toast.error('Could not get payment link. Please try again.');
       }
     },
     onError: (error) => {
@@ -117,18 +107,9 @@ export default function SubscriptionPage() {
     },
   });
 
-  const handlePlanSelect = (plan) => {
-    setSelectedPlan(plan);
-    setPaymentDialogOpen(true);
-  };
-
-  const handlePaymentSubmit = async () => {
-    if (!phone || phone.length < 10) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
+  const handlePlanSelect = (planId) => {
     setProcessing(true);
-    initiatePayment.mutate({ plan: selectedPlan.id, phone, provider });
+    initiatePayment.mutate(planId);
   };
 
   const formatPrice = (price) => price.toLocaleString('en-MW');
@@ -222,10 +203,12 @@ export default function SubscriptionPage() {
                 <Button
                   className="w-full"
                   variant={isCurrent ? "secondary" : "default"}
-                  disabled={isCurrent || isLoading}
-                  onClick={() => handlePlanSelect(plan)}
+                  disabled={isCurrent || isLoading || processing}
+                  onClick={() => handlePlanSelect(plan.id)}
                 >
-                  {isCurrent ? 'Current Plan' : `Pay MWK ${formatPrice(plan.price)}`}
+                  {processing ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting...</>
+                  ) : isCurrent ? 'Current Plan' : `Pay MWK ${formatPrice(plan.price)}`}
                 </Button>
               </div>
             );
@@ -238,73 +221,7 @@ export default function SubscriptionPage() {
         <p>Contact us for group or school subscriptions: <span className="text-primary">admin@chibondo.ac.mw</span></p>
       </div>
 
-      {/* Payment Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Pay School Fees</DialogTitle>
-            <DialogDescription>
-              {selectedPlan?.name} — MWK {formatPrice(selectedPlan?.price || 0)} {selectedPlan?.period}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Mobile Money Provider</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={provider === 'airtel' ? 'default' : 'outline'}
-                  onClick={() => setProvider('airtel')}
-                  className={provider === 'airtel' ? 'bg-red-600 hover:bg-red-700' : ''}
-                >
-                  Airtel Money
-                </Button>
-                <Button
-                  variant={provider === 'tnm' ? 'default' : 'outline'}
-                  onClick={() => setProvider('tnm')}
-                  className={provider === 'tnm' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                >
-                  TNM Mpamba
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                placeholder="999 123 456"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="h-12"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter the number registered with {provider === 'airtel' ? 'Airtel Money' : 'TNM Mpamba'}
-              </p>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => setPaymentDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button className="flex-1" onClick={handlePaymentSubmit} disabled={processing}>
-                {processing ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
-                ) : (
-                  `Pay MWK ${formatPrice(selectedPlan?.price || 0)}`
-                )}
-              </Button>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-xs">
-              <p className="font-medium mb-1">How it works:</p>
-              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Click "Pay" above</li>
-                <li>Check your phone for USSD PIN prompt</li>
-                <li>Enter your mobile money PIN</li>
-                <li>Your access activates instantly!</li>
-              </ol>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

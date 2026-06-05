@@ -35,16 +35,28 @@ export default function ReferralsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const shareMessage = `📚 *The Chibondo Academy* is an online secondary school that offers MSCE lessons in all subjects.
+
+Fees start from *MK10,000 per month* and that unlocks access to both Form 3 and Form 4 content.
+
+Register for free through this link 👇
+${referralLink}`;
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
         title: 'Join Chibondo Academy',
-        text: `Use my referral code ${referralCode} to join Chibondo Academy and get started!`,
+        text: shareMessage,
         url: referralLink,
       });
     } else {
-      handleCopy(referralLink);
+      handleCopy(shareMessage);
     }
+  };
+
+  const handleWhatsApp = () => {
+    const encoded = encodeURIComponent(shareMessage);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank');
   };
 
   const stats = {
@@ -91,7 +103,7 @@ export default function ReferralsPage() {
         <div className="bg-white/10 rounded-xl p-3 text-xs font-mono break-all mb-4 opacity-80">
           {referralLink}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             size="sm"
             variant="secondary"
@@ -104,12 +116,26 @@ export default function ReferralsPage() {
           <Button
             size="sm"
             variant="secondary"
-            className="flex-1 bg-white/20 hover:bg-white/30 text-primary-foreground border-0"
+            className="flex-1 bg-green-500/80 hover:bg-green-500 text-white border-0"
+            onClick={handleWhatsApp}
+          >
+            <Share2 className="w-4 h-4 mr-1.5" />
+            WhatsApp
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="w-full bg-white/10 hover:bg-white/20 text-primary-foreground border-0"
             onClick={handleShare}
           >
             <Share2 className="w-4 h-4 mr-1.5" />
-            Share Link
+            Share Message
           </Button>
+        </div>
+
+        {/* Preview of message */}
+        <div className="mt-4 bg-white/10 rounded-xl p-3 text-xs leading-relaxed whitespace-pre-line opacity-80">
+          {shareMessage}
         </div>
       </div>
 

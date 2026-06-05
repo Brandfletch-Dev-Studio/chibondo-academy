@@ -9,10 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { plan, phone, provider } = await req.json();
+    const { plan } = await req.json();
 
-    if (!phone || !provider || !plan) {
-      return Response.json({ error: 'Phone number, provider and plan are required' }, { status: 400 });
+    if (!plan) {
+      return Response.json({ error: 'Plan is required' }, { status: 400 });
     }
 
     // Fetch pricing
@@ -33,10 +33,10 @@ Deno.serve(async (req) => {
     }
 
     const txRef = `TCA-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const origin = req.headers.get('origin') || 'https://app.chibondo.ac.mw';
 
-    // PayChangu Direct Mobile Money Charge (USSD Push)
-    const paychanguResponse = await fetch('https://api.paychangu.com/mobile-money', {
+    // PayChangu Standard Checkout (hosted redirect mode)
+    const paychanguResponse = await fetch('https://api.paychangu.com/payment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,12 +49,13 @@ Deno.serve(async (req) => {
         email: user.email,
         first_name: user.full_name?.split(' ')[0] || 'Student',
         last_name: user.full_name?.split(' ').slice(1).join(' ') || 'Student',
-        callback_url: `${req.headers.get('origin') || 'https://app.chibondo.ac.mw'}/api/functions/payChanguWebhook`,
-        return_url: `${req.headers.get('origin') || 'https://app.chibondo.ac.mw'}/subscription`,
+        callback_url: `${origin}/api/functions/payChanguWebhook`,
+        return_url: `${origin}/subscription?paid=1`,
         tx_ref: txRef,
         customization: {
           title: 'Chibondo Academy School Fees',
-          description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} school fees payment`,
+          description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan – school fees`,
+          logo: 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg',
         },
         meta: {
           student_id: user.id,
@@ -72,10 +73,16 @@ Deno.serve(async (req) => {
     }
 
     if (!paychanguResponse.ok || (data.status && data.status !== 'success')) {
-      return Response.json({ 
+      return Response.json({
         error: data.message || data.error || 'Payment initiation failed',
-        details: data 
+        details: data
       }, { status: 400 });
+    }
+
+    const checkoutUrl = data.data?.checkout_url || data.data?.link || data.link || data.checkout_url;
+
+    if (!checkoutUrl) {
+      return Response.json({ error: 'No checkout URL returned by payment gateway', details: data }, { status: 500 });
     }
 
     // Create Payment record
@@ -84,10 +91,10 @@ Deno.serve(async (req) => {
       student_name: user.full_name || '',
       amount,
       currency: 'MWK',
-      method: provider === 'airtel' ? 'airtel_money' : 'tnm_mpamba',
+      method: 'airtel_money', // will be chosen on PayChangu's page
       reference: txRef,
       status: 'pending',
-      description: `${plan} plan - ${cleanPhone}`,
+      description: `${plan} plan`,
     });
 
     // Create pending subscription record
@@ -98,19 +105,13 @@ Deno.serve(async (req) => {
       start_date: new Date().toISOString(),
       amount_paid: amount,
       currency: 'MWK',
-      payment_method: provider === 'airtel' ? 'airtel_money' : 'tnm_mpamba',
+      payment_method: 'airtel_money',
     });
 
-    // If PayChangu returns a redirect URL (hosted checkout), return it
-    const redirectUrl = data.data?.checkout_url || data.data?.link || data.link || null;
-
-    return Response.json({ 
+    return Response.json({
       success: true,
       tx_ref: txRef,
-      redirect_url: redirectUrl,
-      message: redirectUrl 
-        ? 'Redirecting to payment page...' 
-        : 'USSD prompt sent to your phone. Please enter your PIN to complete payment.',
+      checkout_url: checkoutUrl,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
