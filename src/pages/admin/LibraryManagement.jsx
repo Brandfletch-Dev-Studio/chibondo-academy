@@ -325,7 +325,7 @@ export default function LibraryManagement() {
 }
 
 function ResourceList({ resources, onEdit, onDelete, typeLabels }) {
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const filtered = resources.filter(r =>
     r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -354,7 +354,7 @@ function ResourceList({ resources, onEdit, onDelete, typeLabels }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(resource => (
+          {filtered.map((resource) => (
             <div key={resource.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5 text-accent" />
