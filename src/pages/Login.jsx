@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import SEO from "@/components/SEO";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -34,16 +35,22 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout
-      title="Welcome Back"
-      subtitle="Continue from where you left off"
-      footer={
-        <>
-          New to the academy?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">Join us</Link>
-        </>
-      }
-    >
+    <>
+      <SEO 
+        title="Login"
+        description="Sign in to your Chibondo Academy account to access online courses, lessons, and study materials."
+        canonical={`${window.location.origin}/login`}
+      />
+      <AuthLayout
+        title="Welcome Back"
+        subtitle="Continue from where you left off"
+        footer={
+          <>
+            New to the academy?{" "}
+            <Link to="/register" className="text-primary font-medium hover:underline">Join us</Link>
+          </>
+        }
+      >
       <Button variant="outline" className="w-full h-12 text-sm font-medium mb-6" onClick={handleGoogle}>
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continue with Google
@@ -106,6 +113,7 @@ export default function Login() {
           {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
         </Button>
       </form>
-    </AuthLayout>
+      </AuthLayout>
+    </>
   );
 }

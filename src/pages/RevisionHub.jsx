@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Library, FileText, Download, Filter, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SEO from '@/components/SEO';
 
 const typeLabels = {
   past_paper: 'Past Paper',
@@ -42,7 +43,13 @@ export default function RevisionHub() {
   });
 
   return (
-    <div className="space-y-6">
+    <>
+      <SEO 
+        title="MSCE Revision Hub"
+        description="Free MSCE revision resources - past papers, model answers, revision notes, and exam tips for Form 3 and Form 4 students in Malawi."
+        canonical={`${window.location.origin}/revision`}
+      />
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold">MSCE Revision Hub</h1>
         <p className="text-sm text-muted-foreground mt-1">Past papers, model answers, and exam preparation resources</p>
@@ -103,5 +110,6 @@ export default function RevisionHub() {
         </div>
       )}
     </div>
+    </>
   );
 }

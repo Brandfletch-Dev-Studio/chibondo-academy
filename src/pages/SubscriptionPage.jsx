@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, GraduationCap, Zap, Crown, Loader2, BookOpen, Calendar, Users, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import SEO from '@/components/SEO';
 
 export default function SubscriptionPage() {
   const { user } = useOutletContext();
@@ -115,7 +116,13 @@ export default function SubscriptionPage() {
   const formatPrice = (price) => price.toLocaleString('en-MW');
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <>
+      <SEO 
+        title="School Fees & Pricing"
+        description="Affordable online secondary education at Chibondo Academy. Monthly, quarterly, and annual plans available. Access MSCE lessons, quizzes, past papers from MWK 10,000/month."
+        canonical={`${window.location.origin}/subscription`}
+      />
+      <div className="space-y-8 max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center space-y-3">
         <div className="flex justify-center">
@@ -228,8 +235,7 @@ export default function SubscriptionPage() {
           </p>
         </div>
       </div>
-
-
     </div>
+    </>
   );
 }

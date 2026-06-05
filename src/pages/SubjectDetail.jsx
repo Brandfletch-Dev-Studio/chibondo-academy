@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import FeesGateCard from '@/components/subscription/FeesGateCard';
+import SEO from '@/components/SEO';
 
 export default function SubjectDetail() {
   const { subjectId } = useParams();
@@ -137,11 +138,44 @@ export default function SubjectDetail() {
     );
   }
 
+  // Prepare SEO data
+  const subjectDescription = subject.description || `Study ${subject.name} with Chibondo Academy - comprehensive ${subject.form_name || 'secondary school'} course with video lessons, quizzes, and expert instruction.`;
+  const canonicalUrl = `${window.location.origin}/subjects/${subjectId}`;
+  
+  // Structured data for Course schema
+  const courseSchema = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": subject.name,
+    "description": subjectDescription,
+    "provider": {
+      "@type": "Organization",
+      "name": "Chibondo Academy",
+      "sameAs": window.location.origin
+    },
+    "educationalLevel": subject.form_name || "Secondary",
+    "courseMode": "Online",
+    "offers": {
+      "@type": "Offer",
+      "category": subject.is_premium ? "Paid" : "Free",
+      "priceCurrency": "MWK",
+      "price": subject.is_premium ? "10000" : "0"
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <Link to="/subjects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="w-4 h-4 mr-1" /> Back to Subjects
-      </Link>
+    <>
+      <SEO 
+        title={subject.name}
+        description={subjectDescription}
+        canonical={canonicalUrl}
+        ogImage={subject.cover_image || undefined}
+        schema={courseSchema}
+      />
+      <div className="space-y-6">
+        <Link to="/subjects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Subjects
+        </Link>
 
       {/* Subject Header */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
@@ -338,5 +372,6 @@ export default function SubjectDetail() {
         </div>
       )}
     </div>
+    </>
   );
 }

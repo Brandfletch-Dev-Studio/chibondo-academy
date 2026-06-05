@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import SEO from "@/components/SEO";
 
 export default function Register() {
   const [searchParams] = useSearchParams();
@@ -49,10 +50,16 @@ export default function Register() {
 
   if (emailSent) {
     return (
-      <AuthLayout
-        title="Check your email"
-        subtitle={`We sent a verification link to ${email}`}
-      >
+      <>
+        <SEO 
+          title="Verify Your Email"
+          description="Check your email to verify your Chibondo Academy account and complete registration."
+          canonical={`${window.location.origin}/register`}
+        />
+        <AuthLayout
+          title="Check your email"
+          subtitle={`We sent a verification link to ${email}`}
+        >
         <div className="text-center space-y-6 py-4">
           <div className="flex justify-center">
             <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
@@ -79,26 +86,33 @@ export default function Register() {
           </div>
         </div>
       </AuthLayout>
+      </>
     );
   }
 
   return (
-    <AuthLayout
-      title="Welcome to The Chibondo Academy"
-      subtitle="Create your account and start your learning journey today"
-      footer={
-        <div className="space-y-3">
-          <div>
-            Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+    <>
+      <SEO 
+        title="Register"
+        description="Create your free Chibondo Academy account. Join today and get access to quality online secondary education with MSCE lessons, quizzes, and past papers."
+        canonical={`${window.location.origin}/register`}
+      />
+      <AuthLayout
+        title="Welcome to The Chibondo Academy"
+        subtitle="Create your account and start your learning journey today"
+        footer={
+          <div className="space-y-3">
+            <div>
+              Already have an account?{" "}
+              <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+            </div>
+            <div className="pt-2 border-t border-gray-200">
+              Interested in teaching?{" "}
+              <Link to="/register/teacher" className="text-primary font-medium hover:underline">Apply as Teacher</Link>
+            </div>
           </div>
-          <div className="pt-2 border-t border-gray-200">
-            Interested in teaching?{" "}
-            <Link to="/register/teacher" className="text-primary font-medium hover:underline">Apply as Teacher</Link>
-          </div>
-        </div>
-      }
-    >
+        }
+      >
       <Button variant="outline" className="w-full h-12 text-sm font-medium mb-6" onClick={handleGoogle}>
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continue with Google
@@ -182,6 +196,7 @@ export default function Register() {
           {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating account...</> : "Create Account"}
         </Button>
       </form>
-    </AuthLayout>
+      </AuthLayout>
+    </>
   );
 }
