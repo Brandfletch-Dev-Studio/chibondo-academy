@@ -86,8 +86,11 @@ export default function SubjectDetail() {
     }
   };
 
-  const completedLessons = enrollment?.completed_lessons || [];
-  const totalLessons = lessons.length;
+  const lessonsByTopic = {};
+  lessons.forEach(l => {
+    if (!lessonsByTopic[l.topic_id]) lessonsByTopic[l.topic_id] = [];
+    lessonsByTopic[l.topic_id].push(l);
+  });
 
   if (!subject) {
     return (
