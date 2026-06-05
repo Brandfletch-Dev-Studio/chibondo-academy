@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, Gift, Users, DollarSign, Share2, ChevronRight } from 'lucide-react';
+import { Copy, Check, Gift, Users, DollarSign, Share2, ChevronRight, Trophy, Medal } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusColors = {
@@ -27,6 +27,32 @@ export default function ReferralsPage() {
     queryFn: () => base44.entities.Referral.filter({ referrer_id: user.id }, '-created_date', 50),
     enabled: !!user?.id,
   });
+
+  // All referrals for leaderboard
+  const { data: allReferrals = [] } = useQuery({
+    queryKey: ['all-referrals-leaderboard'],
+    queryFn: () => base44.entities.Referral.list('-created_date', 500),
+  });
+
+  // Aggregate leaderboard
+  const leaderboard = Object.values(
+    allReferrals.reduce((acc, r) => {
+      if (!r.referrer_id) return acc;
+      if (!acc[r.referrer_id]) {
+        acc[r.referrer_id] = {
+          referrer_id: r.referrer_id,
+          name: r.referrer_name || 'Unknown',
+          total: 0,
+          paid: 0,
+        };
+      }
+      acc[r.referrer_id].total += 1;
+      if (['paid', 'rewarded'].includes(r.status)) acc[r.referrer_id].paid += 1;
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b.paid - a.paid || b.total - a.total)
+    .slice(0, 10);
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -183,6 +209,56 @@ ${referralLink}`;
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Leaderboard */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+          <Trophy className="w-5 h-5 text-accent" />
+          <h2 className="font-semibold">Top Referrers</h2>
+          <span className="text-xs text-muted-foreground ml-auto">Ranked by paid referrals</span>
+        </div>
+        {leaderboard.length === 0 ? (
+          <div className="text-center py-10">
+            <Trophy className="w-10 h-10 mx-auto text-muted-foreground/20 mb-2" />
+            <p className="text-sm text-muted-foreground">No referrals yet — be the first!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {leaderboard.map((entry, idx) => {
+              const isMe = entry.referrer_id === user?.id;
+              const rankColors = ['text-yellow-500', 'text-slate-400', 'text-amber-600'];
+              const rankBg = ['bg-yellow-500/10', 'bg-slate-400/10', 'bg-amber-600/10'];
+              const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+
+              return (
+                <div
+                  key={entry.referrer_id}
+                  className={`flex items-center gap-4 px-5 py-3 transition-colors ${isMe ? 'bg-accent/5 border-l-2 border-accent' : ''}`}
+                >
+                  {/* Rank */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${idx < 3 ? rankBg[idx] : 'bg-muted'} ${idx < 3 ? rankColors[idx] : 'text-muted-foreground'}`}>
+                    {medal || idx + 1}
+                  </div>
+
+                  {/* Name */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold truncate ${isMe ? 'text-accent' : ''}`}>
+                      {entry.name} {isMe && <span className="text-xs font-normal text-muted-foreground">(you)</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{entry.total} invited · {entry.paid} paid</p>
+                  </div>
+
+                  {/* Score */}
+                  <div className="text-right flex-shrink-0">
+                    <p className={`text-lg font-bold font-display ${idx < 3 ? rankColors[idx] : 'text-foreground'}`}>{entry.paid}</p>
+                    <p className="text-[10px] text-muted-foreground">paid</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
