@@ -24,7 +24,7 @@ const studentNav = [
   { label: 'Discussions', icon: MessageSquare, path: '/discussions' },
   { label: 'Progress', icon: BarChart3, path: '/progress' },
   { label: 'Analytics', icon: TrendingUp, path: '/progress/analytics' },
-  { label: 'Subscription', icon: CreditCard, path: '/subscription' },
+  { label: 'School Fees', icon: CreditCard, path: '/subscription' },
   { label: 'Settings', icon: Settings, path: '/settings' },
 ];
 

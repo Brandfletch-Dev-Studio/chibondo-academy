@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
+import FeesGateCard from '@/components/subscription/FeesGateCard';
 
 export default function SubjectDetail() {
   const { subjectId } = useParams();
@@ -41,6 +42,27 @@ export default function SubjectDetail() {
     },
     enabled: !!user?.id,
   });
+
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
+      return results[0] || null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: platformSettings } = useQuery({
+    queryKey: ['platformSettings', 'pricing'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getPricing', {});
+      return res.data.pricing;
+    },
+  });
+
+  const hasPaidFees = subscription?.status === 'active';
+  const freeLessonsPerSubject = platformSettings?.free_lessons_per_subject ?? 2;
 
   const enrollMutation = useMutation({
     mutationFn: () => base44.entities.Enrollment.create({
@@ -129,6 +151,11 @@ export default function SubjectDetail() {
         </div>
       </div>
 
+      {/* Fees Gate — shown when subject is premium and student hasn't paid */}
+      {subject.is_premium && !hasPaidFees && (
+        <FeesGateCard />
+      )}
+
       {/* Topics & Lessons */}
       <div className="bg-card rounded-2xl border border-border">
         <div className="px-6 lg:px-8 py-5 border-b border-border">
@@ -158,9 +185,11 @@ export default function SubjectDetail() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-4">
                   <div className="space-y-1.5 ml-12">
-                    {topicLessons.map(lesson => {
+                    {topicLessons.map((lesson, lessonIdx) => {
                       const isCompleted = completedLessons.includes(lesson.id);
-                      const isLocked = !enrollment && !lesson.is_free;
+                      // If paid fees, all lessons unlocked. Otherwise only free lessons OR first N lessons per subject
+                      const isSampleLesson = lesson.is_free || lessonIdx < freeLessonsPerSubject;
+                      const isLocked = !hasPaidFees && !isSampleLesson;
                       return (
                         <Link
                           key={lesson.id}
@@ -178,8 +207,8 @@ export default function SubjectDetail() {
                           )}
                           <span className="flex-1 leading-snug">{lesson.title}</span>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {lesson.is_free && (
-                              <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/20">Free</Badge>
+                            {isSampleLesson && !hasPaidFees && (
+                              <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/20">Sample</Badge>
                             )}
                             {lesson.estimated_minutes > 0 && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
