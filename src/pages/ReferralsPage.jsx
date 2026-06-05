@@ -263,9 +263,18 @@ ${referralLink}`;
         )}
       </div>
 
-      {/* Contact for payout */}
-      <div className="text-center text-xs text-muted-foreground pb-6">
-        <p>For reward payouts, contact us at <span className="text-primary">admin@chibondo.ac.mw</span></p>
+      {/* Support */}
+      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 text-sm">
+        <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+          <Gift className="w-4 h-4 text-accent" />
+        </div>
+        <div>
+          <p className="font-medium">Questions about rewards or payouts?</p>
+          <p className="text-xs text-muted-foreground">
+            Contact us at{' '}
+            <a href="mailto:support@chibondoacademy.com" className="text-primary hover:underline">support@chibondoacademy.com</a>
+          </p>
+        </div>
       </div>
     </div>
   );

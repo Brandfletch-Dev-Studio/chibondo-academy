@@ -216,9 +216,17 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      <div className="text-center text-xs text-muted-foreground space-y-1">
-        <p>Secure payment via Airtel Money and TNM Mpamba.</p>
-        <p>Contact us for group or school subscriptions: <span className="text-primary">admin@chibondo.ac.mw</span></p>
+      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 text-sm">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <GraduationCap className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <p className="font-medium">Need help with your fees?</p>
+          <p className="text-xs text-muted-foreground">
+            Secure payment via Airtel Money & TNM Mpamba. Contact us at{' '}
+            <a href="mailto:support@chibondoacademy.com" className="text-primary hover:underline">support@chibondoacademy.com</a>
+          </p>
+        </div>
       </div>
 
 

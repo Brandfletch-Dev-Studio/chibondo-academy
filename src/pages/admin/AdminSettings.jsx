@@ -1,15 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, School, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { School, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink, Trash2, Users, BookOpen, Layers, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+
+const ENTITY_LIST = [
+  { key: 'StudentProfile',      label: 'Student Profiles',     icon: Users },
+  { key: 'Enrollment',          label: 'Enrollments',          icon: BookOpen },
+  { key: 'Payment',             label: 'Payments',             icon: CreditCard },
+  { key: 'Subscription',        label: 'Subscriptions',        icon: CreditCard },
+  { key: 'Referral',            label: 'Referrals',            icon: Gift },
+  { key: 'Lesson',              label: 'Lessons',              icon: Layers },
+  { key: 'Subject',             label: 'Courses',              icon: BookOpen },
+  { key: 'Topic',               label: 'Topics',               icon: Layers },
+  { key: 'TeacherApplication',  label: 'Tutor Applications',   icon: Users },
+];
+
+function DataManagement() {
+  const [deleting, setDeleting] = useState(null);
+  const deleteMutation = useMutation({
+    mutationFn: async (entityKey) => {
+      const entity = base44.entities[entityKey];
+      const records = await entity.list('created_date', 500);
+      await Promise.all(records.map(r => entity.delete(r.id)));
+      return records.length;
+    },
+    onSuccess: (count, entityKey) => {
+      toast.success(`Deleted ${count} records from ${entityKey}`);
+      setDeleting(null);
+    },
+    onError: (err) => {
+      toast.error('Delete failed: ' + err.message);
+      setDeleting(null);
+    },
+  });
+
+  return (
+    <div className="bg-card rounded-xl border border-destructive/30 p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <Trash2 className="w-4 h-4 text-destructive" />
+        <h2 className="font-semibold text-destructive">Data Management</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">Permanently delete all records from a collection. This cannot be undone.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {ENTITY_LIST.map(({ key, label, icon: Icon }) => (
+          <AlertDialog key={key}>
+            <AlertDialogTrigger asChild>
+              <button className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-destructive/40 hover:bg-destructive/5 transition-all text-left group">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-destructive/10 flex-shrink-0">
+                  <Icon className="w-4 h-4 text-muted-foreground group-hover:text-destructive" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{label}</p>
+                  <p className="text-xs text-muted-foreground">Delete all records</p>
+                </div>
+                <Trash2 className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-destructive flex-shrink-0" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete all {label}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete <strong>all records</strong> in <strong>{label}</strong>. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => { setDeleting(key); deleteMutation.mutate(key); }}
+                  disabled={deleteMutation.isPending && deleting === key}
+                >
+                  {deleteMutation.isPending && deleting === key
+                    ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />Deleting...</>
+                    : 'Yes, Delete All'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
@@ -224,6 +304,9 @@ export default function AdminSettings() {
           </div>
         </div>
       </div>
+
+      {/* Danger Zone */}
+      <DataManagement />
     </div>
   );
 }
