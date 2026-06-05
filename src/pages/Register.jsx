@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, Loader2, Eye, EyeOff, CheckCircle2, KeyRound } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import SEO from "@/components/SEO";
@@ -21,6 +21,10 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [newUserId, setNewUserId] = useState(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [resending, setResending] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +37,6 @@ export default function Register() {
     try {
       const result = await base44.auth.register({ email: email.trim(), password });
       setEmailSent(true);
-      // Store the new user ID for tracking referral after OTP verification
       if (result?.user?.id) {
         setNewUserId(result.user.id);
       }
@@ -41,6 +44,39 @@ export default function Register() {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setVerifyError("");
+    if (!otpCode.trim()) { setVerifyError("Please enter the verification code"); return; }
+    if (otpCode.trim().length !== 6) { setVerifyError("Code must be 6 digits"); return; }
+
+    setVerifying(true);
+    try {
+      const result = await base44.auth.verifyOtp({ email: email.trim(), otpCode: otpCode.trim() });
+      if (result?.access_token) {
+        await base44.auth.setToken(result.access_token);
+        window.location.href = '/onboarding';
+      }
+    } catch (err) {
+      setVerifyError(err.message || "Invalid code. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setResending(true);
+    setVerifyError("");
+    try {
+      await base44.auth.resendOtp(email.trim());
+      setVerifyError("");
+    } catch (err) {
+      setVerifyError(err.message || "Failed to resend code.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -53,33 +89,74 @@ export default function Register() {
       <>
         <SEO 
           title="Verify Your Email"
-          description="Check your email to verify your Chibondo Academy account and complete registration."
+          description="Enter the 6-digit verification code sent to your email to complete your Chibondo Academy registration."
           canonical={`${window.location.origin}/register`}
         />
         <AuthLayout
-          title="Check your email"
-          subtitle={`We sent a verification link to ${email}`}
+          title="Verify your email"
+          subtitle={`We sent a 6-digit code to ${email}`}
         >
         <div className="text-center space-y-6 py-4">
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-green-500" />
+            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
+              <KeyRound className="w-8 h-8 text-accent" />
             </div>
           </div>
           <div className="space-y-2">
             <p className="text-sm text-gray-600">
-              Click the link in the email to verify your account and complete your registration.
+              Enter the 6-digit verification code from the email to complete your registration.
             </p>
             {refCode && (
               <p className="text-xs text-accent font-medium">
-                Your referral code <span className="font-mono">{refCode}</span> has been saved. We'll track it once you verify your email!
+                Referral code <span className="font-mono">{refCode}</span> will be applied after verification!
               </p>
             )}
-            <p className="text-xs text-gray-400">
-              Didn't receive the email? Check your spam folder.
-            </p>
           </div>
-          <div className="pt-2 border-t border-gray-100">
+
+          <form onSubmit={handleVerifyOtp} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="otp">Verification Code</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  className="pl-10 h-12 text-center tracking-widest font-mono"
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
+
+            {verifyError && (
+              <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">{verifyError}</div>
+            )}
+
+            <Button type="submit" className="w-full h-12 font-semibold" disabled={verifying}>
+              {verifying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying...</> : "Verify & Continue"}
+            </Button>
+          </form>
+
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-2">Didn't receive the code?</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResendOtp}
+              disabled={resending}
+              className="text-xs h-9"
+            >
+              {resending ? <><Loader2 className="w-3 h-3 mr-2 animate-spin" />Resending...</> : "Resend Code"}
+            </Button>
+          </div>
+
+          <div className="pt-2">
             <Link to="/login" className="text-sm text-primary font-medium hover:underline">
               Back to Sign In
             </Link>
