@@ -57,7 +57,7 @@ export default function AdminSubscriptions() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
   const [grantOpen, setGrantOpen] = useState(false);
-  const [grantStudentId, setGrantStudentId] = useState('');
+  const [grantStudentEmail, setGrantStudentEmail] = useState('');
   const [grantPlan, setGrantPlan] = useState('monthly');
   const [grantMonths, setGrantMonths] = useState(1);
 
@@ -88,12 +88,19 @@ export default function AdminSubscriptions() {
 
   const grantMutation = useMutation({
     mutationFn: async () => {
+      // Find user by email
+      const users = await base44.entities.User.filter({ email: grantStudentEmail });
+      if (!users || users.length === 0) {
+        throw new Error('Student with this email not found');
+      }
+      const user = users[0];
+      
       const planDurations = { monthly: 30, annual: 365, biannual: 730 };
       const days = (planDurations[grantPlan] || 30) * grantMonths;
       const start = new Date();
       const end = new Date(Date.now() + days * 86400000);
       await base44.entities.Subscription.create({
-        student_id: grantStudentId,
+        student_id: user.id,
         plan: grantPlan,
         status: 'active',
         start_date: start.toISOString(),
@@ -107,7 +114,7 @@ export default function AdminSubscriptions() {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
       toast.success('Subscription granted successfully');
       setGrantOpen(false);
-      setGrantStudentId('');
+      setGrantStudentEmail('');
     },
   });
 
@@ -336,9 +343,9 @@ export default function AdminSubscriptions() {
           <p className="text-sm text-muted-foreground">Manually grant a student subscription access without payment.</p>
           <div className="space-y-4 pt-2">
             <div>
-              <Label>Student User ID</Label>
-              <Input className="mt-1 font-mono text-xs" value={grantStudentId} onChange={e => setGrantStudentId(e.target.value)} placeholder="Paste student user ID..." />
-              <p className="text-[11px] text-muted-foreground mt-1">Find IDs in User Management</p>
+              <Label>Student Email</Label>
+              <Input className="mt-1" value={grantStudentEmail} onChange={e => setGrantStudentEmail(e.target.value)} placeholder="student@example.com" type="email" />
+              <p className="text-[11px] text-muted-foreground mt-1">Enter the student's registered email address</p>
             </div>
             <div>
               <Label>Plan</Label>
@@ -353,7 +360,7 @@ export default function AdminSubscriptions() {
             </div>
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => setGrantOpen(false)}>Cancel</Button>
-              <Button className="flex-1" onClick={() => grantMutation.mutate()} disabled={!grantStudentId || grantMutation.isPending}>
+              <Button className="flex-1" onClick={() => grantMutation.mutate()} disabled={!grantStudentEmail || grantMutation.isPending}>
                 {grantMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                 Grant Access
               </Button>

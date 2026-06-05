@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Eye, Share2, Copy, Check, GraduationCap } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Copy, Check, GraduationCap, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -173,64 +173,42 @@ export default function SubjectDetail() {
         schema={courseSchema}
       />
       <div className="space-y-6">
-        <Link to="/subjects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Subjects
-        </Link>
-
-      {/* Subject Header */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        {/* Banner */}
-        {subject.cover_image ? (
-          <div className="h-40 lg:h-56 w-full relative">
-            <img src={subject.cover_image} alt={subject.name} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          </div>
-        ) : (
-          <div className="h-32 lg:h-44 w-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center">
-            <BookOpen className="w-16 h-16 text-primary-foreground/30" />
-          </div>
-        )}
-        <div className="p-6 lg:p-8">
-          <div className="flex flex-col gap-4">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge variant="secondary" className="text-[10px]">{subject.form_name || 'Form'}</Badge>
-                {subject.is_premium && (
-                  <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">Premium</Badge>
-                )}
-              </div>
-              <h1 className="text-2xl lg:text-3xl font-display font-bold">{subject.name}</h1>
-              {subject.description && (
-                <p className="text-muted-foreground text-sm mt-2 leading-relaxed max-w-2xl">{subject.description}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" />{topics.length} topics · {totalLessons} lessons</span>
-                {subject.teacher_name && <span>Taught by <span className="font-medium text-foreground">{subject.teacher_name}</span></span>}
-              </div>
-            </div>
-          </div>
+        {/* Minimal Header */}
+        <div className="flex items-center justify-between">
+          <Link to="/subjects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Subjects
+          </Link>
+          {subject.is_premium && (
+            <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">Premium</Badge>
+          )}
         </div>
-      </div>
 
-      {/* Fees Gate — shown when subject is premium and student hasn't paid */}
+        {/* Simple Title */}
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-bold">{subject.name}</h1>
+          {subject.form_name && (
+            <p className="text-sm text-muted-foreground mt-1">{subject.form_name}</p>
+          )}
+        </div>
+
+      {/* Fees Gate */}
       {subject.is_premium && !hasPaidFees && (
         <FeesGateCard />
       )}
 
-      {/* Topics & Lessons */}
-      <div className="rounded-2xl border border-border overflow-hidden bg-card">
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="font-display font-semibold text-lg">Course Content</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{topics.length} units · {totalLessons} lessons</p>
+      {/* Simple Course Content */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h2 className="font-semibold text-base">Course Content</h2>
         </div>
         <Accordion type="multiple" defaultValue={topics.map(t => t.id)}>
           {topics.map((topic, idx) => {
             const topicLessons = lessonsByTopic[topic.id] || [];
             return (
               <AccordionItem key={topic.id} value={topic.id} className="border-0 border-b border-border last:border-b-0">
-                <AccordionTrigger className="px-5 py-4 hover:no-underline bg-primary/5 hover:bg-primary/10 transition-colors [&>svg]:text-primary">
-                  <span className="text-primary font-semibold text-sm text-left leading-snug">
-                    Unit {idx + 1}: {topic.title}
+                <AccordionTrigger className="px-4 py-3 hover:no-underline [&>svg]:text-primary">
+                  <span className="font-medium text-sm text-left">
+                    {topic.title}
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
@@ -239,18 +217,14 @@ export default function SubjectDetail() {
                     const isLocked = !hasPaidFees;
                     const hasVideo = !!lesson.video_url;
 
-                    const duration = lesson.estimated_minutes > 0
-                      ? `${String(Math.floor(lesson.estimated_minutes)).padStart(2, '0')}:00`
-                      : null;
-
                     return (
                       <Link
                         key={lesson.id}
                         to={isLocked ? '/subscription' : `/lesson/${lesson.id}`}
                         onClick={() => !isLocked && handleLessonClick(lesson.id)}
-                        className={`flex items-center gap-3 px-5 py-3.5 border-b border-border/50 last:border-b-0 text-sm transition-colors ${
-                          isLocked ? 'opacity-60 hover:bg-muted/20' : 'hover:bg-muted/40'
-                        } ${isCompleted ? 'bg-success/5' : ''}`}
+                        className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${
+                          isCompleted ? 'bg-success/5' : ''
+                        }`}
                       >
                         <span className="flex-shrink-0 text-muted-foreground">
                           {isCompleted ? (
@@ -261,20 +235,8 @@ export default function SubjectDetail() {
                             <FileText className="w-4 h-4" />
                           )}
                         </span>
-
-                        <span className="flex-1 leading-snug text-foreground">{lesson.title}</span>
-
-                        {duration && (
-                          <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums">{duration}</span>
-                        )}
-
-                        <span className="flex-shrink-0">
-                          {isLocked ? (
-                            <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                          ) : (
-                            <Eye className="w-3.5 h-3.5 text-primary" />
-                          )}
-                        </span>
+                        <span className="flex-1 text-foreground">{lesson.title}</span>
+                        {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
                       </Link>
                     );
                   })}
