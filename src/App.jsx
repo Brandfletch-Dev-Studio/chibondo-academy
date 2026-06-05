@@ -117,12 +117,6 @@ const AuthenticatedApp = () => {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
 
-      {/* Public Routes (no auth required) */}
-      <Route path="/subjects" element={<SubjectsPage />} />
-      <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
-      <Route path="/revision" element={<RevisionHub />} />
-      <Route path="/library" element={<LibraryPage />} />
-
       {/* Protected Routes */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
@@ -130,7 +124,10 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<RoleHome />} />
           {/* Student */}
           <Route path="/dashboard" element={<StudentDashboard />} />
+          <Route path="/subjects" element={<SubjectsPage />} />
+          <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
           <Route path="/lesson/:lessonId" element={<LessonPage />} />
+          <Route path="/revision" element={<RevisionHub />} />
           <Route path="/my-quizzes" element={<MyQuizzes />} />
           <Route path="/quiz/:quizId" element={<QuizPage />} />
           <Route path="/my-assignments" element={<MyAssignments />} />
@@ -140,6 +137,7 @@ const AuthenticatedApp = () => {
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/referrals" element={<ReferralsPage />} />
+          <Route path="/library" element={<LibraryPage />} />
           <Route path="/my-affiliates" element={<MyAffiliates />} />
 
           {/* Student Settings */}

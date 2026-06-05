@@ -6,7 +6,6 @@ import WelcomeCard from '@/components/dashboard/WelcomeCard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import RecentSubjects from '@/components/dashboard/RecentSubjects';
 import UpcomingItems from '@/components/dashboard/UpcomingItems';
-import SEO from '@/components/SEO';
 
 export default function StudentDashboard() {
   const { user } = useOutletContext();
@@ -35,12 +34,6 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      <SEO 
-        title="Student Dashboard - My Learning"
-        description="Access your enrolled subjects, track progress, view assignments, and continue learning at The Chibondo Academy."
-        type="website"
-      />
-      
       <WelcomeCard user={user} />
       <StatsGrid data={statsData} />
       <div className="grid lg:grid-cols-2 gap-6">

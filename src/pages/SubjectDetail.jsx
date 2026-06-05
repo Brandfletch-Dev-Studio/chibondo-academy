@@ -2,15 +2,22 @@ import React, { useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Eye, Share2, Copy, Check, GraduationCap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import SEO from '@/components/SEO';
+import { toast } from 'sonner';
+import FeesGateCard from '@/components/subscription/FeesGateCard';
 
 export default function SubjectDetail() {
   const { subjectId } = useParams();
   const { user } = useOutletContext();
   const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
+
+  // Get user's referral code for sharing
+  const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
 
   const { data: subject } = useQuery({
     queryKey: ['subject', subjectId],
@@ -54,8 +61,6 @@ export default function SubjectDetail() {
   });
 
   const hasPaidFees = !!subscription;
-  const completedLessons = enrollment?.completed_lessons || [];
-  const totalLessons = lessons.length;
 
   const enrollMutation = useMutation({
     mutationFn: () => base44.entities.Enrollment.create({
@@ -71,13 +76,10 @@ export default function SubjectDetail() {
     },
   });
 
+  // Auto-enroll when student clicks a lesson (if not already enrolled)
   const handleLessonClick = async (lessonId) => {
-    if (!user) {
-      const nextUrl = encodeURIComponent(`/lesson/${lessonId}`);
-      window.location.href = `/login?next=${nextUrl}`;
-      return;
-    }
     if (!hasPaidFees) {
+      // Redirect to subscription page for unpaid users
       window.location.href = '/subscription';
       return;
     }
@@ -86,11 +88,46 @@ export default function SubjectDetail() {
     }
   };
 
+  // Share functions with affiliate tracking
+  const shareLink = `${window.location.origin}/subjects/${subjectId}?ref=${referralCode}`;
+  
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Link copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Study ${subject.name} - Chibondo Academy`,
+        text: `Join me at Chibondo Academy to master ${subject.name}! Use my referral code ${referralCode} when registering.`,
+        url: shareLink,
+      });
+    } else {
+      handleCopy(shareLink);
+    }
+  };
+
+  const handleWhatsApp = () => {
+    const message = `📚 Study ${subject.name} at Chibondo Academy!\n\nJoin me to access quality lessons and course materials.\n\nUse my referral code ${referralCode} when registering.\n\n${shareLink}`;
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+  };
+
   const lessonsByTopic = {};
   lessons.forEach(l => {
     if (!lessonsByTopic[l.topic_id]) lessonsByTopic[l.topic_id] = [];
     lessonsByTopic[l.topic_id].push(l);
   });
+
+  const completedLessons = enrollment?.completed_lessons || [];
+  const totalLessons = lessons.length;
+  const progressPct = totalLessons > 0 ? Math.round((completedLessons.length / totalLessons) * 100) : 0;
+
+  // Find first lesson for CTA
+  const firstLesson = lessons.length > 0 ? lessons[0] : null;
 
   if (!subject) {
     return (
@@ -102,20 +139,13 @@ export default function SubjectDetail() {
 
   return (
     <div className="space-y-6">
-      <SEO 
-        title={`${subject.name} - ${subject.form_name || 'Form'} Course`}
-        description={subject.description || `Study ${subject.name} with Chibondo Academy. Access quality lessons, videos, and course materials for MSCE students.`}
-        image={subject.cover_image}
-        type="course"
-        article={{ author: subject.teacher_name, section: subject.form_name }}
-      />
-      
       <Link to="/subjects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-4 h-4 mr-1" /> Back to Subjects
       </Link>
 
       {/* Subject Header */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        {/* Banner */}
         {subject.cover_image ? (
           <div className="h-40 lg:h-56 w-full relative">
             <img src={subject.cover_image} alt={subject.name} className="w-full h-full object-cover" />
@@ -127,24 +157,33 @@ export default function SubjectDetail() {
           </div>
         )}
         <div className="p-6 lg:p-8">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <Badge variant="secondary" className="text-[10px]">{subject.form_name || 'Form'}</Badge>
-            {subject.is_premium && (
-              <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">Premium</Badge>
-            )}
-          </div>
-          <h1 className="text-2xl lg:text-3xl font-display font-bold mb-2">{subject.name}</h1>
-          {subject.description && (
-            <p className="text-muted-foreground text-sm leading-relaxed mb-4">{subject.description}</p>
-          )}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" />{topics.length} topics · {totalLessons} lessons</span>
-            {subject.teacher_name && <span>By <span className="font-medium text-foreground">{subject.teacher_name}</span></span>}
+          <div className="flex flex-col gap-4">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge variant="secondary" className="text-[10px]">{subject.form_name || 'Form'}</Badge>
+                {subject.is_premium && (
+                  <Badge className="text-[10px] bg-accent/10 text-accent border-accent/20">Premium</Badge>
+                )}
+              </div>
+              <h1 className="text-2xl lg:text-3xl font-display font-bold">{subject.name}</h1>
+              {subject.description && (
+                <p className="text-muted-foreground text-sm mt-2 leading-relaxed max-w-2xl">{subject.description}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" />{topics.length} topics · {totalLessons} lessons</span>
+                {subject.teacher_name && <span>Taught by <span className="font-medium text-foreground">{subject.teacher_name}</span></span>}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Course Content */}
+      {/* Fees Gate — shown when subject is premium and student hasn't paid */}
+      {subject.is_premium && !hasPaidFees && (
+        <FeesGateCard />
+      )}
+
+      {/* Topics & Lessons */}
       <div className="rounded-2xl border border-border overflow-hidden bg-card">
         <div className="px-5 py-4 border-b border-border">
           <h2 className="font-display font-semibold text-lg">Course Content</h2>
@@ -165,6 +204,7 @@ export default function SubjectDetail() {
                     const isCompleted = completedLessons.includes(lesson.id);
                     const isLocked = !hasPaidFees;
                     const hasVideo = !!lesson.video_url;
+
                     const duration = lesson.estimated_minutes > 0
                       ? `${String(Math.floor(lesson.estimated_minutes)).padStart(2, '0')}:00`
                       : null;
@@ -172,7 +212,7 @@ export default function SubjectDetail() {
                     return (
                       <Link
                         key={lesson.id}
-                        to={isLocked ? (user ? '/subscription' : `/login?next=/lesson/${lesson.id}`) : `/lesson/${lesson.id}`}
+                        to={isLocked ? '/subscription' : `/lesson/${lesson.id}`}
                         onClick={() => !isLocked && handleLessonClick(lesson.id)}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-border/50 last:border-b-0 text-sm transition-colors ${
                           isLocked ? 'opacity-60 hover:bg-muted/20' : 'hover:bg-muted/40'
@@ -187,15 +227,18 @@ export default function SubjectDetail() {
                             <FileText className="w-4 h-4" />
                           )}
                         </span>
+
                         <span className="flex-1 leading-snug text-foreground">{lesson.title}</span>
+
                         {duration && (
                           <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums">{duration}</span>
                         )}
+
                         <span className="flex-shrink-0">
                           {isLocked ? (
                             <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                           ) : (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-primary/50" />
+                            <Eye className="w-3.5 h-3.5 text-primary" />
                           )}
                         </span>
                       </Link>
@@ -207,6 +250,93 @@ export default function SubjectDetail() {
           })}
         </Accordion>
       </div>
+
+      {/* Progress Bar & Start Learning CTA - Bottom of page */}
+      {enrollment && totalLessons > 0 && (
+        <div className="space-y-4">
+          {/* Progress Section */}
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-semibold text-lg">Your Progress</h3>
+              <span className="text-3xl font-bold text-primary font-display">{progressPct}%</span>
+            </div>
+            <Progress value={progressPct} className="h-3 mb-2" />
+            <p className="text-sm text-muted-foreground">
+              {completedLessons.length} of {totalLessons} lessons completed
+            </p>
+          </div>
+
+          {/* Start Learning CTA */}
+          <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-display font-bold text-xl mb-2">Ready to Start Learning?</h3>
+                <p className="text-sm text-primary-foreground/80 mb-4">
+                  {hasPaidFees 
+                    ? `Jump into your first lesson and begin your ${subject.name} journey!`
+                    : 'Subscribe to unlock all lessons and start learning.'}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {hasPaidFees && firstLesson ? (
+                    <Link to={`/lesson/${firstLesson.id}`}>
+                      <Button className="bg-white text-primary hover:bg-white/90 px-8">
+                        <PlayCircle className="w-4 h-4 mr-2" />
+                        Start Learning
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link to="/subscription">
+                      <Button className="bg-white text-primary hover:bg-white/90 px-8">
+                        Subscribe Now
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Share Buttons */}
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <h3 className="font-display font-semibold mb-4">Share This Course</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Invite friends using your referral link. They'll get registered under your code automatically!
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                onClick={() => handleCopy(shareLink)}
+                className="flex-1 min-w-[140px]"
+              >
+                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleWhatsApp}
+                className="flex-1 min-w-[140px] bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                className="flex-1 min-w-[140px]"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+            <div className="mt-4 p-3 bg-muted/50 rounded-xl">
+              <p className="text-xs font-mono text-muted-foreground break-all">{shareLink}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

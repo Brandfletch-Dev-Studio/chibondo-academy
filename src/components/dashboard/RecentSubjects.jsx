@@ -20,19 +20,19 @@ export default function RecentSubjects({ enrollments = [] }) {
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5 flex flex-col min-h-0 overflow-hidden">
-      <div className="flex items-center justify-between mb-4 min-w-0">
-        <h3 className="font-display font-semibold text-lg truncate">My Subjects</h3>
-        <Link to="/subjects" className="text-sm text-primary font-medium flex items-center gap-1 hover:underline flex-shrink-0">
+    <div className="bg-card rounded-xl border border-border p-5 flex flex-col min-h-0">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display font-semibold text-lg">My Subjects</h3>
+        <Link to="/subjects" className="text-sm text-primary font-medium flex items-center gap-1 hover:underline">
           View All <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
-      <div className="space-y-2 overflow-hidden">
+      <div className="space-y-2">
         {enrollments.slice(0, 5).map((enrollment) => (
           <Link 
             key={enrollment.id} 
             to={`/subjects/${enrollment.subject_id}`}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group min-w-0"
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group"
           >
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <BookOpen className="w-4 h-4 text-primary" />
@@ -41,7 +41,7 @@ export default function RecentSubjects({ enrollments = [] }) {
               <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
                 {enrollment.subject_name}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{enrollment.form_name}</p>
+              <p className="text-xs text-muted-foreground">{enrollment.form_name}</p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-xs font-semibold text-primary">{enrollment.progress_percentage || 0}%</p>
