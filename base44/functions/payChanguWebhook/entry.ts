@@ -74,6 +74,38 @@ Deno.serve(async (req) => {
       });
 
       console.log(`✅ Subscription ${sub.id} activated for student ${studentId} — plan: ${sub.plan} until ${endDate.toISOString()}`);
+
+      // Send payment confirmed notification
+      await base44.asServiceRole.entities.Notification.create({
+        user_id: studentId,
+        title: 'Payment confirmed — full access unlocked!',
+        message: `Your ${sub.plan} subscription is now active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.`,
+        type: 'subscription',
+        link: '/dashboard',
+        is_read: false,
+      });
+
+      // Send payment confirmed email using template
+      const emailTemplateSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
+      const templates = emailTemplateSettings[0]?.value || {};
+
+      const emailSubject = templates.payment_confirmed_subject || 'Payment Confirmed – Welcome to Chibondo Academy!';
+      const emailBodyTemplate = templates.payment_confirmed_body ||
+        `Dear Student,\n\nYour payment has been received and your subscription is now active until {end_date}.\n\nYou now have full access to all lessons and course materials.\n\nVisit {dashboard_link} to start learning.\n\nRegards,\nThe Chibondo Academy Team`;
+
+      const emailBody = emailBodyTemplate
+        .replace('{end_date}', endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))
+        .replace('{dashboard_link}', 'https://app.chibondo.mw/dashboard');
+
+      const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
+      if (users[0]?.email) {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: users[0].email,
+          subject: emailSubject,
+          body: emailBody,
+        });
+        console.log(`✅ Payment confirmed email sent to ${users[0].email}`);
+      }
     } else {
       console.log(`Webhook event ignored: status=${payload.status}, event=${payload.event}`);
     }

@@ -6,10 +6,12 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { School, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink, Trash2, Users, BookOpen, Layers, Gift } from 'lucide-react';
+import { School, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink, Trash2, Users, BookOpen, Layers, Gift, Mail } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
+import EmailTemplateSettings from '@/components/admin/EmailTemplateSettings';
 
 const ENTITY_LIST = [
   { key: 'StudentProfile',      label: 'Student Profiles',     icon: Users },
@@ -148,6 +150,17 @@ export default function AdminSettings() {
         <p className="text-sm text-muted-foreground mt-1">Configure your academy platform</p>
       </div>
 
+      <Tabs defaultValue="general">
+        <TabsList className="flex flex-wrap gap-1 h-auto">
+          <TabsTrigger value="general"><School className="w-4 h-4 mr-1.5" />General</TabsTrigger>
+          <TabsTrigger value="pricing"><CreditCard className="w-4 h-4 mr-1.5" />Pricing</TabsTrigger>
+          <TabsTrigger value="emails"><Mail className="w-4 h-4 mr-1.5" />Email Templates</TabsTrigger>
+          <TabsTrigger value="notifications"><Bell className="w-4 h-4 mr-1.5" />Notifications</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="w-4 h-4 mr-1.5" />Security</TabsTrigger>
+          <TabsTrigger value="danger"><Trash2 className="w-4 h-4 mr-1.5" />Data</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="mt-5 space-y-6">
       {/* PayChangu Integration */}
       <Card className="border-primary/50 bg-primary/5">
         <CardHeader className="pb-3">
@@ -218,95 +231,106 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {/* Pricing */}
-      <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <CreditCard className="w-4 h-4 text-primary" />
-          <h2 className="font-semibold">Pricing & Plans</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Currency</Label>
-            <Select value={pricing.currency} onValueChange={v => setPricing({ ...pricing, currency: v })}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="MWK">MWK (Malawian Kwacha)</SelectItem>
-                <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                <SelectItem value="ZAR">ZAR (South African Rand)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Free Lessons per Subject</Label>
-            <Input className="mt-1" type="number" value={pricing.free_lessons_per_subject} onChange={e => setPricing({ ...pricing, free_lessons_per_subject: Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label>Monthly Plan Price</Label>
-            <Input className="mt-1" type="number" value={pricing.monthly_price} onChange={e => setPricing({ ...pricing, monthly_price: Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label>Annual Plan Price</Label>
-            <Input className="mt-1" type="number" value={pricing.annual_price} onChange={e => setPricing({ ...pricing, annual_price: Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label>Biannual Plan Price (2 Years)</Label>
-            <Input className="mt-1" type="number" value={pricing.biannual_price} onChange={e => setPricing({ ...pricing, biannual_price: Number(e.target.value) })} />
-          </div>
-        </div>
-        <div className="flex justify-end pt-2">
-          <Button onClick={() => handleSave('Pricing')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
-        </div>
-      </div>
+        </TabsContent>
 
-      {/* Notifications */}
-      <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bell className="w-4 h-4 text-primary" />
-          <h2 className="font-semibold">Notification Settings</h2>
-        </div>
-        <div className="space-y-4">
-          {[
-            { key: 'email_on_enrollment', label: 'Email admin on new enrollment' },
-            { key: 'email_on_payment', label: 'Email admin on new payment' },
-            { key: 'email_on_submission', label: 'Email teacher on assignment submission' },
-          ].map(item => (
-            <div key={item.key} className="flex items-center justify-between">
-              <Label className="font-normal">{item.label}</Label>
-              <Switch checked={notifications[item.key]} onCheckedChange={v => setNotifications({ ...notifications, [item.key]: v })} />
+        <TabsContent value="pricing" className="mt-5">
+          <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CreditCard className="w-4 h-4 text-primary" />
+              <h2 className="font-semibold">Pricing & Plans</h2>
             </div>
-          ))}
-        </div>
-        <div className="flex justify-end pt-2">
-          <Button onClick={() => handleSave('Notification')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
-        </div>
-      </div>
-
-      {/* Security */}
-      <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Shield className="w-4 h-4 text-primary" />
-          <h2 className="font-semibold">Security</h2>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-            <div>
-              <p className="text-sm font-medium">Require Email Verification</p>
-              <p className="text-xs text-muted-foreground">Students must verify their email to access premium content</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Currency</Label>
+                <Select value={pricing.currency} onValueChange={v => setPricing({ ...pricing, currency: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MWK">MWK (Malawian Kwacha)</SelectItem>
+                    <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                    <SelectItem value="ZAR">ZAR (South African Rand)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Free Lessons per Subject</Label>
+                <Input className="mt-1" type="number" value={pricing.free_lessons_per_subject} onChange={e => setPricing({ ...pricing, free_lessons_per_subject: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Monthly Plan Price</Label>
+                <Input className="mt-1" type="number" value={pricing.monthly_price} onChange={e => setPricing({ ...pricing, monthly_price: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Annual Plan Price</Label>
+                <Input className="mt-1" type="number" value={pricing.annual_price} onChange={e => setPricing({ ...pricing, annual_price: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Biannual Plan Price (2 Years)</Label>
+                <Input className="mt-1" type="number" value={pricing.biannual_price} onChange={e => setPricing({ ...pricing, biannual_price: Number(e.target.value) })} />
+              </div>
             </div>
-            <Switch defaultChecked />
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => handleSave('Pricing')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
+            </div>
           </div>
-          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-            <div>
-              <p className="text-sm font-medium">Allow Self-Registration</p>
-              <p className="text-xs text-muted-foreground">Let students register without admin approval</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-        </div>
-      </div>
+        </TabsContent>
 
-      {/* Danger Zone */}
-      <DataManagement />
+        <TabsContent value="emails" className="mt-5">
+          <EmailTemplateSettings />
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-5">
+          <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Bell className="w-4 h-4 text-primary" />
+              <h2 className="font-semibold">Notification Settings</h2>
+            </div>
+            <div className="space-y-4">
+              {[
+                { key: 'email_on_enrollment', label: 'Email admin on new enrollment' },
+                { key: 'email_on_payment', label: 'Email admin on new payment' },
+                { key: 'email_on_submission', label: 'Email teacher on assignment submission' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between">
+                  <Label className="font-normal">{item.label}</Label>
+                  <Switch checked={notifications[item.key]} onCheckedChange={v => setNotifications({ ...notifications, [item.key]: v })} />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => handleSave('Notification')} disabled={loading}><Save className="w-4 h-4 mr-1" /> Save</Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-5">
+          <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-primary" />
+              <h2 className="font-semibold">Security</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Require Email Verification</p>
+                  <p className="text-xs text-muted-foreground">Students must verify their email to access premium content</p>
+                </div>
+                <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Allow Self-Registration</p>
+                  <p className="text-xs text-muted-foreground">Let students register without admin approval</p>
+                </div>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="danger" className="mt-5">
+          <DataManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

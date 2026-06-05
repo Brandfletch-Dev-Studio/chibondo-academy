@@ -228,7 +228,11 @@ export default function LessonPage() {
     queryFn: async () => {
       if (!user?.id) return null;
       const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
-      return results[0] || null;
+      if (!results[0]) return null;
+      // Check if subscription is actually still valid (end_date not passed)
+      const sub = results[0];
+      if (sub.end_date && new Date(sub.end_date) < new Date()) return null;
+      return sub;
     },
     enabled: !!user?.id,
   });
