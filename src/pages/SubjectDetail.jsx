@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, Clock } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, Clock, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -184,31 +184,41 @@ export default function SubjectDetail() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-4">
-                  <div className="space-y-1.5 ml-12">
+                  <div className="space-y-1 pt-1">
                     {topicLessons.map((lesson, lessonIdx) => {
                       const isCompleted = completedLessons.includes(lesson.id);
-                      // If paid fees, all lessons unlocked. Otherwise only free lessons OR first N lessons per subject
                       const isSampleLesson = lesson.is_free || lessonIdx < freeLessonsPerSubject;
                       const isLocked = !hasPaidFees && !isSampleLesson;
+                      const hasVideo = !!lesson.video_url;
                       return (
                         <Link
                           key={lesson.id}
                           to={isLocked ? '#' : `/lesson/${lesson.id}`}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
                             isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50 hover:text-primary'
                           }`}
                         >
-                          {isCompleted ? (
-                            <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
-                          ) : isLocked ? (
-                            <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          ) : (
-                            <PlayCircle className="w-4 h-4 text-primary flex-shrink-0" />
-                          )}
+                          {/* Format icon */}
+                          <span className="flex-shrink-0">
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-4 h-4 text-success" />
+                            ) : isLocked ? (
+                              <Lock className="w-4 h-4 text-muted-foreground" />
+                            ) : hasVideo ? (
+                              <PlayCircle className="w-4 h-4 text-primary" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </span>
+                          {/* Title */}
                           <span className="flex-1 leading-snug">{lesson.title}</span>
+                          {/* Meta */}
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {!hasVideo && !isLocked && (
+                              <Badge variant="secondary" className="text-[9px] hidden sm:inline-flex">Reading</Badge>
+                            )}
                             {isSampleLesson && !hasPaidFees && (
-                              <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/20">Sample</Badge>
+                              <Badge className="text-[9px] bg-success/10 text-success border-success/20">Free</Badge>
                             )}
                             {lesson.estimated_minutes > 0 && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
