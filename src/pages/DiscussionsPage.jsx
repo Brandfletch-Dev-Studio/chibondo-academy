@@ -1,24 +1,109 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { MessageSquare, ThumbsUp } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 export default function DiscussionsPage() {
   const { user } = useOutletContext();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newContent, setNewContent] = useState('');
 
   const { data: discussions = [] } = useQuery({
     queryKey: ['allDiscussions'],
     queryFn: () => base44.entities.Discussion.filter({ status: 'active' }, '-created_date', 50),
   });
 
+  const createDiscussionMutation = useMutation({
+    mutationFn: (content) =>
+      base44.entities.Discussion.create({
+        content,
+        author_id: user.id,
+        author_name: user.full_name,
+        author_role: user.role,
+        status: 'active',
+        likes: 0,
+        is_pinned: false,
+        is_answer: false,
+        parent_id: null,
+        lesson_id: null,
+        subject_id: null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allDiscussions'] });
+      setDialogOpen(false);
+      setNewContent('');
+      toast.success('Discussion started!');
+    },
+    onError: (error) => {
+      toast.error('Failed to start discussion');
+      console.error(error);
+    },
+  });
+
+  const handleStartDiscussion = () => {
+    if (!newContent.trim()) {
+      toast.error('Please enter some content');
+      return;
+    }
+    createDiscussionMutation.mutate(newContent);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Discussions</h1>
-        <p className="text-sm text-muted-foreground mt-1">Community questions and answers</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Discussions</h1>
+          <p className="text-sm text-muted-foreground mt-1">Community questions and answers</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Start Discussion
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Start a New Discussion</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Textarea
+                  placeholder="What would you like to discuss with the community?"
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  rows={5}
+                  className="resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleStartDiscussion}
+                  disabled={!newContent.trim() || createDiscussionMutation.isPending}
+                >
+                  {createDiscussionMutation.isPending ? 'Posting...' : 'Post Discussion'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="space-y-3">
@@ -52,7 +137,7 @@ export default function DiscussionsPage() {
           <div className="text-center py-16">
             <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
             <p className="text-muted-foreground">No discussions yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Start a discussion on any lesson page</p>
+            <p className="text-xs text-muted-foreground mt-1">Be the first to start a discussion!</p>
           </div>
         )}
       </div>
