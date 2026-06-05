@@ -7,25 +7,13 @@
       "enum": [
         "admin",
         "teacher",
-        "student"
+        "user"
       ],
-      "default": "student"
+      "default": "user"
     },
-    "phone": {
-      "type": "string"
-    },
-    "avatar_url": {
-      "type": "string"
-    },
-    "bio": {
-      "type": "string"
-    },
-    "form_id": {
+    "referral_code": {
       "type": "string",
-      "description": "For students - which form they are in"
-    },
-    "form_name": {
-      "type": "string"
+      "description": "Custom referral code set by admin or the user themselves"
     },
     "subscription_plan": {
       "type": "string",
@@ -36,43 +24,6 @@
         "annual"
       ],
       "default": "free"
-    },
-    "subscription_status": {
-      "type": "string",
-      "enum": [
-        "active",
-        "expired",
-        "cancelled",
-        "trial"
-      ],
-      "default": "active"
-    },
-    "study_streak": {
-      "type": "number",
-      "default": 0
-    },
-    "total_learning_hours": {
-      "type": "number",
-      "default": 0
-    },
-    "last_study_date": {
-      "type": "string",
-      "format": "date"
-    },
-    "subjects_teaching": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
     }
-  },
-  "required": [
-    "phone",
-    "avatar_url",
-    "bio",
-    "form_id",
-    "form_name",
-    "last_study_date",
-    "subjects_teaching"
-  ]
+  }
 }

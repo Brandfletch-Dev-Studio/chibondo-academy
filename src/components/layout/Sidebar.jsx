@@ -101,8 +101,11 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
               );
             }
 
+            // Exact match OR prefix match — but /admin must NOT match /admin/users etc.
+            // Use exact match for paths that are exact-only roots like /admin, /teacher, /dashboard
+            const exactOnlyPaths = ['/admin', '/teacher', '/dashboard', '/'];
             const isActive = location.pathname === item.path ||
-              (item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
+              (!exactOnlyPaths.includes(item.path) && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
 
             const linkEl = (
               <Link

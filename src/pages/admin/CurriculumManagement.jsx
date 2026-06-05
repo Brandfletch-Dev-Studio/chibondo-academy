@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Plus, Edit2, Trash2, GraduationCap, BookOpen, Layers,
-  BookMarked, Loader2, Users, ChevronRight, Eye, UserCheck
+  BookMarked, Loader2, Users, ChevronRight, Eye, UserCheck, CheckCircle2, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -189,6 +189,73 @@ function CourseManager() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── PENDING COURSE APPROVALS ────────────────────────────────────────────────
+function PendingApprovals() {
+  const queryClient = useQueryClient();
+  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.filter({ pending_approval: true }) });
+  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
+
+  const approveMutation = useMutation({
+    mutationFn: (id) => base44.entities.Subject.update(id, { status: 'published', pending_approval: false }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubjects'] }); toast.success('Course approved and published'); },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id) => base44.entities.Subject.update(id, { status: 'archived', pending_approval: false }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubjects'] }); toast.success('Course rejected'); },
+  });
+
+  const pendingCourses = subjects.filter(s => s.pending_approval && s.status === 'draft');
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-semibold mb-0.5">Tutor Course Proposals</h3>
+        <p className="text-sm text-muted-foreground">Review and approve courses proposed by tutors</p>
+      </div>
+
+      {pendingCourses.length === 0 ? (
+        <div className="text-center py-12 text-sm text-muted-foreground border border-dashed border-border rounded-xl">
+          <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-success opacity-40" />
+          No pending proposals
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {pendingCourses.map(s => {
+            const tutor = teachers.find(t => t.id === s.teacher_id);
+            return (
+              <div key={s.id} className="border border-yellow-500/20 rounded-xl bg-card p-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{s.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Proposed by <strong>{tutor?.full_name || s.teacher_name || 'Unknown Tutor'}</strong> · Form: {s.form_name || 'Not set'} · {new Date(s.created_date).toLocaleDateString()}
+                    </p>
+                    {s.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</p>}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10"
+                      onClick={() => rejectMutation.mutate(s.id)} disabled={rejectMutation.isPending}>
+                      Reject
+                    </Button>
+                    <Button size="sm" className="bg-success hover:bg-success/90 text-white"
+                      onClick={() => approveMutation.mutate(s.id)} disabled={approveMutation.isPending}>
+                      <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -382,12 +449,16 @@ export default function CurriculumManagement() {
       </div>
 
       <Tabs defaultValue="courses">
-        <TabsList className="grid grid-cols-3 w-full max-w-lg">
+        <TabsList className="flex flex-wrap gap-1 h-auto">
           <TabsTrigger value="courses"><BookOpen className="w-4 h-4 mr-1.5" /> Courses</TabsTrigger>
+          <TabsTrigger value="approvals" className="relative">
+            <Clock className="w-4 h-4 mr-1.5" /> Approvals
+          </TabsTrigger>
           <TabsTrigger value="tutors"><UserCheck className="w-4 h-4 mr-1.5" /> Tutor Allocation</TabsTrigger>
           <TabsTrigger value="enrollments"><Users className="w-4 h-4 mr-1.5" /> Enrollments</TabsTrigger>
         </TabsList>
         <TabsContent value="courses" className="mt-5"><CourseManager /></TabsContent>
+        <TabsContent value="approvals" className="mt-5"><PendingApprovals /></TabsContent>
         <TabsContent value="tutors" className="mt-5"><TutorAllocation /></TabsContent>
         <TabsContent value="enrollments" className="mt-5"><CourseEnrollments /></TabsContent>
       </Tabs>

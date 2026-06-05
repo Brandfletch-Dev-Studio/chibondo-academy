@@ -63,8 +63,9 @@ export default function MobileSidebar({ user, onClose }) {
 
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
+          const exactOnlyPaths = ['/admin', '/teacher', '/dashboard', '/'];
           const isActive = location.pathname === item.path ||
-            (item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
+            (!exactOnlyPaths.includes(item.path) && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
           return (
             <Link
               key={item.path}

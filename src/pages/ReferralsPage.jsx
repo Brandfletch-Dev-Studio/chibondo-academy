@@ -18,8 +18,8 @@ export default function ReferralsPage() {
   const { user } = useOutletContext();
   const [copied, setCopied] = useState(false);
 
-  // Generate a deterministic referral code from user ID
-  const referralCode = user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '';
+  // Use custom code if set, otherwise fall back to deterministic code from user ID
+  const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
   const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
 
   const { data: referrals = [], isLoading } = useQuery({

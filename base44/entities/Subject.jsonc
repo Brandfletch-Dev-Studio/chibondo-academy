@@ -23,7 +23,7 @@
     },
     "teacher_id": {
       "type": "string",
-      "description": "Assigned teacher user ID"
+      "description": "Primary assigned teacher user ID"
     },
     "teacher_name": {
       "type": "string"
@@ -36,6 +36,11 @@
         "archived"
       ],
       "default": "draft"
+    },
+    "pending_approval": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when course was proposed by a tutor and awaits admin approval"
     },
     "is_premium": {
       "type": "boolean",
