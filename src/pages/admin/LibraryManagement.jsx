@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { BookOpen, FileText, Plus, Search, Upload, Trash2, Edit, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import BulkUploadDialog from '@/components/library/BulkUploadDialog';
 
 export default function LibraryManagement() {
   const { user } = useOutletContext();
@@ -193,13 +194,15 @@ export default function LibraryManagement() {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Manage revision resources and past papers</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingResource(null); resetForm(); } }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Resource
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <BulkUploadDialog subjects={subjects} forms={forms} onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ['libraryResources'] })} />
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingResource(null); resetForm(); } }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Resource
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingResource ? 'Edit Resource' : 'Add New Resource'}</DialogTitle>
@@ -322,7 +325,7 @@ export default function LibraryManagement() {
 }
 
 function ResourceList({ resources, onEdit, onDelete, typeLabels }) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const filtered = resources.filter(r =>
     r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
