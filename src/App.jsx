@@ -50,6 +50,8 @@ import TeacherCourses from '@/pages/teacher/TeacherCourses';
 import CourseBuilder from '@/pages/teacher/CourseBuilder';
 import QuizBuilder from '@/pages/teacher/QuizBuilder';
 import AssignmentGrading from '@/pages/teacher/AssignmentGrading';
+import TeacherLibrary from '@/pages/teacher/TeacherLibrary';
+import TeacherAssignments from '@/pages/teacher/TeacherAssignments';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -146,6 +148,8 @@ const AuthenticatedApp = () => {
           <Route path="/teacher/courses" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherCourses /></RoleGuard>} />
           <Route path="/teacher/courses/:subjectId" element={<RoleGuard allowed={['teacher', 'admin']}><CourseBuilder /></RoleGuard>} />
           <Route path="/teacher/quizzes" element={<RoleGuard allowed={['teacher', 'admin']}><QuizBuilder /></RoleGuard>} />
+          <Route path="/teacher/assignments" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherAssignments /></RoleGuard>} />
+          <Route path="/teacher/library" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherLibrary /></RoleGuard>} />
           <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher', 'admin']}><AssignmentGrading /></RoleGuard>} />
           <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher', 'admin']}><StudentProgressTracker /></RoleGuard>} />
           <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
@@ -161,7 +165,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
-          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
+          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><TeacherLibrary /></RoleGuard>} />
         </Route>
       </Route>
 
