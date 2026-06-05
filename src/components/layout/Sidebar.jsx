@@ -4,7 +4,7 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  Trophy, PenTool, LayoutDashboard
+  Trophy, PenTool, LayoutDashboard, Gift, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -39,11 +39,19 @@ const teacherNav = [
 ];
 
 const adminNav = [
+  { section: 'School Management' },
+  { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },
+  { label: 'Students',       icon: Users,           path: '/admin/users' },
+  { section: 'Learning System' },
+  { label: 'Classes',        icon: Layers,          path: '/admin/academic' },
+  { label: 'Library',        icon: Library,         path: '/admin/library' },
+  { label: 'Forums',         icon: MessageSquare,   path: '/discussions' },
+  { section: 'Business System' },
+  { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
+  { section: 'System' },
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
-  { label: 'Users',          icon: Users,           path: '/admin/users' },
-  { label: 'Teachers',       icon: GraduationCap,   path: '/admin/teachers' },
-  { label: 'Academic',       icon: GraduationCap,   path: '/admin/academic' },
-  { label: 'Subscriptions',  icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
@@ -81,10 +89,20 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {navItems.map((item) => {
+        <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden space-y-0.5">
+          {navItems.map((item, idx) => {
+            // Section header
+            if (item.section) {
+              if (collapsed) return null;
+              return (
+                <p key={`section-${idx}`} className="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/30 first:pt-1">
+                  {item.section}
+                </p>
+              );
+            }
+
             const isActive = location.pathname === item.path ||
-              (item.path !== '/' && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
+              (item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
 
             const linkEl = (
               <Link
@@ -104,9 +122,7 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
                   collapsed ? "w-5 h-5" : "w-4 h-4",
                   isActive ? "text-sidebar-primary-foreground" : "text-sidebar-primary group-hover:text-sidebar-foreground"
                 )} />
-                {!collapsed && (
-                  <span className="truncate">{item.label}</span>
-                )}
+                {!collapsed && <span className="truncate">{item.label}</span>}
                 {isActive && !collapsed && (
                   <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground opacity-70" />
                 )}

@@ -61,6 +61,8 @@ import TeacherApplications from '@/pages/admin/TeacherApplications';
 import StudentProgressTracker from '@/pages/teacher/StudentProgressTracker';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import TeacherNotifications from '@/pages/teacher/TeacherNotifications';
+import CurriculumManagement from '@/pages/admin/CurriculumManagement';
+import AffiliateManagement from '@/pages/admin/AffiliateManagement';
 
 // Settings pages
 import StudentSettings from '@/pages/settings/StudentSettings';
@@ -158,6 +160,9 @@ const AuthenticatedApp = () => {
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
           <Route path="/admin/settings" element={<RoleGuard allowed={['admin']}><AdminSettings /></RoleGuard>} />
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
+          <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
+          <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
+          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><AcademicManagement /></RoleGuard>} />
         </Route>
       </Route>
 

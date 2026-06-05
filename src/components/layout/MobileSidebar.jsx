@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, GraduationCap, FileText, BarChart3,
   Users, Settings, CreditCard, MessageSquare, Library,
-  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp
+  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -31,11 +31,13 @@ const teacherNav = [
 ];
 
 const adminNav = [
+  { label: 'Courses',       icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Tutors',        icon: GraduationCap,   path: '/admin/teachers' },
+  { label: 'Students',      icon: Users,           path: '/admin/users' },
+  { label: 'Classes',       icon: ClipboardList,   path: '/admin/academic' },
+  { label: 'Fees',          icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Affiliates',    icon: Gift,            path: '/admin/affiliates' },
   { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
-  { label: 'Users',         icon: Users,           path: '/admin/users' },
-  { label: 'Teachers',      icon: GraduationCap,   path: '/admin/teachers' },
-  { label: 'Academic',      icon: GraduationCap,   path: '/admin/academic' },
-  { label: 'Subscriptions', icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Notifications', icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',      icon: Settings,        path: '/admin/settings' },
 ];
