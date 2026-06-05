@@ -11,8 +11,71 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Edit2, Trash2, PlayCircle, Layers, FileText, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, PlayCircle, Layers, FileText, ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+function CourseThumbnailEditor({ subject, onSaved }) {
+  const queryClient = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+  const [urlInput, setUrlInput] = useState(subject?.cover_image || '');
+
+  const saveMutation = useMutation({
+    mutationFn: (cover_image) => base44.entities.Subject.update(subject.id, { cover_image }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subject', subject.id] });
+      toast.success('Thumbnail saved');
+      onSaved?.();
+    },
+  });
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUrlInput(file_url);
+      saveMutation.mutate(file_url);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {urlInput && (
+        <div className="relative rounded-xl overflow-hidden h-40 bg-muted">
+          <img src={urlInput} alt="thumbnail" className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Input
+          value={urlInput}
+          onChange={e => setUrlInput(e.target.value)}
+          placeholder="Paste image URL…"
+          className="flex-1"
+        />
+        <Button
+          variant="outline"
+          onClick={() => saveMutation.mutate(urlInput)}
+          disabled={saveMutation.isPending || !urlInput}
+          size="sm"
+        >
+          Save URL
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="flex-1">
+          <input type="file" accept="image/*" className="sr-only" onChange={handleFileUpload} disabled={uploading} />
+          <div className={`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+            {uploading ? 'Uploading…' : 'Upload from device'}
+          </div>
+        </label>
+      </div>
+    </div>
+  );
+}
 
 function TopicForm({ subjectId, formId, topic, onClose }) {
   const queryClient = useQueryClient();
@@ -157,6 +220,15 @@ export default function CourseBuilder() {
           <h1 className="text-xl font-display font-bold">{subject.name}</h1>
           <p className="text-sm text-muted-foreground">{subject.form_name} · Course Builder</p>
         </div>
+      </div>
+
+      {/* Course Thumbnail */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-primary" />
+          <h3 className="font-semibold text-sm">Course Thumbnail</h3>
+        </div>
+        <CourseThumbnailEditor subject={subject} />
       </div>
 
       <div className="flex items-center justify-between">

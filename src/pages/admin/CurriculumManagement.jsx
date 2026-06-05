@@ -229,6 +229,15 @@ function CourseManager() {
           <div className="space-y-4 pt-2">
             <div><Label>Course Name</Label><Input className="mt-1" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Mathematics" /></div>
             <div><Label>Description</Label><Textarea className="mt-1" value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} placeholder="Course overview..." /></div>
+            <div>
+              <Label>Thumbnail URL</Label>
+              {formData.cover_image && (
+                <div className="mt-1 mb-2 rounded-lg overflow-hidden h-28 bg-muted">
+                  <img src={formData.cover_image} alt="thumbnail" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input className="mt-1" value={formData.cover_image || ''} onChange={e => setFormData({ ...formData, cover_image: e.target.value })} placeholder="https://… or leave blank" />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Form / Class Level</Label>
                 <Select value={formData.form_id || ''} onValueChange={v => setFormData({ ...formData, form_id: v })}>

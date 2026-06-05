@@ -233,7 +233,25 @@ export default function LessonPage() {
     enabled: !!user?.id,
   });
 
+  const { data: pricingSettings } = useQuery({
+    queryKey: ['platformSettings', 'pricing'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getPricing', {});
+      return res.data.pricing;
+    },
+  });
+
+  const freeLessonsPerSubject = pricingSettings?.free_lessons_per_subject ?? 2;
   const hasPaidFees = subscription?.status === 'active';
+
+  // Helper: is a given lesson locked for this user?
+  const isLessonLocked = (l, indexInSubject) => {
+    if (hasPaidFees) return false;
+    if (l.is_free) return false;
+    // Count how many free lessons come before this one across all lessons (ordered)
+    const idx = allLessons.findIndex(x => x.id === l.id);
+    return idx >= freeLessonsPerSubject;
+  };
 
   const markCompleteMutation = useMutation({
     mutationFn: async () => {
@@ -285,6 +303,32 @@ export default function LessonPage() {
     );
   }
 
+  // ── HARD GATE: block direct access to locked lessons ──────────────────────
+  // Only check once allLessons and subscription have loaded (avoid flash)
+  const dataLoaded = allLessons.length > 0 && subscription !== undefined && pricingSettings !== undefined;
+  if (dataLoaded && isLessonLocked(lesson)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-xl font-display font-bold">This lesson is locked</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          This lesson is only available to students who have paid their school fees.
+          The first {freeLessonsPerSubject} lesson{freeLessonsPerSubject !== 1 ? 's' : ''} per subject are free — pay to unlock everything.
+        </p>
+        <div className="flex gap-3 flex-wrap justify-center">
+          <Link to="/subscription">
+            <Button className="px-8">Pay Fees Now</Button>
+          </Link>
+          <Link to={`/subjects/${lesson.subject_id}`}>
+            <Button variant="outline">Back to Course</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const hasVideo = !!lesson.video_url;
   const isTextLesson = !hasVideo;
 
@@ -319,7 +363,7 @@ export default function LessonPage() {
         <nav className="flex-1 overflow-y-auto py-2 px-2">
           {topics.length === 0 ? (
             allLessons.map(l => (
-              <SidebarLesson key={l.id} lesson={l} currentLessonId={lessonId} completed={completedLessons} locked={!hasPaidFees && !l.is_free} />
+              <SidebarLesson key={l.id} lesson={l} currentLessonId={lessonId} completed={completedLessons} locked={isLessonLocked(l)} />
             ))
           ) : topics.map((topic, tIdx) => {
             const tLessons = lessonsByTopic[topic.id] || [];
@@ -342,13 +386,13 @@ export default function LessonPage() {
                 </button>
                 {isOpen && (
                   <div className="ml-2 pl-3 border-l border-sidebar-border/50 py-1 space-y-0.5">
-                    {tLessons.map((l, lIdx) => (
+                    {tLessons.map(l => (
                       <SidebarLesson
                         key={l.id}
                         lesson={l}
                         currentLessonId={lessonId}
                         completed={completedLessons}
-                        locked={!hasPaidFees && !l.is_free && lIdx >= 2}
+                        locked={isLessonLocked(l)}
                       />
                     ))}
                   </div>
