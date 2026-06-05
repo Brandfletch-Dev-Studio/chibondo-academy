@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useOutletContext, Link } from 'react-router-dom';
+import { useParams, useOutletContext, Link, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Eye, Share2, Copy, Check, GraduationCap } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import FeesGateCard from '@/components/subscription/FeesGateCard';
+import SEO from '@/components/SEO';
 
 export default function SubjectDetail() {
   const { subjectId } = useParams();
@@ -78,6 +79,12 @@ export default function SubjectDetail() {
 
   // Auto-enroll when student clicks a lesson (if not already enrolled)
   const handleLessonClick = async (lessonId) => {
+    if (!user) {
+      // Guest - redirect to login
+      const nextUrl = encodeURIComponent(`/lesson/${lessonId}`);
+      window.location.href = `/login?next=${nextUrl}`;
+      return;
+    }
     if (!hasPaidFees) {
       // Redirect to subscription page for unpaid users
       window.location.href = '/subscription';
@@ -137,8 +144,36 @@ export default function SubjectDetail() {
     );
   }
 
+  // Guest users can view but not enroll - show login prompt on enroll attempt
+  const handleGuestEnroll = () => {
+    if (!user) {
+      // Store intended action and redirect to login
+      const nextUrl = encodeURIComponent(`/subjects/${subjectId}`);
+      window.location.href = `/login?next=${nextUrl}`;
+      return;
+    }
+    if (!hasPaidFees) {
+      window.location.href = '/subscription';
+      return;
+    }
+    if (!enrollment) {
+      enrollMutation.mutate();
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <SEO 
+        title={`${subject.name} - ${subject.form_name || 'Form'} Course`}
+        description={subject.description || `Study ${subject.name} with Chibondo Academy. Access quality lessons, videos, and course materials for MSCE students.`}
+        image={subject.cover_image}
+        type="course"
+        article={{
+          author: subject.teacher_name,
+          section: subject.form_name,
+        }}
+      />
+      
       <Link to="/subjects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-4 h-4 mr-1" /> Back to Subjects
       </Link>
@@ -212,7 +247,7 @@ export default function SubjectDetail() {
                     return (
                       <Link
                         key={lesson.id}
-                        to={isLocked ? '/subscription' : `/lesson/${lesson.id}`}
+                        to={isLocked ? (user ? '/subscription' : `/login?next=/lesson/${lesson.id}`) : `/lesson/${lesson.id}`}
                         onClick={() => !isLocked && handleLessonClick(lesson.id)}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-border/50 last:border-b-0 text-sm transition-colors ${
                           isLocked ? 'opacity-60 hover:bg-muted/20' : 'hover:bg-muted/40'

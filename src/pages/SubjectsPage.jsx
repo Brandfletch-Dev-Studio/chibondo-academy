@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
+import SEO from '@/components/SEO';
 
 export default function SubjectsPage() {
   const { user } = useOutletContext();
@@ -40,6 +41,12 @@ export default function SubjectsPage() {
 
   return (
     <div className="space-y-6">
+      <SEO 
+        title="MSCE Subjects - Form 3 & 4 Courses"
+        description="Browse quality MSCE subjects for Form 3 and Form 4. Access video lessons, revision materials, quizzes, and assignments at The Chibondo Academy."
+        type="website"
+      />
+      
       <div>
         <h1 className="text-2xl font-display font-bold">Subjects</h1>
         <p className="text-muted-foreground text-sm mt-1">Browse and enroll in subjects for your form</p>
