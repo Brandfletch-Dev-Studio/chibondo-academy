@@ -40,18 +40,12 @@ const teacherNav = [
 
 const adminNav = [
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
-  { section: 'School Management' },
   { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
-  { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },
-  { label: 'Students',       icon: Users,           path: '/admin/users' },
-  { section: 'Learning System' },
-  { label: 'Classes',        icon: Layers,          path: '/admin/academic' },
-  { label: 'Library',        icon: Library,         path: '/admin/library' },
-  { label: 'Forums',         icon: MessageSquare,   path: '/discussions' },
-  { section: 'Business System' },
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Classes',        icon: Layers,          path: '/admin/academic' },
+  { label: 'Students',       icon: Users,           path: '/admin/users' },
+  { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },
   { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
-  { section: 'System' },
   { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
