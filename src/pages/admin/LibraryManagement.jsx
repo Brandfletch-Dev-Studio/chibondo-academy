@@ -203,7 +203,7 @@ export default function LibraryManagement() {
                 Add Resource
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingResource ? 'Edit Resource' : 'Add New Resource'}</DialogTitle>
             </DialogHeader>
@@ -295,8 +295,9 @@ export default function LibraryManagement() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="all">
