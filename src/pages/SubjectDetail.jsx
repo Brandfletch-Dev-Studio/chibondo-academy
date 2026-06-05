@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Copy, Check, GraduationCap, Share2 } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Copy, Check, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -263,113 +263,61 @@ export default function SubjectDetail() {
         </Accordion>
       </div>
 
-      {/* Start Learning CTA - after Course Content */}
-      {hasPaidFees && firstLesson && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-base">Course Progress</h3>
-            <span className="text-sm text-muted-foreground">{progressPct}% Complete</span>
+      {/* Course Progress & Start Learning CTA */}
+      {firstLesson && (
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-semibold text-base">Course Progress</h3>
+              <span className="text-sm font-semibold text-primary">{completedLessons.length}/{totalLessons}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+              <span>{progressPct}% Complete</span>
+            </div>
+            <Progress value={progressPct} className="h-2" />
           </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <span>{completedLessons.length}/{totalLessons}</span>
-            <span>{progressPct}% Complete</span>
-          </div>
-          <Progress value={progressPct} className="h-2 mb-4" />
-          <Link to={`/lesson/${firstLesson.id}`} onClick={() => !enrollment && enrollMutation.mutate()}>
-            <Button className="w-full h-11 text-base font-semibold" size="lg">
-              <PlayCircle className="w-5 h-5 mr-2" />
-              Start Learning
-            </Button>
-          </Link>
+
+          {hasPaidFees ? (
+            <Link to={`/lesson/${firstLesson.id}`} onClick={() => !enrollment && enrollMutation.mutate()}>
+              <Button className="w-full h-12 text-base font-semibold" size="lg">
+                <PlayCircle className="w-5 h-5 mr-2" />
+                {enrollment && completedLessons.length > 0 ? 'Continue Learning' : 'Start Learning'}
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/subscription">
+              <Button className="w-full h-12 text-base font-semibold" size="lg">
+                Pay Fees to Start Learning
+              </Button>
+            </Link>
+          )}
         </div>
       )}
 
-      {/* Progress Bar & Start Learning CTA - Bottom of page */}
-      {enrollment && totalLessons > 0 && (
-        <div className="space-y-4">
-          {/* Progress Section */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-semibold text-lg">Your Progress</h3>
-              <span className="text-3xl font-bold text-primary font-display">{progressPct}%</span>
-            </div>
-            <Progress value={progressPct} className="h-3 mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {completedLessons.length} of {totalLessons} lessons completed
-            </p>
-          </div>
-
-          {/* Start Learning CTA */}
-          <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-display font-bold text-xl mb-2">Ready to Start Learning?</h3>
-                <p className="text-sm text-primary-foreground/80 mb-4">
-                  {hasPaidFees 
-                    ? `Jump into your first lesson and begin your ${subject.name} journey!`
-                    : 'Subscribe to unlock all lessons and start learning.'}
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {hasPaidFees && firstLesson ? (
-                    <Link to={`/lesson/${firstLesson.id}`}>
-                      <Button className="bg-white text-primary hover:bg-white/90 px-8">
-                        <PlayCircle className="w-4 h-4 mr-2" />
-                        Start Learning
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Link to="/subscription">
-                      <Button className="bg-white text-primary hover:bg-white/90 px-8">
-                        Subscribe Now
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Share Buttons */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-display font-semibold mb-4">Share This Course</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Invite friends using your referral link. They'll get registered under your code automatically!
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => handleCopy(shareLink)}
-                className="flex-1 min-w-[140px]"
-              >
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                {copied ? 'Copied!' : 'Copy Link'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleWhatsApp}
-                className="flex-1 min-w-[140px] bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                WhatsApp
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleShare}
-                className="flex-1 min-w-[140px]"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-            </div>
-            <div className="mt-4 p-3 bg-muted/50 rounded-xl">
-              <p className="text-xs font-mono text-muted-foreground break-all">{shareLink}</p>
-            </div>
-          </div>
+      {/* Share Buttons */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <h3 className="font-display font-semibold mb-3">Share This Course</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Invite friends using your referral link. They'll get registered under your code automatically!
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => handleCopy(shareLink)} className="flex-1 min-w-[140px]">
+            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+            {copied ? 'Copied!' : 'Copy Link'}
+          </Button>
+          <Button variant="outline" onClick={handleWhatsApp} className="flex-1 min-w-[140px] bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
+            <Share2 className="w-4 h-4 mr-2" />
+            WhatsApp
+          </Button>
+          <Button variant="outline" onClick={handleShare} className="flex-1 min-w-[140px]">
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
         </div>
-      )}
+        <div className="mt-4 p-3 bg-muted/50 rounded-xl">
+          <p className="text-xs font-mono text-muted-foreground break-all">{shareLink}</p>
+        </div>
+      </div>
     </div>
     </>
   );
