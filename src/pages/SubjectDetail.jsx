@@ -191,9 +191,25 @@ export default function SubjectDetail() {
           )}
         </div>
 
-      {/* Fees Gate */}
-      {subject.is_premium && !hasPaidFees && (
-        <FeesGateCard />
+      {/* Thumbnail or Intro Video */}
+      {subject.video_url ? (
+        <div className="rounded-2xl overflow-hidden aspect-video bg-black">
+          <iframe
+            src={subject.video_url}
+            className="w-full h-full"
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          />
+        </div>
+      ) : subject.cover_image ? (
+        <div className="rounded-2xl overflow-hidden aspect-video bg-muted">
+          <img src={subject.cover_image} alt={subject.name} className="w-full h-full object-cover" />
+        </div>
+      ) : null}
+
+      {/* Description */}
+      {subject.description && (
+        <p className="text-sm text-muted-foreground leading-relaxed">{subject.description}</p>
       )}
 
       {/* Simple Course Content */}
@@ -246,6 +262,27 @@ export default function SubjectDetail() {
           })}
         </Accordion>
       </div>
+
+      {/* Start Learning CTA - after Course Content */}
+      {hasPaidFees && firstLesson && (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-base">Course Progress</h3>
+            <span className="text-sm text-muted-foreground">{progressPct}% Complete</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>{completedLessons.length}/{totalLessons}</span>
+            <span>{progressPct}% Complete</span>
+          </div>
+          <Progress value={progressPct} className="h-2 mb-4" />
+          <Link to={`/lesson/${firstLesson.id}`} onClick={() => !enrollment && enrollMutation.mutate()}>
+            <Button className="w-full h-11 text-base font-semibold" size="lg">
+              <PlayCircle className="w-5 h-5 mr-2" />
+              Start Learning
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Progress Bar & Start Learning CTA - Bottom of page */}
       {enrollment && totalLessons > 0 && (

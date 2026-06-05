@@ -283,11 +283,17 @@ function AffiliateSettings() {
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      await base44.auth.updateMe({ referral_code: customCode.trim().toUpperCase() });
+      const code = customCode.trim().toUpperCase();
+      if (!code) throw new Error('Referral code cannot be empty');
+      return base44.auth.updateMe({ referral_code: code });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      toast.success('Settings saved!');
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      toast.success('Referral code saved successfully!', { description: `Your new code is: ${customCode.trim().toUpperCase()}` });
+    },
+    onError: (error) => {
+      toast.error('Failed to save referral code', { description: error.message });
     },
   });
 
