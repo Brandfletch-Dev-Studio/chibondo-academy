@@ -157,79 +157,74 @@ export default function SubjectDetail() {
       )}
 
       {/* Topics & Lessons */}
-      <div className="bg-card rounded-2xl border border-border">
-        <div className="px-6 lg:px-8 py-5 border-b border-border">
-          <h2 className="font-display font-semibold text-xl">Course Content</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {topics.length} topics · {totalLessons} lessons
-          </p>
+      <div className="rounded-2xl border border-border overflow-hidden bg-card">
+        <div className="px-5 py-4 border-b border-border">
+          <h2 className="font-display font-semibold text-lg">Course Content</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{topics.length} units · {totalLessons} lessons</p>
         </div>
-        <Accordion type="multiple" className="px-4 lg:px-6 py-2">
+        <Accordion type="multiple" defaultValue={topics.map(t => t.id)}>
           {topics.map((topic, idx) => {
             const topicLessons = lessonsByTopic[topic.id] || [];
-            const completedInTopic = topicLessons.filter(l => completedLessons.includes(l.id)).length;
             return (
-              <AccordionItem key={topic.id} value={topic.id} className="border-border">
-                <AccordionTrigger className="py-4 hover:no-underline">
-                  <div className="flex items-center gap-4 text-left">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-sm">{topic.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {topicLessons.length} lessons · {completedInTopic}/{topicLessons.length} completed
-                      </p>
-                    </div>
-                  </div>
+              <AccordionItem key={topic.id} value={topic.id} className="border-0 border-b border-border last:border-b-0">
+                {/* Topic header — blue tinted row like the screenshot */}
+                <AccordionTrigger className="px-5 py-4 hover:no-underline bg-primary/5 hover:bg-primary/10 transition-colors [&>svg]:text-primary">
+                  <span className="text-primary font-semibold text-sm text-left leading-snug">
+                    Unit {idx + 1}: {topic.title}
+                  </span>
                 </AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <div className="space-y-1 pt-1">
-                    {topicLessons.map((lesson, lessonIdx) => {
-                      const isCompleted = completedLessons.includes(lesson.id);
-                      const isSampleLesson = lesson.is_free || lessonIdx < freeLessonsPerSubject;
-                      const isLocked = !hasPaidFees && !isSampleLesson;
-                      const hasVideo = !!lesson.video_url;
-                      return (
-                        <Link
-                          key={lesson.id}
-                          to={isLocked ? '#' : `/lesson/${lesson.id}`}
-                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
-                            isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50 hover:text-primary'
-                          }`}
-                        >
-                          {/* Format icon */}
-                          <span className="flex-shrink-0">
-                            {isCompleted ? (
-                              <CheckCircle2 className="w-4 h-4 text-success" />
-                            ) : isLocked ? (
-                              <Lock className="w-4 h-4 text-muted-foreground" />
-                            ) : hasVideo ? (
-                              <PlayCircle className="w-4 h-4 text-primary" />
-                            ) : (
-                              <FileText className="w-4 h-4 text-muted-foreground" />
-                            )}
-                          </span>
-                          {/* Title */}
-                          <span className="flex-1 leading-snug">{lesson.title}</span>
-                          {/* Meta */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {!hasVideo && !isLocked && (
-                              <Badge variant="secondary" className="text-[9px] hidden sm:inline-flex">Reading</Badge>
-                            )}
-                            {isSampleLesson && !hasPaidFees && (
-                              <Badge className="text-[9px] bg-success/10 text-success border-success/20">Free</Badge>
-                            )}
-                            {lesson.estimated_minutes > 0 && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="w-3 h-3" />{lesson.estimated_minutes}m
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
+                <AccordionContent className="p-0">
+                  {topicLessons.map((lesson, lessonIdx) => {
+                    const isCompleted = completedLessons.includes(lesson.id);
+                    const isSampleLesson = lesson.is_free || lessonIdx < freeLessonsPerSubject;
+                    const isLocked = !hasPaidFees && !isSampleLesson;
+                    const hasVideo = !!lesson.video_url;
+
+                    // Format duration as MM:SS if stored as minutes, else show raw
+                    const duration = lesson.estimated_minutes > 0
+                      ? `${String(Math.floor(lesson.estimated_minutes)).padStart(2, '0')}:00`
+                      : null;
+
+                    return (
+                      <Link
+                        key={lesson.id}
+                        to={isLocked ? '#' : `/lesson/${lesson.id}`}
+                        className={`flex items-center gap-3 px-5 py-3.5 border-b border-border/50 last:border-b-0 text-sm transition-colors ${
+                          isLocked
+                            ? 'cursor-not-allowed opacity-60'
+                            : 'hover:bg-muted/40'
+                        } ${isCompleted ? 'bg-success/5' : ''}`}
+                      >
+                        {/* Format icon */}
+                        <span className="flex-shrink-0 text-muted-foreground">
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-4 h-4 text-success" />
+                          ) : hasVideo ? (
+                            <PlayCircle className="w-4 h-4" />
+                          ) : (
+                            <FileText className="w-4 h-4" />
+                          )}
+                        </span>
+
+                        {/* Title */}
+                        <span className="flex-1 leading-snug text-foreground">{lesson.title}</span>
+
+                        {/* Duration */}
+                        {duration && (
+                          <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums">{duration}</span>
+                        )}
+
+                        {/* Lock / Free badge */}
+                        <span className="flex-shrink-0">
+                          {isLocked ? (
+                            <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                          ) : isSampleLesson && !hasPaidFees ? (
+                            <Badge className="text-[9px] bg-success/10 text-success border-success/20 px-1.5">Free</Badge>
+                          ) : null}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </AccordionContent>
               </AccordionItem>
             );
