@@ -4,16 +4,11 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  PenTool, LayoutDashboard, Gift
+  PenTool, LayoutDashboard, Gift, UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const studentNav = [
   { label: 'Dashboard',    icon: Home,          path: '/dashboard' },
@@ -31,27 +26,28 @@ const studentNav = [
 ];
 
 const teacherNav = [
-  { label: 'Dashboard',       icon: LayoutDashboard, path: '/teacher' },
-  { label: 'My Courses',      icon: BookOpen,        path: '/teacher/courses' },
-  { label: 'Library',         icon: Library,         path: '/teacher/library' },
-  { label: 'Quiz Builder',    icon: ClipboardList,   path: '/teacher/quizzes' },
-  { label: 'Grading',         icon: PenTool,         path: '/teacher/grading' },
-  { label: 'Student Progress',icon: TrendingUp,      path: '/teacher/progress' },
-  { label: 'Notifications',   icon: Bell,            path: '/teacher/notifications' },
-  { label: 'Settings',        icon: Settings,        path: '/teacher/settings' },
+  { label: 'Dashboard',         icon: LayoutDashboard, path: '/teacher' },
+  { label: 'My Courses',        icon: BookOpen,        path: '/teacher/courses' },
+  { label: 'My Public Profile', icon: UserCircle,      path: '/teacher/my-profile' },
+  { label: 'Library',           icon: Library,         path: '/teacher/library' },
+  { label: 'Quiz Builder',      icon: ClipboardList,   path: '/teacher/quizzes' },
+  { label: 'Grading',           icon: PenTool,         path: '/teacher/grading' },
+  { label: 'Student Progress',  icon: TrendingUp,      path: '/teacher/progress' },
+  { label: 'Notifications',     icon: Bell,            path: '/teacher/notifications' },
+  { label: 'Settings',          icon: Settings,        path: '/teacher/settings' },
 ];
 
 const adminNav = [
-  { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
-  { label: 'Courses',       icon: BookOpen,        path: '/admin/curriculum' },
-  { label: 'Library',       icon: Library,         path: '/admin/library' },
-  { label: 'Fees',          icon: CreditCard,      path: '/admin/subscriptions' },
-  { label: 'Students',      icon: Users,           path: '/admin/users' },
-  { label: 'Tutors',        icon: GraduationCap,   path: '/admin/tutors' },
-  { label: 'Applications',  icon: FileText,        path: '/admin/teachers' },
-  { label: 'Affiliates',    icon: Gift,            path: '/admin/affiliates' },
-  { label: 'Notifications', icon: Bell,            path: '/admin/notifications' },
-  { label: 'Settings',      icon: Settings,        path: '/admin/settings' },
+  { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
+  { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Library',        icon: Library,         path: '/admin/library' },
+  { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Students',       icon: Users,           path: '/admin/users' },
+  { label: 'Tutor Profiles', icon: GraduationCap,   path: '/admin/tutors' },
+  { label: 'Applications',   icon: FileText,        path: '/admin/teachers' },
+  { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
+  { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
+  { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
 
 export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
@@ -67,10 +63,7 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
         collapsed ? "w-16" : "w-64"
       )}>
         {/* Logo */}
-        <div className={cn(
-          "flex items-center border-b border-sidebar-border flex-shrink-0 h-16",
-          collapsed ? "justify-center px-3" : "px-4"
-        )}>
+        <div className={cn("flex items-center border-b border-sidebar-border flex-shrink-0 h-16", collapsed ? "justify-center px-3" : "px-4")}>
           {collapsed ? (
             <img src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg" alt="Chibondo Academy" className="w-9 h-9 rounded-lg object-cover" />
           ) : (
@@ -81,15 +74,6 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden space-y-0.5">
           {navItems.map((item, idx) => {
-            if (item.section) {
-              if (collapsed) return null;
-              return (
-                <p key={`section-${idx}`} className="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/30 first:pt-1">
-                  {item.section}
-                </p>
-              );
-            }
-
             const exactOnlyPaths = ['/admin', '/teacher', '/dashboard', '/'];
             const isActive = location.pathname === item.path ||
               (!exactOnlyPaths.includes(item.path) && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
@@ -113,9 +97,7 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
                   isActive ? "text-sidebar-primary-foreground" : "text-sidebar-primary group-hover:text-sidebar-foreground"
                 )} />
                 {!collapsed && <span className="truncate">{item.label}</span>}
-                {isActive && !collapsed && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground opacity-70" />
-                )}
+                {isActive && !collapsed && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground opacity-70" />}
               </Link>
             );
 
@@ -144,7 +126,6 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
               </div>
             </div>
           )}
-
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -159,7 +140,6 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
               <LogOut className="w-4 h-4" /><span>Sign Out</span>
             </button>
           )}
-
           <button onClick={onToggle} className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
           </button>
