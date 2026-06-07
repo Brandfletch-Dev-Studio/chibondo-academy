@@ -229,6 +229,18 @@ export default function SubjectForum() {
     staleTime: 120_000,
   });
 
+  /* ── Online now (ForumPresence — all users active in last 2 min) ── */
+  const { data: presenceList = [] } = useQuery({
+    queryKey: ['forum-presence'],
+    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
+    refetchInterval: 30_000,
+    staleTime: 0,
+  });
+  const onlineCount = useMemo(() => {
+    const cutoff = new Date(Date.now() - 2 * 60 * 1000);
+    return presenceList.filter(p => p.last_seen && new Date(p.last_seen) > cutoff).length;
+  }, [presenceList]);
+
   /* ── Join/Leave mutations ── */
   const joinMut = useMutation({
     mutationFn: async () => {
@@ -431,12 +443,18 @@ export default function SubjectForum() {
           </div>
 
           {/* Stats row */}
-          <div className="flex items-center gap-4 mt-3" style={{ color: 'hsl(43 20% 65%)' }}>
+          <div className="flex items-center gap-3 flex-wrap mt-3" style={{ color: 'hsl(43 20% 65%)' }}>
             <span className="text-xs flex items-center gap-1">
               <MessageSquare className="w-3.5 h-3.5" />{rootThreads.length} threads
             </span>
             <span className="text-xs flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />{allMembers.length} members
+            </span>
+            {/* Online now indicator */}
+            <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+              style={{ background: 'hsl(142 70% 45% / 0.12)', color: 'hsl(142 60% 40%)', border: '1px solid hsl(142 70% 45% / 0.2)' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              {onlineCount} online
             </span>
             {unreadCount > 0 && (
               <span className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-full"
