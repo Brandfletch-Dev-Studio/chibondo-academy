@@ -4,7 +4,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
-import { MessageSquare, TrendingUp, Clock, ChevronRight, Search } from 'lucide-react';
+import { MessageSquare, TrendingUp, Clock, ChevronRight, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 
@@ -77,6 +77,18 @@ export default function ForumsHome() {
 
   const totalThreads = threadCounts.filter(d => !d.parent_id).length;
 
+  // Online students — anyone whose last_seen is within the last 2 minutes
+  const { data: presenceList = [] } = useQuery({
+    queryKey: ['forum-presence'],
+    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
+    refetchInterval: 30_000,
+    staleTime: 0,
+  });
+  const onlineCount = React.useMemo(() => {
+    const cutoff = new Date(Date.now() - 2 * 60 * 1000); // 2 min window
+    return presenceList.filter(p => p.last_seen && new Date(p.last_seen) > cutoff).length;
+  }, [presenceList]);
+
   return (
     <>
       <SEO title="Forums | Chibondo Academy" description="Subject-based academic discussion forums for MSCE students" />
@@ -94,7 +106,7 @@ export default function ForumsHome() {
           <p className="text-sm mb-4" style={{ color: 'hsl(43 20% 70%)' }}>
             Ask questions, get tutor answers, and help others — organised by subject
           </p>
-          <div className="flex gap-4 mb-4">
+          <div className="flex gap-4 mb-4 flex-wrap">
             <div className="text-center">
               <p className="font-bold text-lg" style={{ color: 'hsl(43 74% 66%)' }}>{subjects.length}</p>
               <p className="text-[11px]" style={{ color: 'hsl(43 20% 65%)' }}>Subjects</p>
@@ -102,6 +114,13 @@ export default function ForumsHome() {
             <div className="text-center">
               <p className="font-bold text-lg" style={{ color: 'hsl(43 74% 66%)' }}>{totalThreads}</p>
               <p className="text-[11px]" style={{ color: 'hsl(43 20% 65%)' }}>Discussions</p>
+            </div>
+            <div className="text-center flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <p className="font-bold text-lg leading-none" style={{ color: 'hsl(43 74% 66%)' }}>{onlineCount}</p>
+              </div>
+              <p className="text-[11px]" style={{ color: 'hsl(43 20% 65%)' }}>Online now</p>
             </div>
           </div>
           <div className="relative">
