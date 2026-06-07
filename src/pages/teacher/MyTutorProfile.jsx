@@ -13,7 +13,7 @@ import {
   GraduationCap, User, Globe, Briefcase,
   Plus, X, Save, ExternalLink, Eye, CheckCircle, Loader2,
   Facebook, Linkedin, Youtube, Twitter, Link as LinkIcon,
-  Camera, Upload, AlertCircle
+  Camera, Upload, AlertCircle, ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,8 +41,16 @@ function CoverUploader({ value, onChange }) {
     const objectUrl = URL.createObjectURL(file);
     setLocalPreview(objectUrl);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      onChange(file_url);
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch(`/api/apps/${import.meta.env.VITE_APP_ID || window.__appParams?.appId || ''}/storage/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
+        body: formData,
+      });
+      const data = await resp.json();
+      if (!data?.file_url) throw new Error('No URL returned');
+      onChange(data.file_url);
       toast.success('Cover photo uploaded!');
     } catch { toast.error('Upload failed — try again.'); }
     finally { setUploading(false); }
