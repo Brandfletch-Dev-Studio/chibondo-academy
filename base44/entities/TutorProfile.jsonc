@@ -2,20 +2,44 @@
   "name": "TutorProfile",
   "type": "object",
   "properties": {
-    "full_name":          { "type": "string" },
-    "slug":               { "type": "string", "description": "URL-friendly identifier e.g. taonga-chipondo" },
-    "profile_photo":      { "type": "string" },
-    "professional_title": { "type": "string" },
-    "tagline":            { "type": "string" },
-    "biography":          { "type": "string", "description": "Rich HTML biography" },
+    "full_name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly identifier e.g. taonga-chipondo"
+    },
+    "profile_photo": {
+      "type": "string"
+    },
+    "cover_photo": {
+      "type": "string",
+      "description": "Wide banner/cover image URL (1200\u00d7400 ideal)"
+    },
+    "professional_title": {
+      "type": "string"
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "biography": {
+      "type": "string",
+      "description": "Rich HTML biography"
+    },
     "qualifications": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "name":        { "type": "string" },
-          "institution": { "type": "string" },
-          "year":        { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "institution": {
+            "type": "string"
+          },
+          "year": {
+            "type": "string"
+          }
         }
       }
     },
@@ -24,53 +48,111 @@
       "items": {
         "type": "object",
         "properties": {
-          "name":         { "type": "string" },
-          "organization": { "type": "string" },
-          "date_issued":  { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "organization": {
+            "type": "string"
+          },
+          "date_issued": {
+            "type": "string"
+          }
         }
       }
     },
-    "years_teaching":   { "type": "number" },
-    "previous_schools": { "type": "string" },
-    "current_position": { "type": "string" },
+    "years_teaching": {
+      "type": "number"
+    },
+    "previous_schools": {
+      "type": "string"
+    },
+    "current_position": {
+      "type": "string"
+    },
     "subjects": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Subject names this tutor teaches"
     },
-    "email":     { "type": "string" },
-    "phone":     { "type": "string" },
-    "whatsapp":  { "type": "string" },
-    "facebook":  { "type": "string" },
-    "linkedin":  { "type": "string" },
-    "youtube":   { "type": "string" },
-    "twitter_x": { "type": "string" },
-    "tiktok":    { "type": "string" },
-    "is_visible": { "type": "boolean", "default": true },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "whatsapp": {
+      "type": "string"
+    },
+    "facebook": {
+      "type": "string"
+    },
+    "linkedin": {
+      "type": "string"
+    },
+    "youtube": {
+      "type": "string"
+    },
+    "twitter_x": {
+      "type": "string"
+    },
+    "tiktok": {
+      "type": "string"
+    },
+    "is_visible": {
+      "type": "boolean",
+      "default": true
+    },
     "status": {
       "type": "string",
-      "enum": ["active", "archived"],
+      "enum": [
+        "active",
+        "archived"
+      ],
       "default": "active"
     },
-    "user_id": { "type": "string", "description": "Linked Base44 user ID" }
+    "user_id": {
+      "type": "string",
+      "description": "Linked Base44 user ID"
+    }
   },
-  "required": ["full_name", "slug"],
+  "required": [
+    "full_name",
+    "slug"
+  ],
   "rls": {
     "read": {},
     "create": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "user_condition": { "role": "teacher" } }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "teacher"
+          }
+        }
       ]
     },
     "update": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.user_id": "{{user.id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
       ]
     },
     "delete": {
-      "user_condition": { "role": "admin" }
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }
