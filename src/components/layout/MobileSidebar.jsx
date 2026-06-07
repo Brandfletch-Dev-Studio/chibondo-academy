@@ -20,6 +20,7 @@ const studentNav = [
   { label: 'Progress',     icon: BarChart3,     path: '/progress' },
   { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
   { label: 'My Referrals', icon: Gift,          path: '/my-referrals' },
+  { label: 'Affiliate Program', icon: Zap,      path: '/my-referrals' },
   { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
 
