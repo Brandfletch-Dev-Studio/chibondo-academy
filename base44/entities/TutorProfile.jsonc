@@ -1,0 +1,64 @@
+{
+  "name": "TutorProfile",
+  "type": "object",
+  "properties": {
+    "full_name": { "type": "string" },
+    "slug": { "type": "string", "description": "URL-friendly identifier e.g. taonga-chipondo" },
+    "profile_photo": { "type": "string" },
+    "professional_title": { "type": "string" },
+    "tagline": { "type": "string" },
+    "biography": { "type": "string", "description": "Rich HTML biography" },
+    "qualifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "institution": { "type": "string" },
+          "year": { "type": "string" }
+        }
+      }
+    },
+    "certifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "organization": { "type": "string" },
+          "date_issued": { "type": "string" }
+        }
+      }
+    },
+    "years_teaching": { "type": "number" },
+    "previous_schools": { "type": "string" },
+    "current_position": { "type": "string" },
+    "subjects": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Subject names this tutor teaches"
+    },
+    "email": { "type": "string" },
+    "phone": { "type": "string" },
+    "whatsapp": { "type": "string" },
+    "facebook": { "type": "string" },
+    "linkedin": { "type": "string" },
+    "youtube": { "type": "string" },
+    "twitter_x": { "type": "string" },
+    "tiktok": { "type": "string" },
+    "is_visible": { "type": "boolean", "default": true },
+    "status": {
+      "type": "string",
+      "enum": ["active", "archived"],
+      "default": "active"
+    },
+    "user_id": { "type": "string", "description": "Linked Base44 user ID if tutor has an account" }
+  },
+  "required": ["full_name", "slug"],
+  "rls": {
+    "read": {},
+    "create": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}
