@@ -63,9 +63,17 @@ export default function ForumsHome() {
     return m;
   }, [threadCounts]);
 
-  const filtered = subjects.filter(s =>
-    !search || s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = React.useMemo(() => {
+    let list = subjects.filter(s =>
+      !search || s.name.toLowerCase().includes(search.toLowerCase())
+    );
+    // Sort by latest activity descending
+    return [...list].sort((a, b) => {
+      const ta = lastActivityMap[a.id] || new Date(0);
+      const tb = lastActivityMap[b.id] || new Date(0);
+      return tb - ta;
+    });
+  }, [subjects, search, lastActivityMap]);
 
   const totalThreads = threadCounts.filter(d => !d.parent_id).length;
 
@@ -131,7 +139,7 @@ export default function ForumsHome() {
                     {meta.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-display font-bold text-sm group-hover:text-accent transition-colors">{subject.name}</p>
+                    <p className="font-display font-bold text-sm group-hover:text-accent transition-colors">{subject.forum_name || subject.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{subject.form_name}</p>
                   </div>
                   <div className="flex items-center justify-between">
