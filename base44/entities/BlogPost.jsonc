@@ -1,0 +1,45 @@
+{
+  "name": "BlogPost",
+  "type": "object",
+  "properties": {
+    "title":             { "type": "string" },
+    "slug":              { "type": "string" },
+    "cover_image":       { "type": "string" },
+    "excerpt":           { "type": "string", "description": "Short summary shown on cards" },
+    "content":           { "type": "string", "description": "Full HTML content of the post" },
+    "tutor_profile_id":  { "type": "string", "description": "TutorProfile ID of the author" },
+    "author_name":       { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published", "archived"],
+      "default": "draft"
+    },
+    "published_at": { "type": "string" }
+  },
+  "required": ["title", "tutor_profile_id"],
+  "rls": {
+    "read": { "data.status": "published" },
+    "create": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "teacher" } }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.created_by": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.created_by": "{{user.id}}" }
+      ]
+    }
+  }
+}
