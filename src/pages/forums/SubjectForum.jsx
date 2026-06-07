@@ -48,7 +48,16 @@ function ThreadCard({ thread, subjectSlug, navigate }) {
               <Clock className="w-3 h-3" />{ago}
             </span>
             <span className="text-[11px] text-muted-foreground/70">
-              by <span className="font-medium text-foreground/70">{thread.author_name}</span>
+              by <span className="font-semibold text-foreground/80">{thread.author_name}</span>
+              {thread.author_role === 'teacher' && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ml-1" style={{ background:'hsl(43 74% 52% / 0.12)', color:'hsl(38 60% 32%)', borderColor:'hsl(43 74% 52% / 0.3)' }}>Teacher</span>
+              )}
+              {thread.author_role === 'admin' && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 border border-red-200 ml-1">Admin</span>
+              )}
+              {(thread.author_role === 'user' || thread.author_role === 'student' || !thread.author_role) && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ml-1" style={{ background:'hsl(222 47% 55% / 0.1)', color:'hsl(222 47% 35%)', borderColor:'hsl(222 47% 55% / 0.25)' }}>Student</span>
+              )}
             </span>
             {thread.reply_count > 0 && (
               <span className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
