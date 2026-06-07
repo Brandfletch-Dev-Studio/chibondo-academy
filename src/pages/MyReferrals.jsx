@@ -278,54 +278,121 @@ function PayoutsTab({ referrals, commissionSettings }) {
 function AffiliateSettings() {
   const { user } = useOutletContext();
   const queryClient = useQueryClient();
-  // Sync local state when user data changes (e.g. after save)
   const [customCode, setCustomCode] = useState(() => user?.referral_code || '');
   const [notifications, setNotifications] = useState(true);
+  const [checkStatus, setCheckStatus] = useState(null); // null | 'checking' | 'available' | 'taken' | 'yours'
+  const debounceRef = React.useRef(null);
 
-  // Keep local input in sync if user prop updates
   React.useEffect(() => {
     if (user?.referral_code) setCustomCode(user.referral_code);
   }, [user?.referral_code]);
+
+  // Real-time availability check — debounced 500ms
+  const handleCodeChange = (e) => {
+    const val = e.target.value.toUpperCase().replace(/\s/g, '');
+    setCustomCode(val);
+    setCheckStatus(null);
+    clearTimeout(debounceRef.current);
+    if (val.length < 4) return;
+    if (val === user?.referral_code) { setCheckStatus('yours'); return; }
+    setCheckStatus('checking');
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const existing = await base44.entities.User.filter({ referral_code: val });
+        const taken = existing.find(u => u.id !== user.id);
+        setCheckStatus(taken ? 'taken' : 'available');
+      } catch { setCheckStatus(null); }
+    }, 500);
+  };
 
   const updateMutation = useMutation({
     mutationFn: async () => {
       const code = customCode.trim().toUpperCase();
       if (!code) throw new Error('Referral code cannot be empty');
       if (code.length < 4) throw new Error('Code must be at least 4 characters');
-      // Check uniqueness — no other user should have this code
-      const existing = await base44.entities.User.list('-created_date', 500);
-      const taken = existing.find(u => u.id !== user.id && u.referral_code === code);
-      if (taken) throw new Error('This code is already taken. Please choose another.');
+      if (checkStatus === 'taken') throw new Error('This code is already taken. Please choose another.');
       return base44.auth.updateMe({ referral_code: code });
     },
     onSuccess: () => {
-      // Invalidate the correct query key used in AppLayout
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      // Also invalidate the referral code used in the parent component
       queryClient.invalidateQueries({ queryKey: ['myReferrals'] });
-      toast.success('Referral code saved!', { description: `Your code: ${customCode.trim().toUpperCase()}` });
+      setCheckStatus('yours');
+      toast.success('Referral code saved!', { description: `Your new code: ${customCode.trim().toUpperCase()}` });
     },
     onError: (error) => {
       toast.error('Could not save code', { description: error.message });
     },
   });
 
+  const statusInfo = {
+    checking:  { color: 'text-muted-foreground', icon: '⏳', text: 'Checking availability…' },
+    available: { color: 'text-green-600',         icon: '✓',  text: 'Available! This code is yours to take.' },
+    taken:     { color: 'text-red-500',            icon: '✕',  text: 'Already taken — try a different code.' },
+    yours:     { color: 'text-blue-500',           icon: '✓',  text: 'This is your current code.' },
+  };
+  const status = checkStatus ? statusInfo[checkStatus] : null;
+  const canSave = customCode.trim().length >= 4 && checkStatus !== 'taken' && checkStatus !== 'checking' && !updateMutation.isPending;
+
   return (
     <div className="space-y-4">
       <div>
         <h3 className="font-semibold mb-1">Custom Referral Code</h3>
-        <p className="text-sm text-muted-foreground">Personalize your referral code (optional)</p>
+        <p className="text-sm text-muted-foreground">Personalize your referral code — availability checked in real time</p>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div>
-          <Label>Current Code</Label>
-          <Input value={customCode} onChange={e => setCustomCode(e.target.value.toUpperCase().replace(/\s/g, ''))} placeholder="CHIBXXXXXX" className="mt-1 font-mono" />
-          <p className="text-xs text-muted-foreground mt-1">Leave blank to use auto-generated code</p>
+          <Label>Your Code</Label>
+          <div className="relative mt-1">
+            <Input
+              value={customCode}
+              onChange={handleCodeChange}
+              placeholder="MYCODE123"
+              className={`font-mono pr-10 transition-colors ${
+                checkStatus === 'available' ? 'border-green-500 focus-visible:ring-green-500' :
+                checkStatus === 'taken'     ? 'border-red-500 focus-visible:ring-red-500' : ''
+              }`}
+              maxLength={20}
+            />
+            {checkStatus === 'checking' && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {checkStatus === 'available' && (
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
+            )}
+          </div>
+          {status && (
+            <p className={`text-xs mt-1.5 font-medium ${status.color}`}>
+              {status.icon} {status.text}
+            </p>
+          )}
+          {!status && customCode.length > 0 && customCode.length < 4 && (
+            <p className="text-xs mt-1.5 text-muted-foreground">Min. 4 characters</p>
+          )}
         </div>
 
-        <Button className="w-full" onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || !customCode.trim()}>
-          {updateMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Code'}
+        {/* Success/error notice after save */}
+        {updateMutation.isSuccess && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-green-500/10 text-green-700 border border-green-500/20">
+            <Check className="w-4 h-4 flex-shrink-0" />
+            Code saved! Share it to start earning.
+          </div>
+        )}
+        {updateMutation.isError && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-red-500/10 text-red-700 border border-red-500/20">
+            <span className="flex-shrink-0">✕</span>
+            {updateMutation.error?.message || 'Save failed. Try again.'}
+          </div>
+        )}
+
+        <Button
+          className="w-full"
+          onClick={() => updateMutation.mutate()}
+          disabled={!canSave}
+        >
+          {updateMutation.isPending
+            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
+            : 'Save Code'}
         </Button>
       </div>
 
