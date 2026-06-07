@@ -58,6 +58,27 @@ export default function Register() {
       const result = await base44.auth.verifyOtp({ email: email.trim(), otpCode: otpCode.trim() });
       if (result?.access_token) {
         await base44.auth.setToken(result.access_token);
+        // Explicitly assign student role to every new registration
+        try {
+          await base44.auth.updateMe({ role: 'user' });
+        } catch (_) {}
+        // Apply referral if present
+        if (refCode) {
+          try {
+            const referrers = await base44.entities.User.filter({ referral_code: refCode });
+            if (referrers.length > 0) {
+              const referrerId = referrers[0].id;
+              const newUser = await base44.auth.me();
+              await base44.entities.Referral.create({
+                referrer_id: referrerId,
+                referee_id: newUser.id,
+                referee_email: email.trim(),
+                status: 'pending',
+                referral_code: refCode,
+              }).catch(() => {});
+            }
+          } catch (_) {}
+        }
         window.location.href = '/dashboard';
       }
     } catch (err) {
@@ -81,7 +102,11 @@ export default function Register() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/dashboard");
+    // Build redirect with ref code so we can apply referral after Google auth
+    const redirectUrl = refCode
+      ? `/dashboard?ref=${encodeURIComponent(refCode)}`
+      : '/dashboard';
+    base44.auth.loginWithProvider("google", redirectUrl);
   };
 
   if (emailSent) {
