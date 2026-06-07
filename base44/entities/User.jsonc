@@ -4,12 +4,12 @@
   "properties": {
     "role": {
       "type": "string",
-      "enum": [
-        "admin",
-        "teacher",
-        "user"
-      ],
+      "enum": ["admin","teacher","user"],
       "default": "user"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Profile photo URL — set from settings page"
     },
     "referral_code": {
       "type": "string",
@@ -17,12 +17,7 @@
     },
     "subscription_plan": {
       "type": "string",
-      "enum": [
-        "free",
-        "monthly",
-        "quarterly",
-        "annual"
-      ],
+      "enum": ["free","monthly","quarterly","annual"],
       "default": "free"
     }
   }
