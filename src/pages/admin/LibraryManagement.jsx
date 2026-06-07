@@ -8,306 +8,388 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   BookOpen, FileText, Plus, Search, Upload, Trash2, Edit2,
-  X, Download, Star, Lock, Globe, Loader2, FolderOpen
+  X, Download, Lock, Globe, Loader2, FolderOpen, Library,
+  ChevronDown, MoreVertical, Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BulkUploadDialog from '@/components/library/BulkUploadDialog';
 
 const TYPE_META = {
-  past_paper:     { label: 'Past Paper',     color: 'bg-blue-500/10 text-blue-600' },
-  model_answer:   { label: 'Model Answer',   color: 'bg-green-500/10 text-green-600' },
-  revision_notes: { label: 'Rev. Notes',     color: 'bg-purple-500/10 text-purple-600' },
-  exam_tips:      { label: 'Exam Tips',      color: 'bg-orange-500/10 text-orange-600' },
-  mock_exam:      { label: 'Mock Exam',      color: 'bg-red-500/10 text-red-600' },
+  past_paper:     { label: 'Past Paper',   color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+  model_answer:   { label: 'Model Answer', color: 'bg-green-500/10 text-green-600 border-green-200' },
+  revision_notes: { label: 'Rev. Notes',   color: 'bg-purple-500/10 text-purple-600 border-purple-200' },
+  exam_tips:      { label: 'Exam Tips',    color: 'bg-orange-500/10 text-orange-600 border-orange-200' },
+  mock_exam:      { label: 'Mock Exam',    color: 'bg-red-500/10 text-red-600 border-red-200' },
 };
 
-const TABS = ['all', 'past_paper', 'model_answer', 'revision_notes', 'exam_tips', 'mock_exam'];
+const TYPE_KEYS = Object.keys(TYPE_META);
+const TABS = ['all', ...TYPE_KEYS];
 
-// ── Resource Form ─────────────────────────────────────────────────────────────
+/* ── Resource Form ─────────────────────────────────────────────────────────── */
 function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving }) {
   const [form, setForm] = useState({
-    title: resource?.title || '',
+    title:       resource?.title       || '',
     description: resource?.description || '',
-    type: resource?.type || 'past_paper',
-    subject_id: resource?.subject_id || '',
-    form_id: resource?.form_id || '',
-    year: resource?.year || new Date().getFullYear(),
-    is_premium: resource?.is_premium ?? true,
+    type:        resource?.type        || 'past_paper',
+    subject_id:  resource?.subject_id  || '',
+    form_id:     resource?.form_id     || '',
+    year:        resource?.year        || new Date().getFullYear(),
+    is_premium:  resource?.is_premium  ?? true,
   });
-  const [file, setFile] = useState(resource?.file_url ? { name: 'Current file', url: resource.file_url } : null);
+  const [file, setFile]         = useState(resource?.file_url ? { name: 'Current file', url: resource.file_url } : null);
   const [uploading, setUploading] = useState(false);
 
   const handleFile = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 10 * 1024 * 1024) { toast.error('Max file size is 10MB'); return; }
+    if (f.size > 10 * 1024 * 1024) { toast.error('Max file size is 10 MB'); return; }
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-    setFile({ name: f.name, url: file_url });
-    setUploading(false);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+      setFile({ name: f.name, url: file_url });
+      toast.success('File uploaded');
+    } catch { toast.error('Upload failed'); }
+    finally { setUploading(false); }
   };
 
   const handleSubmit = () => {
     if (!form.title || !form.subject_id || !form.form_id) { toast.error('Fill in all required fields'); return; }
-    const subject = subjects.find(s => s.id === form.subject_id);
+    const subject  = subjects.find(s => s.id === form.subject_id);
     const academic = forms.find(f => f.id === form.form_id);
     onSave({
       ...form,
-      file_url: file?.url || null,
-      subject_name: subject?.name || '',
-      form_name: academic?.name || '',
-      status: 'published',
+      file_url:     file?.url || null,
+      subject_name: subject?.name  || '',
+      form_name:    academic?.name || '',
+      status:       'published',
     });
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+    <div className="bg-card border border-border rounded-2xl p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-display font-bold">{resource ? 'Edit Resource' : 'Add New Resource'}</h3>
-        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        <h3 className="font-display font-bold text-base">{resource ? 'Edit Resource' : 'Add New Resource'}</h3>
+        <button onClick={onCancel} className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <Label className="text-xs font-medium">Title *</Label>
-          <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="mt-1" placeholder="e.g., 2024 Mathematics Paper 1" />
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Title *</Label>
+          <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            className="mt-1.5" placeholder="e.g. 2024 Mathematics Paper 1" />
         </div>
         <div className="sm:col-span-2">
-          <Label className="text-xs font-medium">Description</Label>
-          <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="mt-1" placeholder="Brief description" />
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Description</Label>
+          <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            className="mt-1.5" placeholder="Brief description" />
         </div>
 
         <div>
-          <Label className="text-xs font-medium">Type *</Label>
-          <select className="w-full mt-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-            {Object.entries(TYPE_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Type *</Label>
+          <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+            className="mt-1.5 w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
+            {TYPE_KEYS.map(k => <option key={k} value={k}>{TYPE_META[k].label}</option>)}
           </select>
         </div>
         <div>
-          <Label className="text-xs font-medium">Year</Label>
-          <Input type="number" value={form.year} onChange={e => setForm(f => ({ ...f, year: parseInt(e.target.value) }))} className="mt-1" />
-        </div>
-        <div>
-          <Label className="text-xs font-medium">Subject *</Label>
-          <select className="w-full mt-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm" value={form.subject_id} onChange={e => setForm(f => ({ ...f, subject_id: e.target.value }))}>
-            <option value="">Select subject</option>
-            {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <Label className="text-xs font-medium">Form *</Label>
-          <select className="w-full mt-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm" value={form.form_id} onChange={e => setForm(f => ({ ...f, form_id: e.target.value }))}>
-            <option value="">Select form</option>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Academic Form *</Label>
+          <select value={form.form_id} onChange={e => setForm(f => ({ ...f, form_id: e.target.value }))}
+            className="mt-1.5 w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
+            <option value="">Select form…</option>
             {forms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Subject *</Label>
+          <select value={form.subject_id} onChange={e => setForm(f => ({ ...f, subject_id: e.target.value }))}
+            className="mt-1.5 w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
+            <option value="">Select subject…</option>
+            {subjects
+              .filter(s => !form.form_id || s.form_id === form.form_id)
+              .map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Year</Label>
+          <Input type="number" value={form.year}
+            onChange={e => setForm(f => ({ ...f, year: +e.target.value }))}
+            className="mt-1.5" min="2000" max="2030" />
         </div>
 
         {/* File upload */}
         <div className="sm:col-span-2">
-          <Label className="text-xs font-medium">File (PDF / Word, max 10MB)</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">File (PDF / Doc)</Label>
           {file ? (
-            <div className="mt-1 flex items-center gap-3 p-3 bg-muted/40 rounded-xl border border-border">
-              <FileText className="w-5 h-5 text-accent flex-shrink-0" />
-              <span className="text-sm flex-1 truncate">{file.name}</span>
-              <button onClick={() => setFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+            <div className="mt-1.5 flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/40">
+              <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="flex-1 text-sm truncate min-w-0">{file.name}</span>
+              <button onClick={() => setFile(null)}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           ) : (
-            <label className="mt-1 flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/40 transition-colors text-center">
-              {uploading ? <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /> : <Upload className="w-6 h-6 text-muted-foreground" />}
-              <span className="text-sm text-muted-foreground">{uploading ? 'Uploading…' : 'Click to upload'}</span>
-              <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFile} disabled={uploading} />
+            <label className="mt-1.5 flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 cursor-pointer transition-colors bg-muted/20">
+              {uploading ? <Loader2 className="w-6 h-6 animate-spin text-primary" /> : <Upload className="w-6 h-6 text-muted-foreground" />}
+              <span className="text-xs text-muted-foreground">{uploading ? 'Uploading…' : 'Click to upload'}</span>
+              <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={handleFile} />
             </label>
           )}
         </div>
 
-        {/* Premium toggle */}
-        <div className="sm:col-span-2 flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setForm(f => ({ ...f, is_premium: !f.is_premium }))}
-            className={`relative w-10 h-5 rounded-full transition-colors ${form.is_premium ? 'bg-accent' : 'bg-muted-foreground/30'}`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_premium ? 'translate-x-5' : ''}`} />
+        {/* Access toggle */}
+        <div className="sm:col-span-2">
+          <button type="button" onClick={() => setForm(f => ({ ...f, is_premium: !f.is_premium }))}
+            className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border transition-all ${form.is_premium ? 'border-accent/40 bg-accent/5' : 'border-border bg-muted/30'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${form.is_premium ? 'bg-accent/20' : 'bg-green-500/10'}`}>
+              {form.is_premium ? <Lock className="w-4 h-4 text-accent" /> : <Globe className="w-4 h-4 text-green-500" />}
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-sm">{form.is_premium ? 'Premium Only' : 'Free Access'}</p>
+              <p className="text-xs text-muted-foreground">{form.is_premium ? 'Requires active subscription' : 'Available to all students'}</p>
+            </div>
+            <div className={`ml-auto w-10 h-5 rounded-full transition-colors flex-shrink-0 ${form.is_premium ? 'bg-accent' : 'bg-muted'}`}>
+              <div className={`w-4 h-4 rounded-full bg-white shadow mt-0.5 transition-transform ${form.is_premium ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </div>
           </button>
-          <div>
-            <p className="text-sm font-medium flex items-center gap-1.5">
-              {form.is_premium ? <Lock className="w-3.5 h-3.5 text-accent" /> : <Globe className="w-3.5 h-3.5" />}
-              {form.is_premium ? 'Subscribers Only' : 'Free for All'}
-            </p>
-            <p className="text-xs text-muted-foreground">{form.is_premium ? 'Only paid students can access' : 'All students can access'}</p>
-          </div>
         </div>
       </div>
 
       <div className="flex gap-3 pt-1">
-        <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>
-        <Button onClick={handleSubmit} disabled={isSaving || uploading} className="flex-1">
-          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-          {resource ? 'Update Resource' : 'Add Resource'}
+        <Button variant="outline" onClick={onCancel} className="flex-1" disabled={isSaving}>Cancel</Button>
+        <Button onClick={handleSubmit} disabled={isSaving || uploading} className="flex-1"
+          style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+          {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : resource ? 'Save Changes' : 'Add Resource'}
         </Button>
       </div>
     </div>
   );
 }
 
-// ── Resource Row ──────────────────────────────────────────────────────────────
+/* ── Resource Row ──────────────────────────────────────────────────────────── */
 function ResourceRow({ resource, onEdit, onDelete }) {
-  const meta = TYPE_META[resource.type] || TYPE_META.past_paper;
+  const meta = TYPE_META[resource.type] || { label: resource.type, color: 'bg-muted text-muted-foreground' };
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-card hover:border-primary/20 transition-colors group">
-      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
-        <FileText className="w-4 h-4 text-accent" />
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group border-b border-border/50 last:border-b-0">
+      {/* Icon */}
+      <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0"
+        style={{ background:'hsl(222 47% 18% / 0.08)' }}>
+        <FileText className="w-4 h-4 text-primary" />
       </div>
+
+      {/* Main info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold truncate">{resource.title}</span>
-          <Badge className={`text-[9px] border-0 px-1.5 ${meta.color}`}>{meta.label}</Badge>
-          {resource.is_premium && <Badge className="text-[9px] bg-accent/10 text-accent-foreground border-0 px-1.5"><Lock className="w-2.5 h-2.5 inline mr-0.5" />Premium</Badge>}
-        </div>
+        <p className="font-semibold text-sm leading-snug truncate">{resource.title}</p>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">
-          {resource.subject_name} · {resource.form_name}{resource.year ? ` · ${resource.year}` : ''}
+          {[resource.subject_name, resource.form_name, resource.year].filter(Boolean).join(' · ')}
         </p>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+      {/* Badges — hidden on small screens, shown on md+ */}
+      <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.color}`}>{meta.label}</span>
+        {resource.is_premium
+          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground border border-accent/20 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />Premium</span>
+          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-200 flex items-center gap-0.5"><Globe className="w-2.5 h-2.5" />Free</span>
+        }
+      </div>
+
+      {/* Actions — always visible, no overflow */}
+      <div className="flex items-center gap-1 flex-shrink-0">
         {resource.file_url && (
-          <button onClick={() => window.open(resource.file_url, '_blank')} title="Download" className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors">
-            <Download className="w-4 h-4" />
+          <button
+            onClick={() => window.open(resource.file_url, '_blank')}
+            title="Download / Preview"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
+            style={{ minWidth:'2rem' }}>
+            <Download className="w-3.5 h-3.5" />
           </button>
         )}
-        <button onClick={() => onEdit(resource)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-          <Edit2 className="w-4 h-4" />
+        <button
+          onClick={() => onEdit(resource)}
+          title="Edit"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          style={{ minWidth:'2rem' }}>
+          <Edit2 className="w-3.5 h-3.5" />
         </button>
-        <button onClick={() => { if (confirm('Delete this resource?')) onDelete(resource.id); }} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors">
-          <Trash2 className="w-4 h-4" />
+        <button
+          onClick={() => { if (window.confirm(`Delete "${resource.title}"?`)) onDelete(resource.id); }}
+          title="Delete"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors"
+          style={{ minWidth:'2rem' }}>
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+/* ── Main ──────────────────────────────────────────────────────────────────── */
 export default function LibraryManagement() {
   const { user } = useOutletContext();
-  const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [editingResource, setEditingResource] = useState(null);
-  const [activeTab, setActiveTab] = useState('all');
-  const [search, setSearch] = useState('');
+  const qc       = useQueryClient();
 
-  const { data: resources = [] } = useQuery({
-    queryKey: ['libraryResources'],
-    queryFn: () => base44.entities.RevisionResource.list('-created_date', 200),
+  const [search,       setSearch]    = useState('');
+  const [activeTab,    setActiveTab] = useState('all');
+  const [formFilter,   setFormFilter]= useState('');
+  const [editResource, setEdit]      = useState(null);
+  const [showForm,     setShowForm]  = useState(false);
+  const [showBulk,     setShowBulk]  = useState(false);
+
+  const { data: resources = [], isLoading } = useQuery({
+    queryKey: ['library-resources'],
+    queryFn: () => base44.entities.RevisionResource.filter({}, '-created_date', 500),
+    staleTime: 30_000,
   });
   const { data: subjects = [] } = useQuery({
-    queryKey: ['allSubjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }),
+    queryKey: ['subjects'],
+    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    staleTime: 120_000,
   });
   const { data: forms = [] } = useQuery({
-    queryKey: ['academicForms'],
-    queryFn: () => base44.entities.AcademicForm.filter({ status: 'active' }),
+    queryKey: ['academic-forms'],
+    queryFn: () => base44.entities.AcademicForm.filter({}, 'name', 10),
+    staleTime: 300_000,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RevisionResource.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['libraryResources'] }); setShowForm(false); toast.success('Resource added!'); },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RevisionResource.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['libraryResources'] }); setEditingResource(null); setShowForm(false); toast.success('Updated!'); },
+  const saveMutation = useMutation({
+    mutationFn: (data) => editResource
+      ? base44.entities.RevisionResource.update(editResource.id, data)
+      : base44.entities.RevisionResource.create(data),
+    onSuccess: () => {
+      toast.success(editResource ? 'Resource updated' : 'Resource added');
+      qc.invalidateQueries({ queryKey: ['library-resources'] });
+      setEdit(null);
+      setShowForm(false);
+    },
+    onError: () => toast.error('Save failed'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.RevisionResource.delete(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['libraryResources'] }); toast.success('Deleted'); },
+    onSuccess: () => {
+      toast.success('Resource deleted');
+      qc.invalidateQueries({ queryKey: ['library-resources'] });
+    },
   });
 
-  const handleEdit = (r) => { setEditingResource(r); setShowForm(true); };
-  const handleCancel = () => { setEditingResource(null); setShowForm(false); };
-  const handleSave = (data) => {
-    if (editingResource) updateMutation.mutate({ id: editingResource.id, data });
-    else createMutation.mutate(data);
+  const handleEdit = (r) => { setEdit(r); setShowForm(true); window.scrollTo({ top: 0, behavior:'smooth' }); };
+  const handleClose = () => { setEdit(null); setShowForm(false); };
+
+  const filtered = resources.filter(r => {
+    const matchSearch = !search || r.title?.toLowerCase().includes(search.toLowerCase()) || r.subject_name?.toLowerCase().includes(search.toLowerCase());
+    const matchType   = activeTab === 'all' || r.type === activeTab;
+    const matchForm   = !formFilter || r.form_id === formFilter;
+    return matchSearch && matchType && matchForm;
+  });
+
+  const stats = {
+    total:   resources.length,
+    premium: resources.filter(r => r.is_premium).length,
+    free:    resources.filter(r => !r.is_premium).length,
   };
-
-  const displayed = resources
-    .filter(r => activeTab === 'all' || r.type === activeTab)
-    .filter(r => !search || r.title?.toLowerCase().includes(search.toLowerCase()) || r.subject_name?.toLowerCase().includes(search.toLowerCase()));
-
-  const counts = TABS.reduce((acc, t) => {
-    acc[t] = t === 'all' ? resources.length : resources.filter(r => r.type === t).length;
-    return acc;
-  }, {});
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-accent" /> Library Management
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{resources.length} resources across all subjects</p>
+      {/* ── Header ── */}
+      <div className="rounded-2xl p-5" style={{ background:'hsl(222 47% 14%)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <Library className="w-5 h-5" style={{ color:'hsl(43 74% 66%)' }} />
+          <span className="text-sm font-medium" style={{ color:'hsl(43 74% 66% / 0.8)' }}>Admin</span>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <BulkUploadDialog subjects={subjects} forms={forms} onUploadComplete={() => queryClient.invalidateQueries({ queryKey: ['libraryResources'] })} />
-          <Button onClick={() => { setEditingResource(null); setShowForm(true); }} disabled={showForm && !editingResource}>
-            <Plus className="w-4 h-4 mr-1.5" /> Add Resource
-          </Button>
+        <h1 className="text-xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Library Management</h1>
+        <div className="flex gap-5">
+          {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
+            <div key={label}>
+              <p className="font-bold text-lg" style={{ color:'hsl(43 74% 66%)' }}>{val}</p>
+              <p className="text-[11px]" style={{ color:'hsl(43 20% 65%)' }}>{label} resources</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Stats strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {TABS.map(t => {
-          const meta = t === 'all' ? { label: 'All', color: 'bg-muted text-foreground' } : TYPE_META[t];
-          return (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              className={`p-3 rounded-xl border text-left transition-all ${activeTab === t ? 'border-primary/40 bg-primary/5 shadow-sm' : 'border-border bg-card hover:border-primary/20'}`}
-            >
-              <p className="text-xl font-bold font-display">{counts[t]}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{meta.label}</p>
-            </button>
-          );
-        })}
+      {/* ── Action bar ── */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search resources…" className="pl-9" />
+        </div>
+        <select value={formFilter} onChange={e => setFormFilter(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
+          <option value="">All Forms</option>
+          {forms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <Button variant="outline" onClick={() => setShowBulk(true)} className="gap-2">
+          <Upload className="w-4 h-4" /> Bulk Upload
+        </Button>
+        <Button onClick={() => { setEdit(null); setShowForm(true); }} className="gap-2"
+          style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+          <Plus className="w-4 h-4" /> Add Resource
+        </Button>
       </div>
 
-      {/* Form (inline, not dialog) */}
+      {/* ── Resource form (inline) ── */}
       {showForm && (
         <ResourceForm
-          resource={editingResource}
+          resource={editResource}
           subjects={subjects}
           forms={forms}
-          onSave={handleSave}
-          onCancel={handleCancel}
-          isSaving={createMutation.isPending || updateMutation.isPending}
+          onSave={saveMutation.mutate}
+          onCancel={handleClose}
+          isSaving={saveMutation.isPending}
         />
       )}
 
-      {/* Table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search by title or subject…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-          </div>
-          <span className="text-sm text-muted-foreground flex-shrink-0">{displayed.length} results</span>
-        </div>
+      {/* ── Type filter tabs ── */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {TABS.map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeTab === tab
+                ? 'text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'
+            }`}
+            style={activeTab === tab ? { background:'hsl(222 47% 18%)' } : {}}>
+            {tab === 'all' ? `All (${resources.length})` : `${TYPE_META[tab].label} (${resources.filter(r=>r.type===tab).length})`}
+          </button>
+        ))}
+      </div>
 
-        {displayed.length === 0 ? (
-          <div className="text-center py-16">
-            <FolderOpen className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
-            <p className="text-muted-foreground text-sm">No resources found</p>
+      {/* ── Resource list ── */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center space-y-2">
+            <FolderOpen className="w-10 h-10 mx-auto text-muted-foreground/20" />
+            <p className="text-sm font-medium text-muted-foreground">No resources found</p>
+            <p className="text-xs text-muted-foreground/60">Try adjusting your filters or add a new resource</p>
           </div>
         ) : (
-          <div className="p-3 space-y-2">
-            {displayed.map(r => (
+          <>
+            <div className="px-4 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">{filtered.length} resource{filtered.length!==1?'s':''}</p>
+            </div>
+            {filtered.map(r => (
               <ResourceRow key={r.id} resource={r} onEdit={handleEdit} onDelete={deleteMutation.mutate} />
             ))}
-          </div>
+          </>
         )}
       </div>
+
+      {/* Bulk upload dialog */}
+      {showBulk && (
+        <BulkUploadDialog
+          subjects={subjects}
+          forms={forms}
+          onClose={() => setShowBulk(false)}
+          onSuccess={() => { setShowBulk(false); qc.invalidateQueries({ queryKey: ['library-resources'] }); }}
+        />
+      )}
     </div>
   );
 }
