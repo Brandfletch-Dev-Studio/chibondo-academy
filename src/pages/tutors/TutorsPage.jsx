@@ -16,8 +16,6 @@ function TutorCard({ tutor, courseCount }) {
   return (
     <Link
       to={`/tutors/${tutor.slug}`}
-      target="_blank"
-      rel="noopener noreferrer"
       className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-200 group flex flex-col"
     >
       {/* Photo */}
