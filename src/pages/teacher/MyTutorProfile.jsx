@@ -27,6 +27,61 @@ function slugify(str) {
 }
 
 // ── Photo Uploader ────────────────────────────────────────────────────────────
+
+/* ─── CoverUploader ──────────────────────────────────────────────────────── */
+function CoverUploader({ value, onChange }) {
+  const inputRef = useRef();
+  const [uploading, setUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreview(objectUrl);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      onChange(file_url);
+      toast.success('Cover photo uploaded!');
+    } catch { toast.error('Upload failed — try again.'); }
+    finally { setUploading(false); }
+  };
+
+  const display = localPreview || value || null;
+
+  return (
+    <div
+      onClick={() => inputRef.current?.click()}
+      className="relative w-full h-36 rounded-2xl overflow-hidden border-2 border-dashed border-border hover:border-accent/50 cursor-pointer transition-colors group"
+      style={display ? {} : { background:'hsl(222 47% 14% / 0.05)' }}
+    >
+      {display ? (
+        <>
+          <img src={display} alt="Cover" className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
+          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="text-white text-xs font-semibold">Change Cover</span>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+            <ImageIcon className="w-5 h-5" />
+          </div>
+          <span className="text-xs font-medium">Add Cover Photo</span>
+          <span className="text-[10px] opacity-60">1200×400 recommended</span>
+        </div>
+      )}
+      {uploading && (
+        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    </div>
+  );
+}
+
 function PhotoUploader({ value, onChange }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
@@ -150,7 +205,7 @@ export default function MyTutorProfile() {
   const EMPTY = {
     full_name: '', slug: '', professional_title: '', tagline: '',
     biography: '', years_teaching: '', previous_schools: '', current_position: '',
-    profile_photo: '', subjects: [],
+    profile_photo: '', cover_photo: '', subjects: [],
     qualifications: [], certifications: [],
     email: '', phone: '', whatsapp: '',
     facebook: '', linkedin: '', youtube: '', twitter_x: '', tiktok: '',
@@ -325,6 +380,14 @@ export default function MyTutorProfile() {
               <div>
                 <Label className="mb-2 block">Profile Photo</Label>
                 <PhotoUploader value={form.profile_photo} onChange={v => set('profile_photo', v)} />
+
+              <div className="mt-4">
+                <Label className="mb-2 block">
+                  Cover Photo{' '}
+                  <span className="text-[10px] font-normal text-muted-foreground/60 normal-case">(wide banner on your profile page)</span>
+                </Label>
+                <CoverUploader value={form.cover_photo} onChange={v => set('cover_photo', v)} />
+              </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
