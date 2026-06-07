@@ -6,7 +6,7 @@ import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
 import { Progress } from '@/components/ui/progress';
 import {
-  ArrowLeft, BookOpen, PlayCircle, GraduationCap, Award,
+  ArrowLeft, BookOpen, PlayCircle, GraduationCap, Award, FileText,
   Phone, Mail, Facebook, Linkedin, Youtube, Twitter,
   Users, Star, Clock, ChevronRight, MessageSquare, Zap
 } from 'lucide-react';
@@ -42,7 +42,7 @@ function SubjectRow({ subject, navigate }) {
     >
       <div className="w-12 h-12 rounded-xl overflow-hidden bg-primary/10 flex-shrink-0">
         {subject.cover_image
-          ? <img src={subject.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          ? <img src={subject.cover_image} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
           : <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-5 h-5 text-primary/30" /></div>
         }
       </div>
@@ -81,6 +81,19 @@ export default function TutorProfilePage() {
   });
 
   const subjectIds = subjects.map(s => s.id);
+
+  // Blog posts by this tutor
+  const { data: blogPosts = [] } = useQuery({
+    queryKey: ['tutor-blog', tutor?.id],
+    queryFn: () => base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 6),
+    enabled: !!tutor?.id,
+    staleTime: 120_000,
+  });
+  // Filter to this tutor's posts client-side (tutor_profile_id or author match)
+  const tutorPosts = blogPosts.filter(p =>
+    p.tutor_profile_id === tutor?.id || p.author_id === tutor?.user_id
+  );
+
   const { data: tutorEnrollments = [] } = useQuery({
     queryKey: ['tutor-enrollments', tutor?.id, subjectIds.join(',')],
     queryFn: async () => {
@@ -161,19 +174,26 @@ export default function TutorProfilePage() {
             <img
               src={tutor.cover_photo}
               alt="Cover"
-              className="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
+              className="w-full h-full object-cover object-center"
             />
           ) : (
-            /* Branded gradient fallback */
-            <div className="w-full h-full"
-              style={{
-                background: 'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 22%) 40%, hsl(43 74% 40% / 0.4) 100%)'
-              }}
-            >
-              {/* subtle geometric pattern */}
-              <div className="absolute inset-0 opacity-10"
-                style={{ backgroundImage:'radial-gradient(circle at 20% 50%, hsl(43 74% 66%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(222 47% 60%) 0%, transparent 40%)' }} />
-            </div>
+            /* Blurred profile photo fallback → richer than plain gradient */
+            tutor.profile_photo ? (
+              <div className="relative w-full h-full overflow-hidden">
+                <img src={tutor.profile_photo} alt="" loading="eager" decoding="async"
+                  className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-50 saturate-150" />
+                <div className="absolute inset-0"
+                  style={{ background:'linear-gradient(135deg, hsl(222 47% 14% / 0.85), hsl(43 74% 40% / 0.25))' }} />
+              </div>
+            ) : (
+              <div className="w-full h-full"
+                style={{ background:'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 22%) 50%, hsl(43 74% 30% / 0.5) 100%)' }}>
+                <div className="absolute inset-0"
+                  style={{ backgroundImage:'radial-gradient(ellipse at 15% 50%, hsl(43 74% 52% / 0.25) 0%, transparent 60%), radial-gradient(ellipse at 85% 20%, hsl(222 47% 55% / 0.2) 0%, transparent 50%)' }} />
+              </div>
+            )
           )}
           {/* Dark gradient bottom fade */}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
@@ -198,7 +218,7 @@ export default function TutorProfilePage() {
               style={{ borderColor:'hsl(222 47% 14%)', background:'hsl(222 47% 18%)' }}
             >
               {tutor.profile_photo ? (
-                <img src={tutor.profile_photo} alt={tutor.full_name} className="w-full h-full object-cover" />
+                <img src={tutor.profile_photo} alt={tutor.full_name} loading="eager" decoding="async" className="w-full h-full object-cover object-top" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <span className="text-3xl font-bold" style={{ color:'hsl(43 74% 66%)' }}>
@@ -302,6 +322,38 @@ export default function TutorProfilePage() {
                 </h2>
                 <div className="space-y-1">
                   {subjects.map(s => <SubjectRow key={s.id} subject={s} navigate={navigate} />)}
+                </div>
+              </section>
+            )}
+
+            {/* Blog / Articles */}
+            {tutorPosts.length > 0 && (
+              <section className="bg-card border border-border rounded-2xl p-5">
+                <h2 className="font-display font-bold text-base mb-4 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-accent" /> Articles & Resources
+                </h2>
+                <div className="space-y-3">
+                  {tutorPosts.map(post => (
+                    <div key={post.id} className="flex gap-3 p-3 rounded-xl hover:bg-muted/40 transition-colors cursor-pointer group"
+                      onClick={() => navigate(`/blog/${post.id}`)}>
+                      {post.cover_image && (
+                        <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                          <img src={post.cover_image} alt="" loading="lazy" decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm line-clamp-2 group-hover:text-accent transition-colors">{post.title}</p>
+                        {post.excerpt && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{post.excerpt}</p>}
+                        {post.published_at && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {new Date(post.published_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent flex-shrink-0 self-center transition-colors" />
+                    </div>
+                  ))}
                 </div>
               </section>
             )}
