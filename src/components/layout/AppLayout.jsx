@@ -28,6 +28,14 @@ export default function AppLayout() {
     queryFn: () => base44.auth.me(),
   });
 
+  // Guarantee every registered user has role='user' (student)
+  // Runs once when user first loads — covers Google OAuth & email registrations
+  useEffect(() => {
+    if (user && !user.role) {
+      base44.auth.updateMe({ role: 'user' }).catch(() => {});
+    }
+  }, [user?.id, user?.role]);
+
   const { data: notifications = [] } = useQuery({
     queryKey: ['unreadNotifications'],
     queryFn: async () => {
