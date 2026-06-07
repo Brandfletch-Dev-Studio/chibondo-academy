@@ -45,12 +45,13 @@ function CoverUploader({ value, onChange }) {
       formData.append('file', file);
       const resp = await fetch(`/api/apps/${import.meta.env.VITE_APP_ID || window.__appParams?.appId || ''}/storage/upload`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
+        headers: { Authorization: `Bearer ${window.__appParams?.token || localStorage.getItem('base44_access_token') || ''}` },
         body: formData,
       });
       const data = await resp.json();
-      if (!data?.file_url) throw new Error('No URL returned');
-      onChange(data.file_url);
+      const url = data?.file_url || data?.url || data?.public_url;
+      if (!url) throw new Error('No URL returned');
+      onChange(url);
       toast.success('Cover photo uploaded!');
     } catch { toast.error('Upload failed — try again.'); }
     finally { setUploading(false); }
