@@ -36,6 +36,23 @@ export default function AppLayout() {
     }
   }, [user?.id, user?.role]);
 
+  // Load StudentProfile to get persisted avatar_url as fallback
+  const { data: studentProfile } = useQuery({
+    queryKey: ['studentProfile', user?.id],
+    queryFn: async () => {
+      const r = await base44.entities.StudentProfile.filter({ user_id: user.id });
+      return r[0] || null;
+    },
+    enabled: !!user?.id && user?.role !== 'admin' && user?.role !== 'teacher',
+    staleTime: 60_000,
+  });
+
+  // Merge avatar from StudentProfile if User record doesn't have it
+  const enrichedUser = user ? {
+    ...user,
+    avatar_url: user.avatar_url || studentProfile?.avatar_url || null,
+  } : user;
+
   const { data: notifications = [] } = useQuery({
     queryKey: ['unreadNotifications'],
     queryFn: async () => {
@@ -49,13 +66,13 @@ export default function AppLayout() {
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block flex-shrink-0">
-        <Sidebar user={user} collapsed={collapsed} onToggle={handleToggle} />
+        <Sidebar user={enrichedUser} collapsed={collapsed} onToggle={handleToggle} />
       </div>
 
       {/* Mobile Sidebar Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64 border-0">
-          <MobileSidebar user={user} onClose={() => setMobileOpen(false)} />
+          <MobileSidebar user={enrichedUser} onClose={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 
@@ -64,9 +81,9 @@ export default function AppLayout() {
         "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
         collapsed ? "lg:ml-16" : "lg:ml-64"
       )}>
-        <TopBar user={user} notificationCount={notifications.length} onMenuClick={() => setMobileOpen(true)} />
+        <TopBar user={enrichedUser} notificationCount={notifications.length} onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto">
-          <Outlet context={{ user, notifications }} />
+          <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
       <BottomNav />
