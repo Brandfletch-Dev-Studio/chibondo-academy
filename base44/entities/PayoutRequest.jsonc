@@ -49,5 +49,32 @@
     "affiliate_id",
     "amount",
     "payment_method"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.affiliate_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.affiliate_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
