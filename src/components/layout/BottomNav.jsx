@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Library, CreditCard, MessageSquare, Gift } from 'lucide-react';
+import { BookOpen, GraduationCap, Library, CreditCard, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { label: 'Classes', icon: BookOpen, path: '/subjects' },
-  { label: 'Library', icon: Library, path: '/library' },
-  { label: 'Fees', icon: CreditCard, path: '/subscription' },
-  { label: 'Forums', icon: MessageSquare, path: '/discussions' },
-  { label: 'My Referrals', icon: Gift, path: '/my-referrals' },
+  { label: 'Classes',   icon: BookOpen,      path: '/subjects' },
+  { label: 'Tutors',    icon: GraduationCap, path: '/tutors' },
+  { label: 'Library',   icon: Library,       path: '/library' },
+  { label: 'Forums',    icon: MessageSquare, path: '/discussions' },
+  { label: 'Fees',      icon: CreditCard,    path: '/subscription' },
 ];
 
 export default function BottomNav() {
@@ -25,7 +25,7 @@ export default function BottomNav() {
               key={path}
               to={path}
               className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
+                'flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors relative',
                 isActive
                   ? 'text-accent'
                   : 'text-sidebar-foreground/50 hover:text-sidebar-foreground'
