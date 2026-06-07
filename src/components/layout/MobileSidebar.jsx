@@ -3,44 +3,46 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, GraduationCap, FileText, BarChart3,
   Users, Settings, CreditCard, MessageSquare, Library,
-  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift
+  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
 
 const studentNav = [
-  { label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { label: 'My Subjects', icon: BookOpen, path: '/subjects' },
-  { label: 'Revision Hub', icon: Library, path: '/revision' },
-  { label: 'My Quizzes', icon: ClipboardList, path: '/my-quizzes' },
-  { label: 'Assignments', icon: FileText, path: '/my-assignments' },
-  { label: 'Discussions', icon: MessageSquare, path: '/discussions' },
-  { label: 'Progress', icon: BarChart3, path: '/progress' },
-  { label: 'Subscription', icon: CreditCard, path: '/subscription' },
-  { label: 'Settings', icon: Settings, path: '/settings' },
-  { label: 'My Referrals', icon: Gift, path: '/my-referrals' },
+  { label: 'Dashboard',    icon: Home,          path: '/dashboard' },
+  { label: 'My Subjects',  icon: BookOpen,      path: '/subjects' },
+  { label: 'Our Tutors',   icon: GraduationCap, path: '/tutors' },
+  { label: 'Revision Hub', icon: Library,       path: '/revision' },
+  { label: 'My Quizzes',   icon: ClipboardList, path: '/my-quizzes' },
+  { label: 'Assignments',  icon: FileText,      path: '/my-assignments' },
+  { label: 'Discussions',  icon: MessageSquare, path: '/discussions' },
+  { label: 'Progress',     icon: BarChart3,     path: '/progress' },
+  { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
+  { label: 'My Referrals', icon: Gift,          path: '/my-referrals' },
+  { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
 
 const teacherNav = [
-  { label: 'Dashboard',       icon: LayoutDashboard, path: '/teacher' },
-  { label: 'My Courses',      icon: BookOpen,        path: '/teacher/courses' },
-  { label: 'Library',         icon: Library,         path: '/teacher/library' },
-  { label: 'Quiz Builder',    icon: ClipboardList,   path: '/teacher/quizzes' },
-  { label: 'Grading',         icon: PenTool,         path: '/teacher/grading' },
-  { label: 'Student Progress',icon: TrendingUp,      path: '/teacher/progress' },
-  { label: 'Notifications',   icon: Bell,            path: '/teacher/notifications' },
-  { label: 'Settings',        icon: Settings,        path: '/teacher/settings' },
+  { label: 'Dashboard',        icon: LayoutDashboard, path: '/teacher' },
+  { label: 'My Courses',       icon: BookOpen,        path: '/teacher/courses' },
+  { label: 'My Public Profile',icon: UserCircle,      path: '/teacher/my-profile' },
+  { label: 'Library',          icon: Library,         path: '/teacher/library' },
+  { label: 'Quiz Builder',     icon: ClipboardList,   path: '/teacher/quizzes' },
+  { label: 'Grading',          icon: PenTool,         path: '/teacher/grading' },
+  { label: 'Student Progress', icon: TrendingUp,      path: '/teacher/progress' },
+  { label: 'Notifications',    icon: Bell,            path: '/teacher/notifications' },
+  { label: 'Settings',         icon: Settings,        path: '/teacher/settings' },
 ];
 
 const adminNav = [
+  { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
   { label: 'Courses',       icon: BookOpen,        path: '/admin/curriculum' },
   { label: 'Library',       icon: Library,         path: '/admin/library' },
-  { label: 'Tutors',        icon: GraduationCap,   path: '/admin/teachers' },
+  { label: 'Tutor Profiles',icon: GraduationCap,   path: '/admin/tutors' },
+  { label: 'Applications',  icon: FileText,        path: '/admin/teachers' },
   { label: 'Students',      icon: Users,           path: '/admin/users' },
-  { label: 'Classes',       icon: ClipboardList,   path: '/admin/academic' },
   { label: 'Fees',          icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Affiliates',    icon: Gift,            path: '/admin/affiliates' },
-  { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
   { label: 'Notifications', icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',      icon: Settings,        path: '/admin/settings' },
 ];
@@ -50,12 +52,9 @@ export default function MobileSidebar({ user, onClose }) {
   const role = user?.role === 'admin' ? 'admin' : user?.role === 'teacher' ? 'teacher' : 'student';
   const navItems = role === 'admin' ? adminNav : role === 'teacher' ? teacherNav : studentNav;
 
-  const handleNav = () => {
-    if (onClose) onClose();
-  };
-
   return (
     <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
+      {/* Logo */}
       <div className="h-16 px-4 flex items-center border-b border-sidebar-border flex-shrink-0">
         <img
           src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
@@ -73,7 +72,7 @@ export default function MobileSidebar({ user, onClose }) {
             <Link
               key={item.path}
               to={item.path}
-              onClick={handleNav}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                 isActive
@@ -83,18 +82,20 @@ export default function MobileSidebar({ user, onClose }) {
             >
               <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-sidebar-primary-foreground" : "text-sidebar-primary")} />
               <span>{item.label}</span>
+              {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground opacity-70" />}
             </Link>
           );
         })}
       </nav>
 
+      {/* Footer */}
       <div className="border-t border-sidebar-border p-3 space-y-1 flex-shrink-0">
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-sidebar-accent/50 mb-1">
-          <div className="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground flex-shrink-0">
             {user?.full_name?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate">{user?.full_name || 'User'}</p>
+            <p className="text-xs font-semibold truncate text-sidebar-foreground">{user?.full_name || 'User'}</p>
             <p className="text-[10px] text-sidebar-foreground/50 capitalize">{role}</p>
           </div>
         </div>
@@ -102,8 +103,7 @@ export default function MobileSidebar({ user, onClose }) {
           onClick={() => base44.auth.logout()}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
-          <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
+          <LogOut className="w-4 h-4" /><span>Sign Out</span>
         </button>
       </div>
     </div>
