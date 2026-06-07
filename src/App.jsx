@@ -30,6 +30,9 @@ import TutorProfilePage from '@/pages/tutors/TutorProfile';
 
 // Authenticated tutor pages
 import TutorsPage from '@/pages/tutors/TutorsPage';
+import ForumsHome from '@/pages/forums/ForumsHome';
+import SubjectForum from '@/pages/forums/SubjectForum';
+import ForumThread from '@/pages/forums/ThreadPage';
 
 // Student pages
 import StudentDashboard from '@/pages/StudentDashboard';
@@ -137,6 +140,9 @@ const AuthenticatedApp = () => {
           <Route path="/quiz/:quizId" element={<QuizPage />} />
           <Route path="/my-assignments" element={<MyAssignments />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
+          <Route path="/forums" element={<ForumsHome />} />
+          <Route path="/forums/:subjectSlug" element={<SubjectForum />} />
+          <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/progress/analytics" element={<ProgressAnalytics />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
