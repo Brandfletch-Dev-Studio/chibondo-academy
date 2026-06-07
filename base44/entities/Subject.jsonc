@@ -28,6 +28,10 @@
     "teacher_name": {
       "type": "string"
     },
+    "tutor_profile_id": {
+      "type": "string",
+      "description": "ID of the linked TutorProfile for public display"
+    },
     "status": {
       "type": "string",
       "enum": [
