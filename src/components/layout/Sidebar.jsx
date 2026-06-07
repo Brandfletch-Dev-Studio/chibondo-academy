@@ -4,7 +4,7 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  PenTool, LayoutDashboard, Gift, UserCircle
+  PenTool, LayoutDashboard, Gift, UserCircle, Newspaper
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -23,6 +23,7 @@ const studentNav = [
   { label: 'Analytics',    icon: TrendingUp,    path: '/progress/analytics' },
   { label: 'My Referrals', icon: Gift,          path: '/my-referrals' },
   { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
+  { label: 'Blog',         icon: Newspaper,     path: '/blog' },
   { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
 
@@ -35,6 +36,7 @@ const teacherNav = [
   { label: 'Quiz Builder',      icon: ClipboardList,   path: '/teacher/quizzes' },
   { label: 'Grading',           icon: PenTool,         path: '/teacher/grading' },
   { label: 'Student Progress',  icon: TrendingUp,      path: '/teacher/progress' },
+  { label: 'Blog',              icon: Newspaper,       path: '/teacher/blog' },
   { label: 'Notifications',     icon: Bell,            path: '/teacher/notifications' },
   { label: 'Settings',          icon: Settings,        path: '/teacher/settings' },
 ];
@@ -49,6 +51,7 @@ const adminNav = [
   { label: 'Enrollments',      icon: TrendingUp,      path: '/admin/enrollment-analytics' },
   { label: 'Applications',   icon: FileText,        path: '/admin/teachers' },
   { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
+  { label: 'Blog',           icon: Newspaper,       path: '/admin/blog' },
   { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
@@ -151,4 +154,5 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
     </TooltipProvider>
   );
 }
+
 
