@@ -16,7 +16,8 @@ export default function SEO({
   canonical, 
   ogImage = 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg',
   ogType = 'website',
-  schema 
+  schema,
+  keywords,
 }) {
   const siteName = 'Chibondo Academy';
   const fullTitle = title ? `${title} | ${siteName}` : siteName;
@@ -40,6 +41,8 @@ export default function SEO({
     // Basic meta tags
     setMetaTag('description', description);
     setMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+    if (keywords) setMetaTag('keywords', keywords);
+    setMetaTag('robots', 'index, follow');
 
     // Open Graph tags for social sharing
     setMetaTag('og:title', fullTitle, true);
@@ -86,7 +89,7 @@ export default function SEO({
         }
       }
     };
-  }, [fullTitle, description, canonical, ogImage, ogType, schema]);
+  }, [fullTitle, description, canonical, ogImage, ogType, schema, keywords]);
 
   return null; // This component doesn't render anything visible
 }
