@@ -26,9 +26,12 @@ import TeacherRegister from '@/pages/TeacherRegister';
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
 
-// Public pages
+// Public tutor pages (no auth)
 import TutorsDirectory from '@/pages/tutors/TutorsDirectory';
 import TutorProfilePage from '@/pages/tutors/TutorProfile';
+
+// Authenticated tutor pages
+import TutorsPage from '@/pages/tutors/TutorsPage';
 
 // Student pages
 import StudentDashboard from '@/pages/StudentDashboard';
@@ -56,6 +59,7 @@ import QuizBuilder from '@/pages/teacher/QuizBuilder';
 import AssignmentGrading from '@/pages/teacher/AssignmentGrading';
 import TeacherLibrary from '@/pages/teacher/TeacherLibrary';
 import TeacherAssignments from '@/pages/teacher/TeacherAssignments';
+import MyTutorProfile from '@/pages/teacher/MyTutorProfile';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -105,19 +109,15 @@ const AuthenticatedApp = () => {
   }
 
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
   return (
     <Routes>
-      {/* ── Public Routes (no auth required) ── */}
-      <Route path="/tutors" element={<TutorsDirectory />} />
-      <Route path="/tutors/:slug" element={<TutorProfilePage />} />
+      {/* ── Fully Public (no auth) ── */}
+      <Route path="/tutors/browse" element={<TutorsDirectory />} />
+      <Route path="/tutors/browse/:slug" element={<TutorProfilePage />} />
 
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
@@ -129,8 +129,8 @@ const AuthenticatedApp = () => {
       {/* Protected Routes */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
-          {/* Role-based home redirect */}
           <Route path="/" element={<RoleHome />} />
+
           {/* Student */}
           <Route path="/dashboard" element={<StudentDashboard />} />
           <Route path="/subjects" element={<SubjectsPage />} />
@@ -147,21 +147,24 @@ const AuthenticatedApp = () => {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/my-referrals" element={<MyReferrals />} />
-
-          {/* Student Settings */}
           <Route path="/settings" element={<StudentSettings />} />
 
+          {/* Tutors — accessible to all logged-in users */}
+          <Route path="/tutors" element={<TutorsPage />} />
+          <Route path="/tutors/:slug" element={<TutorProfilePage />} />
+
           {/* Teacher */}
-          <Route path="/teacher" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherDashboard /></RoleGuard>} />
-          <Route path="/teacher/courses" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherCourses /></RoleGuard>} />
-          <Route path="/teacher/courses/:subjectId" element={<RoleGuard allowed={['teacher', 'admin']}><CourseBuilder /></RoleGuard>} />
-          <Route path="/teacher/quizzes" element={<RoleGuard allowed={['teacher', 'admin']}><QuizBuilder /></RoleGuard>} />
-          <Route path="/teacher/assignments" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherAssignments /></RoleGuard>} />
-          <Route path="/teacher/library" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherLibrary /></RoleGuard>} />
-          <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher', 'admin']}><AssignmentGrading /></RoleGuard>} />
-          <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher', 'admin']}><StudentProgressTracker /></RoleGuard>} />
+          <Route path="/teacher" element={<RoleGuard allowed={['teacher','admin']}><TeacherDashboard /></RoleGuard>} />
+          <Route path="/teacher/courses" element={<RoleGuard allowed={['teacher','admin']}><TeacherCourses /></RoleGuard>} />
+          <Route path="/teacher/courses/:subjectId" element={<RoleGuard allowed={['teacher','admin']}><CourseBuilder /></RoleGuard>} />
+          <Route path="/teacher/quizzes" element={<RoleGuard allowed={['teacher','admin']}><QuizBuilder /></RoleGuard>} />
+          <Route path="/teacher/assignments" element={<RoleGuard allowed={['teacher','admin']}><TeacherAssignments /></RoleGuard>} />
+          <Route path="/teacher/library" element={<RoleGuard allowed={['teacher','admin']}><TeacherLibrary /></RoleGuard>} />
+          <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher','admin']}><AssignmentGrading /></RoleGuard>} />
+          <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher','admin']}><StudentProgressTracker /></RoleGuard>} />
+          <Route path="/teacher/my-profile" element={<RoleGuard allowed={['teacher','admin']}><MyTutorProfile /></RoleGuard>} />
           <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
-          <Route path="/teacher/notifications" element={<RoleGuard allowed={['teacher', 'admin']}><TeacherNotifications /></RoleGuard>} />
+          <Route path="/teacher/notifications" element={<RoleGuard allowed={['teacher','admin']}><TeacherNotifications /></RoleGuard>} />
 
           {/* Admin */}
           <Route path="/admin" element={<RoleGuard allowed={['admin']}><AdminDashboard /></RoleGuard>} />
@@ -174,7 +177,6 @@ const AuthenticatedApp = () => {
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
           <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
           <Route path="/admin/tutors" element={<RoleGuard allowed={['admin']}><TutorManagement /></RoleGuard>} />
-          <Route path="/teacher/library" element={<RoleGuard allowed={['teacher', 'admin']}><LibraryManagement /></RoleGuard>} />
         </Route>
       </Route>
 
@@ -193,7 +195,7 @@ function App() {
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;
