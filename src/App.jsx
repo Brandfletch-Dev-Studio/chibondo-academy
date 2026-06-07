@@ -30,6 +30,8 @@ import TutorProfilePage from '@/pages/tutors/TutorProfile';
 
 // Authenticated tutor pages
 import TutorsPage from '@/pages/tutors/TutorsPage';
+import MyClassesPage from '@/pages/MyClassesPage';
+import EnrollmentAnalytics from '@/pages/admin/EnrollmentAnalytics';
 import ForumsHome from '@/pages/forums/ForumsHome';
 import SubjectForum from '@/pages/forums/SubjectForum';
 import ForumThread from '@/pages/forums/ThreadPage';
@@ -148,6 +150,7 @@ const AuthenticatedApp = () => {
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/library" element={<LibraryPage />} />
+          <Route path="/my-classes" element={<MyClassesPage />} />
           <Route path="/my-referrals" element={<MyReferrals />} />
           <Route path="/settings" element={<StudentSettings />} />
 
@@ -179,6 +182,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
           <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
           <Route path="/admin/tutors" element={<RoleGuard allowed={['admin']}><TutorManagement /></RoleGuard>} />
+          <Route path="/admin/enrollment-analytics" element={<RoleGuard allowed={['admin']}><EnrollmentAnalytics /></RoleGuard>} />
         </Route>
       </Route>
 
