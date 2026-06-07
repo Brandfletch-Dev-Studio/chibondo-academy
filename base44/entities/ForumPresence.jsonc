@@ -1,0 +1,27 @@
+{
+  "name": "ForumPresence",
+  "type": "object",
+  "properties": {
+    "user_id":   { "type": "string" },
+    "user_name": { "type": "string" },
+    "user_role": { "type": "string" },
+    "last_seen": { "type": "string", "description": "ISO timestamp updated every 60s while user is in forums" }
+  },
+  "required": ["user_id"],
+  "rls": {
+    "create": { "data.user_id": "{{user.id}}" },
+    "read": {},
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    }
+  }
+}
