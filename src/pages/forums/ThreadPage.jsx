@@ -119,43 +119,102 @@ function useVoiceRecorder() {
   const [seconds, setSeconds] = useState(0);
   const [blob, setBlob] = useState(null);
   const [blobUrl, setBlobUrl] = useState(null);
+  // Use refs for duration so it survives async onstop callback
+  const durationRef = useRef(0);
   const mediaRef = useRef(null);
+  const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
 
-  const start = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      chunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => {
-        const b = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setBlob(b);
-        setBlobUrl(URL.createObjectURL(b));
-        stream.getTracks().forEach(t => t.stop());
-      };
-      mr.start();
-      mediaRef.current = mr;
-      setRecording(true);
-      setSeconds(0);
-      timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
-    } catch {
-      toast.error('Microphone access denied. Please allow microphone in your browser settings.');
+  // Always clear the timer safely
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
   }, []);
 
+  const start = useCallback(async () => {
+    // Don't start a second recording if already recording
+    if (mediaRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // Pick a supported mimeType
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : '';
+
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      chunksRef.current = [];
+
+      mr.ondataavailable = e => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mr.onstop = () => {
+        // Build blob from all chunks
+        const type = mimeType || 'audio/webm';
+        const b = new Blob(chunksRef.current, { type });
+        setBlob(b);
+        setBlobUrl(URL.createObjectURL(b));
+        // Stop all mic tracks
+        streamRef.current?.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        mediaRef.current = null;
+      };
+
+      mr.start(100); // collect data every 100ms — ensures chunks arrive reliably
+      mediaRef.current = mr;
+      setRecording(true);
+      setSeconds(0);
+      durationRef.current = 0;
+
+      // Start timer — only one at a time
+      clearTimer();
+      timerRef.current = setInterval(() => {
+        durationRef.current += 1;
+        setSeconds(s => s + 1);
+      }, 1000);
+
+    } catch (err) {
+      mediaRef.current = null;
+      toast.error('Microphone access denied. Please allow microphone in your browser settings.');
+    }
+  }, [clearTimer]);
+
   const stop = useCallback(() => {
-    mediaRef.current?.stop();
-    clearInterval(timerRef.current);
+    // Stop timer FIRST before anything async
+    clearTimer();
     setRecording(false);
-  }, []);
+    // Then stop MediaRecorder — triggers onstop async
+    if (mediaRef.current && mediaRef.current.state !== 'inactive') {
+      mediaRef.current.stop();
+    } else {
+      mediaRef.current = null;
+    }
+  }, [clearTimer]);
 
   const clear = useCallback(() => {
-    setBlob(null); setBlobUrl(null); setSeconds(0);
-  }, []);
+    clearTimer();
+    setRecording(false);
+    setBlob(null);
+    setBlobUrl(null);
+    setSeconds(0);
+    durationRef.current = 0;
+    if (mediaRef.current) {
+      try { mediaRef.current.stop(); } catch(_) {}
+      mediaRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, [clearTimer]);
 
-  return { recording, seconds, blob, blobUrl, start, stop, clear };
+  // Expose durationRef so upload can read the final duration even after clear
+  return { recording, seconds, blob, blobUrl, durationRef, start, stop, clear };
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -380,9 +439,13 @@ export default function ThreadPage() {
   /* ── Voice upload ── */
   const uploadVoice = async () => {
     if (!voice.blob) return null;
+    // Capture duration NOW before any state changes
+    const capturedDuration = voice.durationRef.current || voice.seconds || 0;
     setUploadingVoice(true);
     try {
-      const file = new File([voice.blob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+      const mimeType = voice.blob.type || 'audio/webm';
+      const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const file = new File([voice.blob], `voice_${Date.now()}.${ext}`, { type: mimeType });
       const fd = new FormData();
       fd.append('file', file);
       const resp = await fetch(`/api/apps/${window.__appParams?.appId || ''}/storage/upload`, {
@@ -390,17 +453,30 @@ export default function ThreadPage() {
         headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` },
         body: fd,
       });
+      if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
       const json = await resp.json();
-      return { url: json.url || json.file_url || '', duration: voice.seconds };
-    } catch { toast.error('Voice upload failed'); return null; }
-    finally { setUploadingVoice(false); }
+      const url = json.url || json.file_url || '';
+      if (!url) throw new Error('No URL returned from upload');
+      return { url, duration: capturedDuration };
+    } catch (err) {
+      toast.error('Voice upload failed: ' + err.message);
+      return null;
+    } finally {
+      setUploadingVoice(false);
+    }
   };
 
   /* ── Post mutation ── */
   const postMut = useMutation({
     mutationFn: async () => {
       let voiceUrl = null, voiceDuration = 0;
-      if (mode === 'voice' && voice.blob) {
+      if (mode === 'voice') {
+        if (!voice.blob && !voice.blobUrl) throw new Error('No voice note recorded. Please record first.');
+        // If blob isn't ready yet (onstop race) wait briefly
+        if (!voice.blob && voice.blobUrl) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+        if (!voice.blob) throw new Error('Voice note not ready yet. Please try again.');
         const result = await uploadVoice();
         if (!result) throw new Error('Voice upload failed');
         voiceUrl = result.url;
@@ -777,7 +853,7 @@ export default function ThreadPage() {
           {/* Send */}
           <button
             onClick={() => postMut.mutate()}
-            disabled={postMut.isPending || uploadingVoice || (mode === 'text' ? (!text.trim() && !imgUrl) : (!voice.blobUrl && !voice.recording))}
+            disabled={postMut.isPending || uploadingVoice || (mode === 'text' ? (!text.trim() && !imgUrl) : !voice.blobUrl)}
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
             style={{ background: 'hsl(222 47% 18%)' }}
           >
