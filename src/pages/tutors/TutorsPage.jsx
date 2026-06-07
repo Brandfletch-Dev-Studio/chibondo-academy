@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
-import { Search, GraduationCap, BookOpen, ChevronRight, Clock } from 'lucide-react';
+import { Search, GraduationCap, BookOpen, ChevronRight, Clock, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,7 +12,7 @@ const ALL_SUBJECTS = [
   'English Language','English Literature','Chichewa','Agriculture','Geography','History'
 ];
 
-function TutorCard({ tutor, courseCount }) {
+function TutorCard({ tutor, courseCount, studentCount = 0 }) {
   return (
     <Link
       to={`/tutors/${tutor.slug}`}
@@ -65,8 +65,13 @@ function TutorCard({ tutor, courseCount }) {
 
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <BookOpen className="w-3.5 h-3.5" />{courseCount} {courseCount === 1 ? 'course' : 'courses'}
+            <BookOpen className="w-3 h-3" />{courseCount} {courseCount === 1 ? 'course' : 'courses'}
           </span>
+          {studentCount > 0 && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Users className="w-3 h-3" />{studentCount.toLocaleString()} {studentCount === 1 ? 'student' : 'students'}
+            </span>
+          )}
           <span className="flex items-center gap-1 text-xs text-primary font-medium group-hover:gap-2 transition-all">
             View Profile <ChevronRight className="w-3.5 h-3.5" />
           </span>
@@ -90,6 +95,12 @@ export default function TutorsPage() {
     queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
   });
 
+  const { data: allEnrollments = [] } = useQuery({
+    queryKey: ['all-enrollments-for-tutors'],
+    queryFn: () => base44.entities.Enrollment.filter({}, '-created_date', 1000),
+    staleTime: 60_000,
+  });
+
   const courseCountByTutor = useMemo(() => {
     const map = {};
     subjects.forEach(s => {
@@ -97,6 +108,22 @@ export default function TutorsPage() {
     });
     return map;
   }, [subjects]);
+
+  const studentCountByTutor = useMemo(() => {
+    const subjectToTutor = {};
+    subjects.forEach(s => { if (s.tutor_profile_id) subjectToTutor[s.id] = s.tutor_profile_id; });
+    const map = {};
+    allEnrollments.forEach(e => {
+      const tid = subjectToTutor[e.subject_id];
+      if (tid) {
+        if (!map[tid]) map[tid] = new Set();
+        map[tid].add(e.student_id);
+      }
+    });
+    const counts = {};
+    Object.entries(map).forEach(([tid, set]) => { counts[tid] = set.size; });
+    return counts;
+  }, [subjects, allEnrollments]);
 
   const filtered = useMemo(() => tutors.filter(t => {
     const matchSearch = !search ||
@@ -177,7 +204,7 @@ export default function TutorsPage() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(tutor => (
-              <TutorCard key={tutor.id} tutor={tutor} courseCount={courseCountByTutor[tutor.id] || 0} />
+              <TutorCard key={tutor.id} tutor={tutor} courseCount={courseCountByTutor[tutor.id] || 0} studentCount={studentCountByTutor[tutor.id] || 0} />
             ))}
           </div>
         )}
