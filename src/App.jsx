@@ -26,6 +26,10 @@ import TeacherRegister from '@/pages/TeacherRegister';
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
 
+// Public pages
+import TutorsDirectory from '@/pages/tutors/TutorsDirectory';
+import TutorProfilePage from '@/pages/tutors/TutorProfile';
+
 // Student pages
 import StudentDashboard from '@/pages/StudentDashboard';
 import SubjectsPage from '@/pages/SubjectsPage';
@@ -64,6 +68,7 @@ import AdminNotifications from '@/pages/admin/AdminNotifications';
 import TeacherNotifications from '@/pages/teacher/TeacherNotifications';
 import CurriculumManagement from '@/pages/admin/CurriculumManagement';
 import AffiliateManagement from '@/pages/admin/AffiliateManagement';
+import TutorManagement from '@/pages/admin/TutorManagement';
 
 // Settings pages
 import StudentSettings from '@/pages/settings/StudentSettings';
@@ -110,6 +115,10 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
+      {/* ── Public Routes (no auth required) ── */}
+      <Route path="/tutors" element={<TutorsDirectory />} />
+      <Route path="/tutors/:slug" element={<TutorProfilePage />} />
+
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -156,7 +165,6 @@ const AuthenticatedApp = () => {
 
           {/* Admin */}
           <Route path="/admin" element={<RoleGuard allowed={['admin']}><AdminDashboard /></RoleGuard>} />
-
           <Route path="/admin/users" element={<RoleGuard allowed={['admin']}><UserManagement /></RoleGuard>} />
           <Route path="/admin/teachers" element={<RoleGuard allowed={['admin']}><TeacherApplications /></RoleGuard>} />
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
@@ -165,6 +173,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
           <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
+          <Route path="/admin/tutors" element={<RoleGuard allowed={['admin']}><TutorManagement /></RoleGuard>} />
           <Route path="/teacher/library" element={<RoleGuard allowed={['teacher', 'admin']}><LibraryManagement /></RoleGuard>} />
         </Route>
       </Route>
