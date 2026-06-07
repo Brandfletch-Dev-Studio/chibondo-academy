@@ -27,7 +27,7 @@ function StickyCTA({ isAuthenticated, isSubscribed, navigate }) {
         className="w-full py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all"
         style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}
       >
-        {isAuthenticated ? 'Unlock Full Access' : 'Join Chibondo Academy'}
+        {isAuthenticated ? 'Start Learning' : 'Start Learning'}
       </button>
     </div>
   );
@@ -60,7 +60,6 @@ export default function TutorProfilePage() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
   const { user }   = useOutletContext();
-  const [coverErr, setCoverErr] = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
   const [bioOpen, setBioOpen] = useState(false);
 
@@ -168,44 +167,15 @@ export default function TutorProfilePage() {
       <div className="pb-28 lg:pb-10 -mt-4 lg:-mt-6">
 
         {/* ══════════════════════════════════════════
-            COVER PHOTO BANNER
+            SLIM BRANDED HEADER (no cover photo)
         ══════════════════════════════════════════ */}
-        <div className="relative w-full h-44 sm:h-56 lg:h-64 overflow-hidden -mx-4 lg:-mx-6 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)]"
-          style={{ marginLeft:'-1rem', paddingLeft:0 }}>
-          {tutor.cover_photo && !coverErr ? (
-            <img
-              src={tutor.cover_photo}
-              alt="Cover"
-              loading="eager"
-              decoding="async"
-              onError={() => setCoverErr(true)}
-              className="w-full h-full object-cover object-center"
-            />
-          ) : (
-            /* Blurred profile photo fallback → richer than plain gradient */
-            tutor.profile_photo && !avatarErr ? (
-              <div className="relative w-full h-full overflow-hidden">
-                <img src={tutor.profile_photo} alt="" loading="eager" decoding="async"
-                  onError={() => setAvatarErr(true)}
-                  className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-50 saturate-150" />
-                <div className="absolute inset-0"
-                  style={{ background:'linear-gradient(135deg, hsl(222 47% 14% / 0.85), hsl(43 74% 40% / 0.25))' }} />
-              </div>
-            ) : (
-              <div className="w-full h-full"
-                style={{ background:'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 22%) 50%, hsl(43 74% 30% / 0.5) 100%)' }}>
-                <div className="absolute inset-0"
-                  style={{ backgroundImage:'radial-gradient(ellipse at 15% 50%, hsl(43 74% 52% / 0.25) 0%, transparent 60%), radial-gradient(ellipse at 85% 20%, hsl(222 47% 55% / 0.2) 0%, transparent 50%)' }} />
-              </div>
-            )
-          )}
-          {/* Dark gradient bottom fade */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-
-          {/* Back button overlaid on cover */}
+        <div className="relative -mx-4 lg:-mx-6 px-4 lg:px-6 pt-5 pb-16"
+          style={{ background: 'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 18%) 60%, hsl(43 74% 30% / 0.3) 100%)' }}>
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(43 74% 52% / 0.15) 0%, transparent 60%)' }} />
           <button
             onClick={() => navigate('/tutors')}
-            className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-colors"
+            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/20 text-white hover:bg-white/10 transition-colors w-fit"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> All Tutors
           </button>
@@ -216,7 +186,7 @@ export default function TutorProfilePage() {
         ══════════════════════════════════════════ */}
         <div className="px-4 lg:px-6">
           {/* Avatar — pulls up 40px into the cover */}
-          <div className="relative -mt-12 mb-4">
+          <div className="relative -mt-10 mb-4">
             <div
               className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl"
               style={{ borderColor:'hsl(222 47% 14%)', background:'hsl(222 47% 18%)' }}
@@ -423,7 +393,7 @@ export default function TutorProfilePage() {
                   className="w-full py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all"
                   style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}
                 >
-                  {isAuthenticated ? 'Unlock Access' : 'Join Free'}
+                  {isAuthenticated ? 'Start Learning' : 'Start Learning'}
                 </button>
               </div>
             )}
