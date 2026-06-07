@@ -2,23 +2,37 @@
   "name": "BlogPost",
   "type": "object",
   "properties": {
-    "title":             { "type": "string" },
-    "slug":              { "type": "string" },
-    "cover_image":       { "type": "string" },
-    "excerpt":           { "type": "string", "description": "Short summary shown on cards" },
-    "content":           { "type": "string", "description": "Full HTML content of the post" },
-    "tutor_profile_id":  { "type": "string", "description": "TutorProfile ID of the author" },
-    "author_name":       { "type": "string" },
+    "title":              { "type": "string" },
+    "slug":               { "type": "string", "description": "SEO-friendly URL slug e.g. how-to-pass-msce-biology" },
+    "cover_image":        { "type": "string" },
+    "excerpt":            { "type": "string", "description": "Short summary shown on cards (150-160 chars ideal)" },
+    "content":            { "type": "string", "description": "Full rich HTML content" },
+    "category": {
+      "type": "string",
+      "enum": ["Biology","Chemistry","Physics","Mathematics","English","History","Geography","Study Tips","Exam Strategy","Career Guidance","General"],
+      "default": "General"
+    },
     "tags": {
       "type": "array",
       "items": { "type": "string" }
     },
+    "tutor_profile_id":   { "type": "string", "description": "TutorProfile ID of the author" },
+    "tutor_slug":         { "type": "string", "description": "TutorProfile slug for linking" },
+    "author_name":        { "type": "string" },
+    "author_photo":       { "type": "string" },
+    "linked_subject_id":  { "type": "string", "description": "Subject ID for course CTA — auto-matched by category" },
+    "linked_subject_name":{ "type": "string" },
+    "meta_title":         { "type": "string", "description": "SEO title tag override (60 chars max)" },
+    "meta_description":   { "type": "string", "description": "SEO meta description (160 chars max)" },
+    "keywords":           { "type": "string", "description": "Comma-separated keywords" },
     "status": {
       "type": "string",
       "enum": ["draft", "published", "archived"],
       "default": "draft"
     },
-    "published_at": { "type": "string" }
+    "is_featured":        { "type": "boolean", "default": false, "description": "Pin to hero/featured section" },
+    "view_count":         { "type": "number", "default": 0 },
+    "published_at":       { "type": "string", "format": "date-time" }
   },
   "required": ["title"],
   "rls": {
