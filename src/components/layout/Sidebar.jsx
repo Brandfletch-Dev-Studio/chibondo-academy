@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  Trophy, PenTool, LayoutDashboard, Gift
+  PenTool, LayoutDashboard, Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -16,40 +16,42 @@ import {
 } from '@/components/ui/tooltip';
 
 const studentNav = [
-  { label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { label: 'My Subjects', icon: BookOpen, path: '/subjects' },
-  { label: 'Revision Hub', icon: Library, path: '/revision' },
-  { label: 'My Quizzes', icon: ClipboardList, path: '/my-quizzes' },
-  { label: 'Assignments', icon: FileText, path: '/my-assignments' },
-  { label: 'Discussions', icon: MessageSquare, path: '/discussions' },
-  { label: 'Progress', icon: BarChart3, path: '/progress' },
-  { label: 'Analytics', icon: TrendingUp, path: '/progress/analytics' },
-  { label: 'My Referrals', icon: Gift, path: '/my-referrals' },
-  { label: 'School Fees', icon: CreditCard, path: '/subscription' },
-  { label: 'Settings', icon: Settings, path: '/settings' },
+  { label: 'Dashboard',    icon: Home,          path: '/dashboard' },
+  { label: 'My Subjects',  icon: BookOpen,      path: '/subjects' },
+  { label: 'Our Tutors',   icon: GraduationCap, path: '/tutors' },
+  { label: 'Revision Hub', icon: Library,       path: '/revision' },
+  { label: 'My Quizzes',   icon: ClipboardList, path: '/my-quizzes' },
+  { label: 'Assignments',  icon: FileText,      path: '/my-assignments' },
+  { label: 'Discussions',  icon: MessageSquare, path: '/discussions' },
+  { label: 'Progress',     icon: BarChart3,     path: '/progress' },
+  { label: 'Analytics',    icon: TrendingUp,    path: '/progress/analytics' },
+  { label: 'My Referrals', icon: Gift,          path: '/my-referrals' },
+  { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
+  { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
 
 const teacherNav = [
-  { label: 'Dashboard',      icon: LayoutDashboard, path: '/teacher' },
-  { label: 'My Courses',     icon: BookOpen,        path: '/teacher/courses' },
-  { label: 'Library',        icon: Library,         path: '/teacher/library' },
-  { label: 'Quiz Builder',   icon: ClipboardList,   path: '/teacher/quizzes' },
-  { label: 'Grading',        icon: PenTool,         path: '/teacher/grading' },
-  { label: 'Student Progress', icon: TrendingUp,    path: '/teacher/progress' },
-  { label: 'Notifications',  icon: Bell,            path: '/teacher/notifications' },
-  { label: 'Settings',       icon: Settings,        path: '/teacher/settings' },
+  { label: 'Dashboard',       icon: LayoutDashboard, path: '/teacher' },
+  { label: 'My Courses',      icon: BookOpen,        path: '/teacher/courses' },
+  { label: 'Library',         icon: Library,         path: '/teacher/library' },
+  { label: 'Quiz Builder',    icon: ClipboardList,   path: '/teacher/quizzes' },
+  { label: 'Grading',         icon: PenTool,         path: '/teacher/grading' },
+  { label: 'Student Progress',icon: TrendingUp,      path: '/teacher/progress' },
+  { label: 'Notifications',   icon: Bell,            path: '/teacher/notifications' },
+  { label: 'Settings',        icon: Settings,        path: '/teacher/settings' },
 ];
 
 const adminNav = [
-  { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
-  { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
-  { label: 'Library',        icon: Library,         path: '/admin/library' },
-  { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
-  { label: 'Students',       icon: Users,           path: '/admin/users' },
-  { label: 'Tutors',         icon: GraduationCap,   path: '/admin/teachers' },
-  { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
-  { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
-  { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
+  { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
+  { label: 'Courses',       icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Library',       icon: Library,         path: '/admin/library' },
+  { label: 'Fees',          icon: CreditCard,      path: '/admin/subscriptions' },
+  { label: 'Students',      icon: Users,           path: '/admin/users' },
+  { label: 'Tutors',        icon: GraduationCap,   path: '/admin/tutors' },
+  { label: 'Applications',  icon: FileText,        path: '/admin/teachers' },
+  { label: 'Affiliates',    icon: Gift,            path: '/admin/affiliates' },
+  { label: 'Notifications', icon: Bell,            path: '/admin/notifications' },
+  { label: 'Settings',      icon: Settings,        path: '/admin/settings' },
 ];
 
 export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
@@ -70,24 +72,15 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
           collapsed ? "justify-center px-3" : "px-4"
         )}>
           {collapsed ? (
-            <img
-              src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
-              alt="Chibondo Academy"
-              className="w-9 h-9 rounded-lg object-cover"
-            />
+            <img src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg" alt="Chibondo Academy" className="w-9 h-9 rounded-lg object-cover" />
           ) : (
-            <img
-              src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
-              alt="Chibondo Academy"
-              className="h-10 w-full object-contain object-left"
-            />
+            <img src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg" alt="Chibondo Academy" className="h-10 w-full object-contain object-left" />
           )}
         </div>
 
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden space-y-0.5">
           {navItems.map((item, idx) => {
-            // Section header
             if (item.section) {
               if (collapsed) return null;
               return (
@@ -97,8 +90,6 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
               );
             }
 
-            // Exact match OR prefix match — but /admin must NOT match /admin/users etc.
-            // Use exact match for paths that are exact-only roots like /admin, /teacher, /dashboard
             const exactOnlyPaths = ['/admin', '/teacher', '/dashboard', '/'];
             const isActive = location.pathname === item.path ||
               (!exactOnlyPaths.includes(item.path) && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
@@ -140,9 +131,8 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
           })}
         </nav>
 
-        {/* Footer: User + Sign Out + Collapse */}
+        {/* Footer */}
         <div className="border-t border-sidebar-border p-2 flex-shrink-0 space-y-1">
-          {/* User info */}
           {!collapsed && (
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-sidebar-accent/50">
               <div className="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground flex-shrink-0">
@@ -155,38 +145,23 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
             </div>
           )}
 
-          {/* Sign Out */}
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => base44.auth.logout()}
-                  className="w-full flex items-center justify-center p-2.5 rounded-xl text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                >
+                <button onClick={() => base44.auth.logout()} className="w-full flex items-center justify-center p-2.5 rounded-xl text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
                   <LogOut className="w-4 h-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">Sign Out</TooltipContent>
             </Tooltip>
           ) : (
-            <button
-              onClick={() => base44.auth.logout()}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
+            <button onClick={() => base44.auth.logout()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+              <LogOut className="w-4 h-4" /><span>Sign Out</span>
             </button>
           )}
 
-          {/* Collapse Toggle — desktop only */}
-          <button
-            onClick={onToggle}
-            className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          >
-            {collapsed
-              ? <ChevronRight className="w-4 h-4" />
-              : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>
-            }
+          <button onClick={onToggle} className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
           </button>
         </div>
       </aside>
