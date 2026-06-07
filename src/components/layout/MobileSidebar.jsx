@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, GraduationCap, FileText, BarChart3,
   Users, Settings, CreditCard, MessageSquare, Library,
-  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle, Zap
+  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle, Newspaper
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -20,7 +20,7 @@ const studentNav = [
   { label: 'Progress',     icon: BarChart3,     path: '/progress' },
   { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
   { label: 'My Referrals', icon: Gift,          path: '/my-referrals' },
-  { label: 'Affiliate Program', icon: Zap,      path: '/my-referrals' },
+  { label: 'Blog',         icon: Newspaper,     path: '/blog' },
   { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
 
@@ -32,6 +32,8 @@ const teacherNav = [
   { label: 'Quiz Builder',     icon: ClipboardList,   path: '/teacher/quizzes' },
   { label: 'Grading',          icon: PenTool,         path: '/teacher/grading' },
   { label: 'Student Progress', icon: TrendingUp,      path: '/teacher/progress' },
+  { label: 'My Referrals',     icon: Gift,            path: '/my-referrals' },
+  { label: 'Blog',             icon: Newspaper,       path: '/teacher/blog' },
   { label: 'Notifications',    icon: Bell,            path: '/teacher/notifications' },
   { label: 'Settings',         icon: Settings,        path: '/teacher/settings' },
 ];
@@ -45,6 +47,7 @@ const adminNav = [
   { label: 'Students',      icon: Users,           path: '/admin/users' },
   { label: 'Fees',          icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Affiliates',    icon: Gift,            path: '/admin/affiliates' },
+  { label: 'Blog',          icon: Newspaper,       path: '/admin/blog' },
   { label: 'Notifications', icon: Bell,            path: '/admin/notifications' },
   { label: 'Settings',      icon: Settings,        path: '/admin/settings' },
 ];
@@ -111,3 +114,4 @@ export default function MobileSidebar({ user, onClose }) {
     </div>
   );
 }
+
