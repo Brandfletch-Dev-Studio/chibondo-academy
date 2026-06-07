@@ -342,8 +342,9 @@ export default function ThreadPage() {
       { parent_id: resolvedThreadId, status: 'active' }, 'created_date', 500
     ),
     enabled: !!resolvedThreadId,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: 0,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   });
 
   // Top-level comments (no reply_to_id) — sorted: accepted first, tutor next, then chrono
@@ -543,12 +544,18 @@ export default function ThreadPage() {
       />
 
       <div className="pb-28 space-y-4">
-        {/* Back */}
-        <button onClick={() => navigate(`/forums/${subjectSlug}`, { state: { subject } })}
-          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          {subject?.name || subjectSlug} Forum
-        </button>
+        {/* Back + Live indicator */}
+        <div className="flex items-center justify-between">
+          <button onClick={() => navigate(`/forums/${subjectSlug}`, { state: { subject } })}
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            {subject?.name || subjectSlug} Forum
+          </button>
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-green-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            Live
+          </span>
+        </div>
 
         {/* ── THREAD / QUESTION CARD ── */}
         <div className="bg-card border border-border rounded-2xl p-5">
@@ -621,11 +628,17 @@ export default function ThreadPage() {
           </div>
         </div>
 
-        {/* ── COMMENTS ── */}
+        {/* ── COMMENTS — live tracking ── */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">
-            {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
-          </p>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
+            </p>
+            <span className="flex items-center gap-1.5 text-[11px] font-medium text-green-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Live
+            </span>
+          </div>
 
           {loadingReplies ? (
             <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-card rounded-2xl border border-border animate-pulse" />)}</div>
@@ -778,3 +791,4 @@ export default function ThreadPage() {
     </>
   );
 }
+
