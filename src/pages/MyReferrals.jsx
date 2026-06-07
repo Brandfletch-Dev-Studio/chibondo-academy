@@ -278,8 +278,14 @@ function PayoutsTab({ referrals, commissionSettings }) {
 function AffiliateSettings() {
   const { user } = useOutletContext();
   const queryClient = useQueryClient();
-  const [customCode, setCustomCode] = useState(user?.referral_code || '');
+  // Sync local state when user data changes (e.g. after save)
+  const [customCode, setCustomCode] = useState(() => user?.referral_code || '');
   const [notifications, setNotifications] = useState(true);
+
+  // Keep local input in sync if user prop updates
+  React.useEffect(() => {
+    if (user?.referral_code) setCustomCode(user.referral_code);
+  }, [user?.referral_code]);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -293,8 +299,10 @@ function AffiliateSettings() {
       return base44.auth.updateMe({ referral_code: code });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      // Invalidate the correct query key used in AppLayout
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      // Also invalidate the referral code used in the parent component
+      queryClient.invalidateQueries({ queryKey: ['myReferrals'] });
       toast.success('Referral code saved!', { description: `Your code: ${customCode.trim().toUpperCase()}` });
     },
     onError: (error) => {
