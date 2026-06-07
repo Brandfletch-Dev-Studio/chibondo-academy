@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, GraduationCap, Library, CreditCard, MessageSquare } from 'lucide-react';
+import { BookOpen, Gift, Library, CreditCard, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Classes',   icon: BookOpen,      path: '/subjects' },
-  { label: 'Tutors',    icon: GraduationCap, path: '/tutors' },
+  { label: 'Referrals', icon: Gift,          path: '/my-referrals' },
   { label: 'Library',   icon: Library,       path: '/library' },
   { label: 'Forums',    icon: MessageSquare, path: '/forums' },
   { label: 'Fees',      icon: CreditCard,    path: '/subscription' },
