@@ -61,6 +61,11 @@
     "order": {
       "type": "number",
       "default": 0
+    },
+    "enrollment_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cached count incremented on enrollment"
     }
   },
   "required": [
