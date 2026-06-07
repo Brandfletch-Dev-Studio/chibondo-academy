@@ -14,16 +14,31 @@ import { formatDistanceToNow } from 'date-fns';
 /* ── Avatar ─────────────────────────────────────────────────────────────── */
 function Avi({ name = '?', role }) {
   const styles = {
-    admin:   { background: 'hsl(0 72% 51% / 0.2)',  color: 'hsl(0 72% 40%)' },
-    teacher: { background: 'hsl(43 74% 52% / 0.2)', color: 'hsl(43 60% 38%)' },
-    user:    { background: 'hsl(222 47% 18% / 0.15)', color: 'hsl(222 47% 35%)' },
+    admin:   { background: 'hsl(0 72% 51% / 0.18)',   color: 'hsl(0 72% 36%)' },
+    teacher: { background: 'hsl(43 74% 52% / 0.2)',   color: 'hsl(38 60% 32%)' },
+    student: { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
+    user:    { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
   };
   const s = styles[role] || styles.user;
+  const parts = (name || '?').trim().split(/\s+/);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : (name[0] || '?').toUpperCase();
   return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={s}>
-      {name[0]?.toUpperCase()}
+    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 select-none" style={s}>
+      {initials}
     </div>
   );
+}
+
+function RoleBadge({ role, isTutor }) {
+  if (isTutor || role === 'teacher')
+    return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+      style={{ background:'hsl(43 74% 52% / 0.12)', color:'hsl(38 60% 32%)', borderColor:'hsl(43 74% 52% / 0.3)' }}>Teacher</span>;
+  if (role === 'admin')
+    return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 border border-red-200">Admin</span>;
+  return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+    style={{ background:'hsl(222 47% 55% / 0.1)', color:'hsl(222 47% 35%)', borderColor:'hsl(222 47% 55% / 0.25)' }}>Student</span>;
 }
 
 /* ── Tutor badge ─────────────────────────────────────────────────────────── */
@@ -65,7 +80,7 @@ function ReplyBubble({ reply, isAuthor, isTeacherOrAdmin, onDelete, onAccept, su
         {/* Header */}
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <span className="font-semibold text-sm">{reply.author_name}</span>
-          {reply.is_tutor_reply && <TutorBadge subjectName={subjectName} />}
+          <RoleBadge role={reply.author_role} isTutor={reply.is_tutor_reply} />
           {reply.is_accepted_answer && <AcceptedBadge />}
           <span className="text-[11px] text-muted-foreground ml-auto">{ago}</span>
           {(canDelete || canAccept) && (
@@ -342,7 +357,10 @@ export default function ThreadPage() {
           <div className="flex items-center gap-3 mb-4">
             <Avi name={thread.author_name} role={thread.author_role} />
             <div>
-              <p className="text-sm font-semibold">{thread.author_name}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm font-semibold">{thread.author_name}</p>
+                <RoleBadge role={thread.author_role} isTutor={thread.is_tutor_reply} />
+              </div>
               <p className="text-[11px] text-muted-foreground">{ago}</p>
             </div>
           </div>
