@@ -4,7 +4,7 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  PenTool, LayoutDashboard, Gift, UserCircle
+  PenTool, LayoutDashboard, Gift, UserCircle, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
