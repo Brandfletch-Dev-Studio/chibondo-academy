@@ -99,9 +99,18 @@ export default function StudentSettings() {
       const url = json.url || json.file_url || '';
       setAvatarUrl(url);
       setAvatarPreview(url);
-      // Save to user entity immediately
+      // Save to User record
       await base44.auth.updateMe({ avatar_url: url });
+      // Also persist to StudentProfile so it survives session changes
+      try {
+        if (profile?.id) {
+          await base44.entities.StudentProfile.update(profile.id, { avatar_url: url });
+        } else if (user?.id) {
+          await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: url });
+        }
+      } catch (_) {}
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
       toast.success('Profile photo updated!');
     } catch {
       toast.error('Photo upload failed. Please try again.');
