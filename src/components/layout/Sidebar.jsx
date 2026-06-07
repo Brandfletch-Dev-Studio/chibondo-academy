@@ -4,7 +4,7 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  PenTool, LayoutDashboard, Gift, UserCircle, Zap
+  PenTool, LayoutDashboard, Gift, UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -22,7 +22,6 @@ const studentNav = [
   { label: 'Progress',     icon: BarChart3,     path: '/progress' },
   { label: 'Analytics',    icon: TrendingUp,    path: '/progress/analytics' },
   { label: 'My Referrals', icon: Gift,          path: '/my-referrals' },
-  { label: 'Affiliate Program', icon: Zap,      path: '/my-referrals' },
   { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
   { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
@@ -31,7 +30,7 @@ const teacherNav = [
   { label: 'Dashboard',         icon: LayoutDashboard, path: '/teacher' },
   { label: 'My Courses',        icon: BookOpen,        path: '/teacher/courses' },
   { label: 'My Public Profile', icon: UserCircle,      path: '/teacher/my-profile' },
-  { label: 'Affiliate Program',   icon: Zap,             path: '/my-referrals' },
+  { label: 'My Referrals',        icon: Gift,            path: '/my-referrals' },
   { label: 'Library',           icon: Library,         path: '/teacher/library' },
   { label: 'Quiz Builder',      icon: ClipboardList,   path: '/teacher/quizzes' },
   { label: 'Grading',           icon: PenTool,         path: '/teacher/grading' },
@@ -152,3 +151,4 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
     </TooltipProvider>
   );
 }
+
