@@ -172,6 +172,29 @@ export default function TutorProfilePage() {
     staleTime: 60_000,
   });
 
+  // Live student count — unique students enrolled across this tutor's subjects
+  const subjectIds = subjects.map(s => s.id);
+  const { data: tutorEnrollments = [] } = useQuery({
+    queryKey: ['tutor-enrollments', tutor?.id, subjectIds.join(',')],
+    queryFn:  async () => {
+      if (!subjectIds.length) return [];
+      // Fetch enrollments for all subjects in parallel (max 10)
+      const batches = await Promise.all(
+        subjectIds.slice(0, 10).map(sid =>
+          base44.entities.Enrollment.filter({ subject_id: sid }, '-created_date', 500)
+        )
+      );
+      return batches.flat();
+    },
+    enabled:  subjectIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  const liveStudentCount = React.useMemo(() => {
+    const unique = new Set(tutorEnrollments.map(e => e.student_id));
+    return unique.size;
+  }, [tutorEnrollments]);
+
   const { data: posts = [] } = useQuery({
     queryKey: ['tutor-posts', tutor?.id],
     queryFn:  () => base44.entities.BlogPost.filter(
@@ -329,6 +352,15 @@ export default function TutorProfilePage() {
                   <span className="text-sm">
                     <span className="font-bold">{subjects.length}</span>
                     {' '}<span style={{ color: 'hsl(43 20% 65%)' }}>{subjects.length === 1 ? 'Course' : 'Courses'}</span>
+                  </span>
+                </div>
+              )}
+              {liveStudentCount > 0 && (
+                <div className="flex items-center gap-2.5 py-1.5">
+                  <Users className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+                  <span className="text-sm">
+                    <span className="font-bold">{liveStudentCount.toLocaleString()}</span>
+                    {' '}<span style={{ color: 'hsl(43 20% 65%)' }}>{liveStudentCount === 1 ? 'Student' : 'Students'}</span>
                   </span>
                 </div>
               )}
