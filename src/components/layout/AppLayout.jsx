@@ -36,6 +36,38 @@ export default function AppLayout() {
     }
   }, [user?.id, user?.role]);
 
+  // ── Forum Presence Heartbeat ──────────────────────────────────────────────
+  // Upsert a ForumPresence record every 60s while user is on the forums section
+  // Only fires when on /forums routes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const isOnForums = () => window.location.pathname.startsWith('/forums') || window.location.pathname.startsWith('/forum');
+
+    const beat = async () => {
+      if (!isOnForums()) return;
+      try {
+        const now = new Date().toISOString();
+        const existing = await base44.entities.ForumPresence.filter({ user_id: user.id });
+        if (existing[0]) {
+          await base44.entities.ForumPresence.update(existing[0].id, { last_seen: now });
+        } else {
+          await base44.entities.ForumPresence.create({
+            user_id:   user.id,
+            user_name: user.full_name || user.email || 'Student',
+            user_role: user.role || 'user',
+            last_seen: now,
+          });
+        }
+      } catch(_) {}
+    };
+
+    // Fire immediately if on forums
+    beat();
+    const iv = setInterval(beat, 60_000);
+    return () => clearInterval(iv);
+  }, [user?.id]);
+
   // Load StudentProfile to get persisted avatar_url as fallback
   const { data: studentProfile } = useQuery({
     queryKey: ['studentProfile', user?.id],
