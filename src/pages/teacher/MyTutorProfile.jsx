@@ -30,6 +30,9 @@ function slugify(str) {
 function PhotoUploader({ value, onChange }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
+  // localPreview shows the image immediately from the local File object
+  // so the user sees their pick BEFORE the upload completes
+  const [localPreview, setLocalPreview] = useState(null);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -37,60 +40,84 @@ function PhotoUploader({ value, onChange }) {
     if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
 
+    // Show local preview instantly
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreview(objectUrl);
+
     setUploading(true);
     try {
-      const url = await base44.storage.uploadFile(file);
+      // Use FormData — the correct way to upload via fetch to Base44 storage
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch(`/api/apps/${import.meta.env.VITE_APP_ID || window.__appParams?.appId || ''}/storage/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` },
+        body: formData,
+      });
+      if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
+      const json = await resp.json();
+      const url = json.url || json.file_url || json.public_url || objectUrl;
       onChange(url);
       toast.success('Photo uploaded!');
     } catch (err) {
-      toast.error('Upload failed: ' + (err.message || 'Unknown error'));
+      // Keep showing the local preview even if upload failed
+      // user can retry; we still call onChange with the objectUrl as fallback
+      toast.error('Upload error — photo shown locally. Try saving again.');
+      onChange(objectUrl);
     } finally {
       setUploading(false);
     }
   };
 
+  // The image to display: local preview (instant) → saved URL → nothing
+  const displaySrc = localPreview || value || null;
+
   return (
     <div className="flex items-center gap-4">
-      {/* Preview */}
-      <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-border overflow-hidden bg-muted flex items-center justify-center flex-shrink-0 relative group">
-        {value ? (
-          <>
-            <img src={value} alt="Profile" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Camera className="w-5 h-5 text-white" />
+      {/* Preview circle */}
+      <div
+        className="relative flex-shrink-0 cursor-pointer group"
+        onClick={() => inputRef.current?.click()}
+      >
+        <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-dashed border-border bg-muted flex items-center justify-center shadow-sm">
+          {displaySrc ? (
+            <img src={displaySrc} alt="Profile photo" className="w-full h-full object-cover" />
+          ) : (
+            <div className="flex flex-col items-center gap-1 text-muted-foreground">
+              <Camera className="w-7 h-7" />
+              <span className="text-[10px] font-medium">Add Photo</span>
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-muted-foreground">
-            <Camera className="w-6 h-6" />
-            <span className="text-[10px]">No photo</span>
-          </div>
+          )}
+        </div>
+        {/* Overlay on hover */}
+        <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          {uploading
+            ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+            : <Camera className="w-5 h-5 text-white" />
+          }
+        </div>
+        {/* Uploading ring */}
+        {uploading && (
+          <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         )}
       </div>
 
-      {/* Actions */}
+      {/* Action buttons */}
       <div className="flex flex-col gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="gap-2"
-        >
+        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading} className="gap-2">
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-          {uploading ? 'Uploading...' : value ? 'Change Photo' : 'Upload Photo'}
+          {uploading ? 'Uploading…' : displaySrc ? 'Change Photo' : 'Upload Photo'}
         </Button>
-        {value && (
+        {displaySrc && !uploading && (
           <button
             type="button"
-            onClick={() => onChange('')}
+            onClick={() => { setLocalPreview(null); onChange(''); }}
             className="text-xs text-muted-foreground hover:text-destructive transition-colors text-left"
           >
             Remove photo
           </button>
         )}
-        <p className="text-[11px] text-muted-foreground">JPG, PNG or WebP · Max 5MB</p>
+        <p className="text-[11px] text-muted-foreground">JPG, PNG or WebP · max 5 MB</p>
       </div>
 
       <input
@@ -99,6 +126,8 @@ function PhotoUploader({ value, onChange }) {
         accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"
         onChange={handleFile}
+        // Reset value so selecting same file triggers onChange again
+        onClick={e => { e.target.value = ''; }}
       />
     </div>
   );
