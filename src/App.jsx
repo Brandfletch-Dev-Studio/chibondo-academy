@@ -26,9 +26,8 @@ import TeacherRegister from '@/pages/TeacherRegister';
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
 
-// Public tutor pages (no auth)
+// Public tutor directory (no auth)
 import TutorsDirectory from '@/pages/tutors/TutorsDirectory';
-import TutorProfilePage from '@/pages/tutors/TutorProfile';
 
 // Authenticated tutor pages
 import TutorsPage from '@/pages/tutors/TutorsPage';
@@ -117,7 +116,6 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* ── Fully Public (no auth) ── */}
       <Route path="/tutors/browse" element={<TutorsDirectory />} />
-      <Route path="/tutors/browse/:slug" element={<TutorProfilePage />} />
 
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
@@ -151,7 +149,6 @@ const AuthenticatedApp = () => {
 
           {/* Tutors — accessible to all logged-in users */}
           <Route path="/tutors" element={<TutorsPage />} />
-          <Route path="/tutors/:slug" element={<TutorProfilePage />} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<RoleGuard allowed={['teacher','admin']}><TeacherDashboard /></RoleGuard>} />
