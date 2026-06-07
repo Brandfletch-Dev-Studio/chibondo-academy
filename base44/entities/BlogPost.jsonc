@@ -20,9 +20,15 @@
     },
     "published_at": { "type": "string" }
   },
-  "required": ["title", "tutor_profile_id"],
+  "required": ["title"],
   "rls": {
-    "read": { "data.status": "published" },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.created_by": "{{user.id}}" },
+        { "data.status": "published" }
+      ]
+    },
     "create": {
       "$or": [
         { "user_condition": { "role": "admin" } },
