@@ -7,7 +7,7 @@ const navItems = [
   { label: 'Classes',   icon: BookOpen,      path: '/subjects' },
   { label: 'Tutors',    icon: GraduationCap, path: '/tutors' },
   { label: 'Library',   icon: Library,       path: '/library' },
-  { label: 'Forums',    icon: MessageSquare, path: '/discussions' },
+  { label: 'Forums',    icon: MessageSquare, path: '/forums' },
   { label: 'Fees',      icon: CreditCard,    path: '/subscription' },
 ];
 
