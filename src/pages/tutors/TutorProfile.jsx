@@ -60,6 +60,8 @@ export default function TutorProfilePage() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
   const { user }   = useOutletContext();
+  const [coverErr, setCoverErr] = useState(false);
+  const [avatarErr, setAvatarErr] = useState(false);
   const [bioOpen, setBioOpen] = useState(false);
 
   const isAuthenticated = !!user?.id;
@@ -170,19 +172,21 @@ export default function TutorProfilePage() {
         ══════════════════════════════════════════ */}
         <div className="relative w-full h-44 sm:h-56 lg:h-64 overflow-hidden -mx-4 lg:-mx-6 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)]"
           style={{ marginLeft:'-1rem', paddingLeft:0 }}>
-          {tutor.cover_photo ? (
+          {tutor.cover_photo && !coverErr ? (
             <img
               src={tutor.cover_photo}
               alt="Cover"
               loading="eager"
               decoding="async"
+              onError={() => setCoverErr(true)}
               className="w-full h-full object-cover object-center"
             />
           ) : (
             /* Blurred profile photo fallback → richer than plain gradient */
-            tutor.profile_photo ? (
+            tutor.profile_photo && !avatarErr ? (
               <div className="relative w-full h-full overflow-hidden">
                 <img src={tutor.profile_photo} alt="" loading="eager" decoding="async"
+                  onError={() => setAvatarErr(true)}
                   className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-50 saturate-150" />
                 <div className="absolute inset-0"
                   style={{ background:'linear-gradient(135deg, hsl(222 47% 14% / 0.85), hsl(43 74% 40% / 0.25))' }} />
@@ -218,7 +222,7 @@ export default function TutorProfilePage() {
               style={{ borderColor:'hsl(222 47% 14%)', background:'hsl(222 47% 18%)' }}
             >
               {tutor.profile_photo ? (
-                <img src={tutor.profile_photo} alt={tutor.full_name} loading="eager" decoding="async" className="w-full h-full object-cover object-top" />
+                <img src={tutor.profile_photo} alt={tutor.full_name} loading="eager" decoding="async" onError={() => setAvatarErr(true)} className="w-full h-full object-cover object-top" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <span className="text-3xl font-bold" style={{ color:'hsl(43 74% 66%)' }}>
