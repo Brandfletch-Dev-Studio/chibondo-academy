@@ -151,39 +151,67 @@ export default function SubjectDetail() {
     );
   }
 
-  // Prepare SEO data
-  const subjectDescription = subject.description || `Study ${subject.name} with Chibondo Academy - comprehensive ${subject.form_name || 'secondary school'} course with video lessons, quizzes, and expert instruction.`;
+  // ── Rich SEO & Structured Data ──────────────────────────────────────────
+  const teacherName = subject.teacher_name || 'Chibondo Academy';
+  const lessonCount = lessons.length;
+  const topicCount  = topics.length;
+  const metaTitle   = `${subject.name} | ${subject.form_name || 'MSCE'} | Chibondo Academy`;
+  const metaDesc    = subject.description
+    ? subject.description.replace(/<[^>]+>/g, '').slice(0, 160)
+    : `Study ${subject.name} (${subject.form_name || 'Secondary'}) online at Chibondo Academy. ${lessonCount} lessons, ${topicCount} topics taught by ${teacherName}. Join now from MWK 10,000/month.`;
   const canonicalUrl = `${window.location.origin}/subjects/${subjectId}`;
-  
-  // Structured data for Course schema
+  const keywords = [
+    subject.name, subject.form_name, 'MSCE', 'Malawi secondary school',
+    'online lessons Malawi', 'Chibondo Academy', teacherName,
+    `${subject.name} notes`, `${subject.name} revision`,
+  ].filter(Boolean).join(', ');
+
   const courseSchema = {
     "@context": "https://schema.org",
     "@type": "Course",
     "name": subject.name,
-    "description": subjectDescription,
+    "description": metaDesc,
+    "url": canonicalUrl,
+    "image": subject.cover_image || undefined,
+    "keywords": keywords,
     "provider": {
       "@type": "Organization",
       "name": "Chibondo Academy",
-      "sameAs": window.location.origin
+      "url": window.location.origin,
+      "logo": `${window.location.origin}/logo.png`
+    },
+    "instructor": {
+      "@type": "Person",
+      "name": teacherName
     },
     "educationalLevel": subject.form_name || "Secondary",
+    "teaches": subject.name,
     "courseMode": "Online",
+    "numberOfCredits": lessonCount,
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "Online",
+      "courseWorkload": `${lessonCount} lessons`
+    },
     "offers": {
       "@type": "Offer",
       "category": subject.is_premium ? "Paid" : "Free",
       "priceCurrency": "MWK",
-      "price": subject.is_premium ? "10000" : "0"
+      "price": subject.is_premium ? "10000" : "0",
+      "availability": "https://schema.org/InStock",
+      "url": canonicalUrl
     }
   };
 
   return (
     <>
-      <SEO 
-        title={subject.name}
-        description={subjectDescription}
+      <SEO
+        title={metaTitle}
+        description={metaDesc}
         canonical={canonicalUrl}
         ogImage={subject.cover_image || undefined}
         schema={courseSchema}
+        keywords={keywords}
       />
       <div className="space-y-6">
         {/* Minimal Header */}
