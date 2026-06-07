@@ -52,7 +52,10 @@ import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import LibraryPage from '@/pages/LibraryPage';
 import MyReferrals from '@/pages/MyReferrals';
+import BlogPage from '@/pages/BlogPage';
+import BlogPostDetail from '@/pages/BlogPostDetail';
 import LibraryManagement from '@/pages/admin/LibraryManagement';
+import AdminBlog from '@/pages/admin/AdminBlog';
 
 // Teacher pages
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
@@ -73,6 +76,7 @@ import TeacherApplications from '@/pages/admin/TeacherApplications';
 import StudentProgressTracker from '@/pages/teacher/StudentProgressTracker';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import TeacherNotifications from '@/pages/teacher/TeacherNotifications';
+import TeacherBlog from '@/pages/teacher/TeacherBlog';
 import CurriculumManagement from '@/pages/admin/CurriculumManagement';
 import AffiliateManagement from '@/pages/admin/AffiliateManagement';
 import TutorManagement from '@/pages/admin/TutorManagement';
@@ -152,6 +156,8 @@ const AuthenticatedApp = () => {
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/my-classes" element={<MyClassesPage />} />
           <Route path="/my-referrals" element={<MyReferrals />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slugOrId" element={<BlogPostDetail />} />
           <Route path="/settings" element={<StudentSettings />} />
 
           {/* Tutors — accessible to all logged-in users */}
@@ -169,6 +175,7 @@ const AuthenticatedApp = () => {
           <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher','admin']}><StudentProgressTracker /></RoleGuard>} />
           <Route path="/teacher/my-profile" element={<RoleGuard allowed={['teacher','admin']}><MyTutorProfile /></RoleGuard>} />
           <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
+          <Route path="/teacher/blog" element={<RoleGuard allowed={['teacher','admin']}><TeacherBlog /></RoleGuard>} />
           <Route path="/teacher/notifications" element={<RoleGuard allowed={['teacher','admin']}><TeacherNotifications /></RoleGuard>} />
 
           {/* Admin */}
@@ -180,6 +187,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
+          <Route path="/admin/blog" element={<RoleGuard allowed={['admin']}><AdminBlog /></RoleGuard>} />
           <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
           <Route path="/admin/tutors" element={<RoleGuard allowed={['admin']}><TutorManagement /></RoleGuard>} />
           <Route path="/admin/enrollment-analytics" element={<RoleGuard allowed={['admin']}><EnrollmentAnalytics /></RoleGuard>} />
@@ -205,3 +213,4 @@ function App() {
 }
 
 export default App;
+
