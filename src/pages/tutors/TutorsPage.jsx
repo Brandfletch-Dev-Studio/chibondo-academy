@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 
 /* ── Tutor card with cover + avatar overlap ─────────────────────────────────── */
 function TutorCard({ tutor, courseCount, studentCount = 0 }) {
+  const [coverErr, setCoverErr] = useState(false);
+  const [avatarErr, setAvatarErr] = useState(false);
+  const initials = (tutor.full_name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
   return (
     <Link
       to={`/tutors/${tutor.slug}`}
@@ -16,24 +19,27 @@ function TutorCard({ tutor, courseCount, studentCount = 0 }) {
     >
       {/* Cover photo / gradient banner */}
       <div className="relative h-28 w-full flex-shrink-0 overflow-hidden">
-        {tutor.cover_photo ? (
+        {tutor.cover_photo && !coverErr ? (
           <img
             src={tutor.cover_photo}
             alt="Cover"
+            loading="eager"
+            decoding="async"
+            onError={() => setCoverErr(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-        ) : tutor.profile_photo ? (
-          /* Blurred version of profile photo as cover fallback */
+        ) : tutor.profile_photo && !avatarErr ? (
           <div className="relative w-full h-full overflow-hidden">
-            <img src={tutor.profile_photo} alt="" className="w-full h-full object-cover scale-150 blur-xl opacity-40" />
+            <img src={tutor.profile_photo} alt="" loading="eager" decoding="async"
+              onError={() => setAvatarErr(true)}
+              className="w-full h-full object-cover scale-150 blur-2xl opacity-50 saturate-150" />
             <div className="absolute inset-0"
-              style={{ background:'linear-gradient(135deg, hsl(222 47% 14% / 0.9), hsl(43 74% 40% / 0.3))' }} />
+              style={{ background:'linear-gradient(135deg, hsl(222 47% 14% / 0.75), hsl(43 74% 40% / 0.25))' }} />
           </div>
         ) : (
-          <div className="w-full h-full"
-            style={{ background:'linear-gradient(135deg, hsl(222 47% 14%), hsl(222 47% 22%), hsl(43 74% 40% / 0.3))' }}>
-            <div className="absolute inset-0 opacity-10"
-              style={{ backgroundImage:'radial-gradient(circle at 80% 20%, hsl(43 74% 66%) 0%, transparent 50%)' }} />
+          <div className="w-full h-full flex items-center justify-center"
+            style={{ background:'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 20%) 60%, hsl(43 74% 30% / 0.4) 100%)' }}>
+            <span className="text-5xl font-display font-bold opacity-15 select-none" style={{ color:'hsl(43 74% 66%)' }}>{initials}</span>
           </div>
         )}
         {/* Fade to card bottom */}
@@ -54,12 +60,19 @@ function TutorCard({ tutor, courseCount, studentCount = 0 }) {
       <div className="relative px-4 -mt-8 pb-1 flex items-end gap-3">
         <div className="w-16 h-16 rounded-full overflow-hidden border-4 shadow-lg flex-shrink-0"
           style={{ borderColor:'hsl(var(--card))', background:'hsl(222 47% 18%)' }}>
-          {tutor.profile_photo ? (
-            <img src={tutor.profile_photo} alt={tutor.full_name} className="w-full h-full object-cover" />
+          {tutor.profile_photo && !avatarErr ? (
+            <img
+              src={tutor.profile_photo}
+              alt={tutor.full_name}
+              loading="eager"
+              decoding="async"
+              onError={() => setAvatarErr(true)}
+              className="w-full h-full object-cover object-top"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-xl font-bold" style={{ color:'hsl(43 74% 66%)' }}>
-                {tutor.full_name?.[0]}
+              <span className="text-xl font-bold select-none" style={{ color:'hsl(43 74% 66%)' }}>
+                {initials}
               </span>
             </div>
           )}
