@@ -244,21 +244,45 @@ export default function LessonPage() {
 
   const markCompleteMutation = useMutation({
     mutationFn: async () => {
-      if (!enrollment) return;
-      const completed = [...(enrollment.completed_lessons || [])];
+      // Auto-create enrollment if missing (safety net)
+      let enr = enrollment;
+      if (!enr && lesson?.subject_id) {
+        enr = await base44.entities.Enrollment.create({
+          student_id: user.id,
+          subject_id: lesson.subject_id,
+          subject_name: lesson.subject_name,
+          completed_lessons: [],
+          status: 'active',
+          progress_percentage: 0,
+        });
+      }
+      if (!enr) return { pct: 0 };
+
+      const completed = [...(enr.completed_lessons || [])];
       if (!completed.includes(lessonId)) completed.push(lessonId);
       const pct = allLessons.length > 0 ? Math.round((completed.length / allLessons.length) * 100) : 0;
-      await base44.entities.Enrollment.update(enrollment.id, {
+      await base44.entities.Enrollment.update(enr.id, {
         completed_lessons: completed,
         progress_percentage: pct,
         last_lesson_id: lessonId,
         last_accessed: new Date().toISOString(),
+        status: pct === 100 ? 'completed' : 'active',
       });
+      return { pct, completed };
     },
-    onSuccess: () => {
+    onSuccess: ({ pct, completed }) => {
       queryClient.invalidateQueries({ queryKey: ['enrollment'] });
-      toast.success('Lesson marked as complete!');
+      if (pct === 100) {
+        toast.success('🎉 Course completed! Well done!', { duration: 5000 });
+      } else {
+        toast.success('✓ Lesson complete!');
+        // Auto-navigate to next lesson
+        if (nextLesson) {
+          setTimeout(() => navigate(`/lesson/${nextLesson.id}`), 800);
+        }
+      }
     },
+    onError: () => toast.error('Could not save progress. Try again.'),
   });
 
   const completedLessons = enrollment?.completed_lessons || [];
