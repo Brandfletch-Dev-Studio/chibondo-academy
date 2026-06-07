@@ -123,17 +123,27 @@ export default function SubscriptionPage() {
         canonical={`${window.location.origin}/subscription`}
       />
       <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <GraduationCap className="w-8 h-8 text-primary" />
+      {/* ── Branded Hero ── */}
+      <div className="rounded-2xl overflow-hidden relative" style={{ background:'hsl(222 47% 14%)' }}>
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ backgroundImage:'radial-gradient(ellipse at 10% 50%, hsl(43 74% 52% / 0.18) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
+        <div className="relative px-6 pt-8 pb-7 text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-1"
+            style={{ background:'hsl(43 74% 52% / 0.15)', color:'hsl(43 74% 66%)' }}>
+            <GraduationCap className="w-3.5 h-3.5" /> Chibondo Academy
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold" style={{ color:'hsl(43 20% 94%)' }}>School Fees</h1>
+          <p className="text-sm max-w-md mx-auto" style={{ color:'hsl(43 20% 65%)' }}>
+            Unlock full access to every lesson, quiz, past paper, and learning resource across all your subjects
+          </p>
+          <div className="flex flex-wrap justify-center gap-5 pt-2">
+            {[{ icon: BookOpen, text: 'All Subjects' },{ icon: Users, text: '259+ Lessons' },{ icon: Award, text: 'Past Papers' }].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-1.5 text-xs" style={{ color:'hsl(43 20% 70%)' }}>
+                <Icon className="w-3.5 h-3.5" style={{ color:'hsl(43 74% 52%)' }} />{text}
+              </div>
+            ))}
           </div>
         </div>
-        <h1 className="text-3xl font-display font-bold">School Fees</h1>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Pay your school fees to unlock full access to all lessons, quizzes, past papers, and learning resources.
-        </p>
       </div>
 
       {/* Active Subscription Banner */}
