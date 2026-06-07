@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 const studentNav = [
   { label: 'Dashboard',    icon: Home,          path: '/dashboard' },
   { label: 'My Subjects',  icon: BookOpen,      path: '/subjects' },
+  { label: 'My Classes',   icon: BookOpen,      path: '/my-classes' },
   { label: 'Our Tutors',   icon: GraduationCap, path: '/tutors' },
   { label: 'Revision Hub', icon: Library,       path: '/revision' },
   { label: 'My Quizzes',   icon: ClipboardList, path: '/my-quizzes' },
@@ -43,7 +44,8 @@ const adminNav = [
   { label: 'Library',        icon: Library,         path: '/admin/library' },
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Students',       icon: Users,           path: '/admin/users' },
-  { label: 'Tutor Profiles', icon: GraduationCap,   path: '/admin/tutors' },
+  { label: 'Tutor Profiles',  icon: GraduationCap,   path: '/admin/tutors' },
+  { label: 'Enrollments',      icon: TrendingUp,      path: '/admin/enrollment-analytics' },
   { label: 'Applications',   icon: FileText,        path: '/admin/teachers' },
   { label: 'Affiliates',     icon: Gift,            path: '/admin/affiliates' },
   { label: 'Notifications',  icon: Bell,            path: '/admin/notifications' },
