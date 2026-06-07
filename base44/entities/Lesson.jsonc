@@ -114,6 +114,11 @@
         },
         {
           "data.is_free": true
+        },
+        {
+          "user_condition": {
+            "role": "student"
+          }
         }
       ]
     },
