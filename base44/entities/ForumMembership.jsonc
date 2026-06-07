@@ -1,0 +1,35 @@
+{
+  "name": "ForumMembership",
+  "type": "object",
+  "properties": {
+    "user_id":     { "type": "string", "description": "Member user ID" },
+    "subject_id":  { "type": "string", "description": "Forum subject ID" },
+    "subject_slug":{ "type": "string" },
+    "user_name":   { "type": "string" },
+    "user_role":   { "type": "string" },
+    "status":      { "type": "string", "enum": ["joined", "left"], "default": "joined" }
+  },
+  "required": ["user_id", "subject_id"],
+  "rls": {
+    "create": { "data.user_id": "{{user.id}}" },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "teacher" } },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    }
+  }
+}
