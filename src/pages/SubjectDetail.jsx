@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useParams, useOutletContext, Link } from 'react-router-dom';
+import { useParams, useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Copy, Check, Share2 } from 'lucide-react';
+import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Copy, Check, Share2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -15,7 +15,9 @@ export default function SubjectDetail() {
   const { subjectId } = useParams();
   const { user } = useOutletContext();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [justEnrolled, setJustEnrolled] = useState(false);
 
   // Get user's referral code for sharing
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
@@ -63,30 +65,41 @@ export default function SubjectDetail() {
 
   const hasPaidFees = !!subscription;
 
+  const isEnrolled = !!enrollment || justEnrolled;
+
   const enrollMutation = useMutation({
-    mutationFn: () => base44.entities.Enrollment.create({
-      student_id: user.id,
-      subject_id: subjectId,
-      subject_name: subject?.name,
-      form_id: subject?.form_id,
-      form_name: subject?.form_name,
-      completed_lessons: [],
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enrollment'] });
+    mutationFn: async () => {
+      const rec = await base44.entities.Enrollment.create({
+        student_id: user.id,
+        subject_id: subjectId,
+        subject_name: subject?.name,
+        form_id: subject?.form_id,
+        form_name: subject?.form_name,
+        completed_lessons: [],
+        status: 'active',
+        progress_percentage: 0,
+        last_accessed: new Date().toISOString(),
+      });
+      try {
+        await base44.entities.Subject.update(subjectId, {
+          enrollment_count: (subject?.enrollment_count || 0) + 1,
+        });
+      } catch(_) {}
+      return rec;
     },
+    onSuccess: () => {
+      setJustEnrolled(true);
+      toast.success('✓ You have successfully joined this class.');
+      queryClient.invalidateQueries({ queryKey: ['enrollment'] });
+      queryClient.invalidateQueries({ queryKey: ['subject', subjectId] });
+    },
+    onError: () => toast.error('Could not join class. Please try again.'),
   });
 
-  // Auto-enroll when student clicks a lesson (if not already enrolled)
-  const handleLessonClick = async (lessonId) => {
-    if (!hasPaidFees) {
-      // Redirect to subscription page for unpaid users
-      window.location.href = '/subscription';
-      return;
-    }
-    if (!enrollment) {
-      await enrollMutation.mutateAsync();
-    }
+  // Lesson row click — auto-enroll then navigate
+  const handleLessonClick = async () => {
+    if (!hasPaidFees) { navigate('/subscription'); return; }
+    if (!isEnrolled) { await enrollMutation.mutateAsync(); }
   };
 
   // Share functions with affiliate tracking
@@ -237,7 +250,7 @@ export default function SubjectDetail() {
                       <Link
                         key={lesson.id}
                         to={isLocked ? '/subscription' : `/lesson/${lesson.id}`}
-                        onClick={() => !isLocked && handleLessonClick(lesson.id)}
+                        onClick={() => !isLocked && handleLessonClick()}
                         className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${
                           isCompleted ? 'bg-success/5' : ''
                         }`}
@@ -263,36 +276,80 @@ export default function SubjectDetail() {
         </Accordion>
       </div>
 
-      {/* Course Progress & Start Learning CTA */}
-      {firstLesson && (
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-base">Course Progress</h3>
-              <span className="text-sm font-semibold text-primary">{completedLessons.length}/{totalLessons}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-              <span>{progressPct}% Complete</span>
-            </div>
-            <Progress value={progressPct} className="h-2" />
-          </div>
+      {/* ── Enrollment count ── */}
+      {(subject?.enrollment_count > 0) && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="w-4 h-4" />
+          <span><span className="font-semibold text-foreground">{subject.enrollment_count.toLocaleString()}</span> students enrolled</span>
+        </div>
+      )}
 
-          <div className="pt-2">
-          {hasPaidFees ? (
-            <Link to={`/lesson/${firstLesson.id}`} onClick={() => !enrollment && enrollMutation.mutate()}>
-              <Button className="w-full h-12 text-base font-semibold" size="lg">
-                <PlayCircle className="w-5 h-5 mr-2" />
-                {enrollment && completedLessons.length > 0 ? 'Continue Learning' : 'Start Learning'}
-              </Button>
-            </Link>
-          ) : (
+      {/* ── Course Progress bar (only when enrolled) ── */}
+      {isEnrolled && totalLessons > 0 && (
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold">Your Progress</span>
+            <span className="font-bold text-primary">{progressPct}%</span>
+          </div>
+          <Progress value={progressPct} className="h-2.5" />
+          <p className="text-xs text-muted-foreground">{completedLessons.length} of {totalLessons} lessons completed</p>
+          {progressPct === 100 && (
+            <div className="mt-2 p-3 rounded-xl text-center" style={{ background: 'hsl(160 60% 45% / 0.1)', border: '1px solid hsl(160 60% 45% / 0.2)' }}>
+              <p className="text-sm font-bold text-green-600">🎉 Congratulations! You completed this course.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MAIN CTA button ── */}
+      {firstLesson && (
+        <div className="space-y-3">
+          {/* Scenario D: no subscription → pay gate */}
+          {!hasPaidFees && (
             <Link to="/subscription">
-              <Button className="w-full h-12 text-base font-semibold" size="lg">
-                Pay Fees to Start Learning
+              <Button className="w-full h-12 text-base font-semibold" size="lg"
+                style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+                Pay Fees to Unlock Access
               </Button>
             </Link>
           )}
-          </div>
+
+          {/* Scenario B: paid but not enrolled → Join Class */}
+          {hasPaidFees && !isEnrolled && (
+            <Button
+              className="w-full h-12 text-base font-semibold"
+              size="lg"
+              disabled={enrollMutation.isPending}
+              onClick={() => enrollMutation.mutate()}
+              style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}
+            >
+              {enrollMutation.isPending ? (
+                <><span className="animate-spin mr-2">⏳</span>Joining…</>
+              ) : (
+                <><BookOpen className="w-5 h-5 mr-2" />Join Class</>
+              )}
+            </Button>
+          )}
+
+          {/* Scenario C: enrolled → Start/Continue Learning */}
+          {hasPaidFees && isEnrolled && (
+            <Link
+              to={`/lesson/${enrollment?.last_lesson_id || firstLesson.id}`}
+            >
+              <Button className="w-full h-12 text-base font-semibold" size="lg"
+                style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+                <PlayCircle className="w-5 h-5 mr-2" />
+                {completedLessons.length > 0 ? 'Continue Learning' : 'Start Learning'}
+              </Button>
+            </Link>
+          )}
+
+          {/* My Classes shortcut */}
+          {isEnrolled && (
+            <Link to="/my-classes" className="block text-center text-xs text-muted-foreground hover:text-primary transition-colors">
+              View all my classes →
+            </Link>
+          )}
         </div>
       )}
 
