@@ -179,7 +179,18 @@ export default function TutorsPage() {
 
   return (
     <>
-      <SEO title="Our Tutors | Chibondo Academy" description="Meet the expert tutors at Chibondo Academy" />
+      <SEO
+        title="Our Tutors — Chibondo Academy"
+        description="Meet the expert tutors at Chibondo Academy. Qualified MSCE teachers for Biology, Chemistry, Physics, Mathematics, English and more."
+        canonical={`${window.location.origin}/tutors`}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Chibondo Academy Tutors",
+          "description": "Expert MSCE tutors at The Chibondo Academy",
+          "url": `${window.location.origin}/tutors`
+        }}
+      />
       <div className="space-y-5">
 
         {/* Hero header */}
