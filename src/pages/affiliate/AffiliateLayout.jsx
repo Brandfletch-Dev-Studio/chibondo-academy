@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useOutletContext, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
