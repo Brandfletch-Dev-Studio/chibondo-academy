@@ -464,6 +464,8 @@ export default function ThreadPage() {
   const bottomRef = useRef();
   const [text, setText]   = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, name }
+  const voice = useVoiceRecorder();
+  const [uploadingVoice, setUploadingVoice] = useState(false);
 
   const isTeacherOrAdmin = user?.role === 'teacher' || user?.role === 'admin';
 
