@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { User, Bell, Sun, Moon, Briefcase, Wallet } from 'lucide-react';
 
 export default function TeacherSettings() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const queryClient = useQueryClient();
 
   // Profile
