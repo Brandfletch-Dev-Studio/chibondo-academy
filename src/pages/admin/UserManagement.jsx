@@ -175,7 +175,7 @@ export default function UserManagement() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.filter({},'-created_date', 500),
+    queryFn: () => base44.entities.User.list('-created_date', 500),
   });
   const { data: enrollments = [] } = useQuery({
     queryKey: ['allEnrollments'],
