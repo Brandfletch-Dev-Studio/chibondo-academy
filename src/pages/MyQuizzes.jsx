@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export default function MyQuizzes() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['availableQuizzes'],
