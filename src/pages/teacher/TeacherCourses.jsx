@@ -28,7 +28,7 @@ const STATUS_ICON = {
 };
 
 export default function TeacherCourses() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const empty = { name: '', description: '', form_id: '', is_premium: true, order: 0 };
