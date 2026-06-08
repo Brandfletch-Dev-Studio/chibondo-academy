@@ -10,7 +10,7 @@ import { useOutletContext } from 'react-router-dom';
 
 function RoleHome() {
   const { user } = useOutletContext();
-  if (!user) return null;
+  if (!user) return <Navigate to="/blog" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/dashboard" replace />;
@@ -27,8 +27,6 @@ import TeacherRegister from '@/pages/TeacherRegister';
 import AppLayout from '@/components/layout/AppLayout';
 
 import TutorProfilePage from '@/pages/tutors/TutorProfile';
-
-// Authenticated tutor pages
 import TutorsPage from '@/pages/tutors/TutorsPage';
 import MyClassesPage from '@/pages/MyClassesPage';
 import EnrollmentAnalytics from '@/pages/admin/EnrollmentAnalytics';
@@ -88,81 +86,84 @@ import TeacherSettings from '@/pages/settings/TeacherSettings';
 // RBAC
 import RoleGuard from '@/components/RoleGuard';
 
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'hsl(222 47% 8%)' }}>
-        <div className="text-center flex flex-col items-center gap-6">
-          <img
-            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
-            alt="Chibondo Academy"
-            className="w-32 h-32 rounded-2xl object-cover shadow-2xl"
-            style={{ boxShadow: '0 0 60px rgba(184,144,55,0.3)' }}
-          />
-          <div>
-            <p className="text-lg font-display tracking-widest uppercase" style={{ color: 'hsl(43 74% 52%)' }}>The Chibondo Academy</p>
-            <div className="flex items-center justify-center gap-1.5 mt-3">
-              {[0,1,2].map(i => (
-                <div key={i} className="w-2 h-2 rounded-full" style={{ background: 'hsl(43 74% 52%)', animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-              ))}
-            </div>
-          </div>
+// ── Loading screen shared between public + auth init ──────────────────────────
+const LoadingScreen = () => (
+  <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'hsl(222 47% 8%)' }}>
+    <div className="text-center flex flex-col items-center gap-6">
+      <img
+        src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+        alt="Chibondo Academy"
+        className="w-32 h-32 rounded-2xl object-cover shadow-2xl"
+        style={{ boxShadow: '0 0 60px rgba(184,144,55,0.3)' }}
+      />
+      <div>
+        <p className="text-lg font-display tracking-widest uppercase" style={{ color: 'hsl(43 74% 52%)' }}>The Chibondo Academy</p>
+        <div className="flex items-center justify-center gap-1.5 mt-3">
+          {[0,1,2].map(i => (
+            <div key={i} className="w-2 h-2 rounded-full" style={{ background: 'hsl(43 74% 52%)', animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+          ))}
         </div>
-        <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(0);opacity:0.3} 40%{transform:scale(1);opacity:1} }`}</style>
       </div>
-    );
-  }
+    </div>
+    <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(0);opacity:0.3} 40%{transform:scale(1);opacity:1} }`}</style>
+  </div>
+);
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
-    if (authError.type === 'auth_required') { navigateToLogin(); return null; }
-  }
+const AppRoutes = () => {
+  const { isLoadingPublicSettings, authError } = useAuth();
+
+  // Only block rendering while the initial platform check runs
+  // After that, AppLayout itself handles auth state gracefully
+  if (isLoadingPublicSettings) return <LoadingScreen />;
+
+  if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
 
   return (
     <Routes>
-      {/* ── Fully Public (no auth) ── */}
-
-      {/* Auth Routes */}
+      {/* ── Auth pages (standalone, no layout) ── */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
 
-      {/* Protected Routes */}
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<RoleHome />} />
+      {/* ═══════════════════════════════════════════════════════════════
+          PUBLIC SHELL — AppLayout handles both guest + authenticated.
+          All routes here are accessible without login.
+          Pages are responsible for gating their own interactive actions.
+      ════════════════════════════════════════════════════════════════ */}
+      <Route element={<AppLayout />}>
+        {/* Root redirect — role-based for auth users, blog for guests */}
+        <Route path="/" element={<RoleHome />} />
 
-          {/* Student */}
+        {/* ── PUBLIC BROWSE ROUTES ── */}
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slugOrId" element={<BlogPostDetail />} />
+        <Route path="/subjects" element={<SubjectsPage />} />
+        <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
+        <Route path="/tutors" element={<TutorsPage />} />
+        <Route path="/tutors/:slug" element={<TutorProfilePage />} />
+        <Route path="/forums" element={<ForumsHome />} />
+        <Route path="/forums/:subjectSlug" element={<SubjectForum />} />
+        <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
+        <Route path="/library" element={<LibraryPage />} />
+        <Route path="/subscription" element={<SubscriptionPage />} />
+
+        {/* ── AUTHENTICATED-ONLY ROUTES (redirect to login if guest) ── */}
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/dashboard" element={<StudentDashboard />} />
-          <Route path="/subjects" element={<SubjectsPage />} />
-          <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
           <Route path="/lesson/:lessonId" element={<LessonPage />} />
           <Route path="/revision" element={<RevisionHub />} />
           <Route path="/my-quizzes" element={<MyQuizzes />} />
           <Route path="/quiz/:quizId" element={<QuizPage />} />
           <Route path="/my-assignments" element={<MyAssignments />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
-          <Route path="/forums" element={<ForumsHome />} />
-          <Route path="/forums/:subjectSlug" element={<SubjectForum />} />
-          <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/progress/analytics" element={<ProgressAnalytics />} />
-          <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/library" element={<LibraryPage />} />
           <Route path="/my-classes" element={<MyClassesPage />} />
           <Route path="/my-referrals" element={<MyReferrals />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:slugOrId" element={<BlogPostDetail />} />
           <Route path="/settings" element={<StudentSettings />} />
-
-          {/* Tutors — accessible to all logged-in users */}
-          <Route path="/tutors" element={<TutorsPage />} />
-          <Route path="/tutors/:slug" element={<TutorProfilePage />} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<RoleGuard allowed={['teacher','admin']}><TeacherDashboard /></RoleGuard>} />
@@ -185,32 +186,29 @@ const AuthenticatedApp = () => {
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
           <Route path="/admin/settings" element={<RoleGuard allowed={['admin']}><AdminSettings /></RoleGuard>} />
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
+          <Route path="/admin/blog" element={<RoleGuard allowed={['admin']}><AdminBlog /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
-          <Route path="/admin/blog" element={<RoleGuard allowed={['admin']}><AdminBlog /></RoleGuard>} />
-          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
           <Route path="/admin/tutors" element={<RoleGuard allowed={['admin']}><TutorManagement /></RoleGuard>} />
+          <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
           <Route path="/admin/enrollment-analytics" element={<RoleGuard allowed={['admin']}><EnrollmentAnalytics /></RoleGuard>} />
         </Route>
       </Route>
 
-      <Route path="*" element={<PageNotFound />} />
+      <Route path="*" element={<AppLayout />} />
     </Routes>
   );
 };
 
-function App() {
+export default function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
+    <QueryClientProvider client={queryClientInstance}>
+      <AuthProvider>
         <Router>
-          <AuthenticatedApp />
+          <AppRoutes />
+          <Toaster />
         </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
-
-export default App;
-
