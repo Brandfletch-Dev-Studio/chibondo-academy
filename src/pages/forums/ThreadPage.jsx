@@ -699,7 +699,7 @@ export default function ThreadPage() {
 
           {/* Like on thread */}
           <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
-            <LikeButton item={thread} userId={user?.id} onLike={() => likeThreadMut.mutate()} />
+            <LikeButton item={thread} userId={user?.id} onLike={() => requireAuth(() => likeThreadMut.mutate())} />
             <span className="text-xs text-muted-foreground">{allReplies.length} {allReplies.length === 1 ? 'comment' : 'comments'}</span>
           </div>
         </div>
@@ -735,7 +735,7 @@ export default function ThreadPage() {
                   user={user}
                   onDelete={id => deleteMut.mutate(id)}
                   onAccept={reply => acceptMut.mutate(reply)}
-                  onLike={item => likeMut.mutate(item)}
+                  onLike={item => requireAuth(() => likeMut.mutate(item))}
                   onReplyTo={target => setReplyTo(target)}
                 />
               ))}
@@ -751,8 +751,24 @@ export default function ThreadPage() {
       ══════════════════════════════════════════════════════════ */}
       <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t border-border px-3 py-2 shadow-2xl lg:bottom-0">
 
+        {/* Guest sign-in prompt — shown instead of composer for unauthenticated visitors */}
+        {!isAuthenticated && (
+          <div className="flex items-center justify-between gap-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Sign in</span> to reply, like, or join the discussion.
+            </p>
+            <button
+              onClick={() => requireAuth(() => {})}
+              className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
+              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+            >
+              Sign in
+            </button>
+          </div>
+        )}
+
         {/* Reply-to indicator */}
-        {replyTo && (
+        {isAuthenticated && replyTo && (
           <div className="flex items-center gap-2 mb-1.5 px-1 text-xs">
             <CornerDownRight className="w-3 h-3 text-accent flex-shrink-0" />
             <span className="text-muted-foreground">Replying to <span className="font-semibold text-foreground">{replyTo.name}</span></span>
@@ -852,7 +868,7 @@ export default function ThreadPage() {
 
           {/* Send */}
           <button
-            onClick={() => postMut.mutate()}
+            onClick={() => requireAuth(() => postMut.mutate())}
             disabled={postMut.isPending || uploadingVoice || (mode === 'text' ? (!text.trim() && !imgUrl) : !voice.blobUrl)}
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
             style={{ background: 'hsl(222 47% 18%)' }}
