@@ -221,7 +221,7 @@ export default function SubjectForum() {
   /* ── Forum membership ── */
   const { data: myMembership = [] } = useQuery({
     queryKey: ['forum-membership', subject?.id, user?.id],
-    queryFn: () => base44.entities.ForumMembership.filter({ user_id: user.id, subject_id: subject.id }),
+    queryFn: async () => { try { return await base44.entities.ForumMembership.filter({ user_id: user.id, subject_id: subject.id }); } catch { return []; } },
     enabled: !!subject?.id && !!user?.id,
     staleTime: 60_000,
   });
@@ -231,7 +231,7 @@ export default function SubjectForum() {
   /* ── Member count ── */
   const { data: allMembers = [] } = useQuery({
     queryKey: ['forum-members', subject?.id],
-    queryFn: () => base44.entities.ForumMembership.filter({ subject_id: subject.id, status: 'joined' }),
+    queryFn: async () => { try { return await base44.entities.ForumMembership.filter({ subject_id: subject.id, status: 'joined' }); } catch { return []; } },
     enabled: !!subject?.id,
     staleTime: 120_000,
   });
@@ -239,7 +239,7 @@ export default function SubjectForum() {
   /* ── Online now (ForumPresence — all users active in last 2 min) ── */
   const { data: presenceList = [] } = useQuery({
     queryKey: ['forum-presence'],
-    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
+    queryFn: async () => { try { return await base44.entities.ForumPresence.filter({}, '-last_seen', 200); } catch { return []; } },
     refetchInterval: 30_000,
     staleTime: 0,
   });
