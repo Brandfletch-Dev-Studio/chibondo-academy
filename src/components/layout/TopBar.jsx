@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Menu, LogIn, UserPlus } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -36,61 +36,81 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
   const isGuest = !user;
 
   return (
-    <header className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30" style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}>
-      {/* Left: Mobile menu (authenticated only) */}
-      <div className="flex-1 flex items-center">
-        {!isGuest && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
-            onClick={onMenuClick}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-        )}
-      </div>
+    <header
+      className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30"
+      style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}
+    >
+      {isGuest ? (
+        /* ── GUEST LAYOUT: Logo left · Login + Join Now right ── */
+        <>
+          {/* Logo — left */}
+          <Link to="/blog" className="flex items-center flex-shrink-0">
+            <img
+              src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+              alt="Chibondo Academy"
+              className="h-9 w-auto object-contain"
+            />
+          </Link>
 
-      {/* Center: Logo */}
-      <div className="flex items-center">
-        <Link to={isGuest ? '/blog' : '/'}>
-          <img
-            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
-            alt="Chibondo Academy"
-            className="h-9 w-auto object-contain"
-          />
-        </Link>
-      </div>
+          {/* Spacer */}
+          <div className="flex-1" />
 
-      {/* Right: Notifications + avatar OR Login/Register for guests */}
-      <div className="flex-1 flex items-center justify-end gap-2">
-        {isGuest ? (
-          <>
+          {/* Auth CTAs */}
+          <div className="flex items-center gap-2">
             <Link to="/login">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-sidebar-foreground hover:text-white hover:bg-sidebar-accent h-8 px-3 text-xs gap-1.5"
+                className="h-8 px-4 text-sm font-medium text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Log In</span>
+                Login
               </Button>
             </Link>
             <Link to="/register">
               <Button
                 size="sm"
-                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                className="h-8 px-4 text-sm font-semibold"
                 style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
               >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign Up</span>
+                Join Now
               </Button>
             </Link>
-          </>
-        ) : (
-          <>
+          </div>
+        </>
+      ) : (
+        /* ── AUTHENTICATED LAYOUT: hamburger · logo center · bell + avatar ── */
+        <>
+          {/* Left: Mobile menu */}
+          <div className="flex-1 flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
+              onClick={onMenuClick}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {/* Center: Logo */}
+          <div className="flex items-center">
+            <Link to="/">
+              <img
+                src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+                alt="Chibondo Academy"
+                className="h-9 w-auto object-contain"
+              />
+            </Link>
+          </div>
+
+          {/* Right: Notifications + Avatar */}
+          <div className="flex-1 flex items-center justify-end gap-2">
             <Link to="/notifications">
-              <Button variant="ghost" size="icon" className="relative h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
+              >
                 <Bell className="w-4 h-4" />
                 {notificationCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent text-accent-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
@@ -100,9 +120,9 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
               </Button>
             </Link>
             <UserAvatar user={user} size={8} />
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </header>
   );
 }
