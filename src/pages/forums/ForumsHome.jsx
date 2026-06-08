@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
@@ -29,6 +30,13 @@ function getMeta(name = '') {
 export default function ForumsHome() {
   const navigate = useNavigate();
   const { user } = useOutletContext();
+  const isAuthenticated = !!user?.id;
+  const requireAuth = (cb) => {
+    if (isAuthenticated) { cb(); return; }
+    const returnTo = window.location.pathname + window.location.search;
+    sessionStorage.setItem('auth_return_to', returnTo);
+    base44.auth.redirectToLogin(window.location.origin + returnTo);
+  };
   const [search, setSearch] = useState('');
 
   const { data: subjects = [], isLoading } = useQuery({
