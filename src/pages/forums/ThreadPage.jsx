@@ -6,11 +6,90 @@ import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
 import {
   ArrowLeft, Send, Pin, CheckCircle, MoreVertical, Trash2,
-  GraduationCap, Heart, MessageSquare, Megaphone, Image as ImageIcon,
-  X, Mic, MicOff, Square, Play, Pause, CornerDownRight
+  Heart, MessageSquare, Megaphone, Image as ImageIcon,
+  X, Mic, MicOff, Square, Play, Pause, CornerDownRight, Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+
+
+/* ── Mark parent forum read when thread opens ──────────────────────────── */
+function markForumRead(subjectSlug) {
+  if (subjectSlug) localStorage.setItem(`forum_last_visit_${subjectSlug}`, new Date().toISOString());
+}
+
+/* ── Watermarked image share / download ─────────────────────────────────── */
+async function shareOrDownloadImage(imgUrl) {
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('load')); img.src = imgUrl; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || 800;
+    canvas.height = img.naturalHeight || 600;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // Watermark badge
+    const fs = Math.max(12, Math.min(Math.floor(canvas.width / 28), 26));
+    ctx.font = `bold ${fs}px Arial, sans-serif`;
+    const text = '@ The Chibondo Academy';
+    const tw = ctx.measureText(text).width;
+    const pad = 10;
+    const bx = canvas.width - tw - pad * 2 - 6;
+    const by = canvas.height - fs - pad * 2 - 6;
+    // Badge bg
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(bx + 6, by); ctx.lineTo(bx + tw + pad * 2 - 6, by);
+    ctx.quadraticCurveTo(bx + tw + pad * 2, by, bx + tw + pad * 2, by + 6);
+    ctx.lineTo(bx + tw + pad * 2, by + fs + pad * 2 - 6);
+    ctx.quadraticCurveTo(bx + tw + pad * 2, by + fs + pad * 2, bx + tw + pad * 2 - 6, by + fs + pad * 2);
+    ctx.lineTo(bx + 6, by + fs + pad * 2);
+    ctx.quadraticCurveTo(bx, by + fs + pad * 2, bx, by + fs + pad * 2 - 6);
+    ctx.lineTo(bx, by + 6); ctx.quadraticCurveTo(bx, by, bx + 6, by);
+    ctx.closePath(); ctx.fill();
+    // Text
+    ctx.fillStyle = 'rgba(255,215,100,0.96)';
+    ctx.fillText(text, bx + pad, by + fs + pad - 2);
+
+    return new Promise(res => canvas.toBlob(blob => {
+      if (!blob) { res(null); return; }
+      const file = new File([blob], 'chibondo-academy.jpg', { type: 'image/jpeg' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Chibondo Academy' }).then(() => res('shared')).catch(() => res('fallback'));
+      } else {
+        res('fallback');
+      }
+    }, 'image/jpeg', 0.92));
+  } catch { return 'fallback'; }
+}
+
+async function handleImageShare(imgUrl, toastFn) {
+  const result = await shareOrDownloadImage(imgUrl);
+  if (result === 'shared') return;
+  // Fallback: download
+  try {
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = imgUrl; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || 800; canvas.height = img.naturalHeight || 600;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const fs = Math.max(12, Math.min(Math.floor(canvas.width / 28), 26));
+    ctx.font = `bold ${fs}px Arial, sans-serif`;
+    const text = '@ The Chibondo Academy';
+    const tw = ctx.measureText(text).width; const pad = 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(canvas.width - tw - pad * 2 - 6, canvas.height - fs - pad * 2 - 6, tw + pad * 2, fs + pad * 2);
+    ctx.fillStyle = 'rgba(255,215,100,0.96)';
+    ctx.fillText(text, canvas.width - tw - pad - 6, canvas.height - pad - 8);
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'chibondo-academy.jpg'; a.click();
+      URL.revokeObjectURL(url);
+      toastFn?.('Image downloaded with watermark');
+    }, 'image/jpeg', 0.92);
+  } catch { toastFn?.('Could not process image'); }
+}
 
 /* ═══════════════════════════════════════════════════════════
    AVATAR — shows photo if available, initials otherwise
@@ -322,7 +401,17 @@ function ReplyBubble({
           >
             {reply.content && <p>{reply.content}</p>}
             {reply.image_url && (
-              <img src={reply.image_url} alt="" className="mt-2 rounded-xl max-w-full max-h-52 object-contain" />
+              <div className="mt-2 relative group inline-block max-w-full">
+                <img src={reply.image_url} alt="" className="rounded-xl max-w-full max-h-52 object-contain" />
+                <button
+                  onClick={() => handleImageShare(reply.image_url, toast.success)}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
+                  style={{ background:'rgba(0,0,0,0.55)', color:'white' }}
+                  title="Share / Download"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
             {reply.voice_note_url && (
               <div className="mt-2">
@@ -365,6 +454,9 @@ function ReplyBubble({
 ═══════════════════════════════════════════════════════════ */
 export default function ThreadPage() {
   const { subjectSlug, threadSlug } = useParams();
+
+  // Mark parent forum as visited — resets unread count for this forum
+  React.useEffect(() => { markForumRead(subjectSlug); }, [subjectSlug]);
   const navigate  = useNavigate();
   const { state } = useLocation();
   const { user }  = useOutletContext();
@@ -663,7 +755,20 @@ export default function ThreadPage() {
             )}
           </div>
 
-          <h1 className="font-display font-bold text-lg leading-snug mb-4">{thread.title}</h1>
+          <div className="flex items-start justify-between gap-2 mb-4">
+            <h1 className="font-display font-bold text-lg leading-snug flex-1">{thread.title}</h1>
+            <button
+              onClick={() => {
+                const url = window.location.href;
+                if (navigator.share) navigator.share({ title: thread.title, url });
+                else { navigator.clipboard?.writeText(url); toast.success('Link copied!'); }
+              }}
+              className="flex-shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              title="Share thread"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
 
           {/* Author */}
           <div className="flex items-center gap-3 mb-4">
@@ -680,7 +785,17 @@ export default function ThreadPage() {
           {/* Content */}
           <div className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{thread.content}</div>
           {thread.image_url && (
-            <img src={thread.image_url} alt="" className="mt-3 rounded-xl max-w-full max-h-72 object-contain" />
+            <div className="mt-3 relative group inline-block max-w-full">
+              <img src={thread.image_url} alt="" className="rounded-xl max-w-full max-h-72 object-contain" />
+              <button
+                onClick={() => handleImageShare(thread.image_url, toast.success)}
+                className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
+                style={{ background:'rgba(0,0,0,0.55)', color:'white' }}
+                title="Share / Download"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
           {thread.voice_note_url && (
             <div className="mt-3">
