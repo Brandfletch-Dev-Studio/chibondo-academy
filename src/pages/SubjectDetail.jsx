@@ -13,7 +13,7 @@ import SEO from '@/components/SEO';
 
 export default function SubjectDetail() {
   const { subjectId } = useParams();
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
