@@ -462,7 +462,6 @@ export default function ThreadPage() {
   const { user } = useOutletContext() ?? {};
   const qc        = useQueryClient();
   const bottomRef = useRef();
-  const fileRef   = useRef();
   const [text, setText]   = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, name }
 
@@ -794,7 +793,7 @@ export default function ThreadPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════
-          STICKY INPUT BAR — WhatsApp style
+          STICKY INPUT BAR
       ══════════════════════════════════════════════════════════ */}
       <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t border-border px-3 py-2 shadow-2xl lg:bottom-0">
 
@@ -807,81 +806,27 @@ export default function ThreadPage() {
           </div>
         )}
 
-        {/* Image preview */}
-        {imgUrl && (
-          <div className="flex items-center gap-2 mb-1.5 px-1">
-            <img src={imgUrl} alt="" className="h-10 w-10 object-cover rounded-lg border border-border" />
-            <button onClick={() => setImgUrl('')} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
-          </div>
-        )}
-
-        {/* Voice preview */}
-        {voice.blobUrl && !voice.recording && (
-          <div className="flex items-center gap-2 mb-1.5 px-1">
-            <VoicePlayer url={voice.blobUrl} duration={voice.seconds} />
-            <button onClick={voice.clear} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
-          </div>
-        )}
-
-        {/* Recording indicator */}
-        {voice.recording && (
-          <div className="flex items-center gap-2 mb-1.5 px-2 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs text-red-600 font-medium">Recording… {fmt(voice.seconds)}</span>
-            <button onClick={voice.stop} className="ml-auto flex items-center gap-1 text-xs text-red-600 font-semibold hover:opacity-80">
-              <Square className="w-3 h-3 fill-current" /> Stop
-            </button>
-          </div>
-        )}
-
-        <div className="flex items-end gap-2">
-          {/* Image button */}
-          {mode === 'text' && (
-            <>
-              <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                className="flex-shrink-0 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
-                {uploading ? <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
-            </>
-          )}
-
-          {/* Voice toggle button */}
-          <button
-            onClick={() => {
-              if (mode === 'voice') { voice.stop(); voice.clear(); setMode('text'); }
-              else { setMode('voice'); }
-            }}
-            className={`flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
-              mode === 'voice'
-                ? 'bg-red-500/10 border-red-500/20 text-red-500'
-                : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'
-            }`}
-          >
-            {mode === 'voice' ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </button>
-
-          {mode === 'voice' ? (
-            /* Voice mode controls */
-            <div className="flex-1 flex items-center gap-2">
-              {!voice.recording && !voice.blobUrl && (
-                <button onClick={voice.start}
-                  className="flex-1 flex items-center justify-center gap-2 h-10 rounded-2xl border border-red-500/30 bg-red-500/5 text-red-500 text-sm font-medium hover:bg-red-500/10 transition-colors">
-                  <Mic className="w-4 h-4" /> Hold to record
+        {/* Guest prompt — shown instead of text input */}
+        {!user ? (
+          <div className="flex items-center justify-between gap-3 py-1">
+            <p className="text-sm text-muted-foreground">Join the conversation —</p>
+            <div className="flex gap-2">
+              <a href="/login">
+                <button className="h-8 px-4 text-sm font-medium rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
+                  Login
                 </button>
-              )}
-              {voice.recording && (
-                <button onClick={voice.stop}
-                  className="flex-1 flex items-center justify-center gap-2 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium">
-                  <Square className="w-4 h-4 fill-current" /> Stop recording
+              </a>
+              <a href="/register">
+                <button className="h-8 px-4 text-sm font-semibold rounded-full transition-colors"
+                  style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  Join Now
                 </button>
-              )}
-              {voice.blobUrl && !voice.recording && (
-                <span className="flex-1 text-xs text-muted-foreground px-3">Voice note ready — send or discard</span>
-              )}
+              </a>
             </div>
-          ) : (
-            /* Text mode */
+          </div>
+        ) : (
+          <div className="flex items-end gap-2">
+            {/* Text input */}
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
@@ -895,23 +840,21 @@ export default function ThreadPage() {
                 e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
               }}
             />
-          )}
-
-          {/* Send */}
-          <button
-            onClick={() => postMut.mutate()}
-            disabled={postMut.isPending || !text.trim()}
-            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
-            style={{ background: 'hsl(222 47% 18%)' }}
-          >
-            {postMut.isPending
-              ? <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              : <Send className="w-4 h-4" style={{ color: 'hsl(43 74% 66%)' }} />
-            }
-          </button>
-        </div>
-      </div>
-    </>
+            {/* Send */}
+            <button
+              onClick={() => postMut.mutate()}
+              disabled={postMut.isPending || !text.trim()}
+              className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
+              style={{ background: 'hsl(222 47% 18%)' }}
+            >
+              {postMut.isPending
+                ? <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                : <Send className="w-4 h-4" style={{ color: 'hsl(43 74% 66%)' }} />
+              }
+            </button>
+          </div>
+        )}
+      </div>    </>
   );
 }
 
