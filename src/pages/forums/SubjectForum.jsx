@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { useLiveAgo } from '@/hooks/useLiveAgo';
 
 const STATUS_BADGE = {
   open:     { label: 'Open',     cls: 'bg-green-500/10 text-green-600 border-green-500/20'  },
@@ -73,9 +73,7 @@ async function shareWithWatermark({ imageUrl, title, text, url }) {
 /* ── Thread card ─────────────────────────────────────────────────────────── */
 function ThreadCard({ thread, subjectSlug, navigate, user, onShare }) {
   const badge = STATUS_BADGE[thread.thread_status] || STATUS_BADGE.open;
-  const ago   = thread.last_activity_at || thread.updated_date
-    ? formatDistanceToNow(new Date(thread.last_activity_at || thread.updated_date), { addSuffix: true })
-    : '';
+  const ago = useLiveAgo(thread.last_activity_at || thread.updated_date);
 
   const isUnread = !thread.last_seen_by?.includes(user?.id);
 
