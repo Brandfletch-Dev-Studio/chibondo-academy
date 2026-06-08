@@ -199,13 +199,8 @@ export default function LessonPage() {
     queryKey: ['subjectLessons', lesson?.subject_id],
     queryFn: () => base44.entities.Lesson.filter({ subject_id: lesson.subject_id }, 'order', 200),
     enabled: !!lesson?.subject_id,
-    onSuccess: (lessons) => {
-      // Auto-expand the topic containing the current lesson
-      const currentLesson = lessons.find(l => l.id === lessonId);
-      if (currentLesson?.topic_id) {
-        setExpandedTopics(prev => ({ ...prev, [currentLesson.topic_id]: true }));
-      }
-    },
+    // FIX 12: removed deprecated onSuccess (no-op in TanStack Query v5)
+    // Topic auto-expand is handled by the useEffect below (watches lesson?.topic_id)
   });
 
   const { data: topics = [] } = useQuery({
@@ -272,6 +267,30 @@ export default function LessonPage() {
     },
     onSuccess: ({ pct, completed }) => {
       queryClient.invalidateQueries({ queryKey: ['enrollment'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+
+      // FIX 13b: update learning hours + streak on user record
+      // estimated_minutes defaults to 15 if not set
+      const lessonMins = lesson?.estimated_minutes || 15;
+      const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      base44.auth.me().then(latestUser => {
+        const lastDate  = latestUser?.last_study_date || '';
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const newStreak = lastDate === todayStr
+          ? (latestUser?.study_streak || 0)                    // already logged today
+          : lastDate === yesterday
+            ? (latestUser?.study_streak || 0) + 1              // consecutive day
+            : 1;                                               // streak broken
+        const newHours = parseFloat(
+          ((latestUser?.total_learning_hours || 0) + lessonMins / 60).toFixed(2)
+        );
+        base44.auth.updateMe({
+          total_learning_hours: newHours,
+          study_streak:         newStreak,
+          last_study_date:      todayStr,
+        }).catch(() => {});
+      }).catch(() => {});
+
       if (pct === 100) {
         toast.success('🎉 Course completed! Well done!', { duration: 5000 });
       } else {
