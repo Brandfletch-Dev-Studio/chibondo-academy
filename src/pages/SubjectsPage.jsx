@@ -3,6 +3,7 @@ import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { BookOpen, Lock, ChevronRight, Search, Users, Calendar, PlayCircle, Star } from 'lucide-react';
+import SEO from '@/components/SEO';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -66,6 +67,19 @@ export default function SubjectsPage() {
   }
 
   return (
+    <>
+      <SEO
+        title="Browse All Courses — Chibondo Academy"
+        description="Explore MSCE subjects including Biology, Chemistry, Physics, Mathematics, English and more. Expert-led courses for Form 3 and Form 4 students in Malawi."
+        canonical={`${window.location.origin}/subjects`}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Chibondo Academy Courses",
+          "description": "MSCE subject courses for Malawian secondary school students",
+          "url": `${window.location.origin}/subjects`
+        }}
+      />
     <div className="space-y-6">
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
@@ -251,5 +265,6 @@ export default function SubjectsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
