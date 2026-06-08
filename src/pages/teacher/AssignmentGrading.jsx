@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function AssignmentGrading() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [marks, setMarks] = useState('');
