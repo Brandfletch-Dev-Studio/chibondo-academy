@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
+import { formatAgo } from '@/hooks/useLiveAgo';
 import {
   BookOpen, Play, MessageSquare, ChevronRight, ArrowRight,
   CheckCircle, Zap, Crown, Award, GraduationCap,
@@ -65,37 +66,59 @@ export default function LandingPage() {
     staleTime: 5 * 60_000,
   });
 
-  /* Active forums: latest threads per subject for last-activity calc */
+  /* Forum activity — top-level threads only, sorted by last activity */
   const { data: recentThreads = [] } = useQuery({
     queryKey: ['landing-forum-activity'],
     queryFn: async () => {
-      try { return await base44.entities.Discussion.filter({ status: 'active' }, '-created_date', 50); }
+      try { return await base44.entities.Discussion.filter({ status: 'active' }, '-updated_date', 100); }
       catch { return []; }
     },
     staleTime: 2 * 60_000,
   });
 
-  // Build per-forum activity: { subjectId → { lastActivity, threadCount } }
-  const forumActivity = React.useMemo(() => {
+  // Build per-forum stats
+  const forumStats = React.useMemo(() => {
     const map = {};
     recentThreads.forEach(t => {
-      if (!t.subject_id || t.parent_id) return; // only top-level threads
-      if (!map[t.subject_id]) map[t.subject_id] = { lastActivity: t.created_date, threadCount: 0 };
-      map[t.subject_id].threadCount += 1;
-      if (new Date(t.created_date) > new Date(map[t.subject_id].lastActivity)) {
-        map[t.subject_id].lastActivity = t.created_date;
+      if (!t.subject_id) return;
+      if (!map[t.subject_id]) {
+        map[t.subject_id] = {
+          threadCount: 0,
+          postCount: 0,
+          lastActivity: null,
+          latestThreadTitle: null,
+          latestThreadSlug: null,
+          latestThreadId: null,
+        };
       }
+      const s = map[t.subject_id];
+      // top-level threads
+      if (!t.parent_id) {
+        s.threadCount += 1;
+        const ts = t.updated_date || t.created_date;
+        if (!s.lastActivity || new Date(ts) > new Date(s.lastActivity)) {
+          s.lastActivity = ts;
+          s.latestThreadTitle = t.title;
+          s.latestThreadSlug  = t.slug || t.id;
+          s.latestThreadId    = t.id;
+        }
+      }
+      // replies count toward posts
+      s.postCount += 1 + (t.reply_count || 0);
     });
     return map;
   }, [recentThreads]);
 
-  // Sort subjects by last activity, take top 3 active ones
+  // Sort subjects by recency of last activity, top 3
   const activeForums = React.useMemo(() => {
     return subjects
-      .filter(s => forumActivity[s.id])
-      .sort((a, b) => new Date(forumActivity[b.id]?.lastActivity || 0) - new Date(forumActivity[a.id]?.lastActivity || 0))
+      .filter(s => forumStats[s.id])
+      .sort((a, b) =>
+        new Date(forumStats[b.id]?.lastActivity || 0) -
+        new Date(forumStats[a.id]?.lastActivity || 0)
+      )
       .slice(0, 3);
-  }, [subjects, forumActivity]);
+  }, [subjects, forumStats]);
 
   const fmt = (n) => Number(n).toLocaleString('en-MW');
   const plans = [
@@ -251,29 +274,59 @@ export default function LandingPage() {
 
           <div className="space-y-2">
             {activeForums.length > 0 ? activeForums.map(subject => {
-              const activity = forumActivity[subject.id];
+              const stats = forumStats[subject.id];
+              const slug  = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
               return (
-                <div key={subject.id}
-                  className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-accent/40 transition-colors group">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-muted">
-                    {subjectIcon(subject.name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm group-hover:text-accent transition-colors">{subject.forum_name || subject.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
-                      <MessageSquare className="w-3 h-3" />
-                      <span>{activity.threadCount} {activity.threadCount === 1 ? 'thread' : 'threads'}</span>
-                      <span className="opacity-40">·</span>
-                      <span>Active {activity.lastActivity ? formatDistanceToNow(new Date(activity.lastActivity), { addSuffix: true }) : ''}</span>
+                <div key={subject.id} className="bg-card border border-border rounded-xl overflow-hidden hover:border-accent/40 transition-colors group">
+                  {/* Entire card → forum page */}
+                  <Link to={`/forums/${slug}`} className="flex items-start gap-4 p-4 block">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-muted mt-0.5">
+                      {subjectIcon(subject.name)}
                     </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm group-hover:text-accent transition-colors">
+                        {subject.forum_name || subject.name}
+                      </p>
+                      {subject.description && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{subject.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          {stats.threadCount} {stats.threadCount === 1 ? 'thread' : 'threads'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {stats.postCount} posts
+                        </span>
+                        {stats.lastActivity && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatAgo(stats.lastActivity)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors flex-shrink-0 mt-1" />
+                  </Link>
+                  {/* Latest thread → thread page */}
+                  {stats.latestThreadTitle && (
+                    <Link
+                      to={`/forums/${slug}/${stats.latestThreadSlug}`}
+                      className="flex items-center gap-2 px-4 py-2 border-t border-border/60 hover:bg-muted/40 transition-colors"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">Latest:</span>
+                      <span className="text-[11px] text-muted-foreground truncate hover:text-accent transition-colors">
+                        {stats.latestThreadTitle}
+                      </span>
+                    </Link>
+                  )}
                 </div>
               );
             }) : (
-              /* Skeleton while loading */
               [1,2,3].map(i => (
-                <div key={i} className="h-16 bg-card border border-border rounded-xl animate-pulse" />
+                <div key={i} className="h-20 bg-card border border-border rounded-xl animate-pulse" />
               ))
             )}
 
