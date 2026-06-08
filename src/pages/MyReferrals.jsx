@@ -163,7 +163,7 @@ ${referralLink}`;
 
 function PayoutsTab({ referrals, commissionSettings }) {
   const queryClient = useQueryClient();
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const [requestDialog, setRequestDialog] = useState(false);
   const [payoutData, setPayoutData] = useState({ amount: '', method: 'airtel_money', details: '' });
 
@@ -276,7 +276,7 @@ function PayoutsTab({ referrals, commissionSettings }) {
 }
 
 function AffiliateSettings() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [customCode, setCustomCode] = useState(() => user?.referral_code || '');
   const [notifications, setNotifications] = useState(true);
@@ -408,7 +408,7 @@ function AffiliateSettings() {
 }
 
 function Leaderboard() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const { data: allReferrals = [] } = useQuery({ queryKey: ['all-referrals-leaderboard'], queryFn: () => base44.entities.Referral.list('-created_date', 500) });
 
   const leaderboard = Object.values(allReferrals.reduce((acc, r) => {
@@ -461,7 +461,7 @@ function Leaderboard() {
 }
 
 export default function MyReferrals() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
   const queryClient = useQueryClient();
 
