@@ -3,14 +3,13 @@ import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { BookOpen, Lock, ChevronRight, Search, Users, Calendar, PlayCircle, Star } from 'lucide-react';
-import SEO from '@/components/SEO';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 
 export default function SubjectsPage() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const [selectedForm, setSelectedForm] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -30,13 +29,27 @@ export default function SubjectsPage() {
     enabled: !!user?.id,
   });
 
-  // FIX 8: Use cached counts already stored on the Subject entity
-  // total_lessons and enrollment_count are maintained by the platform — no need for 2000-row scans
+  // Fetch all lessons to compute real per-subject counts
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ['allLessonsCount'],
+    queryFn: () => base44.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000),
+  });
+
+  // Fetch all enrollments to count students per subject
+  const { data: allEnrollments = [] } = useQuery({
+    queryKey: ['allEnrollmentsCounts'],
+    queryFn: () => base44.entities.Enrollment.list('created_date', 2000),
+  });
+
+  // Build maps
   const lessonCountBySubject = {};
+  allLessons.forEach(l => {
+    lessonCountBySubject[l.subject_id] = (lessonCountBySubject[l.subject_id] || 0) + 1;
+  });
+
   const studentCountBySubject = {};
-  subjects.forEach(s => {
-    lessonCountBySubject[s.id] = s.total_lessons || 0;
-    studentCountBySubject[s.id] = s.enrollment_count || 0;
+  allEnrollments.forEach(e => {
+    studentCountBySubject[e.subject_id] = (studentCountBySubject[e.subject_id] || 0) + 1;
   });
 
   const enrollmentMap = {};
@@ -67,19 +80,6 @@ export default function SubjectsPage() {
   }
 
   return (
-    <>
-      <SEO
-        title="Browse All Courses — Chibondo Academy"
-        description="Explore MSCE subjects including Biology, Chemistry, Physics, Mathematics, English and more. Expert-led courses for Form 3 and Form 4 students in Malawi."
-        canonical={`${window.location.origin}/subjects`}
-        schema={{
-          "@context": "https://schema.org",
-          "@type": "ItemList",
-          "name": "Chibondo Academy Courses",
-          "description": "MSCE subject courses for Malawian secondary school students",
-          "url": `${window.location.origin}/subjects`
-        }}
-      />
     <div className="space-y-6">
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
@@ -265,6 +265,5 @@ export default function SubjectsPage() {
         </div>
       )}
     </div>
-    </>
   );
 }
