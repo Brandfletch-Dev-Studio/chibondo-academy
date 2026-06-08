@@ -183,27 +183,7 @@ const AppRoutes = () => {
             <Route path="profile" element={<AffiliateProfile />} />
           </Route>
 
-          {/* ── Affiliate Program ── */}
-          <Route path="/affiliate" element={<AffiliateLayout />}>
-            <Route index element={<AffiliateDashboard />} />
-            <Route path="links" element={<AffiliateLinks />} />
-            <Route path="referrals" element={<AffiliateReferrals />} />
-            <Route path="commissions" element={<AffiliateCommissions />} />
-            <Route path="payouts" element={<AffiliatePayouts />} />
-            <Route path="materials" element={<AffiliateMaterials />} />
-            <Route path="profile" element={<AffiliateProfile />} />
-          </Route>
 
-          {/* ── Affiliate Program ── */}
-          <Route path="/affiliate" element={<AffiliateLayout />}>
-            <Route index element={<AffiliateDashboard />} />
-            <Route path="links" element={<AffiliateLinks />} />
-            <Route path="referrals" element={<AffiliateReferrals />} />
-            <Route path="commissions" element={<AffiliateCommissions />} />
-            <Route path="payouts" element={<AffiliatePayouts />} />
-            <Route path="materials" element={<AffiliateMaterials />} />
-            <Route path="profile" element={<AffiliateProfile />} />
-          </Route>
           <Route path="/settings" element={<StudentSettings />} />
 
           {/* Teacher */}
