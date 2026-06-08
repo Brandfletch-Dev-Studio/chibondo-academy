@@ -19,7 +19,7 @@ const NAV = [
 ];
 
 export default function AffiliateLayout() {
-  const outletCtx = useOutletContext();
+  const outletCtx = useOutletContext() || {};
   const { user, notifications } = outletCtx || {};
 
   const { data: settingsData = [] } = useQuery({
