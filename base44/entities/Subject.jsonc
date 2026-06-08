@@ -2,44 +2,137 @@
   "name": "Subject",
   "type": "object",
   "properties": {
-    "name":              { "type": "string" },
-    "slug":              { "type": "string" },
-    "forum_name":        { "type": "string", "description": "Custom forum display name — falls back to subject name if not set" },
-    "description":       { "type": "string" },
-    "cover_image":       { "type": "string" },
-    "form_id":           { "type": "string", "description": "ID of the AcademicForm" },
-    "form_name":         { "type": "string" },
-    "teacher_id":        { "type": "string", "description": "Primary assigned teacher user ID" },
-    "teacher_name":      { "type": "string" },
-    "tutor_profile_id":  { "type": "string", "description": "ID of the linked TutorProfile for public display" },
-    "status":            { "type": "string", "enum": ["published","draft","archived"], "default": "draft" },
-    "pending_approval":  { "type": "boolean", "default": false, "description": "True when course was proposed by a tutor and awaits admin approval" },
-    "is_premium":        { "type": "boolean", "default": true },
-    "total_topics":      { "type": "number",  "default": 0 },
-    "total_lessons":     { "type": "number",  "default": 0 },
-    "order":             { "type": "number",  "default": 0 },
-    "enrollment_count":  { "type": "number",  "default": 0, "description": "Cached count incremented on enrollment" },
-    "forum_member_count":{ "type": "number",  "default": 0, "description": "Cached count of active forum members" }
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "forum_name": {
+      "type": "string",
+      "description": "Custom forum display name \u2014 falls back to subject name if not set"
+    },
+    "description": {
+      "type": "string"
+    },
+    "cover_image": {
+      "type": "string"
+    },
+    "form_id": {
+      "type": "string",
+      "description": "ID of the AcademicForm"
+    },
+    "form_name": {
+      "type": "string"
+    },
+    "teacher_id": {
+      "type": "string",
+      "description": "Primary assigned teacher user ID"
+    },
+    "teacher_name": {
+      "type": "string"
+    },
+    "tutor_profile_id": {
+      "type": "string",
+      "description": "ID of the linked TutorProfile for public display"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "draft",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "pending_approval": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when course was proposed by a tutor and awaits admin approval"
+    },
+    "is_premium": {
+      "type": "boolean",
+      "default": true
+    },
+    "total_topics": {
+      "type": "number",
+      "default": 0
+    },
+    "total_lessons": {
+      "type": "number",
+      "default": 0
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    },
+    "enrollment_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cached count incremented on enrollment"
+    },
+    "forum_member_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cached count of active forum members"
+    }
   },
-  "required": ["name", "form_id"],
+  "required": [
+    "name",
+    "form_id"
+  ],
   "rls": {
     "create": {
       "$or": [
-        { "user_condition": { "role": "teacher" } },
-        { "user_condition": { "role": "admin" } }
+        {
+          "user_condition": {
+            "role": "teacher"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
       ]
     },
-    "read": { "data.status": "published" },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.teacher_id": "{{user.id}}"
+        },
+        {
+          "data.status": "published"
+        }
+      ]
+    },
     "update": {
       "$or": [
-        { "data.teacher_id": "{{user.id}}" },
-        { "user_condition": { "role": "admin" } }
+        {
+          "data.teacher_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
       ]
     },
     "delete": {
       "$or": [
-        { "data.teacher_id": "{{user.id}}" },
-        { "user_condition": { "role": "admin" } }
+        {
+          "data.teacher_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
       ]
     }
   }
