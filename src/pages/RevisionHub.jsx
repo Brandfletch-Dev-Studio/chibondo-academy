@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useOutletContext, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Library, FileText, Download, Filter, BookOpen } from 'lucide-react';
+import { Library, FileText, Download, Filter, BookOpen, Lock, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SEO from '@/components/SEO';
 
@@ -23,8 +25,24 @@ const typeColors = {
 };
 
 export default function RevisionHub() {
+  const { user } = useOutletContext();
   const [typeFilter, setTypeFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
+
+  // FIX 10: subscription gate — revision resources are premium content
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
+      const sub = results[0];
+      if (!sub) return null;
+      if (sub.end_date && new Date(sub.end_date) < new Date()) return null;
+      return sub;
+    },
+    enabled: !!user?.id,
+  });
+  const hasPaidFees = !!subscription;
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['revisionResources'],
@@ -46,7 +64,7 @@ export default function RevisionHub() {
     <>
       <SEO 
         title="MSCE Revision Hub"
-        description="Free MSCE revision resources - past papers, model answers, revision notes, and exam tips for Form 3 and Form 4 students in Malawi."
+        description="MSCE revision resources - past papers, model answers, revision notes, and exam tips for Form 3 and Form 4 students in Malawi."
         canonical={`${window.location.origin}/revision`}
       />
       <div className="space-y-6">
@@ -55,7 +73,31 @@ export default function RevisionHub() {
         <p className="text-sm text-muted-foreground mt-1">Past papers, model answers, and exam preparation resources</p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      {/* FIX 10: Paywall gate — premium content requires active subscription */}
+      {!hasPaidFees && (
+        <div className="rounded-2xl border-2 border-accent/40 p-6 sm:p-8 text-center"
+          style={{ background: 'linear-gradient(135deg, hsl(222 47% 14%), hsl(43 74% 52% / 0.08))' }}>
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <GraduationCap className="w-8 h-8 text-primary" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-accent flex items-center justify-center">
+                <Lock className="w-3 h-3" style={{ color: 'hsl(222 47% 11%)' }} />
+              </div>
+            </div>
+          </div>
+          <h3 className="text-lg font-display font-bold mb-2">Pay Fees to Access Revision Resources</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+            Past papers, model answers, revision notes, and mock exams are available to students who have paid their school fees.
+          </p>
+          <Link to="/subscription">
+            <Button className="px-8 font-semibold" size="lg">Pay Fees Now</Button>
+          </Link>
+        </div>
+      )}
+
+      {hasPaidFees && <div className="flex flex-wrap gap-3">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
@@ -109,7 +151,7 @@ export default function RevisionHub() {
           ))}
         </div>
       )}
-    </div>
+    </div>}
     </>
   );
 }
