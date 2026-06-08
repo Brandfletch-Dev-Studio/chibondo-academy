@@ -137,7 +137,7 @@ function PhotoUploader({ value, onChange }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function MyTutorProfile() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const qc = useQueryClient();
   const [saveError, setSaveError] = useState(null);
 
