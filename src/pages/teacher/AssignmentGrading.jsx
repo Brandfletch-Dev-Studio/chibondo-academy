@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function AssignmentGrading() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [marks, setMarks] = useState('');
@@ -21,12 +21,12 @@ export default function AssignmentGrading() {
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['teacherAssignments'],
-    queryFn: () => base44.entities.Assignment.filter({},'-created_date', 100),
+    queryFn: () => base44.entities.Assignment.list('-created_date', 100),
   });
 
   const { data: submissions = [] } = useQuery({
     queryKey: ['allSubmissions'],
-    queryFn: () => base44.entities.AssignmentSubmission.filter({},'-created_date', 200),
+    queryFn: () => base44.entities.AssignmentSubmission.list('-created_date', 200),
   });
 
   const gradeMutation = useMutation({
