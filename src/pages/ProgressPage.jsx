@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Trophy, Clock, Flame, Target, TrendingUp } from 'lucide-react';
 
 export default function ProgressPage() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', user?.id],
