@@ -156,11 +156,11 @@ const AppRoutes = () => {
         <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="/lesson/:lessonId" element={<LessonPage />} />
 
         {/* ── AUTHENTICATED-ONLY ROUTES (redirect to login if guest) ── */}
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/dashboard" element={<StudentDashboard />} />
-          <Route path="/lesson/:lessonId" element={<LessonPage />} />
           <Route path="/revision" element={<RevisionHub />} />
           <Route path="/my-quizzes" element={<MyQuizzes />} />
           <Route path="/quiz/:quizId" element={<QuizPage />} />
