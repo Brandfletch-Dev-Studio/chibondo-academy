@@ -60,6 +60,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "teacher"
+          }
+        },
+        {
           "data.student_id": "{{user.id}}"
         }
       ]
