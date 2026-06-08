@@ -125,7 +125,7 @@ function TutorCard({ tutor, courseCount, studentCount = 0 }) {
 
 /* ── Main ───────────────────────────────────────────────────────────────────── */
 export default function TutorsPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const [search, setSearch] = useState('');
 
   const { data: tutors = [], isLoading } = useQuery({
