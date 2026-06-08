@@ -182,7 +182,7 @@ export default function SubjectForum() {
     sessionStorage.setItem('auth_return_to', returnTo);
     base44.auth.redirectToLogin(window.location.origin + returnTo);
   };
-  const { user }           = useOutletContext();
+  const { user }           = useOutletContext() || {};
   const qc                 = useQueryClient();
   const [search, setSearch]       = useState('');
   const [filter, setFilter]       = useState('latest');
