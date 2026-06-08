@@ -25,7 +25,7 @@ const typeColors = {
 };
 
 export default function RevisionHub() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const [typeFilter, setTypeFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
 
