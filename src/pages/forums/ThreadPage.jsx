@@ -18,6 +18,21 @@ function markForumRead(subjectSlug) {
   if (subjectSlug) localStorage.setItem(`forum_last_visit_${subjectSlug}`, new Date().toISOString());
 }
 
+/* ── Live aging timestamp — ticks every 30s so "2 min ago" stays accurate ── */
+function useLiveAgo(isoDate) {
+  const [label, setLabel] = React.useState(() =>
+    isoDate ? formatDistanceToNow(new Date(isoDate), { addSuffix: true }) : ''
+  );
+  React.useEffect(() => {
+    if (!isoDate) return;
+    const tick = () => setLabel(formatDistanceToNow(new Date(isoDate), { addSuffix: true }));
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [isoDate]);
+  return label;
+}
+
 /* ═══════════════════════════════════════════════════════════
    AVATAR — shows photo if available, initials otherwise
 ═══════════════════════════════════════════════════════════ */
@@ -90,8 +105,7 @@ function ReplyBubble({
 }) {
   const [menu, setMenu] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
-  const ago = reply.created_date
-    ? formatDistanceToNow(new Date(reply.created_date), { addSuffix: true }) : '';
+  const ago = useLiveAgo(reply.created_date);
   const canDelete = isAuthor || isTeacherOrAdmin;
 
   // Find nested replies to this comment
@@ -379,7 +393,7 @@ export default function ThreadPage() {
     );
   }
 
-  const ago = thread.created_date ? formatDistanceToNow(new Date(thread.created_date), { addSuffix: true }) : '';
+  const ago = useLiveAgo(thread?.created_date);
   const fmt = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 
   return (
