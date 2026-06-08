@@ -328,7 +328,7 @@ function PostCard({ post, replies, user, onLike, onDelete, onReply }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function DiscussionsPage() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [allDiscussions, setAllDiscussions] = useState([]);
   const [loading, setLoading] = useState(true);
