@@ -16,7 +16,7 @@ const TYPE_OPTIONS = [
 ];
 
 export default function TeacherNotifications() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const queryClient = useQueryClient();
 
   const [title, setTitle]       = useState('');
