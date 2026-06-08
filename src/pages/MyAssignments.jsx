@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
 export default function MyAssignments() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['assignments'],
