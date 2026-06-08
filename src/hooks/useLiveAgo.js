@@ -1,84 +1,68 @@
 import { useState, useEffect } from 'react';
 
 /**
- * useLiveAgo — authentic relative timestamps that stay accurate without page reload.
+ * WhatsApp-style timestamp formatter.
  *
- * Calculates "just now / X minutes ago / yesterday / X weeks ago" from any UTC
- * ISO timestamp and re-evaluates on a smart schedule:
+ * Rules (all times shown in viewer's LOCAL timezone):
+ *   Posted today          →  "10:45 PM"
+ *   Posted yesterday      →  "Yesterday 10:45 PM"
+ *   Posted this week      →  "Mon 10:45 PM"
+ *   Posted this year      →  "12 Jun 10:45 PM"
+ *   Older                 →  "12 Jun 2024 10:45 PM"
  *
- *   < 1 min   → ticks every  10 seconds  ("just now" → "1 minute ago")
- *   < 1 hour  → ticks every  60 seconds
- *   < 24 hrs  → ticks every   5 minutes
- *   older     → ticks every  60 minutes
- *
- * The viewer's local timezone is used automatically (JS Date handles this).
- * No hardcoded strings — every label is computed from the real DB timestamp.
- *
- * @param {string|null} isoDate  UTC ISO string from the database (created_date, updated_date, etc.)
- * @returns {string}  e.g. "just now", "3 minutes ago", "yesterday", "2 weeks ago"
+ * The timestamp is re-evaluated every minute so "Today" flips to "Yesterday"
+ * at midnight without a page reload.
  */
 
-function formatAgo(isoDate) {
+function formatWhatsApp(isoDate) {
   if (!isoDate) return '';
-  const now  = Date.now();
-  const then = new Date(isoDate).getTime();
-  if (isNaN(then)) return '';
-  const diffMs  = now - then;
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr  = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr  / 24);
-  const diffWk  = Math.floor(diffDay / 7);
+  const then = new Date(isoDate);
+  if (isNaN(then.getTime())) return '';
 
-  if (diffSec < 30)  return 'just now';
-  if (diffSec < 90)  return '1 minute ago';
-  if (diffMin < 60)  return `${diffMin} minutes ago`;
-  if (diffMin < 90)  return '1 hour ago';
-  if (diffHr  < 24)  return `${diffHr} hours ago`;
-  if (diffDay === 1) return 'yesterday';
-  if (diffDay <  7)  return `${diffDay} days ago`;
-  if (diffWk  === 1) return '1 week ago';
-  if (diffWk  <  5)  return `${diffWk} weeks ago`;
+  const now   = new Date();
+  const time  = then.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // Older than ~1 month — show a real date in the viewer's locale
-  return new Date(isoDate).toLocaleDateString(undefined, {
-    day: 'numeric', month: 'short', year: diffDay > 365 ? 'numeric' : undefined,
-  });
-}
+  // Midnight of today in local time
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thenStart  = new Date(then.getFullYear(), then.getMonth(), then.getDate());
+  const diffDays   = Math.round((todayStart - thenStart) / 86_400_000);
 
-function getInterval(isoDate) {
-  if (!isoDate) return 60 * 60 * 1000;
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  if (diffMs < 60_000)          return 10_000;   // < 1 min  → every 10s
-  if (diffMs < 60 * 60_000)     return 60_000;   // < 1 hr   → every 1 min
-  if (diffMs < 24 * 60 * 60_000) return 5 * 60_000; // < 24 hr → every 5 min
-  return 60 * 60_000;                             // older    → every 1 hr
+  if (diffDays === 0) return time;                            // "10:45 PM"
+  if (diffDays === 1) return `Yesterday ${time}`;             // "Yesterday 10:45 PM"
+
+  // Within the last 6 days — show short weekday name
+  if (diffDays < 7) {
+    const day = then.toLocaleDateString([], { weekday: 'short' }); // "Mon"
+    return `${day} ${time}`;                                  // "Mon 10:45 PM"
+  }
+
+  // Same calendar year — omit year
+  if (then.getFullYear() === now.getFullYear()) {
+    const date = then.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    return `${date} ${time}`;                                 // "12 Jun 10:45 PM"
+  }
+
+  // Older — include year
+  const date = then.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${date} ${time}`;                                   // "12 Jun 2024 10:45 PM"
 }
 
 export function useLiveAgo(isoDate) {
-  const [label, setLabel] = useState(() => formatAgo(isoDate));
+  const [label, setLabel] = useState(() => formatWhatsApp(isoDate));
 
   useEffect(() => {
     if (!isoDate) return;
+    setLabel(formatWhatsApp(isoDate));
 
-    // Recompute immediately whenever the date changes
-    setLabel(formatAgo(isoDate));
-
-    let id;
-
-    function schedule() {
-      const interval = getInterval(isoDate);
-      id = setTimeout(() => {
-        setLabel(formatAgo(isoDate));
-        schedule(); // reschedule with recalculated interval
-      }, interval);
-    }
-
-    schedule();
-    return () => clearTimeout(id);
+    // Re-evaluate every minute so "Today" → "Yesterday" flips at midnight
+    const id = setInterval(() => setLabel(formatWhatsApp(isoDate)), 60_000);
+    return () => clearInterval(id);
   }, [isoDate]);
 
   return label;
 }
 
-export { formatAgo };
+// Plain utility for non-hook contexts (lists, cards)
+export function formatAgo(isoDate) {
+  return formatWhatsApp(isoDate);
+}
