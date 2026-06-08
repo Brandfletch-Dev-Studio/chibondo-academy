@@ -59,7 +59,7 @@ function SubjectRow({ subject, navigate }) {
 export default function TutorProfilePage() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
-  const { user }   = useOutletContext() || {};
+  const { user }   = useOutletContext();
   const [avatarErr, setAvatarErr] = useState(false);
   const [bioOpen, setBioOpen] = useState(false);
 
@@ -157,18 +157,8 @@ export default function TutorProfilePage() {
       <SEO
         title={`${tutor.full_name} | Chibondo Academy`}
         description={`${tutor.full_name}${tutor.professional_title ? ` — ${tutor.professional_title}` : ''}. ${tutor.tagline || ''}`}
-        canonical={`${window.location.origin}/tutors/${slug}`}
+        canonical={`https://aca.base44.app/tutors/${slug}`}
         ogImage={tutor.cover_photo || tutor.profile_photo}
-        schema={{
-          "@context": "https://schema.org",
-          "@type": "Person",
-          "name": tutor.full_name,
-          "jobTitle": tutor.professional_title || "Tutor",
-          "description": tutor.tagline || tutor.bio_plain || '',
-          "image": tutor.profile_photo || tutor.cover_photo || '',
-          "url": `${window.location.origin}/tutors/${slug}`,
-          "worksFor": { "@type": "Organization", "name": "The Chibondo Academy" }
-        }}
       />
 
       <StickyCTA isAuthenticated={isAuthenticated} isSubscribed={isSubscribed} navigate={navigate} />
