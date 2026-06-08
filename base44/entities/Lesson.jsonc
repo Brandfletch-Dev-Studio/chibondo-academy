@@ -119,6 +119,9 @@
         },
         {
           "data.is_free": true
+        },
+        {
+          "data.status": "published"
         }
       ]
     },
