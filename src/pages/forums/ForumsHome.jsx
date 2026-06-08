@@ -28,14 +28,7 @@ function getMeta(name = '') {
 
 export default function ForumsHome() {
   const navigate = useNavigate();
-  const { user } = useOutletContext() || {};
-  const isAuthenticated = !!user?.id;
-  const requireAuth = (cb) => {
-    if (isAuthenticated) { cb(); return; }
-    const returnTo = window.location.pathname + window.location.search;
-    sessionStorage.setItem('auth_return_to', returnTo);
-    base44.auth.redirectToLogin(window.location.origin + returnTo);
-  };
+  const { user } = useOutletContext();
   const [search, setSearch] = useState('');
 
   const { data: subjects = [], isLoading } = useQuery({
@@ -87,7 +80,7 @@ export default function ForumsHome() {
   // Online students — anyone whose last_seen is within the last 2 minutes
   const { data: presenceList = [] } = useQuery({
     queryKey: ['forum-presence'],
-    queryFn: async () => { try { return await base44.entities.ForumPresence.filter({}, '-last_seen', 200); } catch { return []; } },
+    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
     refetchInterval: 30_000,
     staleTime: 0,
   });
