@@ -120,7 +120,7 @@ export default function QuizBuilder() {
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['teacherQuizzes'],
-    queryFn: () => base44.entities.Quiz.list('-created_date', 100),
+    queryFn: () => base44.entities.Quiz.filter({},'-created_date', 100),
   });
 
   const saveMutation = useMutation({
