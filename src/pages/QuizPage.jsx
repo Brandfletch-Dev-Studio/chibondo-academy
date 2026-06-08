@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 export default function QuizPage() {
   const { quizId } = useParams();
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({});
