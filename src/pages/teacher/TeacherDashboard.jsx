@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function TeacherDashboard() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const [expandedSubject, setExpandedSubject] = useState(null);
 
   const { data: subjects = [] } = useQuery({
