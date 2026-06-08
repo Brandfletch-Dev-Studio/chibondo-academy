@@ -25,7 +25,8 @@ const TYPE_ICON_BG = {
 };
 
 export default function LibraryPage() {
-  const { user } = useOutletContext();
+  const ctx = useOutletContext() ?? {};
+  const { user } = ctx;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
