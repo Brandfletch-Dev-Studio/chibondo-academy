@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,7 +7,7 @@ import SEO from '@/components/SEO';
 import {
   ArrowLeft, Send, Pin, CheckCircle, MoreVertical, Trash2,
   Heart, MessageSquare, Megaphone,
-  X, Play, Pause, CornerDownRight, Share2
+  X, CornerDownRight, Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,79 +16,6 @@ import { formatDistanceToNow } from 'date-fns';
 /* ── Mark parent forum read when thread opens ──────────────────────────── */
 function markForumRead(subjectSlug) {
   if (subjectSlug) localStorage.setItem(`forum_last_visit_${subjectSlug}`, new Date().toISOString());
-}
-
-/* ── Watermarked image share / download ─────────────────────────────────── */
-async function shareOrDownloadImage(imgUrl) {
-  try {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('load')); img.src = imgUrl; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth || 800;
-    canvas.height = img.naturalHeight || 600;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    // Watermark badge
-    const fs = Math.max(12, Math.min(Math.floor(canvas.width / 28), 26));
-    ctx.font = `bold ${fs}px Arial, sans-serif`;
-    const text = '@ The Chibondo Academy';
-    const tw = ctx.measureText(text).width;
-    const pad = 10;
-    const bx = canvas.width - tw - pad * 2 - 6;
-    const by = canvas.height - fs - pad * 2 - 6;
-    // Badge bg
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.beginPath();
-    ctx.moveTo(bx + 6, by); ctx.lineTo(bx + tw + pad * 2 - 6, by);
-    ctx.quadraticCurveTo(bx + tw + pad * 2, by, bx + tw + pad * 2, by + 6);
-    ctx.lineTo(bx + tw + pad * 2, by + fs + pad * 2 - 6);
-    ctx.quadraticCurveTo(bx + tw + pad * 2, by + fs + pad * 2, bx + tw + pad * 2 - 6, by + fs + pad * 2);
-    ctx.lineTo(bx + 6, by + fs + pad * 2);
-    ctx.quadraticCurveTo(bx, by + fs + pad * 2, bx, by + fs + pad * 2 - 6);
-    ctx.lineTo(bx, by + 6); ctx.quadraticCurveTo(bx, by, bx + 6, by);
-    ctx.closePath(); ctx.fill();
-    // Text
-    ctx.fillStyle = 'rgba(255,215,100,0.96)';
-    ctx.fillText(text, bx + pad, by + fs + pad - 2);
-
-    return new Promise(res => canvas.toBlob(blob => {
-      if (!blob) { res(null); return; }
-      const file = new File([blob], 'chibondo-academy.jpg', { type: 'image/jpeg' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: 'Chibondo Academy' }).then(() => res('shared')).catch(() => res('fallback'));
-      } else {
-        res('fallback');
-      }
-    }, 'image/jpeg', 0.92));
-  } catch { return 'fallback'; }
-}
-
-async function handleImageShare(imgUrl, toastFn) {
-  const result = await shareOrDownloadImage(imgUrl);
-  if (result === 'shared') return;
-  // Fallback: download
-  try {
-    const img = new Image(); img.crossOrigin = 'anonymous';
-    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = imgUrl; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth || 800; canvas.height = img.naturalHeight || 600;
-    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const fs = Math.max(12, Math.min(Math.floor(canvas.width / 28), 26));
-    ctx.font = `bold ${fs}px Arial, sans-serif`;
-    const text = '@ The Chibondo Academy';
-    const tw = ctx.measureText(text).width; const pad = 10;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(canvas.width - tw - pad * 2 - 6, canvas.height - fs - pad * 2 - 6, tw + pad * 2, fs + pad * 2);
-    ctx.fillStyle = 'rgba(255,215,100,0.96)';
-    ctx.fillText(text, canvas.width - tw - pad - 6, canvas.height - pad - 8);
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'chibondo-academy.jpg'; a.click();
-      URL.revokeObjectURL(url);
-      toastFn?.('Image downloaded with watermark');
-    }, 'image/jpeg', 0.92);
-  } catch { toastFn?.('Could not process image'); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -131,169 +58,6 @@ function RoleBadge({ role, isTutor }) {
   if (role === 'admin')
     return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 border border-red-200">Admin</span>;
   return null; // students don't need a badge — they're the majority
-}
-
-/* ═══════════════════════════════════════════════════════════
-   VOICE NOTE PLAYER — WhatsApp-style waveform bar
-═══════════════════════════════════════════════════════════ */
-function VoicePlayer({ url, duration }) {
-  const audioRef = useRef();
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrent] = useState(0);
-
-  const toggle = () => {
-    if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); setPlaying(false); }
-    else { audioRef.current.play(); setPlaying(true); }
-  };
-
-  const fmt = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2,'0')}`;
-  };
-
-  return (
-    <div className="flex items-center gap-2.5 bg-muted/60 rounded-2xl px-3 py-2 w-full max-w-xs">
-      <audio
-        ref={audioRef}
-        src={url}
-        onTimeUpdate={e => {
-          const t = e.target.currentTime;
-          const d = e.target.duration || duration || 1;
-          setCurrent(t);
-          setProgress((t / d) * 100);
-        }}
-        onEnded={() => { setPlaying(false); setProgress(0); setCurrent(0); }}
-      />
-      <button onClick={toggle}
-        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-        style={{ background:'hsl(43 74% 52%)', color:'hsl(222 47% 11%)' }}>
-        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-      </button>
-      {/* Progress bar */}
-      <div className="flex-1 relative h-1 bg-border rounded-full overflow-hidden cursor-pointer"
-        onClick={e => {
-          if (!audioRef.current) return;
-          const rect = e.currentTarget.getBoundingClientRect();
-          const pct = (e.clientX - rect.left) / rect.width;
-          audioRef.current.currentTime = pct * (audioRef.current.duration || 0);
-        }}>
-        <div className="h-full rounded-full transition-all" style={{ width:`${progress}%`, background:'hsl(43 74% 52%)' }} />
-      </div>
-      <span className="text-[10px] text-muted-foreground flex-shrink-0 tabular-nums">
-        {playing ? fmt(currentTime) : fmt(duration || 0)}
-      </span>
-      <Mic className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   VOICE RECORDER — records and returns blob URL
-═══════════════════════════════════════════════════════════ */
-function useVoiceRecorder() {
-  const [recording, setRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [blob, setBlob] = useState(null);
-  const [blobUrl, setBlobUrl] = useState(null);
-  // Use refs for duration so it survives async onstop callback
-  const durationRef = useRef(0);
-  const mediaRef = useRef(null);
-  const streamRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef = useRef(null);
-
-  // Always clear the timer safely
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  const start = useCallback(async () => {
-    // Don't start a second recording if already recording
-    if (mediaRef.current) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      // Pick a supported mimeType
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : '';
-
-      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-      chunksRef.current = [];
-
-      mr.ondataavailable = e => {
-        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mr.onstop = () => {
-        // Build blob from all chunks
-        const type = mimeType || 'audio/webm';
-        const b = new Blob(chunksRef.current, { type });
-        setBlob(b);
-        setBlobUrl(URL.createObjectURL(b));
-        // Stop all mic tracks
-        streamRef.current?.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-        mediaRef.current = null;
-      };
-
-      mr.start(100); // collect data every 100ms — ensures chunks arrive reliably
-      mediaRef.current = mr;
-      setRecording(true);
-      setSeconds(0);
-      durationRef.current = 0;
-
-      // Start timer — only one at a time
-      clearTimer();
-      timerRef.current = setInterval(() => {
-        durationRef.current += 1;
-        setSeconds(s => s + 1);
-      }, 1000);
-
-    } catch (err) {
-      mediaRef.current = null;
-      toast.error('Microphone access denied. Please allow microphone in your browser settings.');
-    }
-  }, [clearTimer]);
-
-  const stop = useCallback(() => {
-    // Stop timer FIRST before anything async
-    clearTimer();
-    setRecording(false);
-    // Then stop MediaRecorder — triggers onstop async
-    if (mediaRef.current && mediaRef.current.state !== 'inactive') {
-      mediaRef.current.stop();
-    } else {
-      mediaRef.current = null;
-    }
-  }, [clearTimer]);
-
-  const clear = useCallback(() => {
-    clearTimer();
-    setRecording(false);
-    setBlob(null);
-    setBlobUrl(null);
-    setSeconds(0);
-    durationRef.current = 0;
-    if (mediaRef.current) {
-      try { mediaRef.current.stop(); } catch(_) {}
-      mediaRef.current = null;
-    }
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-  }, [clearTimer]);
-
-  // Expose durationRef so upload can read the final duration even after clear
-  return { recording, seconds, blob, blobUrl, durationRef, start, stop, clear };
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -400,24 +164,8 @@ function ReplyBubble({
             } : {}}
           >
             {reply.content && <p>{reply.content}</p>}
-            {reply.image_url && (
-              <div className="mt-2 relative group inline-block max-w-full">
-                <img src={reply.image_url} alt="" className="rounded-xl max-w-full max-h-52 object-contain" />
-                <button
-                  onClick={() => handleImageShare(reply.image_url, toast.success)}
-                  className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
-                  style={{ background:'rgba(0,0,0,0.55)', color:'white' }}
-                  title="Share / Download"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-            {reply.voice_note_url && (
-              <div className="mt-2">
-                <VoicePlayer url={reply.voice_note_url} duration={reply.voice_note_duration || 0} />
-              </div>
-            )}
+
+
           </div>
 
           {/* Action row */}
@@ -464,8 +212,6 @@ export default function ThreadPage() {
   const bottomRef = useRef();
   const [text, setText]   = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, name }
-  const voice = useVoiceRecorder();
-  const [uploadingVoice, setUploadingVoice] = useState(false);
 
   const isTeacherOrAdmin = user?.role === 'teacher' || user?.role === 'admin';
 
@@ -634,7 +380,6 @@ export default function ThreadPage() {
   }
 
   const ago = thread.created_date ? formatDistanceToNow(new Date(thread.created_date), { addSuffix: true }) : '';
-  const isRecordingAndUploading = voice.recording || uploadingVoice;
   const fmt = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 
   return (
@@ -718,24 +463,8 @@ export default function ThreadPage() {
 
           {/* Content */}
           <div className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{thread.content}</div>
-          {thread.image_url && (
-            <div className="mt-3 relative group inline-block max-w-full">
-              <img src={thread.image_url} alt="" className="rounded-xl max-w-full max-h-72 object-contain" />
-              <button
-                onClick={() => handleImageShare(thread.image_url, toast.success)}
-                className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
-                style={{ background:'rgba(0,0,0,0.55)', color:'white' }}
-                title="Share / Download"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          {thread.voice_note_url && (
-            <div className="mt-3">
-              <VoicePlayer url={thread.voice_note_url} duration={thread.voice_note_duration || 0} />
-            </div>
-          )}
+
+
 
           {/* Tags */}
           {thread.tags?.length > 0 && (
