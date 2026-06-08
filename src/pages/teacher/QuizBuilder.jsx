@@ -111,7 +111,7 @@ function QuestionEditor({ question, onChange, onDelete }) {
 }
 
 export default function QuizBuilder() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState(null);
