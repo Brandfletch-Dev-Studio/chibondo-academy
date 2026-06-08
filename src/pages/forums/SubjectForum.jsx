@@ -7,8 +7,7 @@ import SEO from '@/components/SEO';
 import {
   MessageSquare, Plus, ArrowLeft, Pin, CheckCircle,
   Clock, ChevronRight, TrendingUp, Search,
-  Megaphone, Users, Share2, LogIn, LogOut,
-  Settings, Trash2, Pencil, X, Download, Link as LinkIcon
+  Megaphone, Users, Share2, Settings, Trash2, Pencil, X, LogIn, LogOut
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
