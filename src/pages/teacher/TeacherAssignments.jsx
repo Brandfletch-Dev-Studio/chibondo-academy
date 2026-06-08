@@ -43,7 +43,7 @@ export default function TeacherAssignments() {
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['teacherAssignments'],
-    queryFn: () => base44.entities.Assignment.list('-created_date', 100),
+    queryFn: () => base44.entities.Assignment.filter({},'-created_date', 100),
   });
 
   const { data: subjects = [] } = useQuery({
