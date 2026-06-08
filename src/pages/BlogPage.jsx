@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useOutletContext } from 'react-router-dom';
 import { BookOpen, Tag, Clock, Search, User, ChevronRight, TrendingUp, Newspaper, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -101,6 +101,8 @@ function PostCard({ post, featured = false }) {
 }
 
 export default function BlogPage() {
+  const { user } = useOutletContext() || {};
+  const isAuthenticated = !!user?.id;
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || 'All');
