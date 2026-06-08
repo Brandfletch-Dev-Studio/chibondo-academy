@@ -88,7 +88,7 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
 }
 
 export default function AffiliateMaterials() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const isAdmin = user?.role === 'admin';
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
