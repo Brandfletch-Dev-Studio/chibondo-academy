@@ -148,7 +148,7 @@ function SidebarLesson({ lesson, currentLessonId, completed, locked }) {
 
   return (
     <Link
-      to={locked ? '#' : `/lesson/${lesson.id}`}
+      to={`/lesson/${lesson.id}`}
       className={cn(
         'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs transition-all group',
         isActive ? 'bg-primary text-primary-foreground' : locked
@@ -239,8 +239,9 @@ export default function LessonPage() {
 
   const hasPaidFees = !!subscription;
 
-  // Every lesson is locked unless student has active subscription
-  const isLessonLocked = () => !hasPaidFees;
+  // Lessons are only locked for authenticated users who haven't paid fees.
+  // Guests can view all lessons freely (CTA shown in-page instead).
+  const isLessonLocked = () => !!user && !hasPaidFees;
 
   const markCompleteMutation = useMutation({
     mutationFn: async () => {
@@ -316,9 +317,9 @@ export default function LessonPage() {
     );
   }
 
-  // ── HARD GATE: block direct access if no active subscription ──────────────
-  const dataLoaded = subscription !== undefined;
-  if (dataLoaded && isLessonLocked()) {
+  // ── HARD GATE: only for authenticated users with no active subscription ──────
+  const dataLoaded = subscription !== undefined || !user;
+  if (user && dataLoaded && isLessonLocked()) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -438,7 +439,7 @@ export default function LessonPage() {
                 <Clock className="w-3 h-3" />{lesson.estimated_minutes}m
               </span>
             )}
-            {enrollment && (
+            {user && enrollment && (
               <Button
                 onClick={() => markCompleteMutation.mutate()}
                 variant={isCompleted ? 'secondary' : 'default'}
@@ -553,6 +554,36 @@ export default function LessonPage() {
                 <LessonDiscussion lessonId={lessonId} user={user} subjectId={lesson.subject_id} />
               </TabsContent>
             </Tabs>
+
+            {/* Guest CTA — shown below lesson content for unauthenticated visitors */}
+            {!user && (
+              <div className="rounded-2xl p-6 text-center space-y-4"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(222 47% 13%) 0%, hsl(222 47% 16%) 100%)',
+                  border: '1px solid hsl(43 74% 52% / 0.3)',
+                  boxShadow: '0 0 40px hsl(43 74% 52% / 0.06)',
+                }}>
+                <div>
+                  <h3 className="text-base font-semibold text-white mb-1">Enjoying this lesson?</h3>
+                  <p className="text-sm" style={{ color: 'hsl(215 20% 65%)' }}>
+                    Create a free account to enrol, track your progress across all subjects, and unlock quizzes, assignments and more.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link to="/register">
+                    <Button size="lg" className="w-full sm:w-auto h-11 text-sm font-semibold px-8"
+                      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                      Join Now — It's Free
+                    </Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto h-11 text-sm border-sidebar-border text-sidebar-foreground hover:text-white px-8">
+                      Login
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {/* Navigation */}
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
