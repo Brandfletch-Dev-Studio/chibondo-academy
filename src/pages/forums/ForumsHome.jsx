@@ -28,7 +28,7 @@ function getMeta(name = '') {
 
 export default function ForumsHome() {
   const navigate = useNavigate();
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const isAuthenticated = !!user?.id;
   const requireAuth = (cb) => {
     if (isAuthenticated) { cb(); return; }
