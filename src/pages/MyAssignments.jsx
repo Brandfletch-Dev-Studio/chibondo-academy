@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
 export default function MyAssignments() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
 
   // FIX 7: fetch the student's enrollments first so we can filter assignments
   // by the subjects they are actually enrolled in
