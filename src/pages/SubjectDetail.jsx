@@ -274,26 +274,31 @@ export default function SubjectDetail() {
                     const isLocked = !hasPaidFees;
                     const hasVideo = !!lesson.video_url;
 
+                    // Effective lock: guest OR logged-in but unpaid
+                    const effectiveLocked = !user || isLocked;
+                    const lessonTo = !user ? '/register' : isLocked ? '/subscription' : `/lesson/${lesson.id}`;
+
                     return (
                       <Link
                         key={lesson.id}
-                        to={!user ? `/lesson/${lesson.id}` : isLocked ? '/subscription' : `/lesson/${lesson.id}`}
-                        onClick={() => user && !isLocked && handleLessonClick()}
+                        to={lessonTo}
+                        onClick={() => !effectiveLocked && handleLessonClick()}
                         className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${
-                          isCompleted ? 'bg-success/5' : ''
+                          isCompleted ? 'bg-success/5' : effectiveLocked ? 'opacity-70' : ''
                         }`}
                       >
                         <span className="flex-shrink-0 text-muted-foreground">
                           {isCompleted ? (
                             <CheckCircle2 className="w-4 h-4 text-success" />
+                          ) : effectiveLocked ? (
+                            <Lock className="w-4 h-4 text-muted-foreground/50" />
                           ) : hasVideo ? (
                             <PlayCircle className="w-4 h-4" />
                           ) : (
                             <FileText className="w-4 h-4" />
                           )}
                         </span>
-                        <span className="flex-1 text-foreground">{lesson.title}</span>
-                        {user && isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                        <span className="flex-1 text-foreground/80">{lesson.title}</span>
                       </Link>
                     );
                   })}
