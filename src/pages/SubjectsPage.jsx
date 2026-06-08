@@ -29,27 +29,13 @@ export default function SubjectsPage() {
     enabled: !!user?.id,
   });
 
-  // Fetch all lessons to compute real per-subject counts
-  const { data: allLessons = [] } = useQuery({
-    queryKey: ['allLessonsCount'],
-    queryFn: () => base44.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000),
-  });
-
-  // Fetch all enrollments to count students per subject
-  const { data: allEnrollments = [] } = useQuery({
-    queryKey: ['allEnrollmentsCounts'],
-    queryFn: () => base44.entities.Enrollment.list('created_date', 2000),
-  });
-
-  // Build maps
+  // FIX 8: Use cached counts already stored on the Subject entity
+  // total_lessons and enrollment_count are maintained by the platform — no need for 2000-row scans
   const lessonCountBySubject = {};
-  allLessons.forEach(l => {
-    lessonCountBySubject[l.subject_id] = (lessonCountBySubject[l.subject_id] || 0) + 1;
-  });
-
   const studentCountBySubject = {};
-  allEnrollments.forEach(e => {
-    studentCountBySubject[e.subject_id] = (studentCountBySubject[e.subject_id] || 0) + 1;
+  subjects.forEach(s => {
+    lessonCountBySubject[s.id] = s.total_lessons || 0;
+    studentCountBySubject[s.id] = s.enrollment_count || 0;
   });
 
   const enrollmentMap = {};
