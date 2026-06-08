@@ -111,7 +111,7 @@ function QuestionEditor({ question, onChange, onDelete }) {
 }
 
 export default function QuizBuilder() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState(null);
@@ -120,7 +120,7 @@ export default function QuizBuilder() {
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['teacherQuizzes'],
-    queryFn: () => base44.entities.Quiz.filter({},'-created_date', 100),
+    queryFn: () => base44.entities.Quiz.list('-created_date', 100),
   });
 
   const saveMutation = useMutation({
