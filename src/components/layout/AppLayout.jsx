@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -23,36 +23,37 @@ export default function AppLayout() {
     });
   };
 
+  // PUBLIC MODE: auth.me() may fail for unauthenticated visitors — that's fine.
+  // We catch the error and treat user as null (guest). Authenticated users work exactly as before.
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      try { return await base44.auth.me(); }
+      catch { return null; }
+    },
+    retry: false,          // don't hammer the auth endpoint for guests
+    staleTime: 5 * 60_000, // 5 min — reduces redundant auth checks while browsing
   });
 
   // Guarantee every registered user has role='user' (student)
-  // Runs once when user first loads — covers Google OAuth & email registrations
   useEffect(() => {
     if (user && !user.role) {
       base44.auth.updateMe({ role: 'user' }).catch(() => {});
     }
   }, [user?.id, user?.role]);
 
-  // ── Forum Presence Heartbeat ──────────────────────────────────────────────
-  // FIX 11: use useLocation so the effect re-runs on route change, not just mount
-  // Previously: isOnForums() only evaluated at mount — stale if user navigated later
+  // ── Forum Presence Heartbeat (authenticated users only) ────────────────────
   const location = useLocation();
   const isOnForums = location.pathname.startsWith('/forums') || location.pathname.startsWith('/forum');
 
   useEffect(() => {
     if (!user?.id || !isOnForums) return;
 
-    // Presence record ref — avoid re-fetching on every beat
     let presenceId = null;
-
     const beat = async () => {
       try {
         const now = new Date().toISOString();
         if (presenceId) {
-          // Fast path: we already know the record ID
           await base44.entities.ForumPresence.update(presenceId, { last_seen: now });
         } else {
           const existing = await base44.entities.ForumPresence.filter({ user_id: user.id });
@@ -72,13 +73,12 @@ export default function AppLayout() {
       } catch(_) {}
     };
 
-    // Fire immediately when entering forums, then every 60s
     beat();
     const iv = setInterval(beat, 60_000);
     return () => clearInterval(iv);
   }, [user?.id, isOnForums]);
 
-  // Load StudentProfile to get persisted avatar_url as fallback
+  // Avatar fallback from StudentProfile
   const { data: studentProfile } = useQuery({
     queryKey: ['studentProfile', user?.id],
     queryFn: async () => {
@@ -89,11 +89,10 @@ export default function AppLayout() {
     staleTime: 60_000,
   });
 
-  // Merge avatar from StudentProfile if User record doesn't have it
   const enrichedUser = user ? {
     ...user,
     avatar_url: user.avatar_url || studentProfile?.avatar_url || null,
-  } : user;
+  } : null; // null = guest (not undefined — so pages can distinguish)
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['unreadNotifications'],
@@ -106,29 +105,39 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block flex-shrink-0">
-        <Sidebar user={enrichedUser} collapsed={collapsed} onToggle={handleToggle} />
-      </div>
+      {/* Desktop Sidebar — only shown when authenticated */}
+      {enrichedUser && (
+        <div className="hidden lg:block flex-shrink-0">
+          <Sidebar user={enrichedUser} collapsed={collapsed} onToggle={handleToggle} />
+        </div>
+      )}
 
       {/* Mobile Sidebar Sheet */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-64 border-0">
-          <MobileSidebar user={enrichedUser} onClose={() => setMobileOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      {enrichedUser && (
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 w-64 border-0">
+            <MobileSidebar user={enrichedUser} onClose={() => setMobileOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Main Content */}
       <div className={cn(
         "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
-        collapsed ? "lg:ml-16" : "lg:ml-64"
+        enrichedUser && collapsed ? "lg:ml-16" : enrichedUser ? "lg:ml-64" : ""
       )}>
-        <TopBar user={enrichedUser} notificationCount={notifications.length} onMenuClick={() => setMobileOpen(true)} />
+        <TopBar
+          user={enrichedUser}
+          notificationCount={notifications.length}
+          onMenuClick={() => setMobileOpen(true)}
+        />
         <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto">
           <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
-      <BottomNav />
+
+      {/* Bottom nav only for authenticated users */}
+      {enrichedUser && <BottomNav />}
     </div>
   );
 }
