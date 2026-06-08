@@ -6,8 +6,8 @@ import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
 import {
   ArrowLeft, Send, Pin, CheckCircle, MoreVertical, Trash2,
-  Heart, MessageSquare, Megaphone, Image as ImageIcon,
-  X, Mic, MicOff, Square, Play, Pause, CornerDownRight, Share2
+  Heart, MessageSquare, Megaphone,
+  X, Play, Pause, CornerDownRight, Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -463,13 +463,7 @@ export default function ThreadPage() {
   const qc        = useQueryClient();
   const bottomRef = useRef();
   const fileRef   = useRef();
-  const voice     = useVoiceRecorder();
-
   const [text, setText]   = useState('');
-  const [imgUrl, setImgUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [uploadingVoice, setUploadingVoice] = useState(false);
-  const [mode, setMode]   = useState('text'); // 'text' | 'voice'
   const [replyTo, setReplyTo] = useState(null); // { id, name }
 
   const isTeacherOrAdmin = user?.role === 'teacher' || user?.role === 'admin';
@@ -509,79 +503,17 @@ export default function ThreadPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [allReplies.length]);
 
-  /* ── Image upload (reuse existing pattern) ── */
-  const handleImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const resp = await fetch(`/api/apps/${window.__appParams?.appId || ''}/storage/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` },
-        body: fd,
-      });
-      const json = await resp.json();
-      setImgUrl(json.url || json.file_url || '');
-    } catch { toast.error('Image upload failed'); }
-    finally { setUploading(false); }
-  };
 
-  /* ── Voice upload ── */
-  const uploadVoice = async () => {
-    if (!voice.blob) return null;
-    // Capture duration NOW before any state changes
-    const capturedDuration = voice.durationRef.current || voice.seconds || 0;
-    setUploadingVoice(true);
-    try {
-      const mimeType = voice.blob.type || 'audio/webm';
-      const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([voice.blob], `voice_${Date.now()}.${ext}`, { type: mimeType });
-      const fd = new FormData();
-      fd.append('file', file);
-      const resp = await fetch(`/api/apps/${window.__appParams?.appId || ''}/storage/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` },
-        body: fd,
-      });
-      if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
-      const json = await resp.json();
-      const url = json.url || json.file_url || '';
-      if (!url) throw new Error('No URL returned from upload');
-      return { url, duration: capturedDuration };
-    } catch (err) {
-      toast.error('Voice upload failed: ' + err.message);
-      return null;
-    } finally {
-      setUploadingVoice(false);
-    }
-  };
 
   /* ── Post mutation ── */
   const postMut = useMutation({
     mutationFn: async () => {
-      let voiceUrl = null, voiceDuration = 0;
-      if (mode === 'voice') {
-        if (!voice.blob && !voice.blobUrl) throw new Error('No voice note recorded. Please record first.');
-        // If blob isn't ready yet (onstop race) wait briefly
-        if (!voice.blob && voice.blobUrl) {
-          await new Promise(r => setTimeout(r, 300));
-        }
-        if (!voice.blob) throw new Error('Voice note not ready yet. Please try again.');
-        const result = await uploadVoice();
-        if (!result) throw new Error('Voice upload failed');
-        voiceUrl = result.url;
-        voiceDuration = result.duration;
-      } else if (!text.trim() && !imgUrl) {
-        throw new Error('Write something or record a voice note first');
-      }
+      // Guest users should not reach here — redirect handled in UI
+      if (!user) { window.location.href = '/register'; return; }
+      if (!text.trim()) throw new Error('Write something first');
 
       return base44.entities.Discussion.create({
         content: text.trim(),
-        image_url: imgUrl || undefined,
-        voice_note_url: voiceUrl || undefined,
-        voice_note_duration: voiceDuration || undefined,
         parent_id: resolvedThreadId,
         reply_to_id: replyTo?.id || undefined,
         reply_to_name: replyTo?.name || undefined,
@@ -596,7 +528,7 @@ export default function ThreadPage() {
       });
     },
     onSuccess: async () => {
-      setText(''); setImgUrl(''); voice.clear(); setReplyTo(null);
+      setText(''); setReplyTo(null);
       if (thread?.id) {
         try { await base44.entities.Discussion.update(thread.id, { reply_count: (thread.reply_count || 0) + 1 }); } catch(_) {}
       }
@@ -968,11 +900,11 @@ export default function ThreadPage() {
           {/* Send */}
           <button
             onClick={() => postMut.mutate()}
-            disabled={postMut.isPending || uploadingVoice || (mode === 'text' ? (!text.trim() && !imgUrl) : !voice.blobUrl)}
+            disabled={postMut.isPending || !text.trim()}
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
             style={{ background: 'hsl(222 47% 18%)' }}
           >
-            {(postMut.isPending || uploadingVoice)
+            {postMut.isPending
               ? <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               : <Send className="w-4 h-4" style={{ color: 'hsl(43 74% 66%)' }} />
             }
