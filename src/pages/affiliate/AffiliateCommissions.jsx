@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Filter } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 
 const STATUS_CONFIG = {
   pending:  { label: 'Pending',  color: 'bg-yellow-500/10 text-yellow-600',  dot: 'bg-yellow-500' },
@@ -12,78 +12,86 @@ const STATUS_CONFIG = {
 };
 
 export default function AffiliateCommissions() {
-  const { user } = useOutletContext();
+  const ctx = useOutletContext() || {};
+  const { user, commissionAmount = 10000 } = ctx;
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
   const { data: referrals = [], isLoading } = useQuery({
     queryKey: ['myReferrals', user?.id],
-    queryFn: () => base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200),
+    queryFn: async () => {
+      try { return await base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
+      catch { return []; }
+    },
     enabled: !!user?.id,
   });
 
-  const items = referrals
-    .filter(r => r.reward_amount > 0)
-    .map(r => ({
-      id: r.id,
-      created_date: r.created_date,
-      referral_name: r.referred_name || r.referred_email || 'Unknown',
-      source: 'Subscription',
-      amount: r.reward_amount || 0,
-      status: r.reward_status === 'paid' ? 'paid' : 'pending',
-    }));
+  // Derive commission items from paid referrals — fixed amount model
+  const allItems = referrals
+    .filter(r => r.status !== 'pending') // only registered+ generate commission records
+    .map(r => {
+      const isPaid = ['paid', 'rewarded'].includes(r.status);
+      return {
+        id: r.id,
+        created_date: r.created_date,
+        referral_name: r.referred_name || r.referred_email || 'Unknown',
+        plan_name: r.plan_name || r.subscription_plan || 'Subscription',
+        amount: isPaid ? (r.reward_amount || commissionAmount) : commissionAmount,
+        status: r.status === 'rewarded' ? 'paid' : isPaid ? 'approved' : 'pending',
+      };
+    });
 
   const now = new Date();
-  const filtered = items.filter(c => {
+  const filtered = allItems.filter(c => {
     const matchStatus = statusFilter === 'all' || c.status === statusFilter;
     let matchDate = true;
-    if (dateFilter === '7d')  matchDate = new Date(c.created_date) > new Date(now - 7*86400000);
-    if (dateFilter === '30d') matchDate = new Date(c.created_date) > new Date(now - 30*86400000);
-    if (dateFilter === '90d') matchDate = new Date(c.created_date) > new Date(now - 90*86400000);
+    if (dateFilter === '7d')  matchDate = new Date(c.created_date) > new Date(now - 7  * 86400000);
+    if (dateFilter === '30d') matchDate = new Date(c.created_date) > new Date(now - 30 * 86400000);
+    if (dateFilter === '90d') matchDate = new Date(c.created_date) > new Date(now - 90 * 86400000);
     return matchStatus && matchDate;
   });
 
   const totals = {
-    total:    items.reduce((s, c) => s + (c.amount || 0), 0),
-    pending:  items.filter(c => c.status === 'pending').reduce((s, c) => s + (c.amount || 0), 0),
-    paid:     items.filter(c => c.status === 'paid').reduce((s, c) => s + (c.amount || 0), 0),
+    total:   allItems.filter(c => c.status !== 'pending').reduce((s, c) => s + c.amount, 0),
+    pending: allItems.filter(c => c.status === 'pending').length,
+    paid:    allItems.filter(c => c.status === 'paid').reduce((s, c) => s + c.amount, 0),
   };
 
   return (
     <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Total Earned',  value: totals.total,   color: 'text-accent' },
-          { label: 'Pending',       value: totals.pending, color: 'text-yellow-500' },
-          { label: 'Paid Out',      value: totals.paid,    color: 'text-green-500' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
-            <p className={`text-xl font-display font-bold ${color}`}>MWK {value.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">{label}</p>
-          </div>
-        ))}
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-xl font-display font-bold" style={{ color: 'hsl(43 74% 52%)' }}>MWK {totals.total.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">Total Earned</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-xl font-display font-bold text-yellow-500">{totals.pending} referral{totals.pending !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground">Awaiting Payment</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-xl font-display font-bold text-green-500">MWK {totals.paid.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">Paid Out</p>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {['all', 'pending', 'approved', 'paid', 'rejected'].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-all ${
-                statusFilter === s ? 'text-[hsl(222_47%_11%)] font-bold' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              }`}
-              style={statusFilter === s ? { background: 'hsl(43 74% 52%)' } : {}}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-all ${statusFilter === s ? 'font-bold' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+              style={statusFilter === s ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' } : {}}>
               {s === 'all' ? 'All' : STATUS_CONFIG[s]?.label || s}
             </button>
           ))}
         </div>
         <div className="flex gap-1 ml-auto">
-          {[['all','All Time'],['7d','7 Days'],['30d','30 Days'],['90d','90 Days']].map(([v,l]) => (
+          {[['all', 'All Time'], ['7d', '7 Days'], ['30d', '30 Days'], ['90d', '90 Days']].map(([v, l]) => (
             <button key={v} onClick={() => setDateFilter(v)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                dateFilter === v ? 'bg-muted text-foreground font-bold' : 'text-muted-foreground hover:bg-muted/50'
-              }`}>{l}</button>
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${dateFilter === v ? 'bg-muted text-foreground font-bold' : 'text-muted-foreground hover:bg-muted/50'}`}>
+              {l}
+            </button>
           ))}
         </div>
       </div>
@@ -99,25 +107,30 @@ export default function AffiliateCommissions() {
           </div>
         ) : (
           <>
-            <div className="hidden sm:grid grid-cols-5 gap-4 px-5 py-3 border-b border-border bg-muted/30">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Date</p>
-              <p className="text-xs font-semibold text-muted-foreground uppercase col-span-2">Referral</p>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Source</p>
-              <p className="text-xs font-semibold text-muted-foreground uppercase text-right">Amount</p>
+            <div className="hidden sm:grid grid-cols-12 gap-2 px-5 py-3 border-b border-border bg-muted/30">
+              <p className="text-xs font-semibold text-muted-foreground uppercase col-span-2">Date</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase col-span-4">Referral</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase col-span-3">Plan</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase col-span-2 text-right">Amount</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase col-span-1 text-right">Status</p>
             </div>
             <div className="divide-y divide-border">
               {filtered.map(c => (
-                <div key={c.id} className="grid grid-cols-1 sm:grid-cols-5 gap-2 sm:gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(c.created_date).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}
+                <div key={c.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-4 hover:bg-muted/20 transition-colors">
+                  <p className="sm:col-span-2 text-xs text-muted-foreground self-center">
+                    {new Date(c.created_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
-                  <div className="sm:col-span-2 flex items-center gap-2">
+                  <div className="sm:col-span-4 flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_CONFIG[c.status]?.dot || 'bg-muted-foreground'}`} />
-                    <p className="text-sm font-medium truncate">{c.referral_name || c.referred_name || 'Unknown'}</p>
+                    <p className="text-sm font-medium truncate">{c.referral_name}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{c.source || c.course_name || 'Subscription'}</p>
-                  <div className="sm:text-right flex items-center sm:justify-end gap-2">
-                    <span className="text-sm font-semibold text-accent">+MWK {(c.amount || 0).toLocaleString()}</span>
+                  <p className="sm:col-span-3 text-xs text-muted-foreground self-center">{c.plan_name}</p>
+                  <div className="sm:col-span-2 flex items-center justify-end">
+                    <span className="text-sm font-bold" style={{ color: 'hsl(43 74% 52%)' }}>
+                      {c.status === 'pending' ? '—' : `+MWK ${c.amount.toLocaleString()}`}
+                    </span>
+                  </div>
+                  <div className="sm:col-span-1 flex items-center justify-end">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_CONFIG[c.status]?.color || 'bg-muted text-muted-foreground'}`}>
                       {STATUS_CONFIG[c.status]?.label || c.status}
                     </span>
