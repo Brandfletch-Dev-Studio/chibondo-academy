@@ -52,7 +52,7 @@ function MiniClassCard({ enrollment }) {
 }
 
 export default function StudentDashboard() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const userId = user?.id;
 
   const { data: enrollments = [] } = useQuery({
