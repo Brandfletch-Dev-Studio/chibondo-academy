@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 
 export default function SubjectsPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const [selectedForm, setSelectedForm] = useState('all');
   const [search, setSearch] = useState('');
 
