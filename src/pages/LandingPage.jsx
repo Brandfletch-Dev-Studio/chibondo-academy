@@ -1,92 +1,61 @@
-import React, { useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import {
-  BookOpen, Users, MessageSquare, Play, ChevronRight,
-  Star, CheckCircle, Zap, Award, Clock, TrendingUp, GraduationCap,
-  ArrowRight, Newspaper, Share2
+  BookOpen, Play, MessageSquare, ChevronRight, ArrowRight,
+  CheckCircle, Zap, Crown, Award, GraduationCap,
+  Users, Lock, Newspaper, Clock
 } from 'lucide-react';
 
-const SUBJECT_META = {
-  biology:              { icon: '🧬', color: '#10b981' },
-  chemistry:            { icon: '⚗️',  color: '#3b82f6' },
-  physics:              { icon: '⚡',  color: '#f59e0b' },
-  mathematics:          { icon: '📐',  color: '#8b5cf6' },
-  'additional mathematics': { icon: '∑',  color: '#6366f1' },
-  english:              { icon: '📖',  color: '#f43f5e' },
-  'english language':   { icon: '📖',  color: '#f43f5e' },
-  'english literature': { icon: '📚',  color: '#ec4899' },
-  chichewa:             { icon: '🗣️',  color: '#f97316' },
-  agriculture:          { icon: '🌱',  color: '#84cc16' },
-  geography:            { icon: '🌍',  color: '#14b8a6' },
-  history:              { icon: '📜',  color: '#f59e0b' },
+/* ── subject icon map (mirrors SubjectsPage) ────────────────────────────── */
+const SUBJECT_ICONS = {
+  biology: '🧬', chemistry: '⚗️', physics: '⚡', mathematics: '📐',
+  'additional mathematics': '∑', english: '📖', 'english language': '📖',
+  'english literature': '📚', chichewa: '🗣️', agriculture: '🌱',
+  geography: '🌍', history: '📜',
 };
-function getMeta(name = '') {
-  return SUBJECT_META[name.toLowerCase()] || { icon: '💡', color: '#6b7280' };
+function subjectIcon(name = '') {
+  return SUBJECT_ICONS[name.toLowerCase()] || '📘';
 }
 function readTime(content = '') {
   return Math.max(1, Math.ceil(content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200));
 }
 
-function CTAButton({ to = '/register', children, secondary = false, large = false }) {
-  const base = `inline-flex items-center justify-center gap-2 font-bold rounded-2xl transition-all duration-200 active:scale-95 ${large ? 'px-8 py-4 text-base' : 'px-6 py-3 text-sm'}`;
-  const pri  = 'text-[hsl(222,47%,11%)] shadow-lg shadow-yellow-500/20 hover:brightness-110';
-  const sec  = 'border-2 border-border hover:border-accent/60 hover:text-accent text-muted-foreground';
-  return (
-    <Link to={to} className={`${base} ${secondary ? sec : pri}`}
-      style={secondary ? {} : { background: 'hsl(43,74%,52%)' }}>
-      {children}
-    </Link>
-  );
-}
-
-function StatBadge({ value, label, icon: Icon }) {
-  return (
-    <div className="flex flex-col items-center gap-1 text-center">
-      <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-1"
-        style={{ background: 'hsl(43,74%,52%,0.15)' }}>
-        <Icon className="w-5 h-5" style={{ color: 'hsl(43,74%,52%)' }} />
-      </div>
-      <span className="text-2xl font-black font-display" style={{ color: 'hsl(43,74%,66%)' }}>{value}</span>
-      <span className="text-xs text-muted-foreground leading-tight">{label}</span>
-    </div>
-  );
-}
-
-const STATIC_SUBJECTS = [
-  { name: 'Biology',     icon: '🧬', color: '#10b981' },
-  { name: 'Chemistry',   icon: '⚗️',  color: '#3b82f6' },
-  { name: 'Physics',     icon: '⚡',  color: '#f59e0b' },
-  { name: 'Mathematics', icon: '📐',  color: '#8b5cf6' },
-  { name: 'English',     icon: '📖',  color: '#f43f5e' },
-  { name: 'History',     icon: '📜',  color: '#f59e0b' },
-  { name: 'Geography',   icon: '🌍',  color: '#14b8a6' },
-  { name: 'Agriculture', icon: '🌱',  color: '#84cc16' },
-];
-
-const PLANS = [
-  { label: 'Free Trial', price: 'Free',       note: 'Get started',    badge: null,      features: ['Sample lessons', 'Forum read access', 'Blog articles', 'Mobile-friendly'] },
-  { label: 'Monthly',    price: 'MWK 10,000', note: 'per month',      badge: '🔥 Popular', features: ['All subjects — Form 3 & 4', 'Full video library', 'Forum discussions', 'Assignments & quizzes'] },
-  { label: 'Quarterly',  price: 'MWK 25,000', note: 'every 3 months', badge: null,      features: ['Everything in Monthly', 'Save MWK 5,000', 'Past papers library', 'Progress analytics'] },
-  { label: 'Lifetime',   price: 'Ask us',     note: 'one-time',       badge: '💎 Best',    features: ['Unlimited lifetime access', 'All future subjects', 'Priority support', 'Printable materials'] },
-];
-
-const STATIC_FORUM = [
-  { subj: 'Mathematics', icon: '📐', color: '#8b5cf6', q: 'How do I factorise quadratic expressions?', replies: 8 },
-  { subj: 'Biology',     icon: '🧬', color: '#10b981', q: 'What is the difference between meiosis and mitosis?', replies: 14 },
-  { subj: 'Chemistry',   icon: '⚗️',  color: '#3b82f6', q: 'Help with balancing chemical equations (Form 4)', replies: 5 },
-];
-
+/* ═══════════════════════════════════════════════════════════════════════════
+   LANDING PAGE — feels exactly like being inside the app
+═══════════════════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
+  const navigate = useNavigate();
+
+  /* Live pricing from platform (same as SubscriptionPage) */
+  const [pricing, setPricing] = useState({
+    monthly_price: 10000,
+    annual_price: 80000,
+    biannual_price: 150000,
+  });
+
+  useQuery({
+    queryKey: ['pricing'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getPricing', {});
+      return res.data.pricing;
+    },
+    onSuccess: (data) => {
+      if (data) setPricing({ monthly_price: data.monthly_price || 10000, annual_price: data.annual_price || 80000, biannual_price: data.biannual_price || 150000 });
+    },
+  });
+
+  /* Featured subjects — 3 published */
   const { data: subjects = [] } = useQuery({
     queryKey: ['landing-subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 20),
+    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'order', 6),
     staleTime: 5 * 60_000,
   });
 
+  /* Recent blog posts */
   const { data: blogPosts = [] } = useQuery({
     queryKey: ['landing-blog'],
     queryFn: async () => {
@@ -96,6 +65,7 @@ export default function LandingPage() {
     staleTime: 5 * 60_000,
   });
 
+  /* Recent live threads */
   const { data: threads = [] } = useQuery({
     queryKey: ['landing-threads'],
     queryFn: async () => {
@@ -105,424 +75,344 @@ export default function LandingPage() {
     staleTime: 5 * 60_000,
   });
 
-  const displaySubjects = subjects.length > 0 ? subjects.slice(0, 8) : STATIC_SUBJECTS;
-  const forumItems = threads.length > 0
-    ? threads.map(t => ({ thread: t, subject: subjects.find(s => s.id === t.subject_id) }))
-    : null;
+  const fmt = (n) => Number(n).toLocaleString('en-MW');
+  const plans = [
+    {
+      id: 'monthly', name: 'Monthly', icon: Zap, price: pricing.monthly_price,
+      period: 'per month', popular: true,
+      features: ['All lessons & videos', 'Quizzes & tests', 'Past papers', 'Assignment submissions', 'Progress tracking'],
+    },
+    {
+      id: 'annual', name: 'Annual', icon: Crown, price: pricing.annual_price,
+      period: 'per year',
+      features: ['Everything in Monthly', 'Priority support', 'Exam tips & strategies', 'Revision resources', `Save MWK ${fmt(pricing.monthly_price * 12 - pricing.annual_price)}`],
+    },
+    {
+      id: 'biannual', name: 'Biannual', icon: Award, price: pricing.biannual_price,
+      period: 'for 2 years',
+      features: ['Everything in Annual', 'Certificate of completion', 'Dedicated support', `Save MWK ${fmt(pricing.monthly_price * 24 - pricing.biannual_price)}`],
+    },
+  ];
 
   return (
     <>
       <SEO
-        title="The Chibondo Academy — Malawi's Online MSCE Learning Platform"
-        description="Study Form 3 & 4 online with expert video lessons, interactive forums, and past papers. Join thousands of students preparing for MSCE exams."
+        title="Welcome to The Chibondo Academy"
+        description="Malawi's online MSCE learning platform. Expert video lessons for Form 3 & 4. Study at your own pace."
       />
 
-      {/* ── NAV ── */}
-      <nav className="sticky top-0 z-50 bg-sidebar/95 backdrop-blur-md border-b border-sidebar-border">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-5 h-5" style={{ color: 'hsl(43,74%,52%)' }} />
-            <span className="font-display font-black text-base tracking-tight">
-              <span style={{ color: 'hsl(43,74%,66%)' }}>Chibondo</span>
-              <span className="text-foreground hidden sm:inline"> Academy</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors rounded-xl">
-              Login
-            </Link>
-            <Link to="/register"
-              className="px-5 py-2 text-sm font-bold rounded-xl transition-all active:scale-95 hover:brightness-110"
-              style={{ background: 'hsl(43,74%,52%)', color: 'hsl(222,47%,11%)' }}>
-              Join Free
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <div className="space-y-10">
 
-      <main>
+        {/* ── 1. HERO ───────────────────────────────────────────────────────── */}
+        <div className="relative rounded-2xl overflow-hidden" style={{ background: 'hsl(222 47% 14%)' }}>
+          {/* Subtle radial glow — same as SubscriptionPage hero */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(ellipse at 10% 50%, hsl(43 74% 52% / 0.18) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
 
-        {/* ── HERO ── */}
-        <section className="relative overflow-hidden min-h-[90vh] flex items-center"
-          style={{ background: 'linear-gradient(160deg,hsl(222,47%,9%) 0%,hsl(222,47%,14%) 60%,hsl(43,74%,20%,0.35) 100%)' }}>
-          <div className="absolute inset-0 opacity-[0.03]"
-            style={{ backgroundImage: 'radial-gradient(circle,hsl(43,74%,66%) 1px,transparent 1px)', backgroundSize: '32px 32px' }} />
-          <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
-            style={{ background: 'hsl(43,74%,52%)' }} />
+          <div className="relative px-6 py-10 sm:px-10 sm:py-14">
+            <div className="max-w-xl">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-5"
+                style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 74% 66%)' }}>
+                <Zap className="w-3 h-3" /> Malawi's Online MSCE Platform
+              </span>
 
-          <div className="relative max-w-6xl mx-auto px-4 py-20 lg:py-28 w-full">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold mb-6"
-                style={{ borderColor: 'hsl(43,74%,52%,0.4)', background: 'hsl(43,74%,52%,0.1)', color: 'hsl(43,74%,66%)' }}>
-                <Zap className="w-3 h-3" /> Malawi's #1 Online MSCE Platform
-              </div>
-
-              <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl leading-[1.1] text-white mb-6">
-                Master MSCE <span style={{ color: 'hsl(43,74%,66%)' }}>Exams</span><br />From Anywhere.
+              <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-tight text-white mb-4">
+                Study smarter.<br />
+                <span style={{ color: 'hsl(43 74% 66%)' }}>Pass your MSCE.</span>
               </h1>
 
-              <p className="text-lg text-white/70 leading-relaxed mb-8 max-w-xl">
-                Expert-taught video lessons for <strong className="text-white/90">all Form 3 &amp; 4 subjects</strong>.
-                Study at your own pace, join the discussion, and pass your MSCE with confidence.
+              <p className="text-white/65 text-sm leading-relaxed mb-8 max-w-md">
+                Video lessons, quizzes, and past papers for every Form 3 &amp; 4 subject —
+                taught by Malawian educators, available anytime on your phone.
               </p>
 
-              <div className="flex flex-wrap gap-3 mb-12">
-                <CTAButton to="/register" large>
-                  Start Learning Free <ArrowRight className="w-4 h-4" />
-                </CTAButton>
-                <CTAButton to="/subjects" secondary large>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:brightness-110"
+                  style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  Create Free Account
+                </button>
+                <button
+                  onClick={() => navigate('/subjects')}
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm border border-white/20 text-white/80 hover:border-white/40 hover:text-white transition-colors">
                   Browse Subjects
-                </CTAButton>
-              </div>
-
-              <div className="grid grid-cols-3 gap-6 sm:gap-10 max-w-xs">
-                <StatBadge value="19+" label="Subjects" icon={BookOpen} />
-                <StatBadge value="266+" label="Lessons"  icon={Play} />
-                <StatBadge value="Free" label="To Start"  icon={Star} />
+                </button>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* ── DISCOVER ACA ── */}
-        <section className="py-20 px-4 max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'hsl(43,74%,52%)' }}>Discover ACA</p>
-              <h2 className="font-display font-black text-3xl sm:text-4xl leading-tight mb-5">
-                Built for Malawian Students.<br />By Educators Who Care.
-              </h2>
-              <p className="text-muted-foreground leading-relaxed mb-5">
-                The Chibondo Academy is an online secondary school offering MSCE lessons in all subjects.
-                We believe every student in Malawi deserves quality education — regardless of where they live.
-              </p>
-              <p className="text-muted-foreground leading-relaxed mb-8">
-                Our lessons are taught by experienced Malawian educators, structured around the official
-                MSCE curriculum, and delivered through modern video content you can revisit anytime.
-              </p>
-              <div className="flex flex-col gap-3">
-                {['All Form 3 & 4 subjects in one place','MSCE-aligned curriculum and past papers','Learn at your pace — no fixed schedule','Designed for mobile-first access'].map(f => (
-                  <div key={f} className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(43,74%,52%)' }} />
-                    <span className="text-sm text-foreground/80">{f}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* ── 2. ABOUT ─────────────────────────────────────────────────────── */}
+        <div>
+          <h2 className="font-display font-bold text-base mb-1">About Chibondo Academy</h2>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-4"
+            style={{ color: 'hsl(43 74% 52%)' }}>Discover ACA</p>
 
-            <div className="grid grid-cols-2 gap-4">
+          <div className="bg-card rounded-2xl border border-border p-5 sm:p-6 space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              The Chibondo Academy is an online secondary school offering MSCE lessons in all subjects.
+              We believe every student in Malawi deserves quality education — regardless of where they live or which school they attend.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { icon: GraduationCap, title: 'Expert Tutors',   desc: 'Qualified Malawian educators teaching the MSCE curriculum.' },
-                { icon: Clock,         title: 'Study Anytime',   desc: 'Access lessons 24/7 from your phone or computer.' },
-                { icon: Award,         title: 'MSCE Aligned',    desc: 'Content structured exactly to Malawi exam requirements.' },
-                { icon: TrendingUp,    title: 'Track Progress',  desc: 'See how you are improving across every subject.' },
-              ].map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="bg-card border border-border rounded-2xl p-5 hover:border-accent/30 transition-colors">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-                    style={{ background: 'hsl(43,74%,52%,0.12)' }}>
-                    <Icon className="w-5 h-5" style={{ color: 'hsl(43,74%,52%)' }} />
+                { icon: GraduationCap, text: 'Qualified Malawian educators' },
+                { icon: BookOpen, text: 'All Form 3 & 4 subjects' },
+                { icon: Play, text: 'Video-first lesson delivery' },
+                { icon: CheckCircle, text: 'MSCE curriculum aligned' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'hsl(43 74% 52% / 0.12)' }}>
+                    <Icon className="w-3.5 h-3.5" style={{ color: 'hsl(43 74% 52%)' }} />
                   </div>
-                  <h3 className="font-bold text-sm mb-1">{title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                  <span className="text-sm text-foreground/80">{text}</span>
                 </div>
               ))}
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* ── SUBJECTS / VIDEO ── */}
-        <section className="py-20 px-4" style={{ background: 'hsl(222,47%,9%)' }}>
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'hsl(43,74%,52%)' }}>Learn Through Online Video</p>
-              <h2 className="font-display font-black text-3xl sm:text-4xl text-white mb-4">All MSCE Subjects. One Platform.</h2>
-              <p className="text-white/60 max-w-xl mx-auto">
-                HD video lessons, structured by topic and form, taught by real teachers. Pause, rewind, and replay until you've mastered every concept.
-              </p>
-            </div>
+        {/* ── 3. FEATURED SUBJECTS ─────────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-bold text-base">Learn Through Online Video</h2>
+            <Link to="/subjects"
+              className="flex items-center gap-1 text-xs font-semibold hover:text-accent transition-colors"
+              style={{ color: 'hsl(43 74% 52%)' }}>
+              All subjects <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Featured courses</p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
-              {displaySubjects.map((subject, idx) => {
-                const meta = subject.id ? getMeta(subject.name) : { icon: subject.icon, color: subject.color };
-                return (
-                  <Link key={subject.id || idx} to={subject.id ? `/subjects/${subject.id}` : '/subjects'}
-                    className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-accent/40 transition-all group">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                      style={{ background: `${meta.color}20` }}>{meta.icon}</div>
-                    <p className="font-semibold text-sm group-hover:text-accent transition-colors leading-tight">{subject.name}</p>
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Video CTA */}
-            <div className="rounded-3xl overflow-hidden border border-border/40"
-              style={{ background: 'linear-gradient(135deg,hsl(222,47%,14%),hsl(43,74%,20%,0.2))' }}>
-              <div className="grid lg:grid-cols-2">
-                <div className="p-8 lg:p-10 flex flex-col justify-center">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-5 w-fit"
-                    style={{ background: 'hsl(43,74%,52%,0.15)', color: 'hsl(43,74%,66%)' }}>
-                    <Play className="w-3 h-3" /> Video-First Learning
-                  </div>
-                  <h3 className="font-display font-black text-2xl text-white mb-4">Watch. Learn.<br />Pass Your Exams.</h3>
-                  <p className="text-white/60 text-sm leading-relaxed mb-6">
-                    Every lesson is broken into short, focused videos. Watch on any device, any time — even with limited data.
-                  </p>
-                  <CTAButton to="/subjects">
-                    Explore All Subjects <ChevronRight className="w-4 h-4" />
-                  </CTAButton>
+          <div className="space-y-2">
+            {subjects.slice(0, 3).map(subject => (
+              <Link
+                key={subject.id}
+                to={`/subjects/${subject.id}`}
+                className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-accent/40 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-muted">
+                  {subjectIcon(subject.name)}
                 </div>
-                <div className="p-8 lg:p-10 flex items-center justify-center border-t lg:border-t-0 lg:border-l border-border/30">
-                  <div className="w-full max-w-xs">
-                    <div className="rounded-2xl aspect-video bg-muted border border-border flex items-center justify-center relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-5"
-                        style={{ backgroundImage: 'radial-gradient(circle,hsl(43,74%,66%) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
-                      <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
-                        style={{ background: 'hsl(43,74%,52%)' }}>
-                        <Play className="w-6 h-6 ml-1" style={{ color: 'hsl(222,47%,11%)' }} />
-                      </div>
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                          <div className="h-full w-2/5 rounded-full" style={{ background: 'hsl(43,74%,52%)' }} />
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-center text-xs text-white/40 mt-3">Sample: Biology — Cell Structure</p>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm group-hover:text-accent transition-colors">{subject.name}</p>
+                  {subject.description && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{subject.description}</p>
+                  )}
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── FORUMS ── */}
-        <section className="py-20 px-4 max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
-            <div className="lg:sticky lg:top-24">
-              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'hsl(43,74%,52%)' }}>Interact With Fellow Students</p>
-              <h2 className="font-display font-black text-3xl sm:text-4xl leading-tight mb-5">
-                You Don't Have To<br />Study Alone.
-              </h2>
-              <p className="text-muted-foreground leading-relaxed mb-6">
-                Every subject has its own discussion forum. Students ask questions, share notes, and help each other.
-                Teachers are in there too — to verify answers and guide discussions.
-              </p>
-              <div className="flex flex-col gap-3 mb-8">
-                {['Ask questions in any subject forum','Get answers from teachers & peers','Pin verified solutions to help others','Live — threads update in real time'].map(f => (
-                  <div key={f} className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(43,74%,52%)' }} />
-                    <span className="text-sm text-foreground/80">{f}</span>
-                  </div>
-                ))}
-              </div>
-              <CTAButton to="/forums">
-                View All Forums <MessageSquare className="w-4 h-4" />
-              </CTAButton>
-            </div>
-
-            <div className="space-y-3">
-              {forumItems
-                ? forumItems.map((s, i) => {
-                    const meta = getMeta(s.subject?.name || '');
-                    return (
-                      <div key={i} className="bg-card border border-border rounded-2xl p-4 flex gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                          style={{ background: `${meta.color}18` }}>{meta.icon}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: meta.color }}>
-                            {s.subject?.name || 'General'}
-                          </p>
-                          <p className="text-sm font-medium leading-snug truncate">{s.thread?.title}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {s.thread?.reply_count || 0} replies ·{' '}
-                            {s.thread?.created_date ? formatDistanceToNow(new Date(s.thread.created_date), { addSuffix: true }) : 'recently'}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
-                : STATIC_FORUM.map(({ subj, icon, color, q, replies }) => (
-                    <div key={subj} className="bg-card border border-border rounded-2xl p-4 flex gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                        style={{ background: `${color}18` }}>{icon}</div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color }}>{subj}</p>
-                        <p className="text-sm font-medium">{q}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{replies} replies · recently</p>
-                      </div>
-                    </div>
-                  ))
-              }
-              <Link to="/forums"
-                className="flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-border text-sm text-muted-foreground hover:text-accent hover:border-accent/40 transition-colors">
-                <MessageSquare className="w-4 h-4" /> See all subject forums <ChevronRight className="w-3 h-3" />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Lock className="w-3.5 h-3.5 text-muted-foreground/40" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-accent transition-colors" />
+                </div>
               </Link>
-            </div>
+            ))}
+
+            {/* If data not loaded yet, show skeleton */}
+            {subjects.length === 0 && [1,2,3].map(i => (
+              <div key={i} className="h-16 bg-card border border-border rounded-xl animate-pulse" />
+            ))}
           </div>
-        </section>
+        </div>
 
-        {/* ── BLOG ── */}
-        <section className="py-20 px-4" style={{ background: 'hsl(222,47%,9%)' }}>
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-end justify-between mb-10 gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'hsl(43,74%,52%)' }}>Read and Learn More</p>
-                <h2 className="font-display font-black text-3xl text-white leading-tight">
-                  Study Tips, Subject Guides<br />&amp; Exam Strategies.
-                </h2>
-              </div>
-              <Link to="/blog" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold hover:text-accent transition-colors flex-shrink-0"
-                style={{ color: 'hsl(43,74%,52%)' }}>
-                All Articles <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {blogPosts.length > 0 ? blogPosts.map(post => (
-                <Link key={post.id} to={`/blog/${post.slug || post.id}`}
-                  className="bg-card border border-border rounded-2xl overflow-hidden hover:border-accent/30 hover:shadow-xl transition-all group flex flex-col">
-                  <div className="aspect-video bg-muted overflow-hidden">
-                    {post.cover_image
-                      ? <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                      : <div className="w-full h-full flex items-center justify-center"
-                          style={{ background: 'linear-gradient(135deg,hsl(222,47%,14%),hsl(43,74%,30%,0.3))' }}>
-                          <Newspaper className="w-10 h-10 opacity-20" />
-                        </div>
-                    }
-                  </div>
-                  <div className="p-5 flex flex-col flex-1">
-                    {post.category && <span className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'hsl(43,74%,52%)' }}>{post.category}</span>}
-                    <h3 className="font-bold text-sm leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2">{post.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-3 flex-1">
-                      {post.excerpt || post.content?.replace(/<[^>]*>/g,'').slice(0,100)}
-                    </p>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-3 border-t border-border">
-                      <Clock className="w-3 h-3" />
-                      <span>{readTime(post.content || '')} min read</span>
-                    </div>
-                  </div>
-                </Link>
-              )) : (
-                [
-                  { title: 'How to Study Effectively for MSCE Exams', cat: 'Study Tips', mins: 4 },
-                  { title: 'Top 5 Mistakes Students Make in Biology',  cat: 'Biology',    mins: 3 },
-                  { title: 'MSCE Exam Strategy: A Complete Guide',     cat: 'Exam Tips',  mins: 6 },
-                ].map(({ title, cat, mins }) => (
-                  <Link key={title} to="/blog"
-                    className="bg-card border border-border rounded-2xl overflow-hidden hover:border-accent/30 transition-all group">
-                    <div className="aspect-video flex items-center justify-center"
-                      style={{ background: 'linear-gradient(135deg,hsl(222,47%,14%),hsl(43,74%,30%,0.3))' }}>
-                      <Newspaper className="w-10 h-10 opacity-20" />
-                    </div>
-                    <div className="p-5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(43,74%,52%)' }}>{cat}</span>
-                      <h3 className="font-bold text-sm mt-1 mb-2 group-hover:text-accent transition-colors">{title}</h3>
-                      <p className="text-[10px] text-muted-foreground">{mins} min read</p>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-            <div className="mt-6 text-center sm:hidden">
-              <Link to="/blog" className="text-sm font-semibold" style={{ color: 'hsl(43,74%,52%)' }}>View all articles →</Link>
-            </div>
+        {/* ── 4. COMMUNITY FORUMS ──────────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-bold text-base">Interact With Fellow Students</h2>
+            <Link to="/forums"
+              className="flex items-center gap-1 text-xs font-semibold hover:text-accent transition-colors"
+              style={{ color: 'hsl(43 74% 52%)' }}>
+              All forums <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-        </section>
+          <p className="text-xs text-muted-foreground mb-4">Live discussions</p>
 
-        {/* ── PRICING ── */}
-        <section className="py-20 px-4 max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'hsl(43,74%,52%)' }}>Simple Pricing</p>
-            <h2 className="font-display font-black text-3xl sm:text-4xl leading-tight mb-4">Start Free. Unlock Everything.</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Begin with a free trial — no credit card needed. Upgrade when you're ready for full access.
+          <div className="bg-card rounded-2xl border border-border p-4 space-y-1">
+            <p className="text-sm text-muted-foreground px-1 pb-2 leading-relaxed">
+              Every subject has its own discussion forum. Ask questions, share notes, get answers from teachers and peers — in real time.
             </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {PLANS.map(({ label, price, note, badge, features }) => (
-              <div key={label}
-                className={`relative rounded-2xl border p-5 flex flex-col gap-4 transition-all ${badge ? 'border-accent/50 shadow-lg' : 'border-border'}`}
-                style={badge ? { background: 'hsl(43,74%,52%,0.06)' } : {}}>
-                {badge && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap"
-                    style={{ background: 'hsl(43,74%,52%)', color: 'hsl(222,47%,11%)' }}>
-                    {badge}
-                  </span>
-                )}
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{label}</p>
-                  <p className="text-2xl font-black font-display" style={badge ? { color: 'hsl(43,74%,66%)' } : {}}>{price}</p>
-                  <p className="text-xs text-muted-foreground">{note}</p>
+
+            {threads.slice(0, 3).map(thread => (
+              <div key={thread.id}
+                className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: 'hsl(43 74% 52% / 0.15)' }}>
+                  <MessageSquare className="w-3.5 h-3.5" style={{ color: 'hsl(43 74% 52%)' }} />
                 </div>
-                <ul className="space-y-2 flex-1">
-                  {features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-foreground/80">
-                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'hsl(43,74%,52%)' }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-snug truncate">{thread.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                    <Users className="w-3 h-3" />
+                    <span>{thread.reply_count || 0} replies</span>
+                    <span className="opacity-40">·</span>
+                    <span>{thread.created_date ? formatDistanceToNow(new Date(thread.created_date), { addSuffix: true }) : ''}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {threads.length === 0 && [1,2,3].map(i => (
+              <div key={i} className="h-12 rounded-xl bg-muted/50 animate-pulse" />
+            ))}
+
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('/register')}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 hover:brightness-110"
+                style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+                Join the conversation
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 5. BLOG ──────────────────────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-bold text-base">Read and Learn More</h2>
+            <Link to="/blog"
+              className="flex items-center gap-1 text-xs font-semibold hover:text-accent transition-colors"
+              style={{ color: 'hsl(43 74% 52%)' }}>
+              All posts <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Latest articles</p>
+
+          <div className="space-y-3">
+            {blogPosts.slice(0, 3).map((post, i) => (
+              <Link
+                key={post.id}
+                to={`/blog/${post.slug || post.id}`}
+                className={`flex gap-4 p-4 bg-card border border-border rounded-xl hover:border-accent/40 transition-colors group ${i === 0 ? 'flex-col sm:flex-row' : 'flex-row items-center'}`}
+              >
+                {/* Cover */}
+                <div className={`rounded-lg overflow-hidden flex-shrink-0 bg-muted ${i === 0 ? 'w-full sm:w-40 aspect-video sm:aspect-square sm:h-24 sm:w-24' : 'w-14 h-14'}`}>
+                  {post.cover_image
+                    ? <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                    : <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <Newspaper className="w-5 h-5 text-muted-foreground/30" />
+                      </div>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  {post.category && (
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'hsl(43 74% 52%)' }}>{post.category}</p>
+                  )}
+                  <p className={`font-semibold group-hover:text-accent transition-colors leading-snug ${i === 0 ? 'text-sm' : 'text-xs'} line-clamp-2`}>{post.title}</p>
+                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>{readTime(post.content || '')} min read</span>
+                    {post.published_at && (
+                      <>
+                        <span className="opacity-40">·</span>
+                        <span>{format(new Date(post.published_at), 'dd MMM yyyy')}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+
+            {blogPosts.length === 0 && [1,2,3].map(i => (
+              <div key={i} className="h-20 bg-card border border-border rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+
+        {/* ── 6. PRICING ───────────────────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-bold text-base">School Fees</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Affordable access to quality education</p>
+
+          {/* Free tier callout */}
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card mb-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted">
+              <BookOpen className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Free Trial</p>
+              <p className="text-xs text-muted-foreground">Sample lessons, forum read access, blog articles</p>
+            </div>
+            <span className="text-sm font-bold" style={{ color: 'hsl(43 74% 52%)' }}>Free</span>
+          </div>
+
+          <div className="space-y-3">
+            {plans.map(({ id, name, icon: Icon, price, period, popular, features }) => (
+              <div key={id}
+                className={`rounded-xl border p-4 transition-all ${popular ? 'border-accent/50' : 'border-border bg-card'}`}
+                style={popular ? { background: 'hsl(43 74% 52% / 0.05)', borderColor: 'hsl(43 74% 52% / 0.5)' } : {}}>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: popular ? 'hsl(43 74% 52% / 0.15)' : 'hsl(var(--muted))' }}>
+                      <Icon className="w-4 h-4" style={{ color: popular ? 'hsl(43 74% 52%)' : 'hsl(var(--muted-foreground))' }} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm">{name}</p>
+                        {popular && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>Popular</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{period}</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-extrabold text-base font-display"
+                      style={popular ? { color: 'hsl(43 74% 66%)' } : {}}>
+                      MWK {fmt(price)}
+                    </p>
+                  </div>
+                </div>
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
+                  {features.slice(0, 3).map(f => (
+                    <li key={f} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
                       {f}
                     </li>
                   ))}
                 </ul>
-                <Link to="/register"
-                  className={`block text-center py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${badge ? '' : 'border border-border hover:border-accent/40 hover:text-accent text-muted-foreground'}`}
-                  style={badge ? { background: 'hsl(43,74%,52%)', color: 'hsl(222,47%,11%)' } : {}}>
-                  Get Started
-                </Link>
               </div>
             ))}
           </div>
-        </section>
 
-        {/* ── FINAL CTA ── */}
-        <section className="py-24 px-4 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg,hsl(222,47%,9%),hsl(43,74%,20%,0.3))' }}>
-          <div className="absolute inset-0 opacity-[0.04]"
-            style={{ backgroundImage: 'radial-gradient(circle,hsl(43,74%,66%) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ background: 'hsl(43,74%,52%)' }} />
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            Payments via Airtel Money &amp; TNM Mpamba
+          </p>
+        </div>
 
-          <div className="relative max-w-2xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-8 text-sm font-semibold"
-              style={{ borderColor: 'hsl(43,74%,52%,0.4)', background: 'hsl(43,74%,52%,0.08)', color: 'hsl(43,74%,66%)' }}>
-              <Star className="w-4 h-4" /> Join Thousands of Students
-            </div>
-            <h2 className="font-display font-black text-4xl sm:text-5xl text-white leading-tight mb-6">
-              Your MSCE Journey<br />Starts Today.
+        {/* ── 7. FINAL CTA ─────────────────────────────────────────────────── */}
+        <div className="rounded-2xl overflow-hidden relative" style={{ background: 'hsl(222 47% 14%)' }}>
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(43 74% 52% / 0.15) 0%, transparent 60%)' }} />
+          <div className="relative p-6 sm:p-8 text-center space-y-4">
+            <GraduationCap className="w-10 h-10 mx-auto" style={{ color: 'hsl(43 74% 52%)' }} />
+            <h2 className="font-display font-extrabold text-xl text-white leading-snug">
+              Your MSCE journey starts here.
             </h2>
-            <p className="text-white/65 text-lg mb-10 max-w-lg mx-auto">
-              Register for free and get instant access to sample lessons across all subjects.
-              No commitment — just learning.
+            <p className="text-white/60 text-sm max-w-sm mx-auto">
+              Register for free and start with sample lessons today. No credit card required.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <CTAButton to="/register" large>
-                Create Free Account <ArrowRight className="w-4 h-4" />
-              </CTAButton>
-              <CTAButton to="/subjects" secondary large>
-                Explore Subjects
-              </CTAButton>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+              <button
+                onClick={() => navigate('/register')}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:brightness-110"
+                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                Create Free Account <ArrowRight className="inline w-4 h-4 ml-1" />
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm border border-white/20 text-white/70 hover:border-white/40 hover:text-white transition-colors">
+                Already have an account?
+              </button>
             </div>
-            <p className="mt-6 text-xs text-white/30">Free to start · No credit card required · Cancel anytime</p>
           </div>
-        </section>
+        </div>
 
-        {/* ── FOOTER ── */}
-        <footer className="border-t border-border py-10 px-4" style={{ background: 'hsl(222,47%,8%)' }}>
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <BookOpen className="w-5 h-5" style={{ color: 'hsl(43,74%,52%)' }} />
-              <span className="font-display font-black text-sm">
-                <span style={{ color: 'hsl(43,74%,66%)' }}>Chibondo</span>
-                <span className="text-foreground"> Academy</span>
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-muted-foreground">
-              {[['Subjects','/subjects'],['Forums','/forums'],['Blog','/blog'],['Login','/login'],['Register','/register']].map(([label, to]) => (
-                <Link key={to} to={to} className="hover:text-accent transition-colors">{label}</Link>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground/40">&copy; {new Date().getFullYear()} The Chibondo Academy</p>
-          </div>
-        </footer>
-      </main>
+      </div>
     </>
   );
 }
