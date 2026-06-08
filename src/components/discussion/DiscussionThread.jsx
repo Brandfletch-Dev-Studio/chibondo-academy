@@ -19,6 +19,7 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyContent, setReplyContent] = useState('');
+  const isGuest = !currentUserId;
 
   const { data: discussions = [], isLoading } = useQuery({
     queryKey: ['discussions', lessonId],
@@ -51,6 +52,10 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
 
   const handleSubmit = () => {
     if (!newComment.trim()) return;
+    if (isGuest) {
+      window.location.href = '/register';
+      return;
+    }
     createDiscussion.mutate({
       lesson_id: lessonId,
       subject_id: subjectId,
@@ -64,6 +69,7 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
 
   const handleReply = (parentId) => {
     if (!replyContent.trim()) return;
+    if (isGuest) { window.location.href = '/register'; return; }
     createDiscussion.mutate({
       lesson_id: lessonId,
       subject_id: subjectId,
@@ -117,17 +123,31 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
       <Card>
         <CardContent className="pt-4 space-y-3">
           <Textarea
-            placeholder="Ask a question or share your thoughts..."
+            placeholder={isGuest ? "Sign in to ask a question or share your thoughts…" : "Ask a question or share your thoughts..."}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             className="min-h-[100px]"
           />
-          <div className="flex justify-end">
-            <Button onClick={handleSubmit} disabled={!newComment.trim() || createDiscussion.isPending}>
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Post Discussion
-            </Button>
-          </div>
+          {isGuest ? (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-xs text-muted-foreground">You need an account to post in discussions.</p>
+              <div className="flex gap-2">
+                <a href="/login">
+                  <Button variant="outline" size="sm">Login</Button>
+                </a>
+                <a href="/register">
+                  <Button size="sm" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>Join Now</Button>
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <Button onClick={handleSubmit} disabled={!newComment.trim() || createDiscussion.isPending}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Post Discussion
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
