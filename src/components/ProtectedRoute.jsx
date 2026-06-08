@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useOutletContext } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -33,5 +33,5 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
     return unauthenticatedElement;
   }
 
-  return <Outlet />;
+  return <Outlet context={useOutletContext() ?? {}} />;
 }
