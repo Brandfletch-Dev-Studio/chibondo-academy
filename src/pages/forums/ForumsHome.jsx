@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
 import { MessageSquare, TrendingUp, Clock, ChevronRight, Search, Users } from 'lucide-react';
 import { useState } from 'react';
+import { formatAgo } from '@/hooks/useLiveAgo';
 import { Input } from '@/components/ui/input';
 
 const SUBJECT_META = {
@@ -186,7 +187,7 @@ export default function ForumsHome() {
                     {lastAt && (
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
                         <Clock className="w-3 h-3" />
-                        {lastAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {formatAgo(lastAt.toISOString())}
                       </span>
                     )}
                     <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors" />
