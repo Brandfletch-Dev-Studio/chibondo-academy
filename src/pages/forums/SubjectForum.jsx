@@ -174,7 +174,7 @@ export default function SubjectForum() {
   const { subjectSlug }    = useParams();
   const navigate           = useNavigate();
   const { state }          = useLocation();
-  const { user }           = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const qc                 = useQueryClient();
   const [search, setSearch]       = useState('');
   const [filter, setFilter]       = useState('latest');
