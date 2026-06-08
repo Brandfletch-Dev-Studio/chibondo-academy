@@ -9,7 +9,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useOutletContext } from 'react-router-dom';
 
 function RoleHome() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   if (!user) return <Navigate to="/blog" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
