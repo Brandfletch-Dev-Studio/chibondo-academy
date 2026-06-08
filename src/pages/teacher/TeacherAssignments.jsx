@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 
 export default function TeacherAssignments() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
