@@ -16,21 +16,13 @@ export default function AffiliateCommissions() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
-  const { data: commissions = [], isLoading } = useQuery({
-    queryKey: ['myCommissions', user?.id],
-    queryFn: () => base44.entities.Commission.filter({ affiliate_id: user?.id }, '-created_date', 200),
+  const { data: referrals = [], isLoading } = useQuery({
+    queryKey: ['myReferrals', user?.id],
+    queryFn: () => base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200),
     enabled: !!user?.id,
   });
 
-  // Fallback: derive commissions from referrals if Commission entity has no data
-  const { data: referrals = [] } = useQuery({
-    queryKey: ['myReferrals', user?.id],
-    queryFn: () => base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200),
-    enabled: !!user?.id && commissions.length === 0,
-  });
-
-  // Use commissions entity if available, else derive from referrals
-  const items = commissions.length > 0 ? commissions : referrals
+  const items = referrals
     .filter(r => r.reward_amount > 0)
     .map(r => ({
       id: r.id,
@@ -38,7 +30,7 @@ export default function AffiliateCommissions() {
       referral_name: r.referred_name || r.referred_email || 'Unknown',
       source: 'Subscription',
       amount: r.reward_amount || 0,
-      status: r.reward_status === 'paid' ? 'paid' : r.reward_status === 'pending' ? 'pending' : 'pending',
+      status: r.reward_status === 'paid' ? 'paid' : 'pending',
     }));
 
   const now = new Date();
