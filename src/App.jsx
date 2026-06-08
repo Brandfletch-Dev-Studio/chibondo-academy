@@ -9,8 +9,8 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useOutletContext } from 'react-router-dom';
 
 function RoleHome() {
-  const { user } = useOutletContext();
-  if (!user) return <Navigate to="/blog" replace />;
+  const { user } = useOutletContext() ?? {};
+  if (!user) return <LandingPage />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/dashboard" replace />;
@@ -22,6 +22,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import TeacherRegister from '@/pages/TeacherRegister';
+import LandingPage from '@/pages/LandingPage';
 
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
