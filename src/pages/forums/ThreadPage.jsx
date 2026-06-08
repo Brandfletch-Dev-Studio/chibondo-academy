@@ -459,7 +459,7 @@ export default function ThreadPage() {
   React.useEffect(() => { markForumRead(subjectSlug); }, [subjectSlug]);
   const navigate  = useNavigate();
   const { state } = useLocation();
-  const { user }  = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const qc        = useQueryClient();
   const bottomRef = useRef();
   const fileRef   = useRef();
