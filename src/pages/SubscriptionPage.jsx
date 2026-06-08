@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import SEO from '@/components/SEO';
 
 export default function SubscriptionPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const currentPlan = user?.subscription_plan || 'free';
 
   const [pricing, setPricing] = useState({
