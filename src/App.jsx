@@ -50,6 +50,14 @@ import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import LibraryPage from '@/pages/LibraryPage';
 import MyReferrals from '@/pages/MyReferrals';
+import AffiliateLayout from '@/pages/affiliate/AffiliateLayout';
+import AffiliateDashboard from '@/pages/affiliate/AffiliateDashboard';
+import AffiliateLinks from '@/pages/affiliate/AffiliateLinks';
+import AffiliateReferrals from '@/pages/affiliate/AffiliateReferrals';
+import AffiliateCommissions from '@/pages/affiliate/AffiliateCommissions';
+import AffiliatePayouts from '@/pages/affiliate/AffiliatePayouts';
+import AffiliateMaterials from '@/pages/affiliate/AffiliateMaterials';
+import AffiliateProfile from '@/pages/affiliate/AffiliateProfile';
 import BlogPage from '@/pages/BlogPage';
 import BlogPostDetail from '@/pages/BlogPostDetail';
 import LibraryManagement from '@/pages/admin/LibraryManagement';
@@ -163,6 +171,39 @@ const AppRoutes = () => {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-classes" element={<MyClassesPage />} />
           <Route path="/my-referrals" element={<MyReferrals />} />
+
+          {/* ── Affiliate Program ── */}
+          <Route path="/affiliate" element={<AffiliateLayout />}>
+            <Route index element={<AffiliateDashboard />} />
+            <Route path="links" element={<AffiliateLinks />} />
+            <Route path="referrals" element={<AffiliateReferrals />} />
+            <Route path="commissions" element={<AffiliateCommissions />} />
+            <Route path="payouts" element={<AffiliatePayouts />} />
+            <Route path="materials" element={<AffiliateMaterials />} />
+            <Route path="profile" element={<AffiliateProfile />} />
+          </Route>
+
+          {/* ── Affiliate Program ── */}
+          <Route path="/affiliate" element={<AffiliateLayout />}>
+            <Route index element={<AffiliateDashboard />} />
+            <Route path="links" element={<AffiliateLinks />} />
+            <Route path="referrals" element={<AffiliateReferrals />} />
+            <Route path="commissions" element={<AffiliateCommissions />} />
+            <Route path="payouts" element={<AffiliatePayouts />} />
+            <Route path="materials" element={<AffiliateMaterials />} />
+            <Route path="profile" element={<AffiliateProfile />} />
+          </Route>
+
+          {/* ── Affiliate Program ── */}
+          <Route path="/affiliate" element={<AffiliateLayout />}>
+            <Route index element={<AffiliateDashboard />} />
+            <Route path="links" element={<AffiliateLinks />} />
+            <Route path="referrals" element={<AffiliateReferrals />} />
+            <Route path="commissions" element={<AffiliateCommissions />} />
+            <Route path="payouts" element={<AffiliatePayouts />} />
+            <Route path="materials" element={<AffiliateMaterials />} />
+            <Route path="profile" element={<AffiliateProfile />} />
+          </Route>
           <Route path="/settings" element={<StudentSettings />} />
 
           {/* Teacher */}
