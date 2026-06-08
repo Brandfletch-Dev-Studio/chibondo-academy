@@ -244,8 +244,18 @@ export default function BlogPage() {
               <h2 className="font-display font-bold text-lg mb-2">Ready to start learning?</h2>
               <p className="text-sm text-muted-foreground mb-4">Join hundreds of Malawian students already passing MSCE with Chibondo Academy.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link to="/subjects"><Button>Browse Courses</Button></Link>
-                <Link to="/subscription"><Button variant="outline">View School Fees</Button></Link>
+                {isAuthenticated ? (
+                  <>
+                    <Link to="/subjects"><Button>Browse Courses</Button></Link>
+                    <Link to="/subscription"><Button variant="outline">View School Fees</Button></Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/register"><Button style={{background:'hsl(43 74% 52%)',color:'hsl(222 47% 11%)'}}>Create Free Account</Button></Link>
+                    <Link to="/login"><Button variant="outline">Log In</Button></Link>
+                    <Link to="/subjects"><Button variant="ghost">Browse Courses</Button></Link>
+                  </>
+                )}
               </div>
             </div>
           )}
