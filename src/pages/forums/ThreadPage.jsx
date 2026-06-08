@@ -119,14 +119,15 @@ function useVoiceRecorder() {
   const [seconds, setSeconds] = useState(0);
   const [blob, setBlob] = useState(null);
   const [blobUrl, setBlobUrl] = useState(null);
-  // Use refs for duration so it survives async onstop callback
-  const durationRef = useRef(0);
-  const mediaRef = useRef(null);
-  const streamRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef = useRef(null);
+  // Refs for values that must survive async callbacks
+  const durationRef  = useRef(0);
+  const activeRef    = useRef(false); // ref-gated flag — stops the interval immediately without waiting for state
+  const blobRef      = useRef(null);  // ref copy of blob so send can read it synchronously
+  const mediaRef     = useRef(null);
+  const streamRef    = useRef(null);
+  const chunksRef    = useRef([]);
+  const timerRef     = useRef(null);
 
-  // Always clear the timer safely
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
@@ -135,13 +136,11 @@ function useVoiceRecorder() {
   }, []);
 
   const start = useCallback(async () => {
-    // Don't start a second recording if already recording
     if (mediaRef.current) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Pick a supported mimeType
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
@@ -156,26 +155,27 @@ function useVoiceRecorder() {
       };
 
       mr.onstop = () => {
-        // Build blob from all chunks
         const type = mimeType || 'audio/webm';
         const b = new Blob(chunksRef.current, { type });
+        blobRef.current = b;    // store in ref FIRST — synchronous, available immediately
         setBlob(b);
         setBlobUrl(URL.createObjectURL(b));
-        // Stop all mic tracks
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
-        mediaRef.current = null;
+        mediaRef.current  = null;
       };
 
-      mr.start(100); // collect data every 100ms — ensures chunks arrive reliably
+      mr.start(100);
       mediaRef.current = mr;
+      activeRef.current = true;  // mark active via ref
       setRecording(true);
       setSeconds(0);
       durationRef.current = 0;
 
-      // Start timer — only one at a time
+      // Timer: gate on activeRef (ref is synchronous — no stale closure)
       clearTimer();
       timerRef.current = setInterval(() => {
+        if (!activeRef.current) { clearInterval(timerRef.current); timerRef.current = null; return; }
         durationRef.current += 1;
         setSeconds(s => s + 1);
       }, 1000);
@@ -187,24 +187,25 @@ function useVoiceRecorder() {
   }, [clearTimer]);
 
   const stop = useCallback(() => {
-    // Stop timer FIRST before anything async
+    activeRef.current = false; // kill the timer interval guard immediately (sync)
     clearTimer();
     setRecording(false);
-    // Then stop MediaRecorder — triggers onstop async
     if (mediaRef.current && mediaRef.current.state !== 'inactive') {
-      mediaRef.current.stop();
+      mediaRef.current.stop(); // triggers onstop → sets blob
     } else {
       mediaRef.current = null;
     }
   }, [clearTimer]);
 
   const clear = useCallback(() => {
+    activeRef.current = false;
     clearTimer();
     setRecording(false);
     setBlob(null);
     setBlobUrl(null);
     setSeconds(0);
     durationRef.current = 0;
+    blobRef.current     = null;
     if (mediaRef.current) {
       try { mediaRef.current.stop(); } catch(_) {}
       mediaRef.current = null;
@@ -213,8 +214,8 @@ function useVoiceRecorder() {
     streamRef.current = null;
   }, [clearTimer]);
 
-  // Expose durationRef so upload can read the final duration even after clear
-  return { recording, seconds, blob, blobUrl, durationRef, start, stop, clear };
+  // Expose blobRef so send can read the blob synchronously even before React re-renders
+  return { recording, seconds, blob, blobUrl, blobRef, durationRef, start, stop, clear };
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -437,15 +438,15 @@ export default function ThreadPage() {
   };
 
   /* ── Voice upload ── */
-  const uploadVoice = async () => {
-    if (!voice.blob) return null;
-    // Capture duration NOW before any state changes
+  const uploadVoice = async (blobOverride) => {
+    const blobToUpload = blobOverride || voice.blobRef?.current || voice.blob;
+    if (!blobToUpload) return null;
     const capturedDuration = voice.durationRef.current || voice.seconds || 0;
     setUploadingVoice(true);
     try {
-      const mimeType = voice.blob.type || 'audio/webm';
+      const mimeType = blobToUpload.type || 'audio/webm';
       const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([voice.blob], `voice_${Date.now()}.${ext}`, { type: mimeType });
+      const file = new File([blobToUpload], `voice_${Date.now()}.${ext}`, { type: mimeType });
       const fd = new FormData();
       fd.append('file', file);
       const resp = await fetch(`/api/apps/${window.__appParams?.appId || ''}/storage/upload`, {
@@ -471,13 +472,15 @@ export default function ThreadPage() {
     mutationFn: async () => {
       let voiceUrl = null, voiceDuration = 0;
       if (mode === 'voice') {
-        if (!voice.blob && !voice.blobUrl) throw new Error('No voice note recorded. Please record first.');
-        // If blob isn't ready yet (onstop race) wait briefly
-        if (!voice.blob && voice.blobUrl) {
-          await new Promise(r => setTimeout(r, 300));
+        // Read from blobRef (sync) — React state (voice.blob) may lag behind onstop callback
+        const blobToSend = voice.blobRef.current || voice.blob;
+        if (!blobToSend && !voice.blobUrl) throw new Error('No voice note recorded. Please record first.');
+        if (!blobToSend && voice.blobUrl) {
+          await new Promise(r => setTimeout(r, 400)); // wait for onstop to fire
         }
-        if (!voice.blob) throw new Error('Voice note not ready yet. Please try again.');
-        const result = await uploadVoice();
+        const finalBlob = voice.blobRef.current || voice.blob;
+        if (!finalBlob) throw new Error('Voice note not ready yet. Please try again in a moment.');
+        const result = await uploadVoice(finalBlob);
         if (!result) throw new Error('Voice upload failed');
         voiceUrl = result.url;
         voiceDuration = result.duration;
