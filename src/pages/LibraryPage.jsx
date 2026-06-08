@@ -27,7 +27,7 @@ const TYPE_ICON_BG = {
 };
 
 export default function LibraryPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const isAuthenticated = !!user?.id;
   const requireAuth = (cb) => {
     if (isAuthenticated) { cb(); return; }
