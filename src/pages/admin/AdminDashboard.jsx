@@ -78,7 +78,7 @@ export default function AdminDashboard() {
   const { data: applications = [] }  = useQuery({ queryKey: ['teacherApplications'], queryFn: () => base44.entities.TeacherApplication.filter({}) });
   const { data: subscriptions = [] } = useQuery({ queryKey: ['allSubscriptions'], queryFn: () => base44.entities.Subscription.filter({}) });
   const { data: payments = [] }      = useQuery({ queryKey: ['allPayments'],      queryFn: () => base44.entities.Payment.filter({}) });
-  const { data: referrals = [] }     = useQuery({ queryKey: ['allReferrals'],     queryFn: () => base44.entities.Referral.filter({},'-created_date', 500) });
+  const { data: referrals = [] }     = useQuery({ queryKey: ['allReferrals'],     queryFn: () => base44.entities.Referral.list('-created_date', 500) });
   const { data: lessons = [] }       = useQuery({ queryKey: ['allLessons'],       queryFn: () => base44.entities.Lesson.filter({}) });
 
   const startDate = useMemo(() => getStartDate(timePeriod), [timePeriod]);
