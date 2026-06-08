@@ -157,8 +157,18 @@ export default function TutorProfilePage() {
       <SEO
         title={`${tutor.full_name} | Chibondo Academy`}
         description={`${tutor.full_name}${tutor.professional_title ? ` — ${tutor.professional_title}` : ''}. ${tutor.tagline || ''}`}
-        canonical={`https://aca.base44.app/tutors/${slug}`}
+        canonical={`${window.location.origin}/tutors/${slug}`}
         ogImage={tutor.cover_photo || tutor.profile_photo}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Person",
+          "name": tutor.full_name,
+          "jobTitle": tutor.professional_title || "Tutor",
+          "description": tutor.tagline || tutor.bio_plain || '',
+          "image": tutor.profile_photo || tutor.cover_photo || '',
+          "url": `${window.location.origin}/tutors/${slug}`,
+          "worksFor": { "@type": "Organization", "name": "The Chibondo Academy" }
+        }}
       />
 
       <StickyCTA isAuthenticated={isAuthenticated} isSubscribed={isSubscribed} navigate={navigate} />
