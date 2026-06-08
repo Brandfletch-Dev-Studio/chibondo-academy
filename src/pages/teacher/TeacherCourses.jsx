@@ -28,7 +28,7 @@ const STATUS_ICON = {
 };
 
 export default function TeacherCourses() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const empty = { name: '', description: '', form_id: '', is_premium: true, order: 0 };
@@ -42,7 +42,7 @@ export default function TeacherCourses() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => base44.entities.AcademicForm.filter({},'order', 50),
+    queryFn: () => base44.entities.AcademicForm.list('order', 50),
   });
 
   // Also load courses teacher proposed (status = 'pending_approval' stored as draft with a flag)
