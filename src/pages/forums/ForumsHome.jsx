@@ -87,7 +87,7 @@ export default function ForumsHome() {
   // Online students — anyone whose last_seen is within the last 2 minutes
   const { data: presenceList = [] } = useQuery({
     queryKey: ['forum-presence'],
-    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
+    queryFn: async () => { try { return await base44.entities.ForumPresence.filter({}, '-last_seen', 200); } catch { return []; } },
     refetchInterval: 30_000,
     staleTime: 0,
   });
