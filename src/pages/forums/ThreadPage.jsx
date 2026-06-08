@@ -686,32 +686,33 @@ export default function ThreadPage() {
             )}
           </div>
 
-          <div className="flex items-start justify-between gap-2 mb-4">
-            <h1 className="font-display font-bold text-lg leading-snug flex-1">{thread.title}</h1>
-            <button
-              onClick={() => {
-                const url = window.location.href;
-                if (navigator.share) navigator.share({ title: thread.title, url });
-                else { navigator.clipboard?.writeText(url); toast.success('Link copied!'); }
-              }}
-              className="flex-shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-              title="Share thread"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Author */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* Author — shown first */}
+          <div className="flex items-start gap-3 mb-3">
             <Avi name={thread.author_name} role={thread.author_role} avatarUrl={thread.author_avatar} size={9} />
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="text-sm font-semibold">{thread.author_name}</p>
                 <RoleBadge role={thread.author_role} isTutor={thread.is_tutor_reply} />
+                <span className="text-[10px] text-muted-foreground ml-auto">{ago}</span>
+                <button
+                  onClick={() => {
+                    const url = window.location.href;
+                    if (navigator.share) navigator.share({ title: thread.title, url });
+                    else { navigator.clipboard?.writeText(url); toast.success('Link copied!'); }
+                  }}
+                  className="flex-shrink-0 p-1 rounded-lg text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                  title="Share thread"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <p className="text-[11px] text-muted-foreground">{ago}</p>
             </div>
           </div>
+
+          {/* Optional heading (title) */}
+          {thread.title && (
+            <p className="font-semibold text-base leading-snug mb-2 text-foreground/90">{thread.title}</p>
+          )}
 
           {/* Content */}
           <div className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{thread.content}</div>
