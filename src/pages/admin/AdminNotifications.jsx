@@ -40,7 +40,7 @@ export default function AdminNotifications() {
 
   const { data: allNotifications = [], isLoading } = useQuery({
     queryKey: ['admin-all-notifications'],
-    queryFn: () => base44.entities.Notification.list('-created_date', 200),
+    queryFn: () => base44.entities.Notification.filter({},'-created_date', 200),
   });
 
   const sendMutation = useMutation({
