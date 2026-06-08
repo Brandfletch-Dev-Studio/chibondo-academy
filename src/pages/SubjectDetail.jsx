@@ -337,35 +337,21 @@ export default function SubjectDetail() {
       {/* ── MAIN CTA button ── */}
       {(firstLesson || !user) && (
         <div className="space-y-3">
-          {/* Scenario A: guest → Join Now CTA */}
+          {/* Scenario A: guest → Get Started CTA */}
           {!user && (
-            <div className="rounded-2xl p-6 text-center space-y-4"
+            <div className="rounded-2xl p-5 text-center space-y-3"
               style={{
                 background: 'linear-gradient(135deg, hsl(222 47% 13%) 0%, hsl(222 47% 16%) 100%)',
                 border: '1px solid hsl(43 74% 52% / 0.3)',
-                boxShadow: '0 0 40px hsl(43 74% 52% / 0.06)',
               }}>
-              <div>
-                <h3 className="text-base font-semibold text-white mb-1">Ready to start learning?</h3>
-                <p className="text-sm" style={{ color: 'hsl(215 20% 65%)' }}>
-                  Create a free account to enrol, track your progress, and access all {lessons.length} lessons.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link to="/register">
-                  <Button size="lg" className="w-full sm:w-auto h-12 text-base font-semibold px-8"
-                    style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
-                    Join Now — It's Free
-                  </Button>
-                </Link>
-                <Link to="/login">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 text-base border-sidebar-border text-sidebar-foreground hover:text-white px-8">
-                    Login
-                  </Button>
-                </Link>
-              </div>
+              <Link to="/register" className="block">
+                <Button size="lg" className="w-full h-12 text-base font-semibold"
+                  style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  Get Started
+                </Button>
+              </Link>
               <p className="text-xs" style={{ color: 'hsl(215 20% 50%)' }}>
-                Already enrolled? <Link to="/login" className="underline hover:text-white">Log in to continue</Link>
+                Already enrolled? <Link to="/login" className="underline hover:text-white transition-colors">Log in to continue</Link>
               </p>
             </div>
           )}
