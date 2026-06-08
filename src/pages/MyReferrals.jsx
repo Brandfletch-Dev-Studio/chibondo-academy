@@ -12,8 +12,11 @@ import { Switch } from '@/components/ui/switch';
 import {
   Gift, DollarSign, Users, Copy, Check, Share2,
   Loader2, Wallet, Settings, Link2, BarChart3, Clock, CheckCircle2,
-  Trophy
+  Trophy, Image, MessageSquare, Download, Video, Plus, Trash2, Edit2,
+  UserCog, Smartphone, Building2, Bell, Save
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 const statusColors = {
@@ -460,6 +463,299 @@ function Leaderboard() {
   );
 }
 
+// ─── MARKETING MATERIALS TAB ──────────────────────────────────────────────────
+const MATERIAL_TYPES = {
+  banner:         { label: 'Banner',           icon: Image,         color: 'bg-blue-500/10 text-blue-600' },
+  social_graphic: { label: 'Social Graphic',   icon: Image,         color: 'bg-purple-500/10 text-purple-600' },
+  whatsapp_msg:   { label: 'WhatsApp Message', icon: MessageSquare, color: 'bg-green-500/10 text-green-600' },
+  promo_image:    { label: 'Promo Image',      icon: Image,         color: 'bg-yellow-500/10 text-yellow-600' },
+  video:          { label: 'Video',            icon: Video,         color: 'bg-red-500/10 text-red-600' },
+  other:          { label: 'Other',            icon: Download,      color: 'bg-muted text-muted-foreground' },
+};
+
+function MaterialsTab({ user }) {
+  const isAdmin = user?.role === 'admin';
+  const qc = useQueryClient();
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [dialog, setDialog] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
+  const [form, setForm] = React.useState({ title: '', description: '', type: 'banner', file_url: '', thumbnail_url: '', content: '' });
+
+  const { data: materials = [], isLoading } = useQuery({
+    queryKey: ['affiliateMaterials'],
+    queryFn: () => base44.entities.AffiliateMaterial.filter({}, '-created_date', 100),
+    staleTime: 30_000,
+  });
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      if (!form.title) throw new Error('Title is required');
+      if (editing) return base44.entities.AffiliateMaterial.update(editing.id, form);
+      return base44.entities.AffiliateMaterial.create({ ...form, created_by_name: user.full_name });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['affiliateMaterials'] });
+      toast.success(editing ? 'Updated!' : 'Material added!');
+      setDialog(false); setEditing(null);
+      setForm({ title: '', description: '', type: 'banner', file_url: '', thumbnail_url: '', content: '' });
+    },
+    onError: e => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: id => base44.entities.AffiliateMaterial.delete(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['affiliateMaterials'] }); toast.success('Deleted'); },
+  });
+
+  const openEdit = (item) => {
+    setEditing(item);
+    setForm({ title: item.title, description: item.description || '', type: item.type, file_url: item.file_url || '', thumbnail_url: item.thumbnail_url || '', content: item.content || '' });
+    setDialog(true);
+  };
+
+  const filtered = typeFilter === 'all' ? materials : materials.filter(m => m.type === typeFilter);
+
+  return (
+    <div className="space-y-5">
+      {/* Filter + Add */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
+          {['all', ...Object.keys(MATERIAL_TYPES)].map(k => {
+            const label = k === 'all' ? 'All' : MATERIAL_TYPES[k].label;
+            const active = typeFilter === k;
+            return (
+              <button key={k} onClick={() => setTypeFilter(k)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${active ? 'font-bold' : 'bg-muted/50 text-muted-foreground'}`}
+                style={active ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' } : {}}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {isAdmin && (
+          <Button onClick={() => { setEditing(null); setForm({ title: '', description: '', type: 'banner', file_url: '', thumbnail_url: '', content: '' }); setDialog(true); }} size="sm"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            <Plus className="w-4 h-4 mr-1.5" /> Add Material
+          </Button>
+        )}
+      </div>
+
+      {/* Grid */}
+      {isLoading ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1,2,3].map(i => <div key={i} className="h-48 bg-card border border-border rounded-2xl animate-pulse" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="py-16 text-center">
+          <Image className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'No materials yet. Add banners, graphics, or message templates.' : 'No marketing materials yet — check back soon!'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(item => {
+            const cfg = MATERIAL_TYPES[item.type] || MATERIAL_TYPES.other;
+            const Icon = cfg.icon;
+            const isText = item.type === 'whatsapp_msg';
+            return (
+              <div key={item.id} className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/30 transition-all">
+                {item.thumbnail_url || item.file_url ? (
+                  <div className="aspect-video bg-muted/30 overflow-hidden">
+                    <img src={item.thumbnail_url || item.file_url} alt={item.title} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                  </div>
+                ) : isText ? (
+                  <div className="p-4 bg-green-500/5 border-b border-border min-h-[80px]">
+                    <p className="text-sm text-foreground/80 leading-relaxed line-clamp-4 whitespace-pre-line">{item.content}</p>
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-muted/30 flex items-center justify-center">
+                    <Icon className="w-10 h-10 text-muted-foreground/30" />
+                  </div>
+                )}
+                <div className="p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{item.title}</p>
+                      {item.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>}
+                    </div>
+                    <Badge className={`text-[10px] flex-shrink-0 ${cfg.color}`}>{cfg.label}</Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    {isText ? (
+                      <button onClick={() => { navigator.clipboard.writeText(item.content); toast.success('Copied!'); }}
+                        className="flex-1 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5" /> Copy Message
+                      </button>
+                    ) : item.file_url ? (
+                      <a href={item.file_url} target="_blank" rel="noopener noreferrer"
+                        className="flex-1 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1.5">
+                        <Download className="w-3.5 h-3.5" /> Download
+                      </a>
+                    ) : null}
+                    {isAdmin && (
+                      <>
+                        <button onClick={() => openEdit(item)} className="p-2 rounded-xl border border-border hover:bg-muted transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => deleteMut.mutate(item.id)} className="p-2 rounded-xl border border-red-500/20 hover:bg-red-500/10 text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialog} onOpenChange={setDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editing ? 'Edit Material' : 'Add Marketing Material'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Title *</Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. A4 Banner — English" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(MATERIAL_TYPES).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.type === 'whatsapp_msg' ? (
+              <div className="space-y-1.5">
+                <Label>Message Content</Label>
+                <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                  placeholder="WhatsApp message template..." rows={5}
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-transparent resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <Label>File URL</Label>
+                  <Input value={form.file_url} onChange={e => setForm(f => ({ ...f, file_url: e.target.value }))} placeholder="https://..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Thumbnail URL (optional)</Label>
+                  <Input value={form.thumbnail_url} onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))} placeholder="https://..." />
+                </div>
+              </>
+            )}
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDialog(false)} className="flex-1">Cancel</Button>
+              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="flex-1"
+                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                {saveMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── PROFILE & PAYMENT TAB ────────────────────────────────────────────────────
+function ProfileTab({ user }) {
+  const qc = useQueryClient();
+  const [profile, setProfile] = React.useState({
+    full_name: user?.full_name || '', email: user?.email || '',
+    phone: user?.phone || '', whatsapp: user?.whatsapp || '',
+  });
+  const [payment, setPayment] = React.useState({
+    airtel_number: user?.airtel_number || '',
+    tnm_number: user?.tnm_number || '',
+    bank_name: user?.bank_name || '',
+    bank_account: user?.bank_account || '',
+    bank_holder: user?.bank_holder || '',
+  });
+  const [notifs, setNotifs] = React.useState({
+    email_notifications: user?.email_notifications !== false,
+    inapp_notifications: user?.inapp_notifications !== false,
+  });
+
+  React.useEffect(() => {
+    if (user) {
+      setProfile({ full_name: user.full_name || '', email: user.email || '', phone: user.phone || '', whatsapp: user.whatsapp || '' });
+      setPayment({ airtel_number: user.airtel_number || '', tnm_number: user.tnm_number || '', bank_name: user.bank_name || '', bank_account: user.bank_account || '', bank_holder: user.bank_holder || '' });
+      setNotifs({ email_notifications: user.email_notifications !== false, inapp_notifications: user.inapp_notifications !== false });
+    }
+  }, [user?.id]);
+
+  const saveMut = useMutation({
+    mutationFn: () => base44.auth.updateMe({ ...profile, ...payment, ...notifs }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['currentUser'] }); toast.success('Profile saved!'); },
+    onError: () => toast.error('Failed to save. Try again.'),
+  });
+
+  const SectionBox = ({ title, icon: Icon, children }) => (
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+        <h3 className="font-semibold text-sm">{title}</h3>
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5 max-w-xl">
+      <SectionBox title="Personal Information" icon={UserCog}>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5"><Label>Full Name</Label><Input value={profile.full_name} onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))} placeholder="Your full name" /></div>
+          <div className="space-y-1.5"><Label>Email</Label><Input value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} type="email" /></div>
+          <div className="space-y-1.5"><Label>Phone</Label><Input value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+265 9XX XXX XXX" /></div>
+          <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={profile.whatsapp} onChange={e => setProfile(p => ({ ...p, whatsapp: e.target.value }))} placeholder="+265 9XX XXX XXX" /></div>
+        </div>
+      </SectionBox>
+
+      <SectionBox title="Payment Methods" icon={Smartphone}>
+        <p className="text-xs text-muted-foreground -mt-1">Set up how you want to receive your commissions.</p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-red-500/10 flex items-center justify-center"><Smartphone className="w-3.5 h-3.5 text-red-500" /></div><p className="text-sm font-medium">Airtel Money</p></div>
+          <Input value={payment.airtel_number} onChange={e => setPayment(p => ({ ...p, airtel_number: e.target.value }))} placeholder="Airtel Money phone number" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center"><Smartphone className="w-3.5 h-3.5 text-blue-500" /></div><p className="text-sm font-medium">TNM Mpamba</p></div>
+          <Input value={payment.tnm_number} onChange={e => setPayment(p => ({ ...p, tnm_number: e.target.value }))} placeholder="TNM Mpamba phone number" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center"><Building2 className="w-3.5 h-3.5 text-muted-foreground" /></div><p className="text-sm font-medium">Bank Account</p></div>
+          <div className="grid sm:grid-cols-3 gap-2">
+            <Input value={payment.bank_name} onChange={e => setPayment(p => ({ ...p, bank_name: e.target.value }))} placeholder="Bank name" />
+            <Input value={payment.bank_account} onChange={e => setPayment(p => ({ ...p, bank_account: e.target.value }))} placeholder="Account number" />
+            <Input value={payment.bank_holder} onChange={e => setPayment(p => ({ ...p, bank_holder: e.target.value }))} placeholder="Account holder" />
+          </div>
+        </div>
+      </SectionBox>
+
+      <SectionBox title="Notification Preferences" icon={Bell}>
+        {[
+          { key: 'email_notifications', label: 'Email Notifications', sub: 'Get notified via email when referrals register or pay fees' },
+          { key: 'inapp_notifications', label: 'In-App Notifications', sub: 'Receive notifications inside the platform' },
+        ].map(({ key, label, sub }) => (
+          <div key={key} className="flex items-center justify-between gap-3">
+            <div><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{sub}</p></div>
+            <Switch checked={notifs[key]} onCheckedChange={v => setNotifs(n => ({ ...n, [key]: v }))} />
+          </div>
+        ))}
+      </SectionBox>
+
+      <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="w-full"
+        style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+        {saveMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : <><Save className="w-4 h-4 mr-2" />Save Profile</>}
+      </Button>
+    </div>
+  );
+}
+
 export default function MyReferrals() {
   const { user } = useOutletContext() ?? {};
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
@@ -494,12 +790,16 @@ export default function MyReferrals() {
           <TabsTrigger value="links"><Link2 className="w-4 h-4 mr-1.5" /> Share Links</TabsTrigger>
           <TabsTrigger value="payouts"><DollarSign className="w-4 h-4 mr-1.5" /> Payouts</TabsTrigger>
           <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-1.5" /> Settings</TabsTrigger>
+          <TabsTrigger value="marketing"><Image className="w-4 h-4 mr-1.5" /> Marketing</TabsTrigger>
+          <TabsTrigger value="profile"><UserCog className="w-4 h-4 mr-1.5" /> Profile & Payment</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-5"><AffiliateOverview referrals={referrals} commissionSettings={commissionSettings} /></TabsContent>
         <TabsContent value="links" className="mt-5"><LinkGenerator referralCode={referralCode} /></TabsContent>
         <TabsContent value="payouts" className="mt-5"><PayoutsTab referrals={referrals} commissionSettings={commissionSettings} /></TabsContent>
         <TabsContent value="settings" className="mt-5"><AffiliateSettings /></TabsContent>
+        <TabsContent value="marketing" className="mt-5"><MaterialsTab user={user} /></TabsContent>
+        <TabsContent value="profile" className="mt-5"><ProfileTab user={user} /></TabsContent>
       </Tabs>
 
       <div className="grid lg:grid-cols-2 gap-6">
