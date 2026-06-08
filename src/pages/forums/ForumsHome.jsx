@@ -166,6 +166,23 @@ export default function ForumsHome() {
                       <MessageSquare className="w-3 h-3" />
                       {count} {count === 1 ? 'thread' : 'threads'}
                     </span>
+                    {(() => {
+                      try {
+                        const lv = localStorage.getItem(`forum_last_visit_${slug}`);
+                        if (!lv) return null;
+                        const lastVisit = new Date(lv);
+                        const unread = threadCounts.filter(t =>
+                          !t.parent_id && t.subject_id === subject.id &&
+                          new Date(t.updated_date || t.created_date) > lastVisit
+                        ).length;
+                        return unread > 0 ? (
+                          <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                            style={{ background:'hsl(0 72% 51% / 0.15)', color:'hsl(0 72% 40%)' }}>
+                            {unread} new
+                          </span>
+                        ) : null;
+                      } catch { return null; }
+                    })()}
                     {lastAt && (
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
                         <Clock className="w-3 h-3" />
