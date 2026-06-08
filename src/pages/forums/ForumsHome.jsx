@@ -28,7 +28,7 @@ function getMeta(name = '') {
 
 export default function ForumsHome() {
   const navigate = useNavigate();
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const [search, setSearch] = useState('');
 
   const { data: subjects = [], isLoading } = useQuery({
