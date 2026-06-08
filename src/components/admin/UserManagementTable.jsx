@@ -29,7 +29,7 @@ export default function UserManagementTable() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.filter({}),
   });
 
   const updateRoleMutation = useMutation({
