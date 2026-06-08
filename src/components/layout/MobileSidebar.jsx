@@ -31,7 +31,7 @@ const teacherNav = [
   { label: 'Quiz Builder',     icon: ClipboardList,   path: '/teacher/quizzes' },
   { label: 'Grading',          icon: PenTool,         path: '/teacher/grading' },
   { label: 'Student Progress', icon: TrendingUp,      path: '/teacher/progress' },
-  { label: 'My Referrals',     icon: Gift,            path: '/my-referrals' },
+  { label: 'Affiliate',     icon: Gift,            path: '/affiliate' },
   { label: 'Blog',             icon: Newspaper,       path: '/teacher/blog' },
   { label: 'Notifications',    icon: Bell,            path: '/teacher/notifications' },
   { label: 'Settings',         icon: Settings,        path: '/teacher/settings' },
