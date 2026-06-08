@@ -119,15 +119,14 @@ function useVoiceRecorder() {
   const [seconds, setSeconds] = useState(0);
   const [blob, setBlob] = useState(null);
   const [blobUrl, setBlobUrl] = useState(null);
-  // Refs for values that must survive async callbacks
-  const durationRef  = useRef(0);
-  const activeRef    = useRef(false); // ref-gated flag — stops the interval immediately without waiting for state
-  const blobRef      = useRef(null);  // ref copy of blob so send can read it synchronously
-  const mediaRef     = useRef(null);
-  const streamRef    = useRef(null);
-  const chunksRef    = useRef([]);
-  const timerRef     = useRef(null);
+  // Use refs for duration so it survives async onstop callback
+  const durationRef = useRef(0);
+  const mediaRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
 
+  // Always clear the timer safely
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
@@ -136,11 +135,13 @@ function useVoiceRecorder() {
   }, []);
 
   const start = useCallback(async () => {
+    // Don't start a second recording if already recording
     if (mediaRef.current) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
+      // Pick a supported mimeType
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
@@ -155,27 +156,26 @@ function useVoiceRecorder() {
       };
 
       mr.onstop = () => {
+        // Build blob from all chunks
         const type = mimeType || 'audio/webm';
         const b = new Blob(chunksRef.current, { type });
-        blobRef.current = b;    // store in ref FIRST — synchronous, available immediately
         setBlob(b);
         setBlobUrl(URL.createObjectURL(b));
+        // Stop all mic tracks
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
-        mediaRef.current  = null;
+        mediaRef.current = null;
       };
 
-      mr.start(100);
+      mr.start(100); // collect data every 100ms — ensures chunks arrive reliably
       mediaRef.current = mr;
-      activeRef.current = true;  // mark active via ref
       setRecording(true);
       setSeconds(0);
       durationRef.current = 0;
 
-      // Timer: gate on activeRef (ref is synchronous — no stale closure)
+      // Start timer — only one at a time
       clearTimer();
       timerRef.current = setInterval(() => {
-        if (!activeRef.current) { clearInterval(timerRef.current); timerRef.current = null; return; }
         durationRef.current += 1;
         setSeconds(s => s + 1);
       }, 1000);
@@ -187,25 +187,24 @@ function useVoiceRecorder() {
   }, [clearTimer]);
 
   const stop = useCallback(() => {
-    activeRef.current = false; // kill the timer interval guard immediately (sync)
+    // Stop timer FIRST before anything async
     clearTimer();
     setRecording(false);
+    // Then stop MediaRecorder — triggers onstop async
     if (mediaRef.current && mediaRef.current.state !== 'inactive') {
-      mediaRef.current.stop(); // triggers onstop → sets blob
+      mediaRef.current.stop();
     } else {
       mediaRef.current = null;
     }
   }, [clearTimer]);
 
   const clear = useCallback(() => {
-    activeRef.current = false;
     clearTimer();
     setRecording(false);
     setBlob(null);
     setBlobUrl(null);
     setSeconds(0);
     durationRef.current = 0;
-    blobRef.current     = null;
     if (mediaRef.current) {
       try { mediaRef.current.stop(); } catch(_) {}
       mediaRef.current = null;
@@ -214,8 +213,8 @@ function useVoiceRecorder() {
     streamRef.current = null;
   }, [clearTimer]);
 
-  // Expose blobRef so send can read the blob synchronously even before React re-renders
-  return { recording, seconds, blob, blobUrl, blobRef, durationRef, start, stop, clear };
+  // Expose durationRef so upload can read the final duration even after clear
+  return { recording, seconds, blob, blobUrl, durationRef, start, stop, clear };
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -368,7 +367,7 @@ export default function ThreadPage() {
   const { subjectSlug, threadSlug } = useParams();
   const navigate  = useNavigate();
   const { state } = useLocation();
-  const { user }  = useOutletContext() || {};
+  const { user }  = useOutletContext();
   const qc        = useQueryClient();
   const bottomRef = useRef();
   const fileRef   = useRef();
@@ -438,15 +437,15 @@ export default function ThreadPage() {
   };
 
   /* ── Voice upload ── */
-  const uploadVoice = async (blobOverride) => {
-    const blobToUpload = blobOverride || voice.blobRef?.current || voice.blob;
-    if (!blobToUpload) return null;
+  const uploadVoice = async () => {
+    if (!voice.blob) return null;
+    // Capture duration NOW before any state changes
     const capturedDuration = voice.durationRef.current || voice.seconds || 0;
     setUploadingVoice(true);
     try {
-      const mimeType = blobToUpload.type || 'audio/webm';
+      const mimeType = voice.blob.type || 'audio/webm';
       const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([blobToUpload], `voice_${Date.now()}.${ext}`, { type: mimeType });
+      const file = new File([voice.blob], `voice_${Date.now()}.${ext}`, { type: mimeType });
       const fd = new FormData();
       fd.append('file', file);
       const resp = await fetch(`/api/apps/${window.__appParams?.appId || ''}/storage/upload`, {
@@ -472,15 +471,13 @@ export default function ThreadPage() {
     mutationFn: async () => {
       let voiceUrl = null, voiceDuration = 0;
       if (mode === 'voice') {
-        // Read from blobRef (sync) — React state (voice.blob) may lag behind onstop callback
-        const blobToSend = voice.blobRef.current || voice.blob;
-        if (!blobToSend && !voice.blobUrl) throw new Error('No voice note recorded. Please record first.');
-        if (!blobToSend && voice.blobUrl) {
-          await new Promise(r => setTimeout(r, 400)); // wait for onstop to fire
+        if (!voice.blob && !voice.blobUrl) throw new Error('No voice note recorded. Please record first.');
+        // If blob isn't ready yet (onstop race) wait briefly
+        if (!voice.blob && voice.blobUrl) {
+          await new Promise(r => setTimeout(r, 300));
         }
-        const finalBlob = voice.blobRef.current || voice.blob;
-        if (!finalBlob) throw new Error('Voice note not ready yet. Please try again in a moment.');
-        const result = await uploadVoice(finalBlob);
+        if (!voice.blob) throw new Error('Voice note not ready yet. Please try again.');
+        const result = await uploadVoice();
         if (!result) throw new Error('Voice upload failed');
         voiceUrl = result.url;
         voiceDuration = result.duration;
@@ -619,22 +616,7 @@ export default function ThreadPage() {
     <>
       <SEO
         title={`${thread.title || 'Discussion'} | ${subject?.name || subjectSlug} Forum | Chibondo Academy`}
-        description={thread.content?.replace(/<[^>]*>/g,'').slice(0, 160) || ''}
-        canonical={`${window.location.origin}/forums/${subjectSlug}/${threadSlug}`}
-        schema={{
-          "@context": "https://schema.org",
-          "@type": "DiscussionForumPosting",
-          "headline": thread.title || 'Discussion',
-          "text": thread.content?.replace(/<[^>]*>/g,'').slice(0, 500) || '',
-          "datePublished": thread.created_date,
-          "dateModified": thread.updated_date || thread.created_date,
-          "author": { "@type": "Person", "name": thread.author_name || 'Student' },
-          "url": `${window.location.origin}/forums/${subjectSlug}/${threadSlug}`,
-          "isPartOf": {
-            "@type": "DiscussionForumPosting",
-            "name": `${subject?.name || subjectSlug} Forum — Chibondo Academy`
-          }
-        }}
+        description={thread.content?.slice(0, 160) || ''}
       />
 
       <div className="pb-28 space-y-4">
@@ -717,7 +699,7 @@ export default function ThreadPage() {
 
           {/* Like on thread */}
           <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
-            <LikeButton item={thread} userId={user?.id} onLike={() => requireAuth(() => likeThreadMut.mutate())} />
+            <LikeButton item={thread} userId={user?.id} onLike={() => likeThreadMut.mutate()} />
             <span className="text-xs text-muted-foreground">{allReplies.length} {allReplies.length === 1 ? 'comment' : 'comments'}</span>
           </div>
         </div>
@@ -753,7 +735,7 @@ export default function ThreadPage() {
                   user={user}
                   onDelete={id => deleteMut.mutate(id)}
                   onAccept={reply => acceptMut.mutate(reply)}
-                  onLike={item => requireAuth(() => likeMut.mutate(item))}
+                  onLike={item => likeMut.mutate(item)}
                   onReplyTo={target => setReplyTo(target)}
                 />
               ))}
@@ -769,24 +751,8 @@ export default function ThreadPage() {
       ══════════════════════════════════════════════════════════ */}
       <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t border-border px-3 py-2 shadow-2xl lg:bottom-0">
 
-        {/* Guest sign-in prompt — shown instead of composer for unauthenticated visitors */}
-        {!isAuthenticated && (
-          <div className="flex items-center justify-between gap-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">Sign in</span> to reply, like, or join the discussion.
-            </p>
-            <button
-              onClick={() => requireAuth(() => {})}
-              className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
-              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
-            >
-              Sign in
-            </button>
-          </div>
-        )}
-
         {/* Reply-to indicator */}
-        {isAuthenticated && replyTo && (
+        {replyTo && (
           <div className="flex items-center gap-2 mb-1.5 px-1 text-xs">
             <CornerDownRight className="w-3 h-3 text-accent flex-shrink-0" />
             <span className="text-muted-foreground">Replying to <span className="font-semibold text-foreground">{replyTo.name}</span></span>
@@ -886,7 +852,7 @@ export default function ThreadPage() {
 
           {/* Send */}
           <button
-            onClick={() => requireAuth(() => postMut.mutate())}
+            onClick={() => postMut.mutate()}
             disabled={postMut.isPending || uploadingVoice || (mode === 'text' ? (!text.trim() && !imgUrl) : !voice.blobUrl)}
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
             style={{ background: 'hsl(222 47% 18%)' }}
