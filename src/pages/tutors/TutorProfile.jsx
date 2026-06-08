@@ -59,7 +59,7 @@ function SubjectRow({ subject, navigate }) {
 export default function TutorProfilePage() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
-  const { user }   = useOutletContext();
+  const { user }   = useOutletContext() || {};
   const [avatarErr, setAvatarErr] = useState(false);
   const [bioOpen, setBioOpen] = useState(false);
 
