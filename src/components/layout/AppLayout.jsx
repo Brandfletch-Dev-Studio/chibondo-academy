@@ -31,8 +31,8 @@ export default function AppLayout() {
       try { return await base44.auth.me(); }
       catch { return null; }
     },
-    retry: false,          // don't hammer the auth endpoint for guests
-    staleTime: 5 * 60_000, // 5 min — reduces redundant auth checks while browsing
+    retry: false,
+    staleTime: 5 * 60_000,
   });
 
   // Guarantee every registered user has role='user' (student)
@@ -92,7 +92,7 @@ export default function AppLayout() {
   const enrichedUser = user ? {
     ...user,
     avatar_url: user.avatar_url || studentProfile?.avatar_url || null,
-  } : null; // null = guest (not undefined — so pages can distinguish)
+  } : null; // null = guest
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['unreadNotifications'],
@@ -103,17 +103,19 @@ export default function AppLayout() {
     enabled: !!user?.id,
   });
 
+  const isGuest = !enrichedUser;
+
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar — only shown when authenticated */}
-      {enrichedUser && (
+      {/* Desktop Sidebar — shown for authenticated users only */}
+      {!isGuest && (
         <div className="hidden lg:block flex-shrink-0">
           <Sidebar user={enrichedUser} collapsed={collapsed} onToggle={handleToggle} />
         </div>
       )}
 
-      {/* Mobile Sidebar Sheet */}
-      {enrichedUser && (
+      {/* Mobile Sidebar Sheet — authenticated only */}
+      {!isGuest && (
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="p-0 w-64 border-0">
             <MobileSidebar user={enrichedUser} onClose={() => setMobileOpen(false)} />
@@ -124,7 +126,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <div className={cn(
         "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
-        enrichedUser && collapsed ? "lg:ml-16" : enrichedUser ? "lg:ml-64" : ""
+        !isGuest && collapsed ? "lg:ml-16" : !isGuest ? "lg:ml-64" : ""
       )}>
         <TopBar
           user={enrichedUser}
@@ -136,8 +138,8 @@ export default function AppLayout() {
         </main>
       </div>
 
-      {/* Bottom nav only for authenticated users */}
-      {enrichedUser && <BottomNav />}
+      {/* Bottom nav — shown for ALL users (guests get public-only nav items) */}
+      <BottomNav user={enrichedUser} />
     </div>
   );
 }
