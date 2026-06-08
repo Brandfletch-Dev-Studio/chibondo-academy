@@ -4,7 +4,64 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
 import { format } from 'date-fns';
-import { formatAgo } from '@/hooks/useLiveAgo';
+import { useLiveAgo, formatAgo } from '@/hooks/useLiveAgo';
+
+/* ── ForumCard: self-contained component with live timestamp ticker ──────── */
+function ForumCard({ subject, stats, navigate }) {
+  const slug     = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
+  const lastAgo  = useLiveAgo(stats.lastActivity);   // ← hook runs per card
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-accent/40 transition-colors group">
+      <a
+        href={`/forums/${slug}`}
+        onClick={e => { e.preventDefault(); navigate(`/forums/${slug}`); }}
+        className="flex items-start gap-4 p-4 block no-underline"
+      >
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-muted mt-0.5">
+          {subject.icon || '📚'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-foreground group-hover:text-accent transition-colors">
+            {subject.forum_name || subject.name}
+          </p>
+          {subject.description && (
+            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{subject.description}</p>
+          )}
+          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              {stats.threadCount} {stats.threadCount === 1 ? 'thread' : 'threads'}
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              {stats.postCount} posts
+            </span>
+            {lastAgo && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {lastAgo}
+              </span>
+            )}
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors flex-shrink-0 mt-1" />
+      </a>
+      {stats.latestThreadTitle && (
+        <a
+          href={`/forums/${slug}/${stats.latestThreadSlug}`}
+          onClick={e => { e.preventDefault(); navigate(`/forums/${slug}/${stats.latestThreadSlug}`); }}
+          className="flex items-center gap-2 px-4 py-2 border-t border-border/60 hover:bg-muted/40 transition-colors no-underline"
+        >
+          <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">Latest:</span>
+          <span className="text-[11px] text-muted-foreground truncate hover:text-accent transition-colors">
+            {stats.latestThreadTitle}
+          </span>
+        </a>
+      )}
+    </div>
+  );
+}
 import {
   BookOpen, Play, MessageSquare, ChevronRight, ArrowRight,
   CheckCircle, Zap, Crown, Award, GraduationCap,
@@ -273,58 +330,14 @@ export default function LandingPage() {
           <p className="text-xs text-muted-foreground mb-4">Live discussions</p>
 
           <div className="space-y-2">
-            {activeForums.length > 0 ? activeForums.map(subject => {
-              const stats = forumStats[subject.id];
-              const slug  = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
-              return (
-                <div key={subject.id} className="bg-card border border-border rounded-xl overflow-hidden hover:border-accent/40 transition-colors group">
-                  {/* Entire card → forum page */}
-                  <Link to={`/forums/${slug}`} className="flex items-start gap-4 p-4 block">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-muted mt-0.5">
-                      {subjectIcon(subject.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm group-hover:text-accent transition-colors">
-                        {subject.forum_name || subject.name}
-                      </p>
-                      {subject.description && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{subject.description}</p>
-                      )}
-                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="w-3 h-3" />
-                          {stats.threadCount} {stats.threadCount === 1 ? 'thread' : 'threads'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {stats.postCount} posts
-                        </span>
-                        {stats.lastActivity && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatAgo(stats.lastActivity)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors flex-shrink-0 mt-1" />
-                  </Link>
-                  {/* Latest thread → thread page */}
-                  {stats.latestThreadTitle && (
-                    <Link
-                      to={`/forums/${slug}/${stats.latestThreadSlug}`}
-                      className="flex items-center gap-2 px-4 py-2 border-t border-border/60 hover:bg-muted/40 transition-colors"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">Latest:</span>
-                      <span className="text-[11px] text-muted-foreground truncate hover:text-accent transition-colors">
-                        {stats.latestThreadTitle}
-                      </span>
-                    </Link>
-                  )}
-                </div>
-              );
-            }) : (
+            {activeForums.length > 0 ? activeForums.map(subject => (
+              <ForumCard
+                key={subject.id}
+                subject={subject}
+                stats={forumStats[subject.id]}
+                navigate={navigate}
+              />
+            )) : (
               [1,2,3].map(i => (
                 <div key={i} className="h-20 bg-card border border-border rounded-xl animate-pulse" />
               ))
