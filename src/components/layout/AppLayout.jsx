@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import Sidebar from './Sidebar';
@@ -37,36 +37,46 @@ export default function AppLayout() {
   }, [user?.id, user?.role]);
 
   // ── Forum Presence Heartbeat ──────────────────────────────────────────────
-  // Upsert a ForumPresence record every 60s while user is on the forums section
-  // Only fires when on /forums routes
-  useEffect(() => {
-    if (!user?.id) return;
+  // FIX 11: use useLocation so the effect re-runs on route change, not just mount
+  // Previously: isOnForums() only evaluated at mount — stale if user navigated later
+  const location = useLocation();
+  const isOnForums = location.pathname.startsWith('/forums') || location.pathname.startsWith('/forum');
 
-    const isOnForums = () => window.location.pathname.startsWith('/forums') || window.location.pathname.startsWith('/forum');
+  useEffect(() => {
+    if (!user?.id || !isOnForums) return;
+
+    // Presence record ref — avoid re-fetching on every beat
+    let presenceId = null;
 
     const beat = async () => {
-      if (!isOnForums()) return;
       try {
         const now = new Date().toISOString();
-        const existing = await base44.entities.ForumPresence.filter({ user_id: user.id });
-        if (existing[0]) {
-          await base44.entities.ForumPresence.update(existing[0].id, { last_seen: now });
+        if (presenceId) {
+          // Fast path: we already know the record ID
+          await base44.entities.ForumPresence.update(presenceId, { last_seen: now });
         } else {
-          await base44.entities.ForumPresence.create({
-            user_id:   user.id,
-            user_name: user.full_name || user.email || 'Student',
-            user_role: user.role || 'user',
-            last_seen: now,
-          });
+          const existing = await base44.entities.ForumPresence.filter({ user_id: user.id });
+          if (existing[0]) {
+            presenceId = existing[0].id;
+            await base44.entities.ForumPresence.update(presenceId, { last_seen: now });
+          } else {
+            const created = await base44.entities.ForumPresence.create({
+              user_id:   user.id,
+              user_name: user.full_name || user.email || 'Student',
+              user_role: user.role || 'user',
+              last_seen: now,
+            });
+            presenceId = created?.id;
+          }
         }
       } catch(_) {}
     };
 
-    // Fire immediately if on forums
+    // Fire immediately when entering forums, then every 60s
     beat();
     const iv = setInterval(beat, 60_000);
     return () => clearInterval(iv);
-  }, [user?.id]);
+  }, [user?.id, isOnForums]);
 
   // Load StudentProfile to get persisted avatar_url as fallback
   const { data: studentProfile } = useQuery({
