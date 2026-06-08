@@ -230,7 +230,7 @@ function ResourceRow({ resource, onEdit, onDelete }) {
 
 /* ── Main ──────────────────────────────────────────────────────────────────── */
 export default function LibraryManagement() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const qc       = useQueryClient();
 
   const [search,       setSearch]    = useState('');
