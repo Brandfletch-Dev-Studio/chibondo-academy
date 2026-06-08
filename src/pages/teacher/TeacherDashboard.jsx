@@ -32,7 +32,7 @@ export default function TeacherDashboard() {
 
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['studentProfiles'],
-    queryFn: () => base44.entities.StudentProfile.list('-created_date', 200),
+    queryFn: () => base44.entities.StudentProfile.filter({},'-created_date', 200),
     enabled: allEnrollments.length > 0,
   });
 
