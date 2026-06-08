@@ -35,16 +35,8 @@ export default function AffiliatePayouts() {
     queryFn: () => base44.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50),
     enabled: !!user?.id,
   });
-  const { data: commissions = [] } = useQuery({
-    queryKey: ['myCommissions', user?.id],
-    queryFn: () => base44.entities.Commission.filter({ affiliate_id: user?.id }, '-created_date', 200),
-    enabled: !!user?.id,
-  });
-
-  // Calculate balances
-  const totalEarned = commissions.length > 0
-    ? commissions.reduce((s, c) => s + (c.amount || 0), 0)
-    : referrals.filter(r => r.reward_amount > 0).reduce((s, r) => s + (r.reward_amount || 0), 0);
+  // Calculate balances from referrals
+  const totalEarned = referrals.filter(r => r.reward_amount > 0).reduce((s, r) => s + (r.reward_amount || 0), 0);
   const paidOut    = payouts.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
   const available  = Math.max(0, totalEarned - paidOut);
   const canRequest = available >= minPayout && !payouts.some(p => p.status === 'pending' || p.status === 'processing');
