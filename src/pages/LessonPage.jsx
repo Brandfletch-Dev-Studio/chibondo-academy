@@ -180,7 +180,7 @@ function SidebarLesson({ lesson, currentLessonId, completed, locked }) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function LessonPage() {
   const { lessonId } = useParams();
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('notes');
