@@ -11,7 +11,8 @@
         "free",
         "monthly",
         "quarterly",
-        "annual"
+        "annual",
+        "biannual"
       ],
       "default": "free"
     },
