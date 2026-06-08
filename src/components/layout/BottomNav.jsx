@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Gift, Library, CreditCard, MessageSquare } from 'lucide-react';
+import { BookOpen, Gift, Library, CreditCard, MessageSquare, Home, Newspaper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+// Nav items shown to authenticated students
+const authNavItems = [
   { label: 'Classes',   icon: BookOpen,      path: '/subjects' },
   { label: 'Referrals', icon: Gift,          path: '/my-referrals' },
   { label: 'Library',   icon: Library,       path: '/library' },
@@ -11,8 +12,18 @@ const navItems = [
   { label: 'Fees',      icon: CreditCard,    path: '/subscription' },
 ];
 
-export default function BottomNav() {
+// Nav items shown to guests (public pages only)
+const guestNavItems = [
+  { label: 'Blog',     icon: Newspaper,     path: '/blog' },
+  { label: 'Subjects', icon: BookOpen,      path: '/subjects' },
+  { label: 'Tutors',   icon: Home,          path: '/tutors' },
+  { label: 'Library',  icon: Library,       path: '/library' },
+  { label: 'Forums',   icon: MessageSquare, path: '/forums' },
+];
+
+export default function BottomNav({ user }) {
   const location = useLocation();
+  const navItems = user ? authNavItems : guestNavItems;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t border-sidebar-border safe-area-pb">
