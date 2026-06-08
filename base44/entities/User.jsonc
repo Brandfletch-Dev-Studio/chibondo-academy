@@ -4,12 +4,16 @@
   "properties": {
     "role": {
       "type": "string",
-      "enum": ["admin","teacher","user"],
+      "enum": [
+        "admin",
+        "teacher",
+        "user"
+      ],
       "default": "user"
     },
     "avatar_url": {
       "type": "string",
-      "description": "Profile photo URL — set from settings page"
+      "description": "Profile photo URL \u2014 set from settings page"
     },
     "referral_code": {
       "type": "string",
@@ -17,8 +21,29 @@
     },
     "subscription_plan": {
       "type": "string",
-      "enum": ["free","monthly","quarterly","annual"],
+      "enum": [
+        "free",
+        "monthly",
+        "quarterly",
+        "annual",
+        "biannual"
+      ],
       "default": "free"
+    },
+    "total_learning_hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Cumulative learning hours \u2014 incremented by lesson completion automation"
+    },
+    "study_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "Consecutive days with at least one lesson completed"
+    },
+    "last_study_date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO date of the last day the student completed a lesson \u2014 used to compute streak"
     }
   }
 }
