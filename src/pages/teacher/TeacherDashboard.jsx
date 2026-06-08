@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function TeacherDashboard() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const [expandedSubject, setExpandedSubject] = useState(null);
 
   const { data: subjects = [] } = useQuery({
@@ -32,7 +32,7 @@ export default function TeacherDashboard() {
 
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['studentProfiles'],
-    queryFn: () => base44.entities.StudentProfile.filter({},'-created_date', 200),
+    queryFn: () => base44.entities.StudentProfile.list('-created_date', 200),
     enabled: allEnrollments.length > 0,
   });
 
