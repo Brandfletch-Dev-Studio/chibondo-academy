@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 export default function AffiliateProfile() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const qc = useQueryClient();
 
   const [profile, setProfile] = useState({
