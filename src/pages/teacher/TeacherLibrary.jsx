@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 
 export default function TeacherLibrary() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
