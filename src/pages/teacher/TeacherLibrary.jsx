@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 
 export default function TeacherLibrary() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +43,7 @@ export default function TeacherLibrary() {
 
   const { data: resources = [] } = useQuery({
     queryKey: ['teacherLibraryResources'],
-    queryFn: () => base44.entities.RevisionResource.filter({},'-created_date', 100),
+    queryFn: () => base44.entities.RevisionResource.list('-created_date', 100),
   });
 
   const { data: subjects = [] } = useQuery({
