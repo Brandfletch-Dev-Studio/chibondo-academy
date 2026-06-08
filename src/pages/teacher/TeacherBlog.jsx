@@ -22,7 +22,7 @@ const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)
 const QUILL_MODULES = { toolbar:[[{header:[1,2,3,false]}],['bold','italic','underline','strike'],[{list:'ordered'},{list:'bullet'}],['blockquote','code-block'],['link','image'],['clean']] };
 
 export default function TeacherBlog() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [open, setOpen]     = useState(false);
   const [editing, setEditing] = useState(null);
