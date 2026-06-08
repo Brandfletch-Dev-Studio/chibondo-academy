@@ -167,7 +167,7 @@ function LessonForm({ topicId, subjectId, subjectName, topicTitle, formId, lesso
 
 export default function CourseBuilder() {
   const { subjectId } = useParams();
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
   const [topicDialog, setTopicDialog] = useState({ open: false, topic: null });
   const [lessonDialog, setLessonDialog] = useState({ open: false, lesson: null, topicId: null, topicTitle: '' });
