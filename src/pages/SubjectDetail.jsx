@@ -277,8 +277,8 @@ export default function SubjectDetail() {
                     return (
                       <Link
                         key={lesson.id}
-                        to={isLocked ? '/subscription' : `/lesson/${lesson.id}`}
-                        onClick={() => !isLocked && handleLessonClick()}
+                        to={!user ? `/lesson/${lesson.id}` : isLocked ? '/subscription' : `/lesson/${lesson.id}`}
+                        onClick={() => user && !isLocked && handleLessonClick()}
                         className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${
                           isCompleted ? 'bg-success/5' : ''
                         }`}
@@ -293,7 +293,7 @@ export default function SubjectDetail() {
                           )}
                         </span>
                         <span className="flex-1 text-foreground">{lesson.title}</span>
-                        {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                        {user && isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
                       </Link>
                     );
                   })}
@@ -332,8 +332,41 @@ export default function SubjectDetail() {
       {/* ── MAIN CTA button ── */}
       {firstLesson && (
         <div className="space-y-3">
-          {/* Scenario D: no subscription → pay gate */}
-          {!hasPaidFees && (
+          {/* Scenario A: guest → Join Now CTA */}
+          {!user && (
+            <div className="rounded-2xl p-6 text-center space-y-4"
+              style={{
+                background: 'linear-gradient(135deg, hsl(222 47% 13%) 0%, hsl(222 47% 16%) 100%)',
+                border: '1px solid hsl(43 74% 52% / 0.3)',
+                boxShadow: '0 0 40px hsl(43 74% 52% / 0.06)',
+              }}>
+              <div>
+                <h3 className="text-base font-semibold text-white mb-1">Ready to start learning?</h3>
+                <p className="text-sm" style={{ color: 'hsl(215 20% 65%)' }}>
+                  Create a free account to enrol, track your progress, and access all {lessons.length} lessons.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/register">
+                  <Button size="lg" className="w-full sm:w-auto h-12 text-base font-semibold px-8"
+                    style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                    Join Now — It's Free
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 text-base border-sidebar-border text-sidebar-foreground hover:text-white px-8">
+                    Login
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-xs" style={{ color: 'hsl(215 20% 50%)' }}>
+                Already enrolled? <Link to="/login" className="underline hover:text-white">Log in to continue</Link>
+              </p>
+            </div>
+          )}
+
+          {/* Scenario D: authenticated but no subscription → pay gate */}
+          {user && !hasPaidFees && (
             <Link to="/subscription">
               <Button className="w-full h-12 text-base font-semibold" size="lg"
                 style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
@@ -343,7 +376,7 @@ export default function SubjectDetail() {
           )}
 
           {/* Scenario B: paid but not enrolled → Join Class */}
-          {hasPaidFees && !isEnrolled && (
+          {user && hasPaidFees && !isEnrolled && (
             <Button
               className="w-full h-12 text-base font-semibold"
               size="lg"
@@ -360,7 +393,7 @@ export default function SubjectDetail() {
           )}
 
           {/* Scenario C: enrolled → Start/Continue Learning */}
-          {hasPaidFees && isEnrolled && (
+          {user && hasPaidFees && isEnrolled && (
             <Link
               to={`/lesson/${enrollment?.last_lesson_id || firstLesson.id}`}
             >
