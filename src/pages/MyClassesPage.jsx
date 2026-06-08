@@ -107,7 +107,7 @@ function ClassCard({ enrollment, subject }) {
 }
 
 export default function MyClassesPage() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
 
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['my-enrollments', user?.id],
