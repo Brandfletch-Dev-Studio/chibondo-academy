@@ -409,7 +409,7 @@ function AffiliateSettings() {
 
 function Leaderboard() {
   const { user } = useOutletContext();
-  const { data: allReferrals = [] } = useQuery({ queryKey: ['all-referrals-leaderboard'], queryFn: () => base44.entities.Referral.list('-created_date', 500) });
+  const { data: allReferrals = [] } = useQuery({ queryKey: ['all-referrals-leaderboard'], queryFn: () => base44.entities.Referral.filter({},'-created_date', 500) });
 
   const leaderboard = Object.values(allReferrals.reduce((acc, r) => {
     if (!r.referrer_id) return acc;
