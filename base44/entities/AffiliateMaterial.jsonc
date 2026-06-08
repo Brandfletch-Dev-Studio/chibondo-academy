@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Material title"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "banner",
+        "social_post",
+        "flyer",
+        "video",
+        "document",
+        "other"
+      ],
+      "description": "Material type"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to the material file"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "Thumbnail preview URL"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Is this material available for affiliates"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for filtering"
+    },
+    "download_count": {
+      "type": "number",
+      "description": "How many times downloaded"
+    }
+  }
+}
