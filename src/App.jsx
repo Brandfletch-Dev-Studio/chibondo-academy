@@ -216,7 +216,7 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      <Route path="*" element={<AppLayout />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
