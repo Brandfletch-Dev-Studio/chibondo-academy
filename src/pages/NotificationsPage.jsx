@@ -17,7 +17,7 @@ const typeIcons = {
 };
 
 export default function NotificationsPage() {
-  const { user } = useOutletContext() || {};
+  const { user } = useOutletContext();
   const queryClient = useQueryClient();
 
   const { data: notifications = [] } = useQuery({
