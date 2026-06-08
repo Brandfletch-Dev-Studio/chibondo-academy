@@ -66,7 +66,7 @@ function QRModal({ url, onClose }) {
 }
 
 export default function AffiliateLinks() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() || {};
   const [qrUrl, setQrUrl] = useState(null);
 
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
