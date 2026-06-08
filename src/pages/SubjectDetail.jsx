@@ -335,7 +335,7 @@ export default function SubjectDetail() {
       )}
 
       {/* ── MAIN CTA button ── */}
-      {firstLesson && (
+      {(firstLesson || !user) && (
         <div className="space-y-3">
           {/* Scenario A: guest → Join Now CTA */}
           {!user && (
