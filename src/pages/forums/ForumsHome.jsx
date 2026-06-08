@@ -6,7 +6,13 @@ import { base44 } from '@/api/base44Client';
 import SEO from '@/components/SEO';
 import { MessageSquare, TrendingUp, Clock, ChevronRight, Search, Users } from 'lucide-react';
 import { useState } from 'react';
-import { formatAgo } from '@/hooks/useLiveAgo';
+import { useLiveAgo, formatAgo } from '@/hooks/useLiveAgo';
+
+/* Tiny component so the hook runs per-card and ticks independently */
+function LiveAgo({ isoDate, className = '' }) {
+  const label = useLiveAgo(isoDate);
+  return <span className={className}>{label}</span>;
+}
 import { Input } from '@/components/ui/input';
 
 const SUBJECT_META = {
@@ -187,7 +193,7 @@ export default function ForumsHome() {
                     {lastAt && (
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
                         <Clock className="w-3 h-3" />
-                        {formatAgo(lastAt.toISOString())}
+                        <LiveAgo isoDate={lastAt.toISOString()} />
                       </span>
                     )}
                     <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors" />
