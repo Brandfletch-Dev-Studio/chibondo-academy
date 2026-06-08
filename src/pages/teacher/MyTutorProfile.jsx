@@ -13,7 +13,7 @@ import {
   GraduationCap, User, Globe, Briefcase,
   Plus, X, Save, ExternalLink, Eye, CheckCircle, Loader2,
   Facebook, Linkedin, Youtube, Twitter, Link as LinkIcon,
-  Camera, Upload, AlertCircle, ImageIcon
+  Camera, Upload, AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -62,10 +62,9 @@ function PhotoUploader({ value, onChange }) {
       onChange(url);
       toast.success('Photo uploaded!');
     } catch (err) {
-      // Keep showing the local preview even if upload failed
-      // user can retry; we still call onChange with the objectUrl as fallback
-      toast.error('Upload error — photo shown locally. Try saving again.');
-      onChange(objectUrl);
+      // Upload failed — keep local preview visible but DO NOT save blob:// to DB
+      toast.error('Upload failed. Please try again.');
+      // localPreview stays so user sees their pick; onChange NOT called = DB value unchanged
     } finally {
       setUploading(false);
     }
@@ -328,13 +327,6 @@ export default function MyTutorProfile() {
                 <Label className="mb-2 block">Profile Photo</Label>
                 <PhotoUploader value={form.profile_photo} onChange={v => set('profile_photo', v)} />
 
-              <div className="mt-4">
-                <Label className="mb-2 block">
-                  Cover Photo{' '}
-                  <span className="text-[10px] font-normal text-muted-foreground/60 normal-case">(wide banner on your profile page)</span>
-                </Label>
-                <CoverUploader value={form.cover_photo} onChange={v => set('cover_photo', v)} />
-              </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
