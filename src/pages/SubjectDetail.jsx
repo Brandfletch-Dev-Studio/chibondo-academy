@@ -19,6 +19,17 @@ export default function SubjectDetail() {
   const [copied, setCopied] = useState(false);
   const [justEnrolled, setJustEnrolled] = useState(false);
 
+  // PUBLIC ACCESS: user may be null for guest visitors
+  const isAuthenticated = !!user?.id;
+
+  // Redirect to login, saving current URL so we return here after auth
+  const requireAuth = (callback) => {
+    if (isAuthenticated) { callback(); return; }
+    const returnTo = window.location.pathname + window.location.search;
+    sessionStorage.setItem('auth_return_to', returnTo);
+    base44.auth.redirectToLogin(window.location.origin + returnTo);
+  };
+
   // Get user's referral code for sharing
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
 
@@ -98,6 +109,10 @@ export default function SubjectDetail() {
 
   // Lesson row click — auto-enroll then navigate
   const handleLessonClick = async () => {
+    if (!isAuthenticated) {
+      requireAuth(() => {}); // triggers login redirect
+      return;
+    }
     if (!hasPaidFees) { navigate('/subscription'); return; }
     if (!isEnrolled) { await enrollMutation.mutateAsync(); }
   };
