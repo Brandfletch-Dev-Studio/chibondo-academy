@@ -10,28 +10,12 @@ import {
   X, CornerDownRight, Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { useLiveAgo } from '@/hooks/useLiveAgo';
 
-
-/* ── Mark parent forum read when thread opens ──────────────────────────── */
 function markForumRead(subjectSlug) {
   if (subjectSlug) localStorage.setItem(`forum_last_visit_${subjectSlug}`, new Date().toISOString());
 }
 
-/* ── Live aging timestamp — ticks every 30s so "2 min ago" stays accurate ── */
-function useLiveAgo(isoDate) {
-  const [label, setLabel] = React.useState(() =>
-    isoDate ? formatDistanceToNow(new Date(isoDate), { addSuffix: true }) : ''
-  );
-  React.useEffect(() => {
-    if (!isoDate) return;
-    const tick = () => setLabel(formatDistanceToNow(new Date(isoDate), { addSuffix: true }));
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, [isoDate]);
-  return label;
-}
 
 /* ═══════════════════════════════════════════════════════════
    AVATAR — shows photo if available, initials otherwise
@@ -603,4 +587,3 @@ export default function ThreadPage() {
       </div>    </>
   );
 }
-
