@@ -175,6 +175,13 @@ export default function SubjectForum() {
   const { subjectSlug }    = useParams();
   const navigate           = useNavigate();
   const { state }          = useLocation();
+  const isAuthenticated = !!user?.id;
+  const requireAuth = (cb) => {
+    if (isAuthenticated) { cb(); return; }
+    const returnTo = window.location.pathname;
+    sessionStorage.setItem('auth_return_to', returnTo);
+    base44.auth.redirectToLogin(window.location.origin + returnTo);
+  };
   const { user }           = useOutletContext();
   const qc                 = useQueryClient();
   const [search, setSearch]       = useState('');
@@ -434,10 +441,10 @@ export default function SubjectForum() {
               )}
 
               {/* Ask button */}
-              <button onClick={() => setShowNew(v => !v)}
+              <button onClick={() => requireAuth(() => setShowNew(v => !v))}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold flex-shrink-0 active:scale-95 transition-transform"
                 style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
-                <Plus className="w-4 h-4" /> Ask
+                <Plus className="w-4 h-4" /> {isAuthenticated ? 'Ask' : 'Sign in to Ask'}
               </button>
             </div>
           </div>
@@ -472,7 +479,7 @@ export default function SubjectForum() {
                 <LogOut className="w-3 h-3" /> Leave Forum
               </button>
             ) : (
-              <button onClick={() => joinMut.mutate()} disabled={joinMut.isPending}
+              <button onClick={() => requireAuth(() => joinMut.mutate())} disabled={joinMut.isPending}
                 className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
                 style={{ background:'hsl(43 74% 52% / 0.2)', color:'hsl(43 74% 66%)', border:'1px solid hsl(43 74% 52% / 0.3)' }}>
                 <LogIn className="w-3 h-3" /> {joinMut.isPending ? 'Joining…' : 'Join Forum'}
