@@ -469,7 +469,15 @@ export default function MyReferrals() {
   const { data: commissionSettingsData = [] } = useQuery({ queryKey: ['affiliateSettings'], queryFn: () => base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }) });
   const commissionSettings = commissionSettingsData[0]?.value || {};
 
-  if (!user) return null;
+  if (!user) return (
+    <div className="space-y-4 animate-pulse max-w-4xl mx-auto">
+      <div className="h-8 bg-muted rounded-xl w-48" />
+      <div className="h-4 bg-muted rounded w-72" />
+      <div className="grid grid-cols-2 gap-3">
+        {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted rounded-xl" />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
