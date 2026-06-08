@@ -4,18 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   LayoutDashboard, Link2, Users, DollarSign,
-  Wallet, Image, UserCog, Gift, ChevronRight
+  Wallet, Image, UserCog, Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
-  { label: 'Dashboard',               path: '/affiliate',                  icon: LayoutDashboard },
-  { label: 'Referral Links',          path: '/affiliate/links',            icon: Link2 },
-  { label: 'Referrals',               path: '/affiliate/referrals',        icon: Users },
-  { label: 'Commissions',             path: '/affiliate/commissions',      icon: DollarSign },
-  { label: 'Payouts',                 path: '/affiliate/payouts',          icon: Wallet },
-  { label: 'Marketing Materials',     path: '/affiliate/materials',        icon: Image },
-  { label: 'Profile & Payment',       path: '/affiliate/profile',          icon: UserCog },
+  { label: 'Dashboard',           path: '/affiliate',             icon: LayoutDashboard },
+  { label: 'Referral Links',      path: '/affiliate/links',       icon: Link2 },
+  { label: 'Referrals',           path: '/affiliate/referrals',   icon: Users },
+  { label: 'Commissions',         path: '/affiliate/commissions', icon: DollarSign },
+  { label: 'Payouts',             path: '/affiliate/payouts',     icon: Wallet },
+  { label: 'Marketing',           path: '/affiliate/materials',   icon: Image },
+  { label: 'Profile & Payment',   path: '/affiliate/profile',     icon: UserCog },
 ];
 
 export default function AffiliateLayout() {
@@ -24,12 +24,21 @@ export default function AffiliateLayout() {
 
   const { data: settingsData = [] } = useQuery({
     queryKey: ['affiliateSettings'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' });
+      } catch { return []; }
+    },
     staleTime: 60_000,
   });
   const settings = settingsData[0]?.value || {};
 
-  if (!settings.enabled && settings.enabled !== undefined) {
+  // Default commission: MWK 10,000 fixed per subscription
+  const commissionAmount = settings.commission_amount ?? settings.fixed_amount ?? 10000;
+  const minPayout        = settings.min_payout ?? 5000;
+  const programEnabled   = settings.enabled !== false; // default enabled
+
+  if (!programEnabled) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4 text-center">
         <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
@@ -53,7 +62,7 @@ export default function AffiliateLayout() {
         </div>
         <div>
           <h1 className="text-2xl font-display font-bold">Affiliate Program</h1>
-          <p className="text-sm text-muted-foreground">Earn commissions by referring students to Chibondo Academy</p>
+          <p className="text-sm text-muted-foreground">Earn MWK {commissionAmount.toLocaleString()} per successful subscriber you refer</p>
         </div>
       </div>
 
@@ -68,7 +77,7 @@ export default function AffiliateLayout() {
               className={({ isActive }) => cn(
                 "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all",
                 isActive
-                  ? "text-[hsl(222_47%_11%)] font-bold"
+                  ? "font-bold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
               style={({ isActive }) => isActive ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' } : {}}
@@ -82,7 +91,7 @@ export default function AffiliateLayout() {
 
       {/* Page content */}
       <div>
-        <Outlet context={{ user, notifications, settings, settingsData }} />
+        <Outlet context={{ user, notifications, settings, settingsData, commissionAmount, minPayout }} />
       </div>
     </div>
   );
