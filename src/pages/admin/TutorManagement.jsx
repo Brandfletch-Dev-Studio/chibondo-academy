@@ -228,7 +228,7 @@ export default function TutorManagement() {
 
   const { data: tutors = [], isLoading } = useQuery({
     queryKey: ['admin-tutors'],
-    queryFn: () => base44.entities.TutorProfile.filter({},'full_name', 500),
+    queryFn: () => base44.entities.TutorProfile.list('full_name', 500),
   });
 
   const createMut = useMutation({
