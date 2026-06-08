@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOutletContext } from 'react-router-dom';
-import { appParams } from '@/lib/app-params';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Search, BookOpen, FileText, Lightbulb, GraduationCap, ClipboardList, Library, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import SEO from '@/components/SEO';
 
 const TYPE_CONFIG = {
   past_paper:      { label: 'Past Paper',      icon: FileText,      color: 'bg-primary/10 text-primary border-primary/20' },
@@ -27,16 +25,7 @@ const TYPE_ICON_BG = {
 };
 
 export default function LibraryPage() {
-  const { user } = useOutletContext() || {};
-  const isAuthenticated = !!user?.id;
-  const requireAuth = (cb) => {
-    if (isAuthenticated) { cb(); return; }
-    const returnTo = window.location.pathname + window.location.search;
-    sessionStorage.setItem('auth_return_to', returnTo);
-    import('@/api/base44Client').then(({ base44 }) =>
-      base44.auth.redirectToLogin(window.location.origin + returnTo)
-    );
-  };
+  const { user } = useOutletContext();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
@@ -94,20 +83,6 @@ export default function LibraryPage() {
   ];
 
   return (
-    <>
-      <SEO
-        title="Resource Library — Past Papers, Revision Notes & Mock Exams"
-        description="Download MSCE past papers, model answers, revision notes, exam tips, and mock exams for Biology, Chemistry, Physics, Maths and more. For Malawian Form 3 & 4 students."
-        canonical={`${window.location.origin}/library`}
-        schema={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          "name": "Chibondo Academy Resource Library",
-          "description": "MSCE revision resources including past papers, model answers, revision notes, exam tips, and mock exams",
-          "url": `${window.location.origin}/library`,
-          "publisher": { "@type": "Organization", "name": "Chibondo Academy" }
-        }}
-      />
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -220,7 +195,6 @@ export default function LibraryPage() {
         </div>
       )}
     </div>
-    </>
   );
 }
 
@@ -272,21 +246,8 @@ function ResourceCard({ resource, hasPaidFees }) {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              onClick={e => {
-                if (!isAuthenticated || !hasPaidFees) {
-                  e.preventDefault();
-                  requireAuth(() => {
-                    if (!hasPaidFees) navigate('/subscription');
-                  });
-                }
-              }}
             >
-              {!isAuthenticated
-                ? <><Lock className="w-3 h-3" /> Sign in to Download</>
-                : !hasPaidFees
-                  ? <><Lock className="w-3 h-3" /> Subscribe to Download</>
-                  : <><Download className="w-3 h-3" /> Download</>
-              }
+              <Download className="w-3 h-3" /> Download
             </a>
           ) : (
             <span className="text-xs text-muted-foreground italic">No file</span>
