@@ -331,7 +331,7 @@ function PayoutRequests() {
 
   const { data: requests = [] } = useQuery({
     queryKey: ['allPayoutRequests'],
-    queryFn: () => base44.entities.PayoutRequest.list('-created_date', 100),
+    queryFn: () => base44.entities.PayoutRequest.filter({},'-created_date', 100),
   });
 
   const updateMutation = useMutation({
@@ -543,11 +543,11 @@ function AffiliateList({ referrals, users }) {
 export default function AffiliateManagement() {
   const { data: referrals = [] } = useQuery({
     queryKey: ['allReferrals'],
-    queryFn: () => base44.entities.Referral.list('-created_date', 500),
+    queryFn: () => base44.entities.Referral.filter({},'-created_date', 500),
   });
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list('full_name', 500),
+    queryFn: () => base44.entities.User.filter({},'full_name', 500),
   });
   const { data: commissionSettingsData = [] } = useQuery({
     queryKey: ['affiliateSettings'],
@@ -557,7 +557,7 @@ export default function AffiliateManagement() {
 
   const { data: payoutRequests = [] } = useQuery({
     queryKey: ['allPayoutRequests'],
-    queryFn: () => base44.entities.PayoutRequest.list('-created_date', 100),
+    queryFn: () => base44.entities.PayoutRequest.filter({},'-created_date', 100),
   });
   const pendingCount = payoutRequests.filter(r => r.status === 'pending').length;
 
