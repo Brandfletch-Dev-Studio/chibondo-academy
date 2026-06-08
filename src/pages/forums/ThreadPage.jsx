@@ -368,7 +368,7 @@ export default function ThreadPage() {
   const { subjectSlug, threadSlug } = useParams();
   const navigate  = useNavigate();
   const { state } = useLocation();
-  const { user }  = useOutletContext();
+  const { user }  = useOutletContext() || {};
   const qc        = useQueryClient();
   const bottomRef = useRef();
   const fileRef   = useRef();
