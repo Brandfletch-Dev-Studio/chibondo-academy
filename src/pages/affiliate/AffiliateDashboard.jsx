@@ -30,24 +30,18 @@ export default function AffiliateDashboard() {
     enabled: !!user?.id,
   });
 
-  const { data: commissions = [] } = useQuery({
-    queryKey: ['myCommissions', user?.id],
-    queryFn: () => base44.entities.Commission.filter({ affiliate_id: user?.id }, '-created_date', 200),
-    enabled: !!user?.id,
-  });
-
   const { data: payouts = [] } = useQuery({
     queryKey: ['myPayouts', user?.id],
     queryFn: () => base44.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50),
     enabled: !!user?.id,
   });
 
-  // Stats derived from commissions
-  const totalEarnings   = commissions.reduce((s, c) => s + (c.amount || 0), 0);
-  const pendingComm     = commissions.filter(c => c.status === 'pending').reduce((s, c) => s + (c.amount || 0), 0);
-  const paidComm        = commissions.filter(c => c.status === 'paid').reduce((s, c) => s + (c.amount || 0), 0);
-  const paidOut         = payouts.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
-  const availableBalance = totalEarnings - paidOut;
+  // Derive earnings from Referrals (no separate Commission entity)
+  const totalEarnings    = referrals.reduce((s, r) => s + (r.reward_amount || 0), 0);
+  const pendingComm      = referrals.filter(r => r.reward_status === 'pending' && r.reward_amount > 0).reduce((s, r) => s + (r.reward_amount || 0), 0);
+  const paidComm         = referrals.filter(r => r.reward_status === 'paid').reduce((s, r) => s + (r.reward_amount || 0), 0);
+  const paidOut          = payouts.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
+  const availableBalance = Math.max(0, pendingComm - paidOut);
   const totalReferrals  = referrals.length;
   const paidReferrals   = referrals.filter(r => ['paid', 'rewarded'].includes(r.status)).length;
   const convRate        = totalReferrals > 0 ? Math.round((paidReferrals / totalReferrals) * 100) : 0;
