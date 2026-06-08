@@ -141,6 +141,49 @@ function VideoPlayer({ lesson }) {
   );
 }
 
+// ─── GUEST VIDEO GATE ────────────────────────────────────────────────────────
+// Shown instead of the video player for unauthenticated visitors.
+// Shows a blurred thumbnail (or dark placeholder) with a lock + "Start Learning" CTA.
+function GuestVideoGate({ lesson }) {
+  return (
+    <div className="relative w-full bg-black" style={{ aspectRatio: '16/9' }}>
+      {/* Blurred thumbnail background */}
+      {lesson.thumbnail_url || lesson.cover_image ? (
+        <img
+          src={lesson.thumbnail_url || lesson.cover_image}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: 'blur(8px)', transform: 'scale(1.05)', opacity: 0.4 }}
+        />
+      ) : (
+        <div className="absolute inset-0" style={{ background: 'hsl(222 47% 10%)' }} />
+      )}
+      {/* Overlay */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ background: 'hsl(222 47% 18%)', border: '2px solid hsl(43 74% 52% / 0.4)' }}>
+          <Lock className="w-7 h-7" style={{ color: 'hsl(43 74% 66%)' }} />
+        </div>
+        <div>
+          <p className="text-white font-semibold text-base mb-1">Create an account to watch this lesson</p>
+          <p className="text-white/60 text-sm">Join free — track progress, access all subjects, and more.</p>
+        </div>
+        <a href="/register">
+          <button
+            className="mt-1 h-11 px-8 rounded-full text-sm font-semibold transition-opacity hover:opacity-90 active:scale-95"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+          >
+            Start Learning
+          </button>
+        </a>
+        <a href="/login" className="text-xs underline" style={{ color: 'hsl(215 20% 60%)' }}>
+          Already have an account? Log in
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── SIDEBAR LESSON ITEM ──────────────────────────────────────────────────────
 function SidebarLesson({ lesson, currentLessonId, completed, locked }) {
   const isActive = lesson.id === currentLessonId;
@@ -362,15 +405,17 @@ export default function LessonPage() {
           </Link>
         </div>
 
-        {/* Progress */}
-        <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
-          <div className="flex items-center justify-between text-xs mb-2">
-            <span className="text-sidebar-foreground/60">Course progress</span>
-            <span className="font-bold text-sidebar-primary">{progressPct}%</span>
+        {/* Progress — only for authenticated users */}
+        {user && (
+          <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-sidebar-foreground/60">Course progress</span>
+              <span className="font-bold text-sidebar-primary">{progressPct}%</span>
+            </div>
+            <Progress value={progressPct} className="h-1.5 bg-sidebar-border" />
+            <p className="text-[10px] text-sidebar-foreground/40 mt-1.5">{completedLessons.length} of {allLessons.length} lessons done</p>
           </div>
-          <Progress value={progressPct} className="h-1.5 bg-sidebar-border" />
-          <p className="text-[10px] text-sidebar-foreground/40 mt-1.5">{completedLessons.length} of {allLessons.length} lessons done</p>
-        </div>
+        )}
 
         {/* Topic + lesson list */}
         <nav className="flex-1 overflow-y-auto py-2 px-2">
@@ -459,7 +504,10 @@ export default function LessonPage() {
           {/* Video */}
           {hasVideo && (
             <div className="w-full bg-black">
-              <VideoPlayer lesson={lesson} />
+              {!user
+                ? <GuestVideoGate lesson={lesson} />
+                : <VideoPlayer lesson={lesson} />
+              }
             </div>
           )}
 
@@ -502,7 +550,7 @@ export default function LessonPage() {
                 <TabsTrigger value="notes" className="gap-1.5 text-xs">
                   <BookOpen className="w-3.5 h-3.5" /> Notes
                 </TabsTrigger>
-                {lesson.attachments?.length > 0 && (
+                {user && lesson.attachments?.length > 0 && (
                   <TabsTrigger value="downloads" className="gap-1.5 text-xs">
                     <Download className="w-3.5 h-3.5" /> Files ({lesson.attachments.length})
                   </TabsTrigger>
@@ -515,7 +563,37 @@ export default function LessonPage() {
               <TabsContent value="notes" className="mt-4">
                 <div className="bg-card rounded-2xl border border-border p-6 lg:p-8">
                   {lesson.content ? (
-                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content }} />
+                    !user ? (
+                      <div className="relative">
+                        {/* Teaser — first ~300 chars, then fades out */}
+                        <div className="prose prose-sm max-w-none pointer-events-none select-none"
+                          style={{ maxHeight: '6rem', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)' }}
+                          dangerouslySetInnerHTML={{ __html: lesson.content }}
+                        />
+                        {/* Auth wall */}
+                        <div className="mt-4 rounded-xl p-5 text-center"
+                          style={{ background: 'hsl(222 47% 13%)', border: '1px solid hsl(43 74% 52% / 0.2)' }}>
+                          <BookOpen className="w-8 h-8 mx-auto mb-2" style={{ color: 'hsl(43 74% 52%)' }} />
+                          <p className="text-sm font-semibold text-white mb-1">Sign in to read the full notes</p>
+                          <p className="text-xs mb-4" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to access all lesson notes and materials.</p>
+                          <div className="flex gap-2 justify-center">
+                            <a href="/register">
+                              <button className="h-8 px-5 rounded-full text-xs font-semibold"
+                                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                                Start Learning
+                              </button>
+                            </a>
+                            <a href="/login">
+                              <button className="h-8 px-5 rounded-full text-xs border font-medium text-muted-foreground hover:text-foreground border-border">
+                                Login
+                              </button>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content }} />
+                    )
                   ) : (
                     <div className="text-center py-12">
                       <BookOpen className="w-10 h-10 mx-auto text-muted-foreground/20 mb-3" />
@@ -525,7 +603,7 @@ export default function LessonPage() {
                 </div>
               </TabsContent>
 
-              {lesson.attachments?.length > 0 && (
+              {user && lesson.attachments?.length > 0 && (
                 <TabsContent value="downloads" className="mt-4">
                   <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
                     {lesson.attachments.map((file, idx) => (
@@ -555,32 +633,29 @@ export default function LessonPage() {
               </TabsContent>
             </Tabs>
 
-            {/* Guest CTA — shown below lesson content for unauthenticated visitors */}
+            {/* Guest CTA */}
             {!user && (
-              <div className="rounded-2xl p-6 text-center space-y-4"
+              <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4"
                 style={{
-                  background: 'linear-gradient(135deg, hsl(222 47% 13%) 0%, hsl(222 47% 16%) 100%)',
-                  border: '1px solid hsl(43 74% 52% / 0.3)',
-                  boxShadow: '0 0 40px hsl(43 74% 52% / 0.06)',
+                  background: 'hsl(222 47% 13%)',
+                  border: '1px solid hsl(43 74% 52% / 0.25)',
                 }}>
                 <div>
-                  <h3 className="text-base font-semibold text-white mb-1">Enjoying this lesson?</h3>
-                  <p className="text-sm" style={{ color: 'hsl(215 20% 65%)' }}>
-                    Create a free account to enrol, track your progress across all subjects, and unlock quizzes, assignments and more.
-                  </p>
+                  <p className="font-semibold text-white text-sm">Ready to start learning?</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to enrol and track your progress.</p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link to="/register">
-                    <Button size="lg" className="w-full sm:w-auto h-11 text-sm font-semibold px-8"
-                      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
-                      Join Now — It's Free
-                    </Button>
-                  </Link>
-                  <Link to="/login">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto h-11 text-sm border-sidebar-border text-sidebar-foreground hover:text-white px-8">
+                <div className="flex gap-2 shrink-0">
+                  <a href="/login">
+                    <button className="h-9 px-5 rounded-full text-xs border font-medium text-muted-foreground hover:text-foreground border-border transition-colors">
                       Login
-                    </Button>
-                  </Link>
+                    </button>
+                  </a>
+                  <a href="/register">
+                    <button className="h-9 px-5 rounded-full text-xs font-semibold transition-opacity hover:opacity-90"
+                      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                      Start Learning
+                    </button>
+                  </a>
                 </div>
               </div>
             )}
