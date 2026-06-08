@@ -27,10 +27,9 @@ const STATUS_COLORS = {
 function CommissionSettings() {
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState({
-    commission_type: 'fixed',
-    commission_amount: 10000,
+    commission_type: 'percentage',
     percentage_rate: 10,
-    fixed_amount: 10000,
+    fixed_amount: 2000,
     tier1_referrals: 5,  tier1_rate: 10,
     tier2_referrals: 15, tier2_rate: 15,
     tier3_referrals: 30, tier3_rate: 20,
@@ -331,7 +330,7 @@ function PayoutRequests() {
 
   const { data: requests = [] } = useQuery({
     queryKey: ['allPayoutRequests'],
-    queryFn: () => base44.entities.PayoutRequest.filter({},'-created_date', 100),
+    queryFn: () => base44.entities.PayoutRequest.list('-created_date', 100),
   });
 
   const updateMutation = useMutation({
@@ -543,11 +542,11 @@ function AffiliateList({ referrals, users }) {
 export default function AffiliateManagement() {
   const { data: referrals = [] } = useQuery({
     queryKey: ['allReferrals'],
-    queryFn: () => base44.entities.Referral.filter({},'-created_date', 500),
+    queryFn: () => base44.entities.Referral.list('-created_date', 500),
   });
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.filter({},'full_name', 500),
+    queryFn: () => base44.entities.User.list('full_name', 500),
   });
   const { data: commissionSettingsData = [] } = useQuery({
     queryKey: ['affiliateSettings'],
@@ -557,7 +556,7 @@ export default function AffiliateManagement() {
 
   const { data: payoutRequests = [] } = useQuery({
     queryKey: ['allPayoutRequests'],
-    queryFn: () => base44.entities.PayoutRequest.filter({},'-created_date', 100),
+    queryFn: () => base44.entities.PayoutRequest.list('-created_date', 100),
   });
   const pendingCount = payoutRequests.filter(r => r.status === 'pending').length;
 
