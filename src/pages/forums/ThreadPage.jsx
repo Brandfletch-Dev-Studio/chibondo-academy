@@ -616,7 +616,22 @@ export default function ThreadPage() {
     <>
       <SEO
         title={`${thread.title || 'Discussion'} | ${subject?.name || subjectSlug} Forum | Chibondo Academy`}
-        description={thread.content?.slice(0, 160) || ''}
+        description={thread.content?.replace(/<[^>]*>/g,'').slice(0, 160) || ''}
+        canonical={`${window.location.origin}/forums/${subjectSlug}/${threadSlug}`}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "DiscussionForumPosting",
+          "headline": thread.title || 'Discussion',
+          "text": thread.content?.replace(/<[^>]*>/g,'').slice(0, 500) || '',
+          "datePublished": thread.created_date,
+          "dateModified": thread.updated_date || thread.created_date,
+          "author": { "@type": "Person", "name": thread.author_name || 'Student' },
+          "url": `${window.location.origin}/forums/${subjectSlug}/${threadSlug}`,
+          "isPartOf": {
+            "@type": "DiscussionForumPosting",
+            "name": `${subject?.name || subjectSlug} Forum — Chibondo Academy`
+          }
+        }}
       />
 
       <div className="pb-28 space-y-4">
