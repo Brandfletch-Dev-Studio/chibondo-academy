@@ -65,15 +65,37 @@ export default function LandingPage() {
     staleTime: 5 * 60_000,
   });
 
-  /* Recent live threads */
-  const { data: threads = [] } = useQuery({
-    queryKey: ['landing-threads'],
+  /* Active forums: latest threads per subject for last-activity calc */
+  const { data: recentThreads = [] } = useQuery({
+    queryKey: ['landing-forum-activity'],
     queryFn: async () => {
-      try { return await base44.entities.Discussion.filter({ status: 'active' }, '-created_date', 3); }
+      try { return await base44.entities.Discussion.filter({ status: 'active' }, '-created_date', 50); }
       catch { return []; }
     },
-    staleTime: 5 * 60_000,
+    staleTime: 2 * 60_000,
   });
+
+  // Build per-forum activity: { subjectId → { lastActivity, threadCount } }
+  const forumActivity = React.useMemo(() => {
+    const map = {};
+    recentThreads.forEach(t => {
+      if (!t.subject_id || t.parent_id) return; // only top-level threads
+      if (!map[t.subject_id]) map[t.subject_id] = { lastActivity: t.created_date, threadCount: 0 };
+      map[t.subject_id].threadCount += 1;
+      if (new Date(t.created_date) > new Date(map[t.subject_id].lastActivity)) {
+        map[t.subject_id].lastActivity = t.created_date;
+      }
+    });
+    return map;
+  }, [recentThreads]);
+
+  // Sort subjects by last activity, take top 3 active ones
+  const activeForums = React.useMemo(() => {
+    return subjects
+      .filter(s => forumActivity[s.id])
+      .sort((a, b) => new Date(forumActivity[b.id]?.lastActivity || 0) - new Date(forumActivity[a.id]?.lastActivity || 0))
+      .slice(0, 3);
+  }, [subjects, forumActivity]);
 
   const fmt = (n) => Number(n).toLocaleString('en-MW');
   const plans = [
@@ -227,42 +249,40 @@ export default function LandingPage() {
           </div>
           <p className="text-xs text-muted-foreground mb-4">Live discussions</p>
 
-          <div className="bg-card rounded-2xl border border-border p-4 space-y-1">
-            <p className="text-sm text-muted-foreground px-1 pb-2 leading-relaxed">
-              Every subject has its own discussion forum. Ask questions, share notes, get answers from teachers and peers — in real time.
-            </p>
-
-            {threads.slice(0, 3).map(thread => (
-              <div key={thread.id}
-                className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: 'hsl(43 74% 52% / 0.15)' }}>
-                  <MessageSquare className="w-3.5 h-3.5" style={{ color: 'hsl(43 74% 52%)' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium leading-snug truncate">{thread.title}</p>
-                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
-                    <Users className="w-3 h-3" />
-                    <span>{thread.reply_count || 0} replies</span>
-                    <span className="opacity-40">·</span>
-                    <span>{thread.created_date ? formatDistanceToNow(new Date(thread.created_date), { addSuffix: true }) : ''}</span>
+          <div className="space-y-2">
+            {activeForums.length > 0 ? activeForums.map(subject => {
+              const activity = forumActivity[subject.id];
+              return (
+                <div key={subject.id}
+                  className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-accent/40 transition-colors group">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-muted">
+                    {subjectIcon(subject.name)}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm group-hover:text-accent transition-colors">{subject.forum_name || subject.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                      <MessageSquare className="w-3 h-3" />
+                      <span>{activity.threadCount} {activity.threadCount === 1 ? 'thread' : 'threads'}</span>
+                      <span className="opacity-40">·</span>
+                      <span>Active {activity.lastActivity ? formatDistanceToNow(new Date(activity.lastActivity), { addSuffix: true }) : ''}</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors flex-shrink-0" />
                 </div>
-              </div>
-            ))}
+              );
+            }) : (
+              /* Skeleton while loading */
+              [1,2,3].map(i => (
+                <div key={i} className="h-16 bg-card border border-border rounded-xl animate-pulse" />
+              ))
+            )}
 
-            {threads.length === 0 && [1,2,3].map(i => (
-              <div key={i} className="h-12 rounded-xl bg-muted/50 animate-pulse" />
-            ))}
-
-            <div className="pt-2">
-              <button
-                onClick={() => navigate('/register')}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 hover:brightness-110"
-                style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
-                Join the conversation
-              </button>
-            </div>
+            <button
+              onClick={() => navigate('/register')}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 hover:brightness-110 mt-1"
+              style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+              Join the conversation
+            </button>
           </div>
         </div>
 
