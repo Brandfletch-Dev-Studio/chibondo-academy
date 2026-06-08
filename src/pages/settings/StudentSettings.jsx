@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { User, Lock, Bell, CreditCard, Sun, Moon, Camera, Loader2, X } from 'lucide-react';
 
 export default function StudentSettings() {
-  const { user } = useOutletContext();
+  const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
   const avatarInputRef = useRef();
 
