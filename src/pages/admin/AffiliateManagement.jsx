@@ -27,9 +27,10 @@ const STATUS_COLORS = {
 function CommissionSettings() {
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState({
-    commission_type: 'percentage',
+    commission_type: 'fixed',
+    commission_amount: 10000,
     percentage_rate: 10,
-    fixed_amount: 2000,
+    fixed_amount: 10000,
     tier1_referrals: 5,  tier1_rate: 10,
     tier2_referrals: 15, tier2_rate: 15,
     tier3_referrals: 30, tier3_rate: 20,
