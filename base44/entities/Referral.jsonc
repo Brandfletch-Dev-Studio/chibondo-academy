@@ -75,17 +75,17 @@
           }
         },
         {
-          "data.referrer_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "student"
-          }
-        },
-        {
           "user_condition": {
             "role": "teacher"
           }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "data.referrer_id": "{{user.id}}"
         }
       ]
     },
