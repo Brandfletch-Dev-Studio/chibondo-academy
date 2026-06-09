@@ -916,15 +916,12 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
             <FileText className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold">Lesson Notes</h3>
           </div>
-          <div className="rounded-xl overflow-hidden border border-border">
-            <ReactQuill
-              theme="snow"
-              value={data.content || ''}
-              onChange={setContent}
-              modules={QUILL_MODULES}
-              style={{ minHeight: 200 }}
-            />
-          </div>
+          <Textarea
+            className="min-h-[200px] resize-y font-mono text-sm leading-relaxed"
+            value={data.content || ''}
+            onChange={e => setContent(e.target.value)}
+            placeholder="Write lesson notes here… (supports plain text)"
+          />
         </div>
 
         {/* Access */}
