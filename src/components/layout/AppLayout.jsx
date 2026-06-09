@@ -23,16 +23,38 @@ export default function AppLayout() {
     });
   };
 
-  // PUBLIC MODE: auth.me() may fail for unauthenticated visitors — that's fine.
-  // We catch the error and treat user as null (guest). Authenticated users work exactly as before.
+  // Session-persistent auth check.
+  //
+  // Key rules for session persistence:
+  //   1. Only treat the user as logged-out when the server explicitly says
+  //      the token is invalid (401/403). Any other error (network timeout,
+  //      server 5xx, DNS failure) is transient — keep the cached user.
+  //   2. React Query will use the last successful cached value while a
+  //      background refetch is in flight, so users never see a "blink" to
+  //      the guest state during a normal re-check.
+  //   3. gcTime > staleTime means the cache survives navigation even if no
+  //      component is subscribed, so coming back to the app from a different
+  //      tab never triggers a cold auth check.
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      try { return await base44.auth.me(); }
-      catch { return null; }
+      try {
+        return await base44.auth.me();
+      } catch (err) {
+        // Genuine auth rejection — no token or token revoked
+        const status = err?.status ?? err?.response?.status;
+        if (status === 401 || status === 403) {
+          return null; // user is genuinely not authenticated
+        }
+        // Transient error (network blip, 5xx, timeout).
+        // Throw so React Query keeps the previous cached value and retries.
+        throw err;
+      }
     },
-    retry: false,
-    staleTime: 5 * 60_000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5_000),
+    staleTime: 30 * 60_000,  // 30 min — background re-check, but cached user shown in the meantime
+    gcTime:    60 * 60_000,  // 60 min — keep in cache across navigation / tab switches
   });
 
   // Guarantee every registered user has role='user' (student)
