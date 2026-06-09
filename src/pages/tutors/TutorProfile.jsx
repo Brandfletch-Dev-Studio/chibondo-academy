@@ -78,7 +78,7 @@ export default function TutorProfilePage() {
     queryKey: ['tutor-subjects', tutor?.id],
     queryFn: () => base44.entities.Subject.filter({ tutor_profile_id: tutor.id, status: 'published' }, 'name', 50),
     enabled: !!tutor?.id,
-    staleTime: 60_000,
+    staleTime: 0,  // always fresh — profile updates should be visible immediately
   });
 
   const subjectIds = subjects.map(s => s.id);
