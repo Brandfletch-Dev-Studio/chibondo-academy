@@ -16,7 +16,8 @@ import {
   Loader2, ChevronDown, ChevronRight, GripVertical, Copy,
   Save, Clock, Wifi, WifiOff, Youtube, Globe, Upload,
   BookOpen, Layers, BarChart3, CheckCircle2, AlertCircle,
-  X, Video, Link2, Settings, Eye, EyeOff, RefreshCw, ClipboardList
+  X, Video, Link2, Settings, Eye, EyeOff, RefreshCw, ClipboardList,
+  MoreVertical, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -512,6 +513,20 @@ function QuizPanel({ lesson, subjectId }) {
     question: '', options: ['', '', '', ''], correct_answer: '', points: 1,
   }]);
 
+  const moveQuestion = (idx, dir) => {
+    const qs = [...questions];
+    const swap = idx + dir;
+    if (swap < 0 || swap >= qs.length) return;
+    [qs[idx], qs[swap]] = [qs[swap], qs[idx]];
+    setQs(qs);
+  };
+
+  const duplicateQuestion = (idx) => {
+    const qs = [...questions];
+    qs.splice(idx + 1, 0, { ...qs[idx], id: Date.now().toString() });
+    setQs(qs);
+  };
+
   if (isLoading) return <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" /></div>;
 
   return (
@@ -924,17 +939,65 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
 }
 
 // ─── CURRICULUM TREE (LEFT PANEL) ─────────────────────────────────────────────
+// ─── ACTION DROPDOWN MENU ────────────────────────────────────────────────────
+function ActionMenu({ items }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0" onClick={e => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+      >
+        <MoreVertical className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-50 w-44 rounded-xl border border-border bg-card overflow-hidden"
+          style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}
+        >
+          {items.map((item, i) =>
+            item === 'divider'
+              ? <div key={i} className="border-t border-border my-0.5" />
+              : (
+                <button key={i}
+                  onClick={() => { item.onClick(); setOpen(false); }}
+                  disabled={!!item.disabled}
+                  className={[
+                    'flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium transition-colors text-left',
+                    item.danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground hover:bg-muted',
+                    item.disabled ? 'opacity-30 pointer-events-none' : '',
+                  ].join(' ')}>
+                  <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  {item.label}
+                </button>
+              )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CURRICULUM TREE ──────────────────────────────────────────────────────────
 function CurriculumTree({
   topics, lessons, selectedLessonId, onSelectLesson,
-  onAddTopic, onEditTopic, onDeleteTopic,
-  onAddLesson, onDeleteLesson, onDuplicateLesson,
+  onAddTopic, onEditTopic, onDeleteTopic, onMoveTopic, onDuplicateTopic,
+  onAddLesson, onDeleteLesson, onDuplicateLesson, onMoveLesson,
   subjectId,
 }) {
   const [expandedTopics, setExpandedTopics] = useState({});
-  const [hoveredLesson, setHoveredLesson] = useState(null);
-  const [hoveredTopic, setHoveredTopic] = useState(null);
-
   const toggleTopic = (id) => setExpandedTopics(p => ({ ...p, [id]: !p[id] }));
+
+  const sorted = [...topics].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const lessonsByTopic = {};
   lessons.forEach(l => {
@@ -945,7 +1008,7 @@ function CurriculumTree({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Tree header */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-primary" />
@@ -958,90 +1021,94 @@ function CurriculumTree({
         </Button>
       </div>
 
-      {/* Tree body */}
+      {/* Tree */}
       <div className="flex-1 overflow-y-auto py-2">
-        {topics.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <Layers className="w-10 h-10 text-muted-foreground/20 mb-3" />
             <p className="text-sm text-muted-foreground">No topics yet</p>
-            <button onClick={onAddTopic} className="text-xs text-primary mt-1 hover:underline">Add your first topic</button>
+            <button onClick={onAddTopic} className="text-xs text-primary mt-1 hover:underline">
+              Add your first topic
+            </button>
           </div>
         ) : (
-          topics.map((topic, tIdx) => {
+          sorted.map((topic, tIdx) => {
             const topicLessons = lessonsByTopic[topic.id] || [];
-            const expanded = expandedTopics[topic.id] !== false; // default expanded
+            const expanded = expandedTopics[topic.id] !== false;
+
             return (
-              <div key={topic.id} className="mb-1">
+              <div key={topic.id} className="mb-0.5">
                 {/* Topic row */}
-                <div
-                  className="flex items-center gap-1 px-3 py-2 group cursor-pointer hover:bg-muted/50 transition-colors"
-                  onMouseEnter={() => setHoveredTopic(topic.id)}
-                  onMouseLeave={() => setHoveredTopic(null)}
-                  onClick={() => toggleTopic(topic.id)}
-                >
-                  <button className="text-muted-foreground/50 flex-shrink-0">
+                <div className="flex items-center gap-1 px-3 py-2 group rounded-lg mx-1 hover:bg-muted/40 transition-colors">
+                  <button
+                    className="text-muted-foreground/50 flex-shrink-0 p-0.5 hover:text-foreground"
+                    onClick={() => toggleTopic(topic.id)}
+                  >
                     {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                   </button>
-                  <div className="w-5 h-5 rounded-md bg-primary/10 text-primary text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+                  <div
+                    className="w-5 h-5 rounded-md bg-primary/10 text-primary text-[9px] font-bold flex items-center justify-center flex-shrink-0 cursor-pointer select-none"
+                    onClick={() => toggleTopic(topic.id)}
+                  >
                     {tIdx + 1}
                   </div>
-                  <span className="flex-1 text-xs font-semibold truncate">{topic.title}</span>
-                  <span className="text-[10px] text-muted-foreground flex-shrink-0">{topicLessons.length}</span>
-                  {hoveredTopic === topic.id && (
-                    <div className="flex items-center gap-0.5 ml-1" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => onAddLesson(topic)}
-                        className="p-1 rounded hover:bg-primary/10 text-primary" title="Add lesson">
-                        <Plus className="w-3 h-3" />
-                      </button>
-                      <button onClick={() => onEditTopic(topic)}
-                        className="p-1 rounded hover:bg-muted text-muted-foreground" title="Edit topic">
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                      <button onClick={() => onDeleteTopic(topic.id)}
-                        className="p-1 rounded hover:bg-destructive/10 text-destructive" title="Delete topic">
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
+                  <span
+                    className="flex-1 text-xs font-semibold truncate cursor-pointer select-none"
+                    onClick={() => toggleTopic(topic.id)}
+                  >
+                    {topic.title}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0 mr-1">
+                    {topicLessons.length}
+                  </span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ActionMenu items={[
+                      { icon: Plus,      label: 'Add Lesson',  onClick: () => onAddLesson(topic) },
+                      { icon: Edit2,     label: 'Edit Topic',  onClick: () => onEditTopic(topic) },
+                      { icon: Copy,      label: 'Duplicate',   onClick: () => onDuplicateTopic(topic) },
+                      'divider',
+                      { icon: ArrowUp,   label: 'Move Up',     onClick: () => onMoveTopic(topic, -1), disabled: tIdx === 0 },
+                      { icon: ArrowDown, label: 'Move Down',   onClick: () => onMoveTopic(topic, 1),  disabled: tIdx === sorted.length - 1 },
+                      'divider',
+                      { icon: Trash2,    label: 'Delete Topic',onClick: () => onDeleteTopic(topic.id), danger: true },
+                    ]} />
+                  </div>
                 </div>
 
-                {/* Lessons */}
+                {/* Lessons under topic */}
                 {expanded && (
-                  <div className="ml-6 border-l border-border/60 pl-2 space-y-0.5 pb-1">
-                    {topicLessons.map((lesson) => (
+                  <div className="ml-6 border-l border-border/50 pl-2 space-y-0.5 pb-1">
+                    {topicLessons.map((lesson, lIdx) => (
                       <div key={lesson.id}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg group cursor-pointer transition-colors ${
+                        className={[
+                          'flex items-center gap-1.5 px-2 py-1.5 rounded-lg group/lesson cursor-pointer transition-colors',
                           selectedLessonId === lesson.id
                             ? 'bg-primary/10 text-primary'
-                            : 'hover:bg-muted/60 text-muted-foreground'
-                        }`}
-                        onMouseEnter={() => setHoveredLesson(lesson.id)}
-                        onMouseLeave={() => setHoveredLesson(null)}
+                            : 'hover:bg-muted/60 text-muted-foreground',
+                        ].join(' ')}
                         onClick={() => onSelectLesson(lesson)}
                       >
                         <PlayCircle className="w-3 h-3 flex-shrink-0" />
                         <span className="flex-1 text-xs truncate">{lesson.title || 'Untitled'}</span>
                         {lesson.status === 'published'
-                          ? <Eye className="w-2.5 h-2.5 flex-shrink-0 opacity-50" />
-                          : <EyeOff className="w-2.5 h-2.5 flex-shrink-0 opacity-30" />
+                          ? <Eye className="w-2.5 h-2.5 flex-shrink-0 opacity-40" />
+                          : <EyeOff className="w-2.5 h-2.5 flex-shrink-0 opacity-20" />
                         }
-                        {hoveredLesson === lesson.id && (
-                          <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-                            <button onClick={() => onDuplicateLesson(lesson)}
-                              className="p-0.5 rounded hover:bg-muted text-muted-foreground" title="Duplicate">
-                              <Copy className="w-2.5 h-2.5" />
-                            </button>
-                            <button onClick={() => onDeleteLesson(lesson.id)}
-                              className="p-0.5 rounded hover:bg-destructive/10 text-destructive" title="Delete">
-                              <Trash2 className="w-2.5 h-2.5" />
-                            </button>
-                          </div>
-                        )}
+                        <div className="opacity-0 group-hover/lesson:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          <ActionMenu items={[
+                            { icon: Edit2,     label: 'Edit',       onClick: () => onSelectLesson(lesson) },
+                            { icon: Copy,      label: 'Duplicate',  onClick: () => onDuplicateLesson(lesson) },
+                            'divider',
+                            { icon: ArrowUp,   label: 'Move Up',    onClick: () => onMoveLesson(lesson, topicLessons, -1), disabled: lIdx === 0 },
+                            { icon: ArrowDown, label: 'Move Down',  onClick: () => onMoveLesson(lesson, topicLessons, 1),  disabled: lIdx === topicLessons.length - 1 },
+                            'divider',
+                            { icon: Trash2,    label: 'Delete',     onClick: () => onDeleteLesson(lesson.id), danger: true },
+                          ]} />
+                        </div>
                       </div>
                     ))}
-                    {/* Add lesson inline */}
                     <button onClick={() => onAddLesson(topic)}
-                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-colors w-full">
+                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-colors w-full">
                       <Plus className="w-3 h-3" /> Add lesson
                     </button>
                   </div>
@@ -1441,6 +1508,56 @@ export default function CourseBuilder() {
     },
   });
 
+  // move lesson: swap order with sibling
+  const moveLessonMut = useMutation({
+    mutationFn: async ({ lesson, siblings, direction }) => {
+      const idx = siblings.findIndex(l => l.id === lesson.id);
+      const swapIdx = idx + direction;
+      if (swapIdx < 0 || swapIdx >= siblings.length) return;
+      const target = siblings[swapIdx];
+      await base44.entities.Lesson.update(lesson.id, { order: target.order ?? swapIdx });
+      await base44.entities.Lesson.update(target.id, { order: lesson.order ?? idx });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons', subjectId] }),
+    onError: () => toast.error('Could not move lesson'),
+  });
+
+  // move topic: swap order with sibling
+  const moveTopicMut = useMutation({
+    mutationFn: async ({ topic, direction }) => {
+      const sorted = [...topics].sort((a, b) => (a.order || 0) - (b.order || 0));
+      const idx = sorted.findIndex(t => t.id === topic.id);
+      const swapIdx = idx + direction;
+      if (swapIdx < 0 || swapIdx >= sorted.length) return;
+      const target = sorted[swapIdx];
+      await base44.entities.Topic.update(topic.id, { order: target.order ?? swapIdx });
+      await base44.entities.Topic.update(target.id, { order: topic.order ?? idx });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['topics', subjectId] }),
+    onError: () => toast.error('Could not move topic'),
+  });
+
+  // duplicate topic (copies all its lessons too)
+  const duplicateTopicMut = useMutation({
+    mutationFn: async (topic) => {
+      const { id, created_date, updated_date, created_by, created_by_id, ...rest } = topic;
+      const newTopic = await base44.entities.Topic.create({
+        ...rest, title: rest.title + ' (Copy)', order: (rest.order || 0) + 0.5,
+      });
+      const topicLessons = lessons.filter(l => l.topic_id === topic.id);
+      await Promise.all(topicLessons.map(l => {
+        const { id: lid, created_date: lcd, updated_date: lud, created_by: lcb, created_by_id: lcbi, ...lr } = l;
+        return base44.entities.Lesson.create({ ...lr, topic_id: newTopic.id, topic_title: newTopic.title, status: 'draft' });
+      }));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['topics', subjectId] });
+      qc.invalidateQueries({ queryKey: ['lessons', subjectId] });
+      toast.success('Topic duplicated');
+    },
+    onError: () => toast.error('Duplicate failed'),
+  });
+
   const deleteTopicMut = useMutation({
     mutationFn: (id) => base44.entities.Topic.delete(id),
     onSuccess: () => {
@@ -1522,9 +1639,12 @@ export default function CourseBuilder() {
               onAddTopic={() => setTopicDialog({ open: true, topic: null })}
               onEditTopic={(t) => setTopicDialog({ open: true, topic: t })}
               onDeleteTopic={(id) => deleteTopicMut.mutate(id)}
+              onDuplicateTopic={(t) => duplicateTopicMut.mutate(t)}
+              onMoveTopic={(t, dir) => moveTopicMut.mutate({ topic: t, direction: dir })}
               onAddLesson={(topic) => addLessonMut.mutate({ topicId: topic.id, topicTitle: topic.title })}
               onDeleteLesson={(id) => setDeleteLessonId(id)}
               onDuplicateLesson={(l) => duplicateLessonMut.mutate(l)}
+              onMoveLesson={(l, siblings, dir) => moveLessonMut.mutate({ lesson: l, siblings, direction: dir })}
               subjectId={subjectId}
             />
           </div>
