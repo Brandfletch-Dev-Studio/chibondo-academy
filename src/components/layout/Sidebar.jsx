@@ -43,7 +43,7 @@ const teacherNav = [
 
 const adminNav = [
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
-  { label: 'Courses',        icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Courses',        icon: BookOpen,        path: '/admin/courses' },
   { label: 'Library',        icon: Library,         path: '/admin/library' },
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Students',       icon: Users,           path: '/admin/users' },
