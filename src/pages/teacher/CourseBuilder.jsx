@@ -1334,8 +1334,8 @@ export default function CourseBuilder() {
   });
 
   const { data: tutors = [] } = useQuery({
-    queryKey: ['tutorProfiles'],
-    queryFn: () => base44.entities.TutorProfile.filter({ status: 'approved' }, 'full_name', 100),
+    queryKey: ['teacherUsers'],
+    queryFn: () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 200),
     enabled: user?.role === 'admin',
   });
 
@@ -1449,11 +1449,14 @@ export default function CourseBuilder() {
           />
         </div>
       ) : (
-        /* ── CURRICULUM SPLIT-SCREEN VIEW ── */
-        <div className="flex-1 flex overflow-hidden">
+        /* ── CURRICULUM VIEW — stacked on mobile, split on desktop ── */
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-          {/* Left panel — Curriculum Tree */}
-          <div className="w-64 flex-shrink-0 border-r border-border bg-background overflow-hidden flex flex-col">
+          {/* Curriculum Tree — full width on mobile (hidden when lesson selected), sidebar on desktop */}
+          <div className={`
+            md:w-64 md:flex-shrink-0 md:border-r md:border-border bg-background overflow-hidden flex flex-col
+            ${selectedLesson ? 'hidden md:flex' : 'flex flex-1 md:flex-none'}
+          `}>
             <CurriculumTree
               topics={topics}
               lessons={lessons}
@@ -1469,16 +1472,25 @@ export default function CourseBuilder() {
             />
           </div>
 
-          {/* Right panel — Lesson Editor */}
-          <div className="flex-1 overflow-hidden bg-background">
+          {/* Lesson Editor — full screen on mobile, flex-1 on desktop */}
+          <div className={`flex-1 overflow-hidden bg-background flex flex-col ${selectedLesson ? 'flex' : 'hidden md:flex'}`}>
             {selectedLesson ? (
-              <LessonEditor
-                key={selectedLesson.id}
-                lesson={selectedLesson}
-                subjectId={subjectId}
-                subjectName={subject.name}
-                onSaved={() => qc.invalidateQueries({ queryKey: ['lessons', subjectId] })}
-              />
+              <>
+                {/* Mobile-only back button */}
+                <button
+                  className="md:hidden flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground border-b border-border bg-background flex-shrink-0"
+                  onClick={() => setSelectedLesson(null)}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back to curriculum
+                </button>
+                <LessonEditor
+                  key={selectedLesson.id}
+                  lesson={selectedLesson}
+                  subjectId={subjectId}
+                  subjectName={subject.name}
+                  onSaved={() => qc.invalidateQueries({ queryKey: ['lessons', subjectId] })}
+                />
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
                 <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
