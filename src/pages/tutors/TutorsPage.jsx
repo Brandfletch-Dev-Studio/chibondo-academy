@@ -131,7 +131,7 @@ export default function TutorsPage() {
   const { data: tutors = [], isLoading } = useQuery({
     queryKey: ['tutors'],
     queryFn: () => base44.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 100),
-    staleTime: 120_000,
+    staleTime: 30_000,   // 30s — short enough that photo updates are visible quickly
   });
 
   const { data: subjects = [] } = useQuery({
