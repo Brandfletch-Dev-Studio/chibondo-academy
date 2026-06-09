@@ -581,10 +581,27 @@ function QuizPanel({ lesson, subjectId }) {
       ) : (
         <div className="space-y-2">
           {questions.map((q, i) => (
-            <QuestionCard key={q.id} q={q} idx={i}
-              onChange={updated => { const qs = [...questions]; qs[i] = updated; setQs(qs); }}
-              onDelete={() => setQs(questions.filter((_, idx) => idx !== i))}
-            />
+            <div key={q.id} className="relative group/qwrap">
+              <QuestionCard q={q} idx={i}
+                onChange={updated => { const qs = [...questions]; qs[i] = updated; setQs(qs); }}
+                onDelete={() => setQs(questions.filter((_, idx) => idx !== i))}
+              />
+              {/* Question action buttons — visible on hover */}
+              <div className="absolute top-1.5 right-9 flex items-center gap-0.5 opacity-0 group-hover/qwrap:opacity-100 transition-opacity z-10">
+                <button onClick={() => moveQuestion(i, -1)} disabled={i === 0} title="Move up"
+                  className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-25">
+                  <ArrowUp className="w-3 h-3" />
+                </button>
+                <button onClick={() => moveQuestion(i, 1)} disabled={i === questions.length - 1} title="Move down"
+                  className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-25">
+                  <ArrowDown className="w-3 h-3" />
+                </button>
+                <button onClick={() => duplicateQuestion(i)} title="Duplicate"
+                  className="p-1 rounded hover:bg-muted text-muted-foreground">
+                  <Copy className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
           ))}
           <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
             <span>Total: {questions.reduce((s,q) => s + (q.points||1), 0)} points</span>
