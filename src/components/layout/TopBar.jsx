@@ -1,128 +1,180 @@
 import React, { useState } from 'react';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, X, Camera, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-function UserAvatar({ user, size = 8 }) {
-  const [err, setErr] = useState(false);
-  const role = user?.role === 'admin' ? 'admin' : user?.role === 'teacher' ? 'teacher' : 'student';
+/* ── Profile photo lightbox ─────────────────────────────────────────────────── */
+function PhotoViewer({ user, open, onClose }) {
+  if (!open) return null;
+  const role   = user?.role === 'admin' ? 'Admin' : user?.role === 'teacher' ? 'Tutor' : 'Student';
+  const avatar = user?.avatar_url;
   const initial = user?.full_name?.[0]?.toUpperCase() || 'U';
-  const settingsPath = role === 'admin' ? '/admin/settings' : role === 'teacher' ? '/teacher/settings' : '/settings';
-  const avatarUrl = user?.avatar_url;
+  const settingsPath = user?.role === 'admin' ? '/admin/settings' : user?.role === 'teacher' ? '/teacher/settings' : '/settings';
 
   return (
-    <Link to={settingsPath}>
-      {avatarUrl && !err ? (
-        <img
-          src={avatarUrl}
-          alt={user?.full_name || 'Profile'}
-          onError={() => setErr(true)}
-          className={`w-${size} h-${size} rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border-2`}
-          style={{ borderColor: 'hsl(43 74% 52% / 0.4)' }}
-        />
-      ) : (
-        <div
-          className={`w-${size} h-${size} rounded-full flex items-center justify-center text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity`}
-          style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+    /* Backdrop */
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center gap-4 max-w-xs w-full"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute -top-10 right-0 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
         >
-          {initial}
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Photo or large initial */}
+        {avatar ? (
+          <img
+            src={avatar}
+            alt={user?.full_name}
+            className="w-52 h-52 rounded-full object-cover border-4"
+            style={{ borderColor: 'hsl(43 74% 52%)' }}
+          />
+        ) : (
+          <div
+            className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52%)' }}
+          >
+            {initial}
+          </div>
+        )}
+
+        {/* Name + role */}
+        <div className="text-center">
+          <p className="text-white text-xl font-bold">{user?.full_name || 'User'}</p>
+          <p className="text-sm mt-0.5" style={{ color: 'hsl(43 74% 66%)' }}>{role}</p>
         </div>
-      )}
-    </Link>
+
+        {/* Change photo CTA */}
+        <Link to={settingsPath} onClick={onClose}>
+          <Button
+            size="sm"
+            className="gap-2 font-semibold"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+          >
+            <Camera className="w-3.5 h-3.5" /> Change Photo
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ── Avatar button — click opens viewer ────────────────────────────────────── */
+function UserAvatar({ user, size = 8, onClick }) {
+  const [err, setErr]   = useState(false);
+  const initial         = user?.full_name?.[0]?.toUpperCase() || 'U';
+  const avatarUrl       = user?.avatar_url;
+
+  const cls = `w-${size} h-${size} rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all border-2`;
+  const ringStyle = { borderColor: 'hsl(43 74% 52% / 0.5)', '--tw-ring-color': 'hsl(43 74% 52%)' };
+
+  return avatarUrl && !err ? (
+    <img
+      src={avatarUrl}
+      alt={user?.full_name || 'Profile'}
+      onError={() => setErr(true)}
+      className={cls}
+      style={ringStyle}
+      onClick={onClick}
+    />
+  ) : (
+    <div
+      className={`w-${size} h-${size} rounded-full flex items-center justify-center text-xs font-bold cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all border-2`}
+      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52% / 0.5)' }}
+      onClick={onClick}
+    >
+      {initial}
+    </div>
   );
 }
 
 export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
+  const [photoOpen, setPhotoOpen] = useState(false);
   const isGuest = !user;
 
   return (
-    <header
-      className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30"
-      style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}
-    >
-      {isGuest ? (
-        /* ── GUEST LAYOUT: Logo left · Login + Join Now right ── */
-        <>
-          {/* Logo — left */}
-          <Link to="/blog" className="flex items-center flex-shrink-0">
-            <img
-              src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
-              alt="Chibondo Academy"
-              className="h-9 w-auto object-contain"
-            />
-          </Link>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Auth CTAs */}
-          <div className="flex items-center gap-2">
-            <Link to="/login">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-4 text-sm font-medium text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button
-                size="sm"
-                className="h-8 px-4 text-sm font-semibold"
-                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
-              >
-                Join Now
-              </Button>
-            </Link>
-          </div>
-        </>
-      ) : (
-        /* ── AUTHENTICATED LAYOUT: hamburger · logo center · bell + avatar ── */
-        <>
-          {/* Left: Mobile menu */}
-          <div className="flex-1 flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
-              onClick={onMenuClick}
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Center: Logo */}
-          <div className="flex items-center">
-            <Link to="/">
+    <>
+      <header
+        className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30"
+        style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}
+      >
+        {isGuest ? (
+          /* ── GUEST LAYOUT: Logo left · Login + Join Now right ── */
+          <>
+            <Link to="/blog" className="flex items-center flex-shrink-0">
               <img
                 src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
                 alt="Chibondo Academy"
                 className="h-9 w-auto object-contain"
               />
             </Link>
-          </div>
-
-          {/* Right: Notifications + Avatar */}
-          <div className="flex-1 flex items-center justify-end gap-2">
-            <Link to="/notifications">
+            <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="h-8 px-4 text-sm font-medium text-sidebar-foreground hover:text-white hover:bg-sidebar-accent">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="h-8 px-4 text-sm font-semibold" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  Join Now
+                </Button>
+              </Link>
+            </div>
+          </>
+        ) : (
+          /* ── AUTH LAYOUT: hamburger · logo · bell + avatar ── */
+          <>
+            <div className="flex-1 flex items-center">
               <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
+                variant="ghost" size="icon"
+                className="lg:hidden text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
+                onClick={onMenuClick}
               >
-                <Bell className="w-4 h-4" />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent text-accent-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
-                    {notificationCount > 9 ? '9+' : notificationCount}
-                  </span>
-                )}
+                <Menu className="w-5 h-5" />
               </Button>
-            </Link>
-            <UserAvatar user={user} size={8} />
-          </div>
-        </>
-      )}
-    </header>
+            </div>
+
+            <div className="flex items-center">
+              <Link to="/">
+                <img
+                  src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+                  alt="Chibondo Academy"
+                  className="h-9 w-auto object-contain"
+                />
+              </Link>
+            </div>
+
+            <div className="flex-1 flex items-center justify-end gap-2">
+              <Link to="/notifications">
+                <Button variant="ghost" size="icon"
+                  className="relative h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent">
+                  <Bell className="w-4 h-4" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent text-accent-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              {/* Avatar — click opens the photo viewer */}
+              <UserAvatar user={user} size={8} onClick={() => setPhotoOpen(true)} />
+            </div>
+          </>
+        )}
+      </header>
+
+      {/* Photo viewer modal */}
+      <PhotoViewer user={user} open={photoOpen} onClose={() => setPhotoOpen(false)} />
+    </>
   );
 }
