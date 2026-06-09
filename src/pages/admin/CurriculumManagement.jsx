@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -108,6 +109,7 @@ function FormManager() {
 // ─── COURSE (SUBJECT) MANAGER ─────────────────────────────────────────────────
 function CourseManager() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterForm, setFilterForm] = useState('all');
@@ -126,7 +128,16 @@ function CourseManager() {
       const data = { ...formData, form_name: selectedForm?.name || '', teacher_name: selectedTeacher?.full_name || '' };
       return editing ? base44.entities.Subject.update(editing.id, data) : base44.entities.Subject.create(data);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubjects'] }); closeDialog(); toast.success(editing ? 'Course updated' : 'Course created'); },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['allSubjects'] });
+      closeDialog();
+      if (!editing && result?.id) {
+        toast.success('Course created — opening Course Builder…');
+        navigate(`/teacher/courses/${result.id}`);
+      } else {
+        toast.success('Course updated');
+      }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -202,7 +213,7 @@ function CourseManager() {
                             />
                           </div>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}><Edit2 className="w-3 h-3" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Open Course Builder" onClick={() => navigate(`/teacher/courses/${s.id}`)}><Edit2 className="w-3 h-3" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(s.id)}><Trash2 className="w-3 h-3" /></Button>
                           </div>
                         </div>
