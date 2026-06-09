@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, GraduationCap, FileText, BarChart3,
   Users, Settings, CreditCard, MessageSquare, Library,
-  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle, Newspaper
+  ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle, Newspaper, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -26,7 +26,7 @@ const studentNav = [
 const teacherNav = [
   { label: 'Dashboard',        icon: LayoutDashboard, path: '/teacher' },
   { label: 'My Courses',       icon: BookOpen,        path: '/teacher/courses' },
-  { label: 'My Public Profile',icon: UserCircle,      path: '/teacher/my-profile' },
+  { label: 'My Public Profile',icon: UserCircle,      path: '/teacher/settings?tab=public-profile' },
   { label: 'Library',          icon: Library,         path: '/teacher/library' },
   { label: 'Quiz Builder',     icon: ClipboardList,   path: '/teacher/quizzes' },
   { label: 'Grading',          icon: PenTool,         path: '/teacher/grading' },
@@ -39,7 +39,8 @@ const teacherNav = [
 
 const adminNav = [
   { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin' },
-  { label: 'Courses',       icon: BookOpen,        path: '/admin/curriculum' },
+  { label: 'Courses',       icon: BookOpen,        path: '/admin/courses' },
+  { label: 'Curriculum',    icon: Layers,          path: '/admin/curriculum' },
   { label: 'Library',       icon: Library,         path: '/admin/library' },
   { label: 'Tutor Profiles',icon: GraduationCap,   path: '/admin/tutors' },
   { label: 'Applications',  icon: FileText,        path: '/admin/teachers' },
@@ -70,8 +71,9 @@ export default function MobileSidebar({ user, onClose }) {
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const exactOnlyPaths = ['/admin', '/teacher', '/dashboard', '/'];
-          const isActive = location.pathname === item.path ||
-            (!exactOnlyPaths.includes(item.path) && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
+          const itemPath = item.path.split('?')[0]; // strip query string for matching
+          const isActive = location.pathname === itemPath ||
+            (!exactOnlyPaths.includes(itemPath) && itemPath.length > 1 && location.pathname.startsWith(itemPath + '/'));
           return (
             <Link
               key={item.path}
