@@ -80,6 +80,30 @@
     "estimated_minutes": {
       "type": "number",
       "default": 15
+    },
+    "seo_title": {
+      "type": "string",
+      "description": "Custom SEO title (50–60 chars). Falls back to post/lesson title."
+    },
+    "seo_description": {
+      "type": "string",
+      "description": "Meta description (max 160 chars). Falls back to excerpt/description."
+    },
+    "seo_keywords": {
+      "type": "string",
+      "description": "Comma-separated keywords."
+    },
+    "og_title": {
+      "type": "string",
+      "description": "Open Graph title for social shares. Falls back to seo_title."
+    },
+    "og_description": {
+      "type": "string",
+      "description": "Open Graph description. Falls back to seo_description."
+    },
+    "og_image": {
+      "type": "string",
+      "description": "OG image URL (1200×630px). Falls back to cover image."
     }
   },
   "required": [
