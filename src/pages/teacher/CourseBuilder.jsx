@@ -785,7 +785,9 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
   }, [lesson.id]);
 
   const saveFn = useCallback(async (payload) => {
-    await base44.entities.Lesson.update(lesson.id, payload);
+    // Strip read-only system fields before sending to the update API
+    const { id, created_date, updated_date, created_by, created_by_id, ...clean } = payload;
+    await base44.entities.Lesson.update(lesson.id, clean);
     qc.invalidateQueries({ queryKey: ['lessons', subjectId] });
     onSaved?.();
   }, [lesson.id, subjectId]);
@@ -1080,7 +1082,8 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
   }, [subject.id]);
 
   const saveFn = useCallback(async (payload) => {
-    await base44.entities.Subject.update(subject.id, payload);
+    const { id, created_date, updated_date, created_by, created_by_id, ...clean } = payload;
+    await base44.entities.Subject.update(subject.id, clean);
     qc.invalidateQueries({ queryKey: ['subject', subject.id] });
     onSaved?.();
   }, [subject.id]);
@@ -1315,6 +1318,7 @@ export default function CourseBuilder() {
   const [activeView, setActiveView] = useState('curriculum'); // curriculum | details
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [topicDialog, setTopicDialog] = useState({ open: false, topic: null });
+  const [deleteLessonId, setDeleteLessonId] = useState(null); // id awaiting delete confirm
 
   // ── Data fetching ──
   const { data: subject } = useQuery({
@@ -1405,7 +1409,7 @@ export default function CourseBuilder() {
 
       {/* ── Top bar ── */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background flex-shrink-0">
-        <Link to={user?.role === 'admin' ? '/admin/curriculum' : '/teacher/courses'}>
+        <Link to={user?.role === 'admin' ? '/admin/courses' : '/teacher/courses'}>
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <ArrowLeft className="w-4 h-4" />
           </Button>
@@ -1466,7 +1470,7 @@ export default function CourseBuilder() {
               onEditTopic={(t) => setTopicDialog({ open: true, topic: t })}
               onDeleteTopic={(id) => deleteTopicMut.mutate(id)}
               onAddLesson={(topic) => addLessonMut.mutate({ topicId: topic.id, topicTitle: topic.title })}
-              onDeleteLesson={(id) => deleteLessonMut.mutate(id)}
+              onDeleteLesson={(id) => setDeleteLessonId(id)}
               onDuplicateLesson={(l) => duplicateLessonMut.mutate(l)}
               subjectId={subjectId}
             />
@@ -1517,6 +1521,28 @@ export default function CourseBuilder() {
           </div>
         </div>
       )}
+
+      {/* Delete lesson confirm dialog */}
+      <Dialog open={!!deleteLessonId} onOpenChange={v => { if (!v) setDeleteLessonId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" /> Delete Lesson
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this lesson? This cannot be undone. Any quiz or assignment attached to it will also be removed.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteLessonId(null)}>Cancel</Button>
+            <Button
+              className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={() => { deleteLessonMut.mutate(deleteLessonId); setDeleteLessonId(null); }}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Topic dialog */}
       <TopicDialog
