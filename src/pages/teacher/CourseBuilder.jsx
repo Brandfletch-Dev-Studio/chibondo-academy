@@ -16,7 +16,7 @@ import {
   Loader2, ChevronDown, ChevronRight, GripVertical, Copy,
   Save, Clock, Wifi, WifiOff, Youtube, Globe, Upload,
   BookOpen, Layers, BarChart3, CheckCircle2, AlertCircle,
-  X, Video, Link2, Settings, Eye, EyeOff, RefreshCw
+  X, Video, Link2, Settings, Eye, EyeOff, RefreshCw, ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
