@@ -88,7 +88,6 @@ import AdminNotifications from '@/pages/admin/AdminNotifications';
 import TeacherNotifications from '@/pages/teacher/TeacherNotifications';
 import TeacherBlog from '@/pages/teacher/TeacherBlog';
 import CurriculumManagement from '@/pages/admin/CurriculumManagement';
-import AdminCourses from '@/pages/admin/AdminCourses';
 import AffiliateManagement from '@/pages/admin/AffiliateManagement';
 import TutorManagement from '@/pages/admin/TutorManagement';
 
@@ -215,7 +214,6 @@ const AppRoutes = () => {
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
           <Route path="/admin/blog" element={<RoleGuard allowed={['admin']}><AdminBlog /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
-          <Route path="/admin/courses" element={<RoleGuard allowed={['admin']}><AdminCourses /></RoleGuard>} />
           <Route path="/admin/affiliates" element={<RoleGuard allowed={['admin']}><AffiliateManagement /></RoleGuard>} />
           <Route path="/admin/tutors" element={<RoleGuard allowed={['admin']}><TutorManagement /></RoleGuard>} />
           <Route path="/admin/library" element={<RoleGuard allowed={['admin']}><LibraryManagement /></RoleGuard>} />
@@ -223,7 +221,7 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
