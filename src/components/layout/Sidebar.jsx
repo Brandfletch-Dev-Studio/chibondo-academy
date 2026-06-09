@@ -4,7 +4,7 @@ import {
   Home, BookOpen, GraduationCap, FileText, BarChart3, TrendingUp,
   Users, Settings, Bell, CreditCard, MessageSquare,
   ChevronLeft, ChevronRight, LogOut, Library, ClipboardList,
-  PenTool, LayoutDashboard, Gift, UserCircle, Newspaper
+  PenTool, LayoutDashboard, Gift, UserCircle, Newspaper, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -44,6 +44,7 @@ const teacherNav = [
 const adminNav = [
   { label: 'Dashboard',      icon: LayoutDashboard, path: '/admin' },
   { label: 'Courses',        icon: BookOpen,        path: '/admin/courses' },
+  { label: 'Curriculum',     icon: Layers,          path: '/admin/curriculum' },
   { label: 'Library',        icon: Library,         path: '/admin/library' },
   { label: 'Fees',           icon: CreditCard,      path: '/admin/subscriptions' },
   { label: 'Students',       icon: Users,           path: '/admin/users' },
@@ -82,8 +83,9 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate, onAvata
         <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden space-y-0.5">
           {navItems.map((item, idx) => {
             const exactOnlyPaths = ['/admin', '/teacher', '/dashboard', '/'];
-            const isActive = location.pathname === item.path ||
-              (!exactOnlyPaths.includes(item.path) && item.path.length > 1 && location.pathname.startsWith(item.path + '/'));
+            const itemPath = item.path.split('?')[0]; // strip query string for matching
+            const isActive = location.pathname === itemPath ||
+              (!exactOnlyPaths.includes(itemPath) && itemPath.length > 1 && location.pathname.startsWith(itemPath + '/'));
 
             const linkEl = (
               <Link
