@@ -206,12 +206,17 @@ export default function SubjectDetail() {
   return (
     <>
       <SEO
-        title={metaTitle}
-        description={metaDesc}
+        title={subject.seo_title || metaTitle}
+        description={subject.seo_description || metaDesc}
         canonical={canonicalUrl}
         ogImage={subject.cover_image || undefined}
         schema={courseSchema}
-        keywords={keywords}
+        keywords={subject.seo_keywords || keywords}
+        ogTitle={subject.og_title || subject.seo_title || metaTitle}
+        ogDescription={subject.og_description || subject.seo_description || metaDesc}
+        ogImageOverride={subject.og_image || subject.cover_image || undefined}
+        twitterTitle={subject.twitter_title || subject.og_title || subject.seo_title || metaTitle}
+        twitterDescription={subject.twitter_description || subject.og_description || subject.seo_description || metaDesc}
       />
       <div className="space-y-6">
         {/* Minimal Header */}
