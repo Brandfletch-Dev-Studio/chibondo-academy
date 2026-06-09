@@ -221,8 +221,8 @@ export default function BlogPostDetail() {
   const seoSchema = post ? {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": post.meta_title || post.title,
-    "description": post.meta_description || post.excerpt,
+    "headline": post.og_title || post.meta_title || post.title,
+    "description": post.og_description || post.meta_description || post.excerpt,
     "image": post.cover_image,
     "author": {
       "@type": "Person",
@@ -272,6 +272,13 @@ export default function BlogPostDetail() {
         ogImage={post.cover_image}
         ogType="article"
         schema={seoSchema}
+        keywords={post.keywords}
+        ogTitle={post.og_title || post.meta_title || post.title}
+        ogDescription={post.og_description || post.meta_description || post.excerpt}
+        ogImageOverride={post.og_image || post.cover_image}
+        twitterTitle={post.twitter_title || post.og_title || post.meta_title || post.title}
+        twitterDescription={post.twitter_description || post.og_description || post.meta_description || post.excerpt}
+        twitterImage={post.twitter_image || post.og_image || post.cover_image}
       />
 
       {/* Back */}
