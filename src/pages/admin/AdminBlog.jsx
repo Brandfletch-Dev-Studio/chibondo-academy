@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,6 +31,8 @@ const EMPTY = {
   title:'', slug:'', excerpt:'', content:'', cover_image:'',
   author_name:'', author_photo:'', category:'General',
   meta_title:'', meta_description:'', keywords:'',
+  og_title:'', og_description:'', og_image:'',
+  twitter_title:'', twitter_description:'',
   tags:[], status:'draft', is_featured:false,
   linked_subject_id:'', linked_subject_name:'',
   tutor_profile_id:'', tutor_slug:'',
@@ -334,28 +337,82 @@ export default function AdminBlog() {
             </TabsContent>
 
             {/* SEO TAB */}
-            <TabsContent value="meta" className="space-y-4">
+            <TabsContent value="meta" className="space-y-5">
+
+              {/* ── Google Preview ── */}
               <div className="bg-muted/50 border border-border rounded-xl p-4 text-xs space-y-1">
-                <p className="font-semibold text-sm mb-2">Google Preview</p>
+                <p className="font-semibold text-sm mb-2">🔍 Google Preview</p>
                 <p className="text-blue-500 font-medium truncate">{window.location.origin}/blog/{form.slug || 'your-article-slug'}</p>
                 <p className="font-semibold text-base text-foreground">{form.meta_title || form.title || 'Article Title'}</p>
                 <p className="text-muted-foreground line-clamp-2">{form.meta_description || form.excerpt || 'Article description will appear here…'}</p>
               </div>
 
-              <div>
-                <Label>Meta Title <span className="text-muted-foreground text-xs">({form.meta_title.length}/60 — target 50–60)</span></Label>
-                <Input value={form.meta_title} onChange={e=>set('meta_title',e.target.value)} maxLength={70} placeholder="Defaults to post title" className="mt-1" />
-                {form.meta_title.length > 60 && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Title is too long for Google</p>}
+              {/* ── Basic SEO ── */}
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Basic SEO</p>
+                <div>
+                  <Label>Meta Title <span className="text-muted-foreground text-xs">({form.meta_title.length}/60)</span></Label>
+                  <Input value={form.meta_title} onChange={e=>set('meta_title',e.target.value)} maxLength={70} placeholder="Defaults to post title" className="mt-1" />
+                  {form.meta_title.length > 60 && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Too long for Google</p>}
+                </div>
+                <div>
+                  <Label>Meta Description <span className="text-muted-foreground text-xs">({form.meta_description.length}/160)</span></Label>
+                  <Textarea value={form.meta_description} onChange={e=>set('meta_description',e.target.value)} maxLength={180} placeholder="Defaults to excerpt" className="mt-1 resize-none" rows={2} />
+                  {form.meta_description.length > 160 && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Too long for Google</p>}
+                </div>
+                <div>
+                  <Label>Keywords <span className="text-muted-foreground text-xs">(comma-separated)</span></Label>
+                  <Input value={form.keywords} onChange={e=>set('keywords',e.target.value)} placeholder="MSCE biology, respiration, Malawi" className="mt-1" />
+                </div>
               </div>
-              <div>
-                <Label>Meta Description <span className="text-muted-foreground text-xs">({form.meta_description.length}/160)</span></Label>
-                <Input value={form.meta_description} onChange={e=>set('meta_description',e.target.value)} maxLength={180} placeholder="Defaults to excerpt" className="mt-1" />
-                {form.meta_description.length > 160 && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Description is too long for Google</p>}
+
+              {/* ── Open Graph (Facebook, WhatsApp, LinkedIn) ── */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Open Graph</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Controls how this post appears when shared on Facebook, WhatsApp, and LinkedIn. If empty, falls back to Meta Title/Description above.</p>
+                </div>
+                {/* Social preview card */}
+                <div className="rounded-xl overflow-hidden border border-border bg-muted/30 text-xs">
+                  {(form.og_image || form.cover_image) && (
+                    <img src={form.og_image || form.cover_image} alt="" className="w-full h-32 object-cover" onError={e=>{e.target.style.display='none'}} />
+                  )}
+                  <div className="p-3 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase">chibondoacademy.com</p>
+                    <p className="font-semibold text-foreground line-clamp-1">{form.og_title || form.meta_title || form.title || 'Post Title'}</p>
+                    <p className="text-muted-foreground line-clamp-2">{form.og_description || form.meta_description || form.excerpt || 'Description…'}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label>OG Title</Label>
+                  <Input value={form.og_title} onChange={e=>set('og_title',e.target.value)} placeholder="Defaults to Meta Title" className="mt-1" />
+                </div>
+                <div>
+                  <Label>OG Description</Label>
+                  <Textarea value={form.og_description} onChange={e=>set('og_description',e.target.value)} placeholder="Defaults to Meta Description" className="mt-1 resize-none" rows={2} />
+                </div>
+                <div>
+                  <Label>OG Image URL <span className="text-muted-foreground text-xs">(1200×630px ideal)</span></Label>
+                  <Input value={form.og_image} onChange={e=>set('og_image',e.target.value)} placeholder="Defaults to cover image" className="mt-1" />
+                </div>
               </div>
-              <div>
-                <Label>Keywords <span className="text-muted-foreground text-xs">(comma-separated)</span></Label>
-                <Input value={form.keywords} onChange={e=>set('keywords',e.target.value)} placeholder="MSCE biology, respiration, Malawi" className="mt-1" />
+
+              {/* ── Twitter Card ── */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Twitter / X Card</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Controls the Twitter/X card preview. Falls back to OG fields if empty.</p>
+                </div>
+                <div>
+                  <Label>Twitter Title</Label>
+                  <Input value={form.twitter_title} onChange={e=>set('twitter_title',e.target.value)} placeholder="Defaults to OG Title" className="mt-1" />
+                </div>
+                <div>
+                  <Label>Twitter Description</Label>
+                  <Textarea value={form.twitter_description} onChange={e=>set('twitter_description',e.target.value)} placeholder="Defaults to OG Description" className="mt-1 resize-none" rows={2} />
+                </div>
               </div>
+
             </TabsContent>
 
             {/* LINKING TAB */}
