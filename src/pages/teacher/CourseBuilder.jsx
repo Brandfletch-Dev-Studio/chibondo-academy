@@ -1233,6 +1233,59 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
           </SelectContent>
         </Select>
       </div>
+
+      {/* ── SEO Settings ── */}
+      <div className="border-t border-border pt-4 space-y-3">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5" /> SEO & Social Sharing
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Controls how this course appears in Google and when shared on social media. All fields fall back to the course name/description if left empty.
+          </p>
+        </div>
+        {/* Google preview */}
+        <div className="bg-muted/50 border border-border rounded-xl p-3 text-xs space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Google Preview</p>
+          <p className="text-blue-500 truncate">{window.location.origin}/subjects/{subject?.id || ''}</p>
+          <p className="font-semibold text-foreground">{form.seo_title || form.name || 'Course Name'} | Chibondo Academy</p>
+          <p className="text-muted-foreground line-clamp-2">{form.seo_description || (form.description || '').replace(/<[^>]+>/g, '').slice(0, 160) || 'Course description…'}</p>
+        </div>
+        <div>
+          <Label className="text-xs">SEO Title <span className="text-muted-foreground">(50–60 chars)</span></Label>
+          <Input value={form.seo_title || ''} onChange={e => set('seo_title', e.target.value)} maxLength={70}
+            placeholder={`${form.name || 'Course Name'} | MSCE | Chibondo Academy`} className="mt-1 text-sm" />
+        </div>
+        <div>
+          <Label className="text-xs">SEO Description <span className="text-muted-foreground">(max 160 chars)</span></Label>
+          <Textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} maxLength={180}
+            placeholder="Defaults to course description" className="mt-1 text-sm resize-none" rows={2} />
+        </div>
+        <div>
+          <Label className="text-xs">SEO Keywords</Label>
+          <Input value={form.seo_keywords || ''} onChange={e => set('seo_keywords', e.target.value)}
+            placeholder="MSCE biology, photosynthesis, Malawi secondary" className="mt-1 text-sm" />
+        </div>
+        {/* OG */}
+        <div className="border-t border-border/50 pt-3 space-y-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Open Graph (Facebook · WhatsApp · LinkedIn)</p>
+          <div>
+            <Label className="text-xs">OG Title</Label>
+            <Input value={form.og_title || ''} onChange={e => set('og_title', e.target.value)}
+              placeholder="Defaults to SEO Title" className="mt-1 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs">OG Description</Label>
+            <Textarea value={form.og_description || ''} onChange={e => set('og_description', e.target.value)}
+              placeholder="Defaults to SEO Description" className="mt-1 text-sm resize-none" rows={2} />
+          </div>
+          <div>
+            <Label className="text-xs">OG Image URL <span className="text-muted-foreground">(1200×630px)</span></Label>
+            <Input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)}
+              placeholder="Defaults to course thumbnail" className="mt-1 text-sm" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
