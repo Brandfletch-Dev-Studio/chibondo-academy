@@ -70,8 +70,110 @@ async function shareWithWatermark({ imageUrl, title, text, url }) {
   }
 }
 
+
+/* ── Avatar — shows photo or coloured initials ──────────────────────────── */
+function Avi({ name = '?', role, avatarUrl, size = 7, onClick }) {
+  const [err, setErr] = React.useState(false);
+  const styles = {
+    admin:   { background: 'hsl(0 72% 51% / 0.18)',   color: 'hsl(0 72% 36%)' },
+    teacher: { background: 'hsl(43 74% 52% / 0.2)',   color: 'hsl(38 60% 32%)' },
+    student: { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
+    user:    { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
+  };
+  const s = styles[role] || styles.user;
+  const parts = (name || '?').trim().split(/\s+/);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : (name[0] || '?').toUpperCase();
+  const sizeClass = `w-${size} h-${size}`;
+
+  if (avatarUrl && !err) {
+    return (
+      <img
+        src={avatarUrl} alt={name} onError={() => setErr(true)}
+        className={`${sizeClass} rounded-full object-cover flex-shrink-0 border-2 border-border ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all' : ''}`}
+        onClick={onClick}
+        title={onClick ? `View ${name}'s profile` : undefined}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 select-none ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all' : ''}`}
+      style={s}
+      onClick={onClick}
+      title={onClick ? `View ${name}'s profile` : undefined}
+    >
+      {initials}
+    </div>
+  );
+}
+
+/* ── AvatarViewer — fullscreen photo modal for any user ─────────────────── */
+function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
+  if (!open) return null;
+  const parts = (name || '?').trim().split(/\s+/);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : (name?.[0] || '?').toUpperCase();
+  const roleLabel = role === 'teacher' ? 'Tutor' : role === 'admin' ? 'Admin' : 'Student';
+  const roleStyle = role === 'teacher'
+    ? { background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
+    : role === 'admin'
+    ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
+    : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center gap-4 max-w-xs w-full"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute -top-10 right-0 p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Photo */}
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={name}
+            className="w-52 h-52 rounded-full object-cover border-4"
+            style={{ borderColor: 'hsl(43 74% 52%)' }} />
+        ) : (
+          <div className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52%)' }}>
+            {initials}
+          </div>
+        )}
+
+        {/* Name + role */}
+        <div className="text-center space-y-1.5">
+          <p className="text-white text-xl font-bold">{name}</p>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full" style={roleStyle}>{roleLabel}</span>
+        </div>
+
+        {/* View tutor profile CTA */}
+        {tutorSlug && (
+          <a href={`/tutors/${tutorSlug}`} onClick={onClose}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            View Tutor Profile →
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Thread card ─────────────────────────────────────────────────────────── */
-function ThreadCard({ thread, subjectSlug, navigate, user, onShare }) {
+function ThreadCard({ thread, subjectSlug, navigate, user, onShare, onAvatarClick }) {
   const badge = STATUS_BADGE[thread.thread_status] || STATUS_BADGE.open;
   const ago = useLiveAgo(thread.last_activity_at || thread.updated_date);
 
@@ -103,9 +205,20 @@ function ThreadCard({ thread, subjectSlug, navigate, user, onShare }) {
               <span className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
                 <Clock className="w-3 h-3" />{ago}
               </span>
-              <span className="text-[11px] text-muted-foreground/70">
-                by <span className="font-semibold text-foreground/80">{thread.author_name}</span>
-              </span>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
+                onClick={e => { e.stopPropagation(); onAvatarClick && onAvatarClick(thread); }}
+                title={`View ${thread.author_name}`}
+              >
+                <Avi
+                  name={thread.author_name}
+                  role={thread.author_role}
+                  avatarUrl={thread.author_avatar}
+                  size={5}
+                />
+                <span className="font-semibold text-foreground/80 hover:text-accent transition-colors">{thread.author_name}</span>
+              </button>
               {thread.reply_count > 0 && (
                 <span className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
                   <MessageSquare className="w-3 h-3" />{thread.reply_count} {thread.reply_count === 1 ? 'reply' : 'replies'}
@@ -177,6 +290,7 @@ export default function SubjectForum() {
   const [search, setSearch]       = useState('');
   const [filter, setFilter]       = useState('latest');
   const [showNew, setShowNew]     = useState(false);
+  const [viewingAvatar, setViewingAvatar] = useState(null); // { name, role, avatarUrl, tutorSlug? }
   const [newTitle, setNewTitle]   = useState('');
   const [newContent, setNewContent] = useState('');
   const [showRename, setShowRename] = useState(false);
@@ -544,11 +658,28 @@ export default function SubjectForum() {
           <div className="space-y-2">
             {filtered.map(t => (
               <ThreadCard key={t.id} thread={t} subjectSlug={subjectSlug}
-                navigate={navigate} user={user} onShare={handleShare} />
+                navigate={navigate} user={user} onShare={handleShare}
+                onAvatarClick={t => setViewingAvatar({
+                  name: t.author_name,
+                  role: t.author_role,
+                  avatarUrl: t.author_avatar,
+                })}
+              />
             ))}
           </div>
         )}
       </div>
+      {/* Avatar lightbox */}
+      {viewingAvatar && (
+        <AvatarViewer
+          open={true}
+          onClose={() => setViewingAvatar(null)}
+          name={viewingAvatar.name}
+          role={viewingAvatar.role}
+          avatarUrl={viewingAvatar.avatarUrl}
+          tutorSlug={viewingAvatar.tutorSlug}
+        />
+      )}
     </>
   );
 }
