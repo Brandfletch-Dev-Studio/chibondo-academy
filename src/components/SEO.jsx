@@ -1,64 +1,91 @@
 import { useEffect } from 'react';
 
+const DEFAULT_IMAGE = 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg';
+const SITE_NAME = 'Chibondo Academy';
+
 /**
- * SEO Component - Dynamically updates document meta tags for SEO
- * @param {Object} props
- * @param {string} props.title - Page title (will be appended with ' | Chibondo Academy')
- * @param {string} props.description - Meta description for search engines
- * @param {string} props.canonical - Canonical URL for the page
- * @param {string} props.ogImage - Open Graph image URL for social sharing
- * @param {string} props.ogType - Open Graph type (website, article, etc.)
- * @param {Array} props.schema - JSON-LD structured data
+ * SEO Component — dynamically writes all <head> meta tags for SEO & social sharing.
+ *
+ * Basic:
+ *   title         → <title> + og:title + twitter:title  (appends "| Chibondo Academy")
+ *   description   → <meta description> + og:description + twitter:description
+ *   canonical     → <link rel="canonical">
+ *   ogImage       → og:image + twitter:image  (default = platform logo)
+ *   ogType        → og:type  (default "website")
+ *   keywords      → <meta keywords>
+ *   schema        → <script type="application/ld+json">
+ *
+ * Per-content overrides (take priority over the base values above):
+ *   ogTitle            → og:title  (does NOT append site name)
+ *   ogDescription      → og:description
+ *   ogImageOverride    → og:image
+ *   twitterTitle       → twitter:title
+ *   twitterDescription → twitter:description
+ *   twitterImage       → twitter:image
  */
-export default function SEO({ 
-  title, 
-  description, 
-  canonical, 
-  ogImage = 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg',
+export default function SEO({
+  title,
+  description = '',
+  canonical,
+  ogImage = DEFAULT_IMAGE,
   ogType = 'website',
   schema,
   keywords,
+  // Per-content overrides
+  ogTitle,
+  ogDescription,
+  ogImageOverride,
+  twitterTitle,
+  twitterDescription,
+  twitterImage,
 }) {
-  const siteName = 'Chibondo Academy';
-  const fullTitle = title ? `${title} | ${siteName}` : siteName;
+  const fullTitle  = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+
+  // Social sharing values — use override if provided, else fall back to base
+  const finalOgTitle  = ogTitle        || fullTitle;
+  const finalOgDesc   = ogDescription  || description;
+  const finalOgImage  = ogImageOverride || ogImage;
+  const finalTwTitle  = twitterTitle   || finalOgTitle;
+  const finalTwDesc   = twitterDescription || finalOgDesc;
+  const finalTwImage  = twitterImage   || finalOgImage;
 
   useEffect(() => {
-    // Set document title
     document.title = fullTitle;
 
-    // Helper to create/update meta tag
-    const setMetaTag = (name, content, isProperty = false) => {
-      const attribute = isProperty ? 'property' : 'name';
-      let meta = document.querySelector(`meta[${attribute}="${name}"]`);
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute(attribute, name);
-        document.head.appendChild(meta);
+    const setMeta = (name, content, isProperty = false) => {
+      if (!content) return;
+      const attr = isProperty ? 'property' : 'name';
+      let el = document.querySelector(`meta[${attr}="${name}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
       }
-      meta.setAttribute('content', content);
+      el.setAttribute('content', content);
     };
 
-    // Basic meta tags
-    setMetaTag('description', description);
-    setMetaTag('viewport', 'width=device-width, initial-scale=1.0');
-    if (keywords) setMetaTag('keywords', keywords);
-    setMetaTag('robots', 'index, follow');
+    // ── Basic ──
+    setMeta('description', description);
+    setMeta('viewport',    'width=device-width, initial-scale=1.0');
+    setMeta('robots',      'index, follow');
+    if (keywords) setMeta('keywords', keywords);
 
-    // Open Graph tags for social sharing
-    setMetaTag('og:title', fullTitle, true);
-    setMetaTag('og:description', description, true);
-    setMetaTag('og:type', ogType, true);
-    setMetaTag('og:image', ogImage, true);
-    setMetaTag('og:site_name', siteName, true);
-    setMetaTag('og:locale', 'en_US', true);
+    // ── Open Graph ──
+    setMeta('og:title',       finalOgTitle,  true);
+    setMeta('og:description', finalOgDesc,   true);
+    setMeta('og:type',        ogType,        true);
+    setMeta('og:image',       finalOgImage,  true);
+    setMeta('og:site_name',   SITE_NAME,     true);
+    setMeta('og:locale',      'en_US',       true);
+    if (canonical) setMeta('og:url', canonical, true);
 
-    // Twitter Card tags
-    setMetaTag('twitter:card', 'summary_large_image');
-    setMetaTag('twitter:title', fullTitle);
-    setMetaTag('twitter:description', description);
-    setMetaTag('twitter:image', ogImage);
+    // ── Twitter Card ──
+    setMeta('twitter:card',        'summary_large_image');
+    setMeta('twitter:title',       finalTwTitle);
+    setMeta('twitter:description', finalTwDesc);
+    setMeta('twitter:image',       finalTwImage);
 
-    // Canonical URL
+    // ── Canonical ──
     if (canonical) {
       let link = document.querySelector('link[rel="canonical"]');
       if (!link) {
@@ -69,7 +96,7 @@ export default function SEO({
       link.setAttribute('href', canonical);
     }
 
-    // JSON-LD Structured Data
+    // ── JSON-LD Structured Data ──
     if (schema) {
       let script = document.querySelector('script[type="application/ld+json"]');
       if (!script) {
@@ -80,16 +107,15 @@ export default function SEO({
       script.textContent = JSON.stringify(schema);
     }
 
-    // Cleanup function to remove JSON-LD on unmount (optional)
     return () => {
       if (schema) {
-        const script = document.querySelector('script[type="application/ld+json"]');
-        if (script) {
-          script.textContent = '';
-        }
+        const s = document.querySelector('script[type="application/ld+json"]');
+        if (s) s.textContent = '';
       }
     };
-  }, [fullTitle, description, canonical, ogImage, ogType, schema, keywords]);
+  }, [fullTitle, description, canonical, ogType, keywords,
+      finalOgTitle, finalOgDesc, finalOgImage,
+      finalTwTitle, finalTwDesc, finalTwImage, schema]);
 
-  return null; // This component doesn't render anything visible
+  return null;
 }
