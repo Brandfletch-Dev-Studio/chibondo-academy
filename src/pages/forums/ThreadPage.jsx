@@ -443,8 +443,59 @@ export default function ThreadPage() {
   return (
     <>
       <SEO
-        title={`${thread.title || 'Discussion'} | ${subject?.name || subjectSlug} Forum | Chibondo Academy`}
-        description={thread.content?.slice(0, 160) || ''}
+        title={thread.seo_title || thread.title}
+        description={
+          thread.seo_description ||
+          (thread.content || '').replace(/<[^>]+>/g, '').slice(0, 160)
+        }
+        canonical={`${window.location.origin}/forums/${subjectSlug}/${threadSlug}`}
+        ogType="article"
+        ogTitle={
+          thread.og_title ||
+          thread.seo_title ||
+          `${thread.title} — ${subject?.name || subjectSlug} Forum`
+        }
+        ogDescription={
+          thread.og_description ||
+          thread.seo_description ||
+          (thread.content || '').replace(/<[^>]+>/g, '').slice(0, 160)
+        }
+        ogImageOverride={thread.seo_image || thread.og_image || undefined}
+        twitterTitle={
+          thread.twitter_title ||
+          thread.og_title ||
+          thread.seo_title ||
+          thread.title
+        }
+        twitterDescription={
+          thread.twitter_description ||
+          thread.og_description ||
+          thread.seo_description ||
+          (thread.content || '').replace(/<[^>]+>/g, '').slice(0, 160)
+        }
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "DiscussionForumPosting",
+          "headline": thread.title,
+          "text": (thread.content || '').replace(/<[^>]+>/g, '').slice(0, 500),
+          "url": `${window.location.origin}/forums/${subjectSlug}/${threadSlug}`,
+          "datePublished": thread.created_date,
+          "dateModified": thread.updated_date || thread.created_date,
+          "author": {
+            "@type": "Person",
+            "name": thread.author_name || "Student"
+          },
+          "interactionStatistic": {
+            "@type": "InteractionCounter",
+            "interactionType": "https://schema.org/ReplyAction",
+            "userInteractionCount": thread.reply_count || 0
+          },
+          "isPartOf": {
+            "@type": "DiscussionForumPosting",
+            "name": `${subject?.name || subjectSlug} Forum`,
+            "url": `${window.location.origin}/forums/${subjectSlug}`
+          }
+        }}
       />
 
       <div className="pb-28 space-y-4">
