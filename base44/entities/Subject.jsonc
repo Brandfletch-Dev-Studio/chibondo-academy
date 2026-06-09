@@ -10,7 +10,7 @@
     },
     "forum_name": {
       "type": "string",
-      "description": "Custom forum display name \u2014 falls back to subject name if not set"
+      "description": "Custom forum display name — falls back to subject name if not set"
     },
     "description": {
       "type": "string"
@@ -75,6 +75,30 @@
       "type": "number",
       "default": 0,
       "description": "Cached count of active forum members"
+    },
+    "seo_title": {
+      "type": "string",
+      "description": "Custom page title for Google (50–60 chars). Falls back to course name."
+    },
+    "seo_description": {
+      "type": "string",
+      "description": "Meta description for Google (max 160 chars). Falls back to course description."
+    },
+    "seo_keywords": {
+      "type": "string",
+      "description": "Comma-separated keywords for search engines."
+    },
+    "og_title": {
+      "type": "string",
+      "description": "Open Graph title for Facebook, WhatsApp, LinkedIn. Falls back to seo_title."
+    },
+    "og_description": {
+      "type": "string",
+      "description": "Open Graph description for social shares. Falls back to seo_description."
+    },
+    "og_image": {
+      "type": "string",
+      "description": "Open Graph image URL (1200×630px). Falls back to cover_image."
     }
   },
   "required": [
