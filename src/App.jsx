@@ -10,7 +10,10 @@ import { useOutletContext } from 'react-router-dom';
 
 function RoleHome() {
   const { user } = useOutletContext() ?? {};
-  if (!user) return <LandingPage />;
+  // If user is still loading (undefined), show nothing (AppLayout handles it)
+  if (user === undefined) return null;
+  // Guests → go to blog (the public home, has full AppLayout navigation)
+  if (!user) return <Navigate to="/blog" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/dashboard" replace />;
@@ -22,7 +25,6 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import TeacherRegister from '@/pages/TeacherRegister';
-import LandingPage from '@/pages/LandingPage';
 
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
