@@ -57,7 +57,7 @@ const adminNav = [
   { label: 'Settings',       icon: Settings,        path: '/admin/settings' },
 ];
 
-export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
+export default function Sidebar({ user, collapsed, onToggle, onNavigate, onAvatarClick }) {
   const location = useLocation();
   const role = user?.role === 'admin' ? 'admin' : user?.role === 'teacher' ? 'teacher' : 'student';
   const navItems = role === 'admin' ? adminNav : role === 'teacher' ? teacherNav : studentNav;
@@ -123,10 +123,22 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate }) {
         {/* Footer */}
         <div className="border-t border-sidebar-border p-2 flex-shrink-0 space-y-1">
           {!collapsed && (
-            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-sidebar-accent/50">
-              <div className="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground flex-shrink-0">
-                {user?.full_name?.[0]?.toUpperCase() || 'U'}
-              </div>
+            <div
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-sidebar-accent/50 cursor-pointer hover:bg-sidebar-accent transition-colors"
+              onClick={onAvatarClick}
+              title="View profile photo"
+            >
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user?.full_name}
+                  className="w-7 h-7 rounded-full object-cover border border-sidebar-primary/40 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground flex-shrink-0">
+                  {user?.full_name?.[0]?.toUpperCase() || 'U'}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate text-sidebar-foreground">{user?.full_name || 'User'}</p>
                 <p className="text-[10px] text-sidebar-foreground/50 capitalize">{role}</p>
