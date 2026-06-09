@@ -12,8 +12,8 @@ function RoleHome() {
   const { user } = useOutletContext() ?? {};
   // If user is still loading (undefined), show nothing (AppLayout handles it)
   if (user === undefined) return null;
-  // Guests → go to blog (the public home, has full AppLayout navigation)
-  if (!user) return <Navigate to="/blog" replace />;
+  // Guests → show the Landing Page
+  if (!user) return <LandingPage />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/dashboard" replace />;
