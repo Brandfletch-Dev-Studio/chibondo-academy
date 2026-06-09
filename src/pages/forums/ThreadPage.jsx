@@ -20,7 +20,7 @@ function markForumRead(subjectSlug) {
 /* ═══════════════════════════════════════════════════════════
    AVATAR — shows photo if available, initials otherwise
 ═══════════════════════════════════════════════════════════ */
-function Avi({ name = '?', role, avatarUrl, size = 8 }) {
+function Avi({ name = '?', role, avatarUrl, size = 8, onClick }) {
   const [err, setErr] = useState(false);
   const styles = {
     admin:   { background: 'hsl(0 72% 51% / 0.18)',   color: 'hsl(0 72% 36%)' },
@@ -34,18 +34,77 @@ function Avi({ name = '?', role, avatarUrl, size = 8 }) {
     ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
     : (name[0] || '?').toUpperCase();
   const sizeClass = `w-${size} h-${size}`;
+  const clickable = !!onClick;
 
   if (avatarUrl && !err) {
     return (
       <img
         src={avatarUrl} alt={name} onError={() => setErr(true)}
-        className={`${sizeClass} rounded-full object-cover flex-shrink-0 border-2 border-border`}
+        className={`${sizeClass} rounded-full object-cover flex-shrink-0 border-2 border-border ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all' : ''}`}
+        onClick={onClick}
+        title={clickable ? `View ${name}` : undefined}
       />
     );
   }
   return (
-    <div className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 select-none`} style={s}>
+    <div
+      className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 select-none ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all' : ''}`}
+      style={s}
+      onClick={onClick}
+      title={clickable ? `View ${name}` : undefined}
+    >
       {initials}
+    </div>
+  );
+}
+
+/* ── AvatarViewer — fullscreen photo lightbox ─────────────────────────── */
+function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
+  if (!open) return null;
+  const parts = (name || '?').trim().split(/\s+/);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : (name?.[0] || '?').toUpperCase();
+  const roleLabel = role === 'teacher' ? 'Tutor' : role === 'admin' ? 'Admin' : 'Student';
+  const roleStyle = role === 'teacher'
+    ? { background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
+    : role === 'admin'
+    ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
+    : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div className="relative flex flex-col items-center gap-4 max-w-xs w-full" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose}
+          className="absolute -top-10 right-0 p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={name}
+            className="w-52 h-52 rounded-full object-cover border-4"
+            style={{ borderColor: 'hsl(43 74% 52%)' }} />
+        ) : (
+          <div className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52%)' }}>
+            {initials}
+          </div>
+        )}
+        <div className="text-center space-y-1.5">
+          <p className="text-white text-xl font-bold">{name}</p>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full" style={roleStyle}>{roleLabel}</span>
+        </div>
+        {tutorSlug && (
+          <a href={`/tutors/${tutorSlug}`} onClick={onClose}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            View Tutor Profile →
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -85,7 +144,7 @@ function LikeButton({ item, userId, onLike, small = false }) {
 ═══════════════════════════════════════════════════════════ */
 function ReplyBubble({
   reply, replies, isAuthor, isTeacherOrAdmin, user,
-  onDelete, onAccept, onLike, onReplyTo
+  onDelete, onAccept, onLike, onReplyTo, onAvatarClick
 }) {
   const [menu, setMenu] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
@@ -102,7 +161,7 @@ function ReplyBubble({
           <div className="absolute -left-1 top-0 bottom-0 w-0.5 rounded-full bg-green-500/60" />
         )}
 
-        <Avi name={reply.author_name} role={reply.author_role} avatarUrl={reply.author_avatar} size={8} />
+        <Avi name={reply.author_name} role={reply.author_role} avatarUrl={reply.author_avatar} size={8} onClick={() => onAvatarClick && onAvatarClick({ name: reply.author_name, role: reply.author_role, avatarUrl: reply.author_avatar })} />
 
         <div className="flex-1 min-w-0">
           {/* Header */}
@@ -185,7 +244,7 @@ function ReplyBubble({
           {nested.map(nr => (
             <ReplyBubble
               key={nr.id} reply={nr} replies={[]} // no further nesting beyond level 2
-              isAuthor={nr.author_id === user?.id} isTeacherOrAdmin={isTeacherOrAdmin}
+              isAuthor={nr.author_id === user?.id} isTeacherOrAdmin={isTeacherOrAdmin} onAvatarClick={onAvatarClick}
               user={user} onDelete={onDelete} onAccept={onAccept} onLike={onLike} onReplyTo={onReplyTo}
             />
           ))}
@@ -209,7 +268,8 @@ export default function ThreadPage() {
   const qc        = useQueryClient();
   const bottomRef = useRef();
   const [text, setText]   = useState('');
-  const [replyTo, setReplyTo] = useState(null); // { id, name }
+  const [replyTo, setReplyTo] = useState(null);
+  const [viewingAvatar, setViewingAvatar] = useState(null); // { name, role, avatarUrl, tutorSlug? } // { id, name }
 
   const isTeacherOrAdmin = user?.role === 'teacher' || user?.role === 'admin';
 
@@ -433,7 +493,7 @@ export default function ThreadPage() {
 
           {/* Author — shown first */}
           <div className="flex items-start gap-3 mb-3">
-            <Avi name={thread.author_name} role={thread.author_role} avatarUrl={thread.author_avatar} size={9} />
+            <Avi name={thread.author_name} role={thread.author_role} avatarUrl={thread.author_avatar} size={9} onClick={() => setViewingAvatar({ name: thread.author_name, role: thread.author_role, avatarUrl: thread.author_avatar })} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="text-sm font-semibold">{thread.author_name}</p>
@@ -508,6 +568,7 @@ export default function ThreadPage() {
                   replies={allReplies}
                   isAuthor={r.author_id === user?.id}
                   isTeacherOrAdmin={isTeacherOrAdmin}
+                  onAvatarClick={p => setViewingAvatar(p)}
                   user={user}
                   onDelete={id => deleteMut.mutate(id)}
                   onAccept={reply => acceptMut.mutate(reply)}
@@ -584,6 +645,17 @@ export default function ThreadPage() {
             </button>
           </div>
         )}
-      </div>    </>
+      </div>      {/* ── Avatar / profile viewer modal ── */}
+      {viewingAvatar && (
+        <AvatarViewer
+          open={true}
+          onClose={() => setViewingAvatar(null)}
+          name={viewingAvatar.name}
+          role={viewingAvatar.role}
+          avatarUrl={viewingAvatar.avatarUrl}
+          tutorSlug={viewingAvatar.tutorSlug}
+        />
+      )}
+    </>
   );
 }
