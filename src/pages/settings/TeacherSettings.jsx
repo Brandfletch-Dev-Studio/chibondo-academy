@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -326,6 +326,10 @@ export default function TeacherSettings() {
 
   const initial = (user?.full_name || user?.email || 'T')[0].toUpperCase();
 
+  // Deep-link: ?tab=public-profile navigates directly to that tab
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'account';
+
   /* ─────────────────────────────────────────────────────────────────────────
      RENDER
   ───────────────────────────────────────────────────────────────────────── */
@@ -341,7 +345,7 @@ export default function TeacherSettings() {
           </p>
         </div>
 
-        <Tabs defaultValue="account">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="bg-muted w-full justify-start flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="account"        className="gap-1.5"><User className="w-3.5 h-3.5" />Account</TabsTrigger>
             <TabsTrigger value="public-profile" className="gap-1.5"><GraduationCap className="w-3.5 h-3.5" />Public Profile</TabsTrigger>
