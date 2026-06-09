@@ -182,7 +182,7 @@ export default function AdminDashboard() {
           <StatCard label="Active Subs" value={activeSubscriptions} sub={`${filteredStudents.length} new students`} icon={CreditCard} gradient="bg-gradient-to-br from-emerald-600 to-emerald-800" to="/admin/subscriptions" />
           <StatCard label="Students" value={filteredStudents.length} sub="In period" icon={Users} gradient="bg-gradient-to-br from-sky-600 to-sky-800" to="/admin/users" />
           <StatCard label="Tutors" value={teachers.length} sub={pendingApps > 0 ? `${pendingApps} pending` : 'All approved'} icon={GraduationCap} gradient="bg-gradient-to-br from-violet-600 to-violet-800" to="/admin/teachers" />
-          <StatCard label="Courses" value={subjects.length} sub={`${subjects.filter(s => s.status === 'published').length} published`} icon={BookOpen} gradient="bg-gradient-to-br from-amber-600 to-amber-800" to="/admin/curriculum" />
+          <StatCard label="Courses" value={subjects.length} sub={`${subjects.filter(s => s.status === 'published').length} published`} icon={BookOpen} gradient="bg-gradient-to-br from-amber-600 to-amber-800" to="/admin/courses" />
         </div>
       </div>
 
