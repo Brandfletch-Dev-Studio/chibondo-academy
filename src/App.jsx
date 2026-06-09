@@ -28,6 +28,7 @@ import TeacherRegister from '@/pages/TeacherRegister';
 
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
+import LandingPage from '@/pages/LandingPage';
 
 import TutorProfilePage from '@/pages/tutors/TutorProfile';
 import TutorsPage from '@/pages/tutors/TutorsPage';
@@ -137,6 +138,7 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
+      <Route path="/welcome" element={<LandingPage />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           PUBLIC SHELL — AppLayout handles both guest + authenticated.
