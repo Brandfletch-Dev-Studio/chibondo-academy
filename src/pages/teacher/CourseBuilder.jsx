@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import {
   ArrowLeft, Plus, Edit2, Trash2, PlayCircle, FileText, ImageIcon,
   Loader2, ChevronDown, ChevronRight, GripVertical, Copy,
@@ -267,6 +269,509 @@ function VideoInput({ lesson, onChange }) {
   );
 }
 
+
+// ─── LESSON ATTACHMENTS ───────────────────────────────────────────────────────
+function AttachmentsPanel({ attachments = [], onChange }) {
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const newAttachment = {
+        id: Date.now().toString(),
+        name: file.name,
+        url: file_url,
+        type: file.type,
+        size: file.size,
+      };
+      onChange([...attachments, newAttachment]);
+      toast.success('File attached');
+    } catch {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAttachment = (id) => onChange(attachments.filter(a => a.id !== id));
+
+  const formatSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1048576) return Math.round(bytes/1024) + 'KB';
+    return (bytes/1048576).toFixed(1) + 'MB';
+  };
+
+  const fileIcon = (type = '') => {
+    if (type.startsWith('image/')) return '\u{1F5BC}\uFE0F';
+    if (type.includes('pdf')) return '\u{1F4C4}';
+    if (type.includes('word') || type.includes('doc')) return '\u{1F4DD}';
+    if (type.includes('spreadsheet') || type.includes('excel')) return '\u{1F4CA}';
+    if (type.startsWith('video/')) return '\u{1F3AC}';
+    return '\u{1F4CE}';
+  };
+
+  return (
+    <div className="space-y-3">
+      {attachments.length > 0 && (
+        <div className="space-y-2">
+          {attachments.map(att => (
+            <div key={att.id} className="flex items-center gap-3 p-2.5 bg-muted/40 border border-border rounded-xl group">
+              <span className="text-lg flex-shrink-0">{fileIcon(att.type)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{att.name}</p>
+                {att.size && <p className="text-[10px] text-muted-foreground">{formatSize(att.size)}</p>}
+              </div>
+              <a href={att.url} target="_blank" rel="noreferrer"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+                <Globe className="w-3.5 h-3.5" />
+              </a>
+              <button onClick={() => removeAttachment(att.id)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <label className="block">
+        <input type="file" className="sr-only" onChange={handleUpload} disabled={uploading} />
+        <div className={\`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground \${uploading ? 'opacity-50 pointer-events-none' : ''}\`}>
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          {uploading ? 'Uploading…' : 'Click to attach a file'}
+        </div>
+      </label>
+      <p className="text-[10px] text-muted-foreground">PDFs, images, Word docs, spreadsheets, and more. Students will see these below the lesson.</p>
+    </div>
+  );
+}
+
+// ─── LESSON QUIZ BUILDER ──────────────────────────────────────────────────────
+const QTYPES = [
+  { value: 'multiple_choice', label: 'Multiple Choice' },
+  { value: 'true_false', label: 'True / False' },
+  { value: 'fill_blank', label: 'Fill in the Blank' },
+  { value: 'short_answer', label: 'Short Answer' },
+];
+
+function QuestionCard({ q, idx, onChange, onDelete }) {
+  const [expanded, setExpanded] = useState(idx === 0);
+
+  return (
+    <div className="border border-border rounded-xl overflow-hidden bg-card">
+      <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={() => setExpanded(v => !v)}>
+        <span className="w-5 h-5 rounded-md bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+          {idx + 1}
+        </span>
+        <p className="flex-1 text-xs truncate text-muted-foreground">{q.question || 'Untitled question'}</p>
+        <Badge className="text-[9px] h-4">{QTYPES.find(t => t.value === q.type)?.label || q.type}</Badge>
+        <span className="text-[10px] text-muted-foreground">{q.points || 1}pt</span>
+        <button onClick={e => { e.stopPropagation(); onDelete(); }}
+          className="p-1 rounded hover:bg-destructive/10 text-destructive flex-shrink-0">
+          <Trash2 className="w-3 h-3" />
+        </button>
+        {expanded ? <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />}
+      </div>
+
+      {expanded && (
+        <div className="border-t border-border p-3 space-y-3">
+          <div>
+            <Label className="text-[10px]">Question</Label>
+            <Textarea value={q.question} onChange={e => onChange({ ...q, question: e.target.value })}
+              placeholder="Enter your question…" className="mt-1 text-xs min-h-[60px] resize-none" />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Label className="text-[10px]">Type</Label>
+              <Select value={q.type} onValueChange={v => {
+                const base = { ...q, type: v, options: ['', '', '', ''], correct_answer: '' };
+                if (v === 'true_false') base.options = ['True', 'False'];
+                onChange(base);
+              }}>
+                <SelectTrigger className="h-7 text-xs mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {QTYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-20">
+              <Label className="text-[10px]">Points</Label>
+              <Input type="number" value={q.points || 1} min={1}
+                onChange={e => onChange({ ...q, points: Number(e.target.value) })}
+                className="h-7 text-xs mt-1" />
+            </div>
+          </div>
+
+          {(q.type === 'multiple_choice' || q.type === 'true_false') && (
+            <div className="space-y-2">
+              <Label className="text-[10px]">Options (click circle to mark correct)</Label>
+              {(q.options || []).map((opt, oi) => (
+                <div key={oi} className="flex items-center gap-2">
+                  <button onClick={() => onChange({ ...q, correct_answer: opt })}
+                    className={\`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors \${
+                      q.correct_answer === opt ? 'border-green-500 bg-green-500' : 'border-border'
+                    }\`} />
+                  <Input value={opt} onChange={e => {
+                    const opts = [...(q.options || [])];
+                    opts[oi] = e.target.value;
+                    onChange({ ...q, options: opts });
+                  }} className="h-7 text-xs flex-1" placeholder={\`Option \${oi + 1}\`}
+                  disabled={q.type === 'true_false'} />
+                </div>
+              ))}
+              {q.type === 'multiple_choice' && (q.options || []).length < 6 && (
+                <button onClick={() => onChange({ ...q, options: [...(q.options || []), ''] })}
+                  className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Add option
+                </button>
+              )}
+            </div>
+          )}
+
+          {(q.type === 'fill_blank' || q.type === 'short_answer') && (
+            <div>
+              <Label className="text-[10px]">Correct Answer</Label>
+              <Input value={q.correct_answer || ''} onChange={e => onChange({ ...q, correct_answer: e.target.value })}
+                placeholder={q.type === 'fill_blank' ? 'Expected answer (exact match)' : 'Model answer (for manual grading)'}
+                className="mt-1 text-xs h-7" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuizPanel({ lesson, subjectId }) {
+  const qc = useQueryClient();
+  const [questions, setQuestions] = useState([]);
+  const [quizMeta, setQuizMeta] = useState({ title: '', time_limit_minutes: 0, pass_percentage: 60, status: 'draft' });
+  const [quizId, setQuizId] = useState(null);
+  const saveTimer = useRef(null);
+  const [saveStatus, setSaveStatus] = useState('idle');
+
+  const { data: existingQuizzes = [], isLoading } = useQuery({
+    queryKey: ['lessonQuiz', lesson.id],
+    queryFn: () => base44.entities.Quiz.filter({ lesson_id: lesson.id }, '-created_date', 1),
+  });
+
+  useEffect(() => {
+    if (existingQuizzes.length > 0) {
+      const q = existingQuizzes[0];
+      setQuizId(q.id);
+      setQuizMeta({ title: q.title || '', time_limit_minutes: q.time_limit_minutes || 0, pass_percentage: q.pass_percentage || 60, status: q.status || 'draft' });
+      setQuestions(q.questions || []);
+    } else {
+      setQuizId(null);
+      setQuizMeta({ title: '', time_limit_minutes: 0, pass_percentage: 60, status: 'draft' });
+      setQuestions([]);
+    }
+  }, [existingQuizzes.length, lesson.id]);
+
+  const autoSave = (meta, qs) => {
+    clearTimeout(saveTimer.current);
+    setSaveStatus('pending');
+    saveTimer.current = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        const payload = { ...meta, questions: qs, lesson_id: lesson.id, subject_id: subjectId, lesson_title: lesson.title };
+        let id = quizId;
+        if (id) {
+          await base44.entities.Quiz.update(id, payload);
+        } else {
+          const created = await base44.entities.Quiz.create(payload);
+          id = created.id;
+          setQuizId(id);
+        }
+        qc.invalidateQueries({ queryKey: ['lessonQuiz', lesson.id] });
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2500);
+      } catch {
+        setSaveStatus('error');
+      }
+    }, 1000);
+  };
+
+  const setMeta = (k, v) => {
+    const updated = { ...quizMeta, [k]: v };
+    setQuizMeta(updated);
+    autoSave(updated, questions);
+  };
+
+  const setQs = (qs) => {
+    setQuestions(qs);
+    autoSave(quizMeta, qs);
+  };
+
+  const addQuestion = () => setQs([...questions, {
+    id: Date.now().toString(), type: 'multiple_choice',
+    question: '', options: ['', '', '', ''], correct_answer: '', points: 1,
+  }]);
+
+  if (isLoading) return <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Quiz Title</Label>
+          <Input value={quizMeta.title} onChange={e => setMeta('title', e.target.value)}
+            placeholder={lesson.title + ' Quiz'} className="mt-1 text-sm" />
+        </div>
+        <div>
+          <Label className="text-xs">Status</Label>
+          <Select value={quizMeta.status} onValueChange={v => setMeta('status', v)}>
+            <SelectTrigger className="mt-1 text-xs h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Time Limit (min, 0 = unlimited)</Label>
+          <Input type="number" min={0} value={quizMeta.time_limit_minutes}
+            onChange={e => setMeta('time_limit_minutes', Number(e.target.value))}
+            className="mt-1 text-sm" />
+        </div>
+        <div>
+          <Label className="text-xs">Pass Percentage (%)</Label>
+          <Input type="number" min={0} max={100} value={quizMeta.pass_percentage}
+            onChange={e => setMeta('pass_percentage', Number(e.target.value))}
+            className="mt-1 text-sm" />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold">Questions ({questions.length})</p>
+        <div className="flex items-center gap-2">
+          <SaveStatus status={saveStatus} lastSaved={null} />
+          <Button size="sm" onClick={addQuestion} className="h-7 text-xs gap-1"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            <Plus className="w-3 h-3" /> Add Question
+          </Button>
+        </div>
+      </div>
+
+      {questions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-border rounded-xl gap-2">
+          <ClipboardList className="w-8 h-8 text-muted-foreground/30" />
+          <p className="text-xs text-muted-foreground">No questions yet</p>
+          <button onClick={addQuestion} className="text-xs text-primary hover:underline">Add first question</button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {questions.map((q, i) => (
+            <QuestionCard key={q.id} q={q} idx={i}
+              onChange={updated => { const qs = [...questions]; qs[i] = updated; setQs(qs); }}
+              onDelete={() => setQs(questions.filter((_, idx) => idx !== i))}
+            />
+          ))}
+          <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+            <span>Total: {questions.reduce((s,q) => s + (q.points||1), 0)} points</span>
+            <span>{questions.filter(q => q.question && q.correct_answer).length}/{questions.length} complete</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── LESSON ASSIGNMENT BUILDER ────────────────────────────────────────────────
+function AssignmentPanel({ lesson, subjectId }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    title: '', description: '', instructions: '', due_date: '',
+    total_marks: 100, status: 'draft', attachments: [],
+  });
+  const [assignmentId, setAssignmentId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const saveTimer = useRef(null);
+  const [saveStatus, setSaveStatus] = useState('idle');
+
+  const { data: existing = [], isLoading } = useQuery({
+    queryKey: ['lessonAssignment', lesson.id],
+    queryFn: () => base44.entities.Assignment.filter({ lesson_id: lesson.id }, '-created_date', 1),
+  });
+
+  useEffect(() => {
+    if (existing.length > 0) {
+      const a = existing[0];
+      setAssignmentId(a.id);
+      setForm({
+        title: a.title || '',
+        description: a.description || '',
+        instructions: a.instructions || '',
+        due_date: a.due_date ? a.due_date.split('T')[0] : '',
+        total_marks: a.total_marks || 100,
+        status: a.status || 'draft',
+        attachments: a.attachments || [],
+      });
+    } else {
+      setAssignmentId(null);
+      setForm({ title: '', description: '', instructions: '', due_date: '', total_marks: 100, status: 'draft', attachments: [] });
+    }
+  }, [existing.length, lesson.id]);
+
+  const autoSave = (updated) => {
+    clearTimeout(saveTimer.current);
+    setSaveStatus('pending');
+    saveTimer.current = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        const payload = { ...updated, lesson_id: lesson.id, subject_id: subjectId, lesson_title: lesson.title };
+        if (assignmentId) {
+          await base44.entities.Assignment.update(assignmentId, payload);
+        } else {
+          const created = await base44.entities.Assignment.create(payload);
+          setAssignmentId(created.id);
+        }
+        qc.invalidateQueries({ queryKey: ['lessonAssignment', lesson.id] });
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2500);
+      } catch {
+        setSaveStatus('error');
+      }
+    }, 1000);
+  };
+
+  const set = (k, v) => {
+    const updated = { ...form, [k]: v };
+    setForm(updated);
+    autoSave(updated);
+  };
+
+  const handleAttachmentUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const att = { id: Date.now().toString(), name: file.name, url: file_url, type: file.type, size: file.size };
+      const updated = { ...form, attachments: [...(form.attachments || []), att] };
+      setForm(updated);
+      autoSave(updated);
+      toast.success('File attached');
+    } catch {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (isLoading) return <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">{assignmentId ? 'Editing — auto-saving' : 'No assignment yet for this lesson'}</p>
+        <SaveStatus status={saveStatus} lastSaved={null} />
+      </div>
+
+      <div>
+        <Label className="text-xs">Title *</Label>
+        <Input value={form.title} onChange={e => set('title', e.target.value)}
+          placeholder={lesson.title + ' Assignment'} className="mt-1" />
+      </div>
+
+      <div>
+        <Label className="text-xs">Description</Label>
+        <Textarea value={form.description} onChange={e => set('description', e.target.value)}
+          placeholder="Brief description shown on student dashboard" className="mt-1 text-sm resize-none" rows={2} />
+      </div>
+
+      <div>
+        <Label className="text-xs">Instructions</Label>
+        <Textarea value={form.instructions} onChange={e => set('instructions', e.target.value)}
+          placeholder="Detailed step-by-step instructions…" className="mt-1 text-sm" rows={4} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Due Date</Label>
+          <Input type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)} className="mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs">Total Marks</Label>
+          <Input type="number" value={form.total_marks} min={1}
+            onChange={e => set('total_marks', Number(e.target.value))} className="mt-1" />
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs">Status</Label>
+        <Select value={form.status} onValueChange={v => set('status', v)}>
+          <SelectTrigger className="mt-1 text-xs h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label className="text-xs mb-2 block">Attached Resources (for students)</Label>
+        {(form.attachments || []).map(att => (
+          <div key={att.id} className="flex items-center gap-2 p-2 bg-muted/40 border border-border rounded-lg mb-1.5 group">
+            <FileText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs flex-1 truncate">{att.name}</span>
+            <a href={att.url} target="_blank" rel="noreferrer" className="text-primary text-xs hover:underline flex-shrink-0">Open</a>
+            <button onClick={() => set('attachments', form.attachments.filter(a => a.id !== att.id))}
+              className="opacity-0 group-hover:opacity-100 p-0.5 text-destructive flex-shrink-0">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <label className="block mt-1">
+          <input type="file" className="sr-only" onChange={handleAttachmentUpload} disabled={uploading} />
+          <div className={\`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-xs text-muted-foreground \${uploading ? 'opacity-50 pointer-events-none' : ''}\`}>
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {uploading ? 'Uploading…' : 'Attach a resource file'}
+          </div>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// ─── LESSON EXTRAS PANEL (tabs: Attachments / Quiz / Assignment) ──────────────
+function LessonExtrasPanel({ lesson, subjectId, onChange }) {
+  return (
+    <Tabs defaultValue="attachments" className="w-full">
+      <TabsList className="w-full h-8 mb-3">
+        <TabsTrigger value="attachments" className="flex-1 text-xs gap-1.5">
+          <Upload className="w-3 h-3" /> Attachments
+        </TabsTrigger>
+        <TabsTrigger value="quiz" className="flex-1 text-xs gap-1.5">
+          <ClipboardList className="w-3 h-3" /> Quiz
+        </TabsTrigger>
+        <TabsTrigger value="assignment" className="flex-1 text-xs gap-1.5">
+          <FileText className="w-3 h-3" /> Assignment
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="attachments">
+        <AttachmentsPanel
+          attachments={lesson.attachments || []}
+          onChange={(atts) => onChange('attachments', atts)}
+        />
+      </TabsContent>
+
+      <TabsContent value="quiz">
+        <QuizPanel lesson={lesson} subjectId={subjectId} />
+      </TabsContent>
+
+      <TabsContent value="assignment">
+        <AssignmentPanel lesson={lesson} subjectId={subjectId} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
 // ─── LESSON EDITOR (RIGHT PANEL) ──────────────────────────────────────────────
 function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
   const qc = useQueryClient();
@@ -409,10 +914,8 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
           <Switch checked={!!data.is_free} onCheckedChange={v => set('is_free', v)} />
         </div>
 
-        {/* Future-ready: Attachments, Quizzes placeholder */}
-        <div className="p-3 border border-dashed border-border rounded-xl text-center">
-          <p className="text-xs text-muted-foreground">Attachments, Quizzes & Assignments — coming soon</p>
-        </div>
+        {/* ── Attachments / Quiz / Assignment tabs ── */}
+        <LessonExtrasPanel lesson={data} subjectId={subjectId} onChange={set} />
       </div>
     </div>
   );
@@ -1014,3 +1517,4 @@ export default function CourseBuilder() {
     </div>
   );
 }
+
