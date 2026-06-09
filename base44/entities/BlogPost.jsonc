@@ -2,58 +2,169 @@
   "name": "BlogPost",
   "type": "object",
   "properties": {
-    "title":              { "type": "string" },
-    "slug":               { "type": "string", "description": "SEO-friendly URL slug e.g. how-to-pass-msce-biology" },
-    "cover_image":        { "type": "string" },
-    "excerpt":            { "type": "string", "description": "Short summary shown on cards (150-160 chars ideal)" },
-    "content":            { "type": "string", "description": "Full rich HTML content" },
+    "title": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string",
+      "description": "SEO-friendly URL slug e.g. how-to-pass-msce-biology"
+    },
+    "cover_image": {
+      "type": "string"
+    },
+    "excerpt": {
+      "type": "string",
+      "description": "Short summary shown on cards (150-160 chars ideal)"
+    },
+    "content": {
+      "type": "string",
+      "description": "Full rich HTML content"
+    },
     "category": {
       "type": "string",
-      "enum": ["Biology","Chemistry","Physics","Mathematics","English","History","Geography","Study Tips","Exam Strategy","Career Guidance","General"],
+      "enum": [
+        "Biology",
+        "Chemistry",
+        "Physics",
+        "Mathematics",
+        "English",
+        "History",
+        "Geography",
+        "Study Tips",
+        "Exam Strategy",
+        "Career Guidance",
+        "General"
+      ],
       "default": "General"
     },
     "tags": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "tutor_profile_id":   { "type": "string", "description": "TutorProfile ID of the author" },
-    "tutor_slug":         { "type": "string", "description": "TutorProfile slug for linking" },
-    "author_name":        { "type": "string" },
-    "author_photo":       { "type": "string" },
-    "linked_subject_id":  { "type": "string", "description": "Subject ID for course CTA — auto-matched by category" },
-    "linked_subject_name":{ "type": "string" },
-    "meta_title":         { "type": "string", "description": "SEO title tag override (60 chars max)" },
-    "meta_description":   { "type": "string", "description": "SEO meta description (160 chars max)" },
-    "keywords":           { "type": "string", "description": "Comma-separated keywords" },
+    "tutor_profile_id": {
+      "type": "string",
+      "description": "TutorProfile ID of the author"
+    },
+    "tutor_slug": {
+      "type": "string",
+      "description": "TutorProfile slug for linking"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "author_photo": {
+      "type": "string"
+    },
+    "linked_subject_id": {
+      "type": "string",
+      "description": "Subject ID for course CTA — auto-matched by category"
+    },
+    "linked_subject_name": {
+      "type": "string"
+    },
+    "meta_title": {
+      "type": "string",
+      "description": "SEO title tag override (60 chars max)"
+    },
+    "meta_description": {
+      "type": "string",
+      "description": "SEO meta description (160 chars max)"
+    },
+    "keywords": {
+      "type": "string",
+      "description": "Comma-separated keywords"
+    },
     "status": {
       "type": "string",
-      "enum": ["draft", "published", "archived"],
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ],
       "default": "draft"
     },
-    "is_featured":        { "type": "boolean", "default": false, "description": "Pin to hero/featured section" },
-    "view_count":         { "type": "number", "default": 0 },
-    "published_at":       { "type": "string", "format": "date-time" }
+    "is_featured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pin to hero/featured section"
+    },
+    "view_count": {
+      "type": "number",
+      "default": 0
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seo_title": {
+      "type": "string",
+      "description": "Custom SEO title (50–60 chars). Falls back to post/lesson title."
+    },
+    "seo_description": {
+      "type": "string",
+      "description": "Meta description (max 160 chars). Falls back to excerpt/description."
+    },
+    "seo_keywords": {
+      "type": "string",
+      "description": "Comma-separated keywords."
+    },
+    "og_title": {
+      "type": "string",
+      "description": "Open Graph title for social shares. Falls back to seo_title."
+    },
+    "og_description": {
+      "type": "string",
+      "description": "Open Graph description. Falls back to seo_description."
+    },
+    "og_image": {
+      "type": "string",
+      "description": "OG image URL (1200×630px). Falls back to cover image."
+    }
   },
-  "required": ["title"],
+  "required": [
+    "title"
+  ],
   "rls": {
     "read": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.created_by": "{{user.id}}" },
-        { "data.status": "published" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by": "{{user.id}}"
+        },
+        {
+          "data.status": "published"
+        }
       ]
     },
     "create": {},
     "update": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.created_by": "{{user.id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by": "{{user.id}}"
+        }
       ]
     },
     "delete": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.created_by": "{{user.id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by": "{{user.id}}"
+        }
       ]
     }
   }
