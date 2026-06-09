@@ -339,7 +339,7 @@ function AttachmentsPanel({ attachments = [], onChange }) {
       )}
       <label className="block">
         <input type="file" className="sr-only" onChange={handleUpload} disabled={uploading} />
-        <div className={\`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground \${uploading ? 'opacity-50 pointer-events-none' : ''}\`}>
+        <div className={`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
           {uploading ? 'Uploading…' : 'Click to attach a file'}
         </div>
@@ -412,14 +412,14 @@ function QuestionCard({ q, idx, onChange, onDelete }) {
               {(q.options || []).map((opt, oi) => (
                 <div key={oi} className="flex items-center gap-2">
                   <button onClick={() => onChange({ ...q, correct_answer: opt })}
-                    className={\`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors \${
+                    className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${
                       q.correct_answer === opt ? 'border-green-500 bg-green-500' : 'border-border'
-                    }\`} />
+                    }`} />
                   <Input value={opt} onChange={e => {
                     const opts = [...(q.options || [])];
                     opts[oi] = e.target.value;
                     onChange({ ...q, options: opts });
-                  }} className="h-7 text-xs flex-1" placeholder={\`Option \${oi + 1}\`}
+                  }} className="h-7 text-xs flex-1" placeholder={`Option ${oi + 1}`}
                   disabled={q.type === 'true_false'} />
                 </div>
               ))}
@@ -728,7 +728,7 @@ function AssignmentPanel({ lesson, subjectId }) {
         ))}
         <label className="block mt-1">
           <input type="file" className="sr-only" onChange={handleAttachmentUpload} disabled={uploading} />
-          <div className={\`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-xs text-muted-foreground \${uploading ? 'opacity-50 pointer-events-none' : ''}\`}>
+          <div className={`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-xs text-muted-foreground ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
             {uploading ? 'Uploading…' : 'Attach a resource file'}
           </div>
