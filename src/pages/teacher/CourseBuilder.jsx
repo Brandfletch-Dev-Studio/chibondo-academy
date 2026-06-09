@@ -21,19 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 
-const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [2, 3, false] }],
-    ['bold', 'italic', 'underline'],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    ['blockquote', 'code-block'],
-    ['link', 'image'],
-    ['clean'],
-  ],
-};
 
 // ─── AUTO-SAVE HOOK ────────────────────────────────────────────────────────────
 function useAutoSave(saveFn, delay = 1500) {
@@ -1218,15 +1206,12 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
       {/* Description */}
       <div>
         <Label className="text-xs">Description</Label>
-        <div className="mt-1 rounded-xl overflow-hidden border border-border">
-          <ReactQuill
-            theme="snow"
-            value={form.description || ''}
-            onChange={v => set('description', v)}
-            modules={{ toolbar: [['bold', 'italic'], [{ list: 'ordered' }, { list: 'bullet' }], ['clean']] }}
-            style={{ minHeight: 100 }}
-          />
-        </div>
+        <Textarea
+          className="mt-1 min-h-[100px] resize-y"
+          value={form.description || ''}
+          onChange={e => set('description', e.target.value)}
+          placeholder="Course overview — what students will learn…"
+        />
       </div>
 
       {/* Thumbnail */}
