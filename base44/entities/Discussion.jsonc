@@ -5,6 +5,8 @@
     "title":         { "type": "string",  "description": "Thread title — only for root posts (no parent_id)" },
     "slug":          { "type": "string",  "description": "URL-friendly thread slug" },
     "lesson_id":     { "type": "string" },
+    "lesson_title":  { "type": "string",  "description": "Cached lesson title — shown as a quoted link in forum threads" },
+    "lesson_url":    { "type": "string",  "description": "Cached lesson URL path e.g. /lesson/<id>" },
     "subject_id":    { "type": "string" },
     "subject_slug":  { "type": "string",  "description": "Cached for URL routing e.g. 'biology'" },
     "author_id":     { "type": "string" },
