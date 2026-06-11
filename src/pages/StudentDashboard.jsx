@@ -4,15 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import WelcomeCard from '@/components/dashboard/WelcomeCard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
-import RecentSubjects from '@/components/dashboard/RecentSubjects';
-import UpcomingItems from '@/components/dashboard/UpcomingItems';
 import { Progress } from '@/components/ui/progress';
-import { PlayCircle, BookOpen, ArrowRight, Trophy, Clock } from 'lucide-react';
+import {
+  PlayCircle, BookOpen, ArrowRight, Trophy, Clock,
+  Brain, Users, FileText, Library, BarChart2, MessageSquare,
+  GraduationCap, Share2
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
+/* ─── Mini in-progress class card ─────────────────────────────────────────── */
 function MiniClassCard({ enrollment }) {
   const navigate = useNavigate();
-  const pct     = enrollment.progress_percentage || 0;
+  const pct      = enrollment.progress_percentage || 0;
   const resumeId = enrollment.last_lesson_id;
   const ago      = enrollment.last_accessed
     ? formatDistanceToNow(new Date(enrollment.last_accessed), { addSuffix: true })
@@ -23,8 +26,7 @@ function MiniClassCard({ enrollment }) {
       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
         {pct === 100
           ? <Trophy className="w-5 h-5 text-accent" />
-          : <BookOpen className="w-4 h-4 text-primary" />
-        }
+          : <BookOpen className="w-4 h-4 text-primary" />}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
@@ -43,27 +45,49 @@ function MiniClassCard({ enrollment }) {
       <button
         onClick={() => navigate(resumeId ? `/lesson/${resumeId}` : `/subjects/${enrollment.subject_id}`)}
         className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-        style={{ background:'hsl(222 47% 18%)' }}
+        style={{ background: 'hsl(222 47% 18%)' }}
       >
-        <PlayCircle className="w-4 h-4" style={{ color:'hsl(43 74% 66%)' }} />
+        <PlayCircle className="w-4 h-4" style={{ color: 'hsl(43 74% 66%)' }} />
       </button>
     </div>
   );
 }
 
+/* ─── Platform service CTA card ───────────────────────────────────────────── */
+function ServiceCTA({ icon: Icon, label, description, to, accent }) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-start gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:bg-muted/30 transition-all duration-200"
+    >
+      <div
+        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+        style={{ background: accent + '22' }}
+      >
+        <Icon className="w-5 h-5" style={{ color: accent }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+          {label}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+          {description}
+        </p>
+      </div>
+      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
+    </Link>
+  );
+}
+
+/* ─── Main dashboard ──────────────────────────────────────────────────────── */
 export default function StudentDashboard() {
   const { user } = useOutletContext() ?? {};
-  const userId = user?.id;
+  const userId   = user?.id;
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: userId }, '-last_accessed', 20),
-    enabled: !!userId,
-  });
-
-  const { data: assignments = [] } = useQuery({
-    queryKey: ['upcomingAssignments'],
-    queryFn: () => base44.entities.Assignment.filter({ status: 'published' }, '-created_date', 5),
+    queryFn:  () => base44.entities.Enrollment.filter({ student_id: userId }, '-last_accessed', 20),
+    enabled:  !!userId,
   });
 
   const completedCount = enrollments.filter(e =>
@@ -81,11 +105,70 @@ export default function StudentDashboard() {
   const displayEnrollments = [...inProgressEnrollments, ...recentEnrollments].slice(0, 3);
 
   const statsData = {
-    enrolled: enrollments.length,
-    hours: user?.total_learning_hours || 0,
+    enrolled:  enrollments.length,
+    hours:     user?.total_learning_hours || 0,
     completed: completedCount,
-    streak: user?.study_streak || 0,
+    streak:    user?.study_streak || 0,
   };
+
+  const services = [
+    {
+      icon:        Brain,
+      label:       'Revision Hub',
+      description: 'Sharpen your knowledge with smart revision materials and past papers.',
+      to:          '/revision',
+      accent:      'hsl(263 70% 65%)',
+    },
+    {
+      icon:        FileText,
+      label:       'My Assignments',
+      description: 'View, submit, and track all your pending and graded assignments.',
+      to:          '/my-assignments',
+      accent:      'hsl(43 74% 52%)',
+    },
+    {
+      icon:        GraduationCap,
+      label:       'My Quizzes',
+      description: 'Test your understanding with quizzes across all your enrolled subjects.',
+      to:          '/my-quizzes',
+      accent:      'hsl(160 60% 45%)',
+    },
+    {
+      icon:        Library,
+      label:       'Library',
+      description: 'Browse study resources, documents, and multimedia learning materials.',
+      to:          '/library',
+      accent:      'hsl(200 80% 55%)',
+    },
+    {
+      icon:        MessageSquare,
+      label:       'Forums',
+      description: 'Join subject discussions, ask questions, and connect with classmates.',
+      to:          '/forums',
+      accent:      'hsl(25 90% 55%)',
+    },
+    {
+      icon:        BarChart2,
+      label:       'My Progress',
+      description: 'Track your learning journey with detailed analytics and insights.',
+      to:          '/progress',
+      accent:      'hsl(340 80% 60%)',
+    },
+    {
+      icon:        Users,
+      label:       'Find a Tutor',
+      description: 'Browse qualified tutors for one-on-one personalised support.',
+      to:          '/tutors',
+      accent:      'hsl(180 60% 45%)',
+    },
+    {
+      icon:        Share2,
+      label:       'Affiliate Program',
+      description: 'Refer friends and earn commissions through the ACA affiliate programme.',
+      to:          '/affiliate',
+      accent:      'hsl(43 74% 52%)',
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -115,9 +198,14 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <RecentSubjects enrollments={enrollments} />
-        <UpcomingItems assignments={assignments} />
+      {/* Platform Services CTAs */}
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <h3 className="font-display font-semibold text-base mb-4">Explore the Platform</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {services.map(s => (
+            <ServiceCTA key={s.to} {...s} />
+          ))}
+        </div>
       </div>
     </div>
   );
