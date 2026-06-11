@@ -7,104 +7,91 @@ import SEO from '@/components/SEO';
 import { Search, GraduationCap, BookOpen, Users, Clock, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-/* ── Tutor card with cover + avatar overlap ─────────────────────────────────── */
-function TutorCard({ tutor, courseCount, studentCount = 0 }) {
-  const [coverErr, setCoverErr] = useState(false);
+/* ── Tutor card ─────────────────────────────────────────────────────────────── */
+function TutorCard({ teacher, tutorProfile, courseCount, studentCount }) {
+  const [coverErr, setCoverErr]   = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
-  const initials = (tutor.full_name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+  // Prefer TutorProfile fields, fall back to User fields
+  const name      = tutorProfile?.full_name      || teacher.full_name  || teacher.email || 'Tutor';
+  const photo     = tutorProfile?.profile_photo  || teacher.avatar_url || '';
+  const coverPhoto= tutorProfile?.cover_photo    || '';
+  const title     = tutorProfile?.professional_title || '';
+  const tagline   = tutorProfile?.tagline        || '';
+  const subjects  = tutorProfile?.subjects       || [];
+  const years     = tutorProfile?.years_teaching || 0;
+  const slug      = tutorProfile?.slug           || teacher.id;
+
+  const initials  = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
   return (
     <Link
-      to={`/tutors/${tutor.slug}`}
+      to={`/tutors/${slug}`}
       className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-200 group flex flex-col"
     >
-      {/* Cover photo / gradient banner */}
+      {/* Cover banner */}
       <div className="relative h-28 w-full flex-shrink-0 overflow-hidden">
-        {tutor.cover_photo && !coverErr ? (
-          <img
-            src={tutor.cover_photo}
-            alt="Cover"
-            loading="eager"
-            decoding="async"
+        {coverPhoto && !coverErr ? (
+          <img src={coverPhoto} alt="Cover" loading="eager" decoding="async"
             onError={() => setCoverErr(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : tutor.profile_photo && !avatarErr ? (
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : photo && !avatarErr ? (
           <div className="relative w-full h-full overflow-hidden">
-            <img src={tutor.profile_photo} alt="" loading="eager" decoding="async"
-              onError={() => setAvatarErr(true)}
+            <img src={photo} alt="" loading="eager" decoding="async" onError={() => setAvatarErr(true)}
               className="w-full h-full object-cover scale-150 blur-2xl opacity-50 saturate-150" />
             <div className="absolute inset-0"
-              style={{ background:'linear-gradient(135deg, hsl(222 47% 14% / 0.75), hsl(43 74% 40% / 0.25))' }} />
+              style={{ background: 'linear-gradient(135deg, hsl(222 47% 14% / 0.75), hsl(43 74% 40% / 0.25))' }} />
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center"
-            style={{ background:'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 20%) 60%, hsl(43 74% 30% / 0.4) 100%)' }}>
+            style={{ background: 'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 20%) 60%, hsl(43 74% 30% / 0.4) 100%)' }}>
             <span className="text-5xl font-display font-bold opacity-15 select-none" style={{ color:'hsl(43 74% 66%)' }}>{initials}</span>
           </div>
         )}
-        {/* Fade to card bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-
-        {/* Years badge */}
-        {tutor.years_teaching > 0 && (
+        {years > 0 && (
           <div className="absolute top-2.5 right-2.5">
             <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background:'hsl(43 74% 52% / 0.15)', color:'hsl(43 60% 38%)', border:'1px solid hsl(43 74% 52% / 0.3)', backdropFilter:'blur(4px)' }}>
-              <Clock className="w-2.5 h-2.5" />{tutor.years_teaching}yr
+              <Clock className="w-2.5 h-2.5" />{years}yr
             </span>
           </div>
         )}
       </div>
 
-      {/* Avatar — overlaps cover */}
+      {/* Avatar */}
       <div className="relative px-4 -mt-8 pb-1 flex items-end gap-3">
         <div className="w-16 h-16 rounded-full overflow-hidden border-4 shadow-lg flex-shrink-0"
           style={{ borderColor:'hsl(var(--card))', background:'hsl(222 47% 18%)' }}>
-          {tutor.profile_photo && !avatarErr ? (
-            <img
-              src={tutor.profile_photo}
-              alt={tutor.full_name}
-              loading="eager"
-              decoding="async"
-              onError={() => setAvatarErr(true)}
-              className="w-full h-full object-cover object-top"
-            />
+          {photo && !avatarErr ? (
+            <img src={photo} alt={name} loading="eager" decoding="async" onError={() => setAvatarErr(true)}
+              className="w-full h-full object-cover object-top" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-xl font-bold select-none" style={{ color:'hsl(43 74% 66%)' }}>
-                {initials}
-              </span>
+              <span className="text-xl font-bold select-none" style={{ color:'hsl(43 74% 66%)' }}>{initials}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Identity + meta */}
+      {/* Identity */}
       <div className="px-4 pb-4 flex flex-col flex-1">
         <p className="font-display font-bold text-sm leading-snug group-hover:text-accent transition-colors line-clamp-1">
-          {tutor.full_name}
+          {name}
         </p>
-        {tutor.professional_title && (
-          <p className="text-xs mt-0.5 font-medium" style={{ color:'hsl(43 74% 52%)' }}>
-            {tutor.professional_title}
-          </p>
+        {title && (
+          <p className="text-xs mt-0.5 font-medium" style={{ color:'hsl(43 74% 52%)' }}>{title}</p>
         )}
-        {tutor.tagline && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-            {tutor.tagline}
-          </p>
+        {tagline && (
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">"{tagline}"</p>
         )}
-
-        {/* Subjects tags */}
-        {tutor.subjects?.length > 0 && (
+        {subjects.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {tutor.subjects.slice(0,3).map(s => (
+            {subjects.slice(0,3).map(s => (
               <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{s}</span>
             ))}
           </div>
         )}
-
-        {/* Stats row */}
         <div className="flex items-center gap-3 mt-auto pt-3 border-t border-border/50">
           {courseCount > 0 && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -125,57 +112,80 @@ function TutorCard({ tutor, courseCount, studentCount = 0 }) {
 
 /* ── Main ───────────────────────────────────────────────────────────────────── */
 export default function TutorsPage() {
-  const { user } = useOutletContext() ?? {};
   const [search, setSearch] = useState('');
 
-  const { data: tutors = [], isLoading } = useQuery({
-    queryKey: ['tutors'],
-    queryFn: () => base44.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 100),
-    staleTime: 30_000,   // 30s — short enough that photo updates are visible quickly
-  });
-
+  /* All published subjects — used to count courses + students per teacher */
   const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects-for-tutors'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
-    staleTime: 120_000,
-  });
-
-  const { data: allEnrollments = [] } = useQuery({
-    queryKey: ['all-enrollments-for-tutors'],
-    queryFn: () => base44.entities.Enrollment.filter({}, '-created_date', 1000),
+    queryKey: ['subjects-all-for-tutors'],
+    queryFn:  () => base44.entities.Subject.filter({ status: 'published' }, 'name', 500),
     staleTime: 60_000,
   });
 
-  const courseCountByTutor = useMemo(() => {
+  /* All tutor profiles — used for rich profile data + visibility toggle */
+  const { data: tutorProfiles = [] } = useQuery({
+    queryKey: ['all-tutor-profiles'],
+    queryFn:  () => base44.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 200),
+    staleTime: 30_000,
+  });
+
+  /* All teachers (users with role=teacher) — source of truth for directory */
+  const { data: teachers = [], isLoading } = useQuery({
+    queryKey: ['all-teachers'],
+    queryFn:  () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 200),
+    staleTime: 30_000,
+  });
+
+  /* Map: user_id → TutorProfile */
+  const profileByUserId = useMemo(() => {
+    const map = {};
+    tutorProfiles.forEach(p => { if (p.user_id) map[p.user_id] = p; });
+    return map;
+  }, [tutorProfiles]);
+
+  /* Course count per teacher (by teacher_id on subject) */
+  const courseCountByTeacher = useMemo(() => {
     const map = {};
     subjects.forEach(s => {
-      if (s.tutor_profile_id) map[s.tutor_profile_id] = (map[s.tutor_profile_id] || 0) + 1;
+      if (s.teacher_id) map[s.teacher_id] = (map[s.teacher_id] || 0) + 1;
     });
     return map;
   }, [subjects]);
 
-  const studentCountByTutor = useMemo(() => {
-    const subjectToTutor = {};
-    subjects.forEach(s => { if (s.tutor_profile_id) subjectToTutor[s.id] = s.tutor_profile_id; });
+  /* Student count per teacher (sum of enrollment_count on their subjects) */
+  const studentCountByTeacher = useMemo(() => {
     const map = {};
-    allEnrollments.forEach(e => {
-      const tid = subjectToTutor[e.subject_id];
-      if (tid) {
-        if (!map[tid]) map[tid] = new Set();
-        map[tid].add(e.student_id);
+    subjects.forEach(s => {
+      if (s.teacher_id && s.enrollment_count) {
+        map[s.teacher_id] = (map[s.teacher_id] || 0) + s.enrollment_count;
       }
     });
-    const counts = {};
-    Object.entries(map).forEach(([tid, set]) => { counts[tid] = set.size; });
-    return counts;
-  }, [subjects, allEnrollments]);
+    return map;
+  }, [subjects]);
 
-  const filtered = useMemo(() =>
-    !search ? tutors : tutors.filter(t =>
-      t.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      t.professional_title?.toLowerCase().includes(search.toLowerCase()) ||
-      t.subjects?.some(s => s.toLowerCase().includes(search.toLowerCase()))
-    ), [tutors, search]);
+  /* Filter out teachers who have is_visible=false on their TutorProfile */
+  const visibleTeachers = useMemo(() =>
+    teachers.filter(t => {
+      const profile = profileByUserId[t.id];
+      // If no profile exists, show by default; if profile exists, respect is_visible
+      if (!profile) return true;
+      return profile.is_visible !== false;
+    }),
+  [teachers, profileByUserId]);
+
+  /* Search filter */
+  const filtered = useMemo(() => {
+    if (!search.trim()) return visibleTeachers;
+    const q = search.toLowerCase();
+    return visibleTeachers.filter(t => {
+      const p = profileByUserId[t.id];
+      return (
+        t.full_name?.toLowerCase().includes(q) ||
+        t.email?.toLowerCase().includes(q) ||
+        p?.professional_title?.toLowerCase().includes(q) ||
+        p?.subjects?.some(s => s.toLowerCase().includes(q))
+      );
+    });
+  }, [visibleTeachers, search, profileByUserId]);
 
   return (
     <>
@@ -190,7 +200,7 @@ export default function TutorsPage() {
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Our Tutors</h1>
           <p className="text-sm mb-4" style={{ color:'hsl(43 20% 65%)' }}>
-            {tutors.length} expert tutors ready to help you excel
+            {visibleTeachers.length} expert {visibleTeachers.length === 1 ? 'tutor' : 'tutors'} ready to help you excel
           </p>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -218,9 +228,10 @@ export default function TutorsPage() {
             {filtered.map(t => (
               <TutorCard
                 key={t.id}
-                tutor={t}
-                courseCount={courseCountByTutor[t.id] || 0}
-                studentCount={studentCountByTutor[t.id] || 0}
+                teacher={t}
+                tutorProfile={profileByUserId[t.id] || null}
+                courseCount={courseCountByTeacher[t.id] || 0}
+                studentCount={studentCountByTeacher[t.id] || 0}
               />
             ))}
           </div>
