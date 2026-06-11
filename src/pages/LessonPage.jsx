@@ -14,6 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import LessonDiscussion from '@/components/lesson/LessonDiscussion';
 import { cn } from '@/lib/utils';
+import SEO from '@/components/SEO';
 
 // ─── VIDEO UTILS ──────────────────────────────────────────────────────────────
 function getYouTubeId(url) {
@@ -387,8 +388,25 @@ export default function LessonPage() {
 
   const hasVideo = !!lesson.video_url;
   const isTextLesson = !hasVideo;
+  const lessonTitle = lesson.seo_title || lesson.title;
+  const lessonDesc  = lesson.seo_description
+    || (lesson.content || '').replace(/<[^>]+>/g, '').slice(0, 160)
+    || `Watch and study: ${lesson.title}. Part of Chibondo Academy's MSCE curriculum.`;
+  const lessonUrl   = `${window.location.origin}/lesson/${lessonId}`;
 
   return (
+    <>
+      <SEO
+        title={lessonTitle}
+        description={lessonDesc}
+        canonical={lessonUrl}
+        ogType="article"
+        ogImage={lesson.og_image || lesson.thumbnail || undefined}
+        ogImageOverride={lesson.og_image || undefined}
+        ogTitle={lesson.og_title || lessonTitle}
+        ogDescription={lesson.og_description || lessonDesc}
+        keywords={lesson.seo_keywords || `${lesson.title}, MSCE, Chibondo Academy`}
+      />
     <div className="flex flex-col lg:flex-row min-h-0 -mx-4 sm:-mx-6 lg:-mx-8 -mt-6">
       {/* ── SIDEBAR ──────────────────────────────────────────────────── */}
       <aside className={cn(
@@ -698,5 +716,6 @@ export default function LessonPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
