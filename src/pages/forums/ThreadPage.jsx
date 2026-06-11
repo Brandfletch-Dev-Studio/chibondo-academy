@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -7,10 +7,30 @@ import SEO from '@/components/SEO';
 import {
   ArrowLeft, Send, Pin, CheckCircle, MoreVertical, Trash2,
   Heart, MessageSquare, Megaphone,
-  X, CornerDownRight, Share2
+  X, CornerDownRight, Share2, BookOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLiveAgo } from '@/hooks/useLiveAgo';
+
+
+/* ── Lesson origin quote — shown on forum comments sourced from a lesson ─── */
+function LessonQuote({ lessonTitle, lessonUrl }) {
+  if (!lessonTitle) return null;
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-xl border-l-4 text-xs"
+      style={{ borderColor: 'hsl(43 74% 52%)', background: 'hsl(43 74% 52% / 0.08)' }}>
+      <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+      <span className="text-muted-foreground">From lesson:</span>
+      {lessonUrl ? (
+        <Link to={lessonUrl} className="font-semibold hover:underline truncate max-w-[200px]" style={{ color: 'hsl(43 74% 45%)' }}>
+          {lessonTitle}
+        </Link>
+      ) : (
+        <span className="font-semibold truncate max-w-[200px]">{lessonTitle}</span>
+      )}
+    </div>
+  );
+}
 
 function markForumRead(subjectSlug) {
   if (subjectSlug) localStorage.setItem(`forum_last_visit_${subjectSlug}`, new Date().toISOString());
@@ -205,6 +225,11 @@ function ReplyBubble({
               <CornerDownRight className="w-3 h-3 flex-shrink-0" />
               replying to <span className="font-semibold not-italic">{reply.reply_to_name}</span>
             </div>
+          )}
+
+          {/* Lesson quote — if this comment originated from a lesson */}
+          {reply.lesson_title && (
+            <LessonQuote lessonTitle={reply.lesson_title} lessonUrl={reply.lesson_url} />
           )}
 
           {/* Bubble */}
@@ -572,6 +597,13 @@ export default function ThreadPage() {
 
           {/* Content */}
           <div className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{thread.content}</div>
+
+          {/* Lesson origin quote — shown when thread originated from a lesson comment */}
+          {thread.lesson_title && (
+            <div className="mt-3">
+              <LessonQuote lessonTitle={thread.lesson_title} lessonUrl={thread.lesson_url} />
+            </div>
+          )}
 
 
 
