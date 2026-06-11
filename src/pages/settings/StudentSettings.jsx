@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { User, Lock, Bell, CreditCard, Sun, Moon, Camera, Loader2, X } from 'lucide-react';
+import { User, Lock, Bell, CreditCard, Sun, Moon, Camera, Loader2, X, GraduationCap } from 'lucide-react';
 
 export default function StudentSettings() {
   const { user } = useOutletContext() ?? {};
@@ -46,6 +46,7 @@ export default function StudentSettings() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [schoolName, setSchoolName] = useState('');
+  const [selectedForm, setSelectedForm] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -70,6 +71,7 @@ export default function StudentSettings() {
     if (profile) {
       setPhone(profile.phone_number || '');
       setSchoolName(profile.school_name || '');
+      setSelectedForm(profile.form || '');
     }
   }, [profile]);
 
@@ -143,6 +145,7 @@ export default function StudentSettings() {
           phone_number: phone,
           school_name: schoolName,
           avatar_url: avatarUrl,
+          form: selectedForm || undefined,
         });
       } else if (user?.id) {
         await base44.entities.StudentProfile.create({
@@ -194,7 +197,7 @@ export default function StudentSettings() {
                     />
                   ) : (
                     <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-border"
-                      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                      className="bg-accent text-accent-foreground">
                       {initial}
                     </div>
                   )}
@@ -252,6 +255,34 @@ export default function StudentSettings() {
                 <Label>School Name</Label>
                 <Input value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="Your school" />
               </div>
+
+              {/* Class / Form selection */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-accent" />
+                  Your Class
+                </Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {['Form 1', 'Form 2', 'Form 3', 'Form 4'].map(f => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setSelectedForm(f)}
+                      className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all ${
+                        selectedForm === f
+                          ? 'border-accent bg-accent text-accent-foreground'
+                          : 'border-border bg-background text-foreground hover:border-accent/50 hover:bg-muted'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                {selectedForm && (
+                  <p className="text-xs text-muted-foreground">Selected: <span className="font-semibold text-foreground">{selectedForm}</span></p>
+                )}
+              </div>
+
               <Button onClick={saveProfile} disabled={profileSaving}>
                 {profileSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : 'Save Changes'}
               </Button>
