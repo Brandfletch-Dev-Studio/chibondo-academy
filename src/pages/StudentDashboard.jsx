@@ -2,13 +2,14 @@ import React from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { formatDistanceToNow as _fdt } from 'date-fns';
 import WelcomeCard from '@/components/dashboard/WelcomeCard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import SetupChecklist from '@/components/dashboard/SetupChecklist';
 import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle, BookOpen, ArrowRight, Trophy, Clock,
-  Share2, Newspaper, ExternalLink
+  Share2, Newspaper, ChevronRight
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -84,6 +85,12 @@ export default function StudentDashboard() {
     enabled:  !!userId,
   });
 
+  const { data: latestPosts = [] } = useQuery({
+    queryKey: ['latest-blog-posts'],
+    queryFn:  () => base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 3),
+    staleTime: 300_000,
+  });
+
   const completedCount = enrollments.filter(e =>
     (e.progress_percentage || 0) === 100 || e.status === 'completed'
   ).length;
@@ -109,16 +116,9 @@ export default function StudentDashboard() {
     {
       icon:        Share2,
       label:       'Invite Friends & Earn',
-      description: 'Refer classmates and earn commissions through the ACA affiliate programme.',
+      description: 'Refer classmates and earn cash commissions through the ACA affiliate programme.',
       to:          '/affiliate',
       accent:      'hsl(43 74% 52%)',
-    },
-    {
-      icon:        Newspaper,
-      label:       'Latest from Our Blog',
-      description: 'Tips, study guides, and news from Chibondo Academy.',
-      to:          '/blog',
-      accent:      'hsl(200 80% 55%)',
     },
   ];
 
@@ -154,9 +154,51 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* 2 Platform CTAs */}
-      <div className="grid sm:grid-cols-2 gap-3">
-        {ctaServices.map(s => <ServiceCTA key={s.to} {...s} />)}
+      {/* Affiliate CTA */}
+      <ServiceCTA {...ctaServices[0]} />
+
+      {/* Blog mini-feed */}
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display font-semibold text-base flex items-center gap-2">
+            <Newspaper className="w-4 h-4 text-accent" /> Latest from Our Blog
+          </h3>
+          <Link to="/blog" className="text-xs font-medium text-primary flex items-center gap-1 hover:underline">
+            View All <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {latestPosts.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">No posts yet — check back soon.</p>
+        ) : (
+          <div className="space-y-1">
+            {latestPosts.map(post => (
+              <Link
+                key={post.id}
+                to={`/blog/${post.id}`}
+                className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/40 transition-colors"
+              >
+                {post.cover_image && (
+                  <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+                    <img src={post.cover_image} alt="" loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-accent transition-colors">
+                    {post.title}
+                  </p>
+                  {post.published_at && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {new Date(post.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent flex-shrink-0 mt-0.5 transition-colors" />
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
