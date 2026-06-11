@@ -153,7 +153,7 @@ export default function SetupChecklist({ user }) {
   if (!visible || !userId) return null;
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden bg-card">
+    <div className="rounded-2xl border border-border overflow-hidden" style={{ background: '#ffffff', color: 'hsl(222 47% 11%)' }}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
@@ -163,13 +163,13 @@ export default function SetupChecklist({ user }) {
             <Sparkles className="w-4 h-4" style={{ color: 'hsl(43 74% 52%)' }} />
           </div>
           <div>
-            <p className="font-display font-bold text-sm">Set up your account</p>
-            <p className="text-[11px] text-muted-foreground">{doneCount} of {items.length} complete</p>
+            <p className="font-display font-bold text-sm" style={{ color: 'hsl(222 47% 11%)' }}>Set up your account</p>
+            <p className="text-[11px]" style={{ color: 'hsl(222 47% 40%)' }}>{doneCount} of {items.length} complete</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setCollapsed(v => !v)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+            className="p-1.5 rounded-lg transition-colors" style={{ color: 'hsl(222 47% 45%)' }}>
             {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
           </button>
           <button onClick={() => { snooze(); setVisible(false); }}
@@ -219,7 +219,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
   const Icon = item.icon;
   return (
     <div className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
-      item.done ? 'opacity-50' : 'hover:bg-muted/60 cursor-pointer'
+      item.done ? 'opacity-40' : 'hover:bg-gray-50 cursor-pointer'
     }`}
       onClick={item.done ? undefined : item.action}>
 
@@ -234,7 +234,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
 
       {/* Icon */}
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        item.done ? 'bg-muted/40' : 'bg-muted/70'
+        item.done ? 'bg-gray-100' : 'bg-gray-100'
       }`}>
         {item.id === 'photo' && photoPreview && !item.done ? (
           <img src={photoPreview} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -252,7 +252,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
               value={nameVal}
               onChange={e => setNameVal(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
-              className="flex-1 text-sm bg-muted rounded-lg px-2.5 py-1 outline-none border border-border focus:border-accent/60 text-foreground"
+              className="flex-1 text-sm rounded-lg px-2.5 py-1 outline-none border focus:outline-none" style={{ background: 'hsl(222 47% 96%)', borderColor: 'hsl(222 47% 80%)', color: 'hsl(222 47% 11%)' }}
               placeholder="Your full name"
             />
             <button onClick={saveName} disabled={savingName}
@@ -264,7 +264,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
         ) : item.id === 'photo' && uploading ? (
           <p className="text-sm text-muted-foreground">Uploading…</p>
         ) : (
-          <p className={`text-sm font-medium ${item.done ? 'line-through text-muted-foreground/50' : ''}`}>
+          <p className={`text-sm font-medium ${item.done ? 'line-through' : ''}`} style={{ color: item.done ? 'hsl(222 47% 65%)' : 'hsl(222 47% 15%)' }}>
             {item.label}
           </p>
         )}
