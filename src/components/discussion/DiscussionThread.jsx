@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, ThumbsUp, Flag, MoreVertical, Pin, CheckCircle } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Flag, MoreVertical, Pin, CheckCircle, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import {
   DropdownMenu,
@@ -13,8 +13,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Link } from 'react-router-dom';
 
-export default function DiscussionThread({ lessonId, subjectId, currentUserId, currentUserRole }) {
+/* ── Lesson origin quote banner ─────────────────────────────────────────────── */
+function LessonQuote({ lessonTitle, lessonUrl }) {
+  if (!lessonTitle && !lessonUrl) return null;
+  const title = lessonTitle || 'View Lesson';
+  const url   = lessonUrl || (lessonUrl ? `/lesson/${lessonUrl}` : null);
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-xl border-l-4 text-xs"
+      style={{ borderColor: 'hsl(43 74% 52%)', background: 'hsl(43 74% 52% / 0.08)' }}>
+      <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+      <span className="text-muted-foreground">From lesson:</span>
+      {url ? (
+        <Link to={url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(43 74% 45%)' }}>
+          {title}
+        </Link>
+      ) : (
+        <span className="font-semibold truncate">{title}</span>
+      )}
+    </div>
+  );
+}
+
+export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, subjectId, currentUserId, currentUserName, currentUserAvatar, currentUserRole }) {
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
@@ -25,16 +47,13 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
     queryKey: ['discussions', lessonId],
     queryFn: async () => {
       const all = await base44.entities.Discussion.filter({ lesson_id: lessonId, status: 'active' }, '-created_date', 100);
-      // Sort: pinned first, then by date
       return all.sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
     },
     enabled: !!lessonId,
   });
 
   const createDiscussion = useMutation({
-    mutationFn: async (data) => {
-      return base44.entities.Discussion.create(data);
-    },
+    mutationFn: async (data) => base44.entities.Discussion.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] });
       setNewComment('');
@@ -42,28 +61,25 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
   });
 
   const updateDiscussion = useMutation({
-    mutationFn: async ({ id, data }) => {
-      return base44.entities.Discussion.update(id, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] });
-    },
+    mutationFn: async ({ id, data }) => base44.entities.Discussion.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] }),
   });
 
   const handleSubmit = () => {
     if (!newComment.trim()) return;
-    if (isGuest) {
-      window.location.href = '/register';
-      return;
-    }
+    if (isGuest) { window.location.href = '/register'; return; }
     createDiscussion.mutate({
-      lesson_id: lessonId,
-      subject_id: subjectId,
-      author_id: currentUserId,
-      author_name: currentUserId, // Will be populated from user context
-      author_role: currentUserRole,
-      content: newComment.trim(),
-      parent_id: null,
+      lesson_id:    lessonId,
+      lesson_title: lessonTitle || null,
+      lesson_url:   lessonUrl   || null,
+      subject_id:   subjectId,
+      author_id:    currentUserId,
+      author_name:  currentUserName || currentUserId,
+      author_avatar: currentUserAvatar || null,
+      author_role:  currentUserRole,
+      content:      newComment.trim(),
+      parent_id:    null,
+      status:       'active',
     });
   };
 
@@ -71,45 +87,28 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
     if (!replyContent.trim()) return;
     if (isGuest) { window.location.href = '/register'; return; }
     createDiscussion.mutate({
-      lesson_id: lessonId,
-      subject_id: subjectId,
-      author_id: currentUserId,
-      author_name: currentUserId,
-      author_role: currentUserRole,
-      content: replyContent.trim(),
-      parent_id: parentId,
+      lesson_id:    lessonId,
+      lesson_title: lessonTitle || null,
+      lesson_url:   lessonUrl   || null,
+      subject_id:   subjectId,
+      author_id:    currentUserId,
+      author_name:  currentUserName || currentUserId,
+      author_avatar: currentUserAvatar || null,
+      author_role:  currentUserRole,
+      content:      replyContent.trim(),
+      parent_id:    parentId,
+      status:       'active',
     });
     setReplyingTo(null);
     setReplyContent('');
   };
 
-  const handleLike = (discussion) => {
-    updateDiscussion.mutate({
-      id: discussion.id,
-      data: { likes: (discussion.likes || 0) + 1 },
-    });
-  };
-
-  const handlePin = (discussion) => {
+  const handleLike    = (d) => updateDiscussion.mutate({ id: d.id, data: { likes: (d.likes || 0) + 1 } });
+  const handlePin     = (d) => { if (currentUserRole !== 'teacher' && currentUserRole !== 'admin') return; updateDiscussion.mutate({ id: d.id, data: { is_pinned: !d.is_pinned } }); };
+  const handleMarkAnswer = (d) => {
     if (currentUserRole !== 'teacher' && currentUserRole !== 'admin') return;
-    updateDiscussion.mutate({
-      id: discussion.id,
-      data: { is_pinned: !discussion.is_pinned },
-    });
-  };
-
-  const handleMarkAnswer = (discussion) => {
-    if (currentUserRole !== 'teacher' && currentUserRole !== 'admin') return;
-    // Unmark others first
-    discussions.forEach(d => {
-      if (d.is_answer) {
-        updateDiscussion.mutate({ id: d.id, data: { is_answer: false } });
-      }
-    });
-    updateDiscussion.mutate({
-      id: discussion.id,
-      data: { is_answer: true },
-    });
+    discussions.forEach(x => { if (x.is_answer) updateDiscussion.mutate({ id: x.id, data: { is_answer: false } }); });
+    updateDiscussion.mutate({ id: d.id, data: { is_answer: true } });
   };
 
   const rootDiscussions = discussions.filter(d => !d.parent_id);
@@ -119,25 +118,23 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
 
   return (
     <div className="space-y-4">
-      {/* New Discussion */}
+      {/* New comment box */}
       <Card>
         <CardContent className="pt-4 space-y-3">
+          {/* Show lesson context above the textarea so users know where they're commenting */}
+          <LessonQuote lessonTitle={lessonTitle} lessonUrl={lessonUrl} />
           <Textarea
             placeholder={isGuest ? "Sign in to ask a question or share your thoughts…" : "Ask a question or share your thoughts..."}
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={e => setNewComment(e.target.value)}
             className="min-h-[100px]"
           />
           {isGuest ? (
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-xs text-muted-foreground">You need an account to post in discussions.</p>
               <div className="flex gap-2">
-                <a href="/login">
-                  <Button variant="outline" size="sm">Login</Button>
-                </a>
-                <a href="/register">
-                  <Button size="sm" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>Join Now</Button>
-                </a>
+                <a href="/login"><Button variant="outline" size="sm">Login</Button></a>
+                <a href="/register"><Button size="sm" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>Join Now</Button></a>
               </div>
             </div>
           ) : (
@@ -151,9 +148,9 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
         </CardContent>
       </Card>
 
-      {/* Discussions List */}
+      {/* Discussion list */}
       <div className="space-y-4">
-        {rootDiscussions.map((discussion) => (
+        {rootDiscussions.map(discussion => (
           <DiscussionItem
             key={discussion.id}
             discussion={discussion}
@@ -182,7 +179,7 @@ export default function DiscussionThread({ lessonId, subjectId, currentUserId, c
 }
 
 function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, onReply, onLike, onPin, onMarkAnswer, replyingTo, setReplyingTo, replyContent, setReplyContent }) {
-  const isAuthor = discussion.author_id === currentUserId;
+  const isAuthor  = discussion.author_id === currentUserId;
   const isTeacher = discussion.author_role === 'teacher' || discussion.author_role === 'admin';
 
   return (
@@ -191,16 +188,21 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
         <CardContent className="pt-4">
           <div className="flex items-start gap-3">
             <Avatar className="w-8 h-8">
-              <AvatarFallback className="text-xs font-bold" style={{ background: isTeacher ? 'hsl(222 47% 18%)' : 'hsl(43 74% 52%)', color: isTeacher ? '#fff' : '#1e293b' }}>
-                {discussion.author_name?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
+              {discussion.author_avatar ? (
+                <img src={discussion.author_avatar} alt={discussion.author_name} className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <AvatarFallback className="text-xs font-bold"
+                  style={{ background: isTeacher ? 'hsl(222 47% 18%)' : 'hsl(43 74% 52%)', color: isTeacher ? '#fff' : '#1e293b' }}>
+                  {discussion.author_name?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              )}
             </Avatar>
             <div className="flex-1 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm">{discussion.author_name}</span>
                   {isTeacher && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(222 47% 18%)', color: 'white' }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }}>
                       Teacher
                     </span>
                   )}
@@ -220,82 +222,68 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     {(currentUserRole === 'teacher' || currentUserRole === 'admin') && (
                       <>
                         <DropdownMenuItem onClick={() => onPin(discussion)}>
-                          <Pin className="w-4 h-4 mr-2" />
-                          {discussion.is_pinned ? 'Unpin' : 'Pin'}
+                          <Pin className="w-4 h-4 mr-2" />{discussion.is_pinned ? 'Unpin' : 'Pin'}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onMarkAnswer(discussion)}>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          {discussion.is_answer ? 'Unmark' : 'Mark as Answer'}
+                          <CheckCircle className="w-4 h-4 mr-2" />{discussion.is_answer ? 'Unmark' : 'Mark as Answer'}
                         </DropdownMenuItem>
                       </>
                     )}
                     {isAuthor && (
-                      <DropdownMenuItem>
-                        <Flag className="w-4 h-4 mr-2" />
-                        Report
-                      </DropdownMenuItem>
+                      <DropdownMenuItem><Flag className="w-4 h-4 mr-2" />Report</DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <p className="text-sm text-foreground">{discussion.content}</p>
-              <div className="flex items-center gap-4 pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => onLike(discussion)}
-                >
-                  <ThumbsUp className="w-3 h-3 mr-1" />
-                  {discussion.likes || 0}
+
+              {/* Lesson quote — shown in lesson view too for context on replies */}
+              {discussion.lesson_title && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-l-4 text-xs"
+                  style={{ borderColor: 'hsl(43 74% 52%)', background: 'hsl(43 74% 52% / 0.08)' }}>
+                  <BookOpen className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+                  <span className="text-muted-foreground">From lesson:</span>
+                  {discussion.lesson_url ? (
+                    <a href={discussion.lesson_url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(43 74% 45%)' }}>
+                      {discussion.lesson_title}
+                    </a>
+                  ) : (
+                    <span className="font-semibold">{discussion.lesson_title}</span>
+                  )}
+                </div>
+              )}
+
+              <p className="text-sm whitespace-pre-line">{discussion.content}</p>
+
+              <div className="flex items-center gap-3 pt-1">
+                <Button variant="ghost" size="sm" onClick={() => onLike(discussion)} className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+                  <ThumbsUp className="w-3.5 h-3.5" />{discussion.likes || 0}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => setReplyingTo(replyingTo === discussion.id ? null : discussion.id)}
-                >
-                  <MessageSquare className="w-3 h-3 mr-1" />
-                  Reply
-                </Button>
+                {!isGuest && (
+                  <Button variant="ghost" size="sm" onClick={() => setReplyingTo(replyingTo === discussion.id ? null : discussion.id)} className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+                    <MessageSquare className="w-3.5 h-3.5" />Reply
+                  </Button>
+                )}
               </div>
 
-              {/* Reply Input */}
               {replyingTo === discussion.id && (
-                <div className="mt-3 space-y-2">
+                <div className="space-y-2 pl-2 border-l-2 border-border">
                   <Textarea
-                    placeholder="Write your reply..."
+                    placeholder="Write a reply..."
                     value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    className="min-h-[60px]"
-                    autoFocus
+                    onChange={e => setReplyContent(e.target.value)}
+                    className="min-h-[80px] text-sm"
                   />
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => onReply(discussion.id)}
-                      disabled={!replyContent.trim()}
-                    >
+                    <Button size="sm" onClick={() => onReply(discussion.id)} disabled={!replyContent.trim() || createDiscussion?.isPending}>
                       Post Reply
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setReplyingTo(null);
-                        setReplyContent('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setReplyingTo(null)}>Cancel</Button>
                   </div>
                 </div>
               )}
@@ -304,10 +292,10 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
         </CardContent>
       </Card>
 
-      {/* Nested Replies */}
+      {/* Nested replies */}
       {replies.length > 0 && (
-        <div className="space-y-3 pl-8 border-l-2 border-muted">
-          {replies.map((reply) => (
+        <div className="ml-8 space-y-3">
+          {replies.map(reply => (
             <DiscussionItem
               key={reply.id}
               discussion={reply}
