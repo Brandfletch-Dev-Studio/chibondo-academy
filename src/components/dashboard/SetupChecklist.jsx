@@ -153,14 +153,13 @@ export default function SetupChecklist({ user }) {
   if (!visible || !userId) return null;
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden"
-      style={{ background: 'hsl(222 47% 13%)' }}>
+    <div className="rounded-2xl border border-border overflow-hidden bg-card">
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: 'hsl(43 74% 52% / 0.15)' }}>
+            className="bg-accent/10">
             <Sparkles className="w-4 h-4" style={{ color: 'hsl(43 74% 52%)' }} />
           </div>
           <div>
@@ -220,7 +219,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
   const Icon = item.icon;
   return (
     <div className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
-      item.done ? 'opacity-50' : 'hover:bg-white/5 cursor-pointer'
+      item.done ? 'opacity-50' : 'hover:bg-muted/60 cursor-pointer'
     }`}
       onClick={item.done ? undefined : item.action}>
 
@@ -235,7 +234,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
 
       {/* Icon */}
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        item.done ? 'bg-white/5' : 'bg-white/8'
+        item.done ? 'bg-muted/40' : 'bg-muted/70'
       }`}>
         {item.id === 'photo' && photoPreview && !item.done ? (
           <img src={photoPreview} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -253,7 +252,7 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
               value={nameVal}
               onChange={e => setNameVal(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
-              className="flex-1 text-sm bg-white/10 rounded-lg px-2.5 py-1 outline-none border border-white/20 focus:border-accent/60 text-foreground"
+              className="flex-1 text-sm bg-muted rounded-lg px-2.5 py-1 outline-none border border-border focus:border-accent/60 text-foreground"
               placeholder="Your full name"
             />
             <button onClick={saveName} disabled={savingName}
