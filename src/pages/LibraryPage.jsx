@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Search, BookOpen, FileText, Lightbulb, GraduationCap, ClipboardList, Library, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SEO from '@/components/SEO';
 
 const TYPE_CONFIG = {
   past_paper:      { label: 'Past Paper',      icon: FileText,      color: 'bg-primary/10 text-primary border-primary/20' },
@@ -84,6 +85,13 @@ export default function LibraryPage() {
   ];
 
   return (
+    <>
+      <SEO
+        title="MSCE Library — Past Papers, Notes & Revision Resources | Chibondo Academy"
+        description="Download free MSCE past papers, revision notes, and study resources for Form 3 and Form 4. Biology, Chemistry, Maths, Physics and more."
+        canonical={`${window.location.origin}/library`}
+        keywords="MSCE past papers, revision notes, Form 3 resources, Form 4 resources, download Malawi"
+      />
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -256,5 +264,6 @@ function ResourceCard({ resource, hasPaidFees }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
