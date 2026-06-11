@@ -2,7 +2,6 @@ import React from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { formatDistanceToNow as _fdt } from 'date-fns';
 import WelcomeCard from '@/components/dashboard/WelcomeCard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import SetupChecklist from '@/components/dashboard/SetupChecklist';
