@@ -8,7 +8,7 @@ import SetupChecklist from '@/components/dashboard/SetupChecklist';
 import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle, BookOpen, ArrowRight, Trophy, Clock,
-  Brain, GraduationCap
+  Share2, Newspaper, ExternalLink
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -107,18 +107,18 @@ export default function StudentDashboard() {
 
   const ctaServices = [
     {
-      icon:        Brain,
-      label:       'Revision Hub',
-      description: 'Smart revision materials and past papers.',
-      to:          '/revision',
-      accent:      'hsl(263 70% 65%)',
+      icon:        Share2,
+      label:       'Invite Friends & Earn',
+      description: 'Refer classmates and earn commissions through the ACA affiliate programme.',
+      to:          '/affiliate',
+      accent:      'hsl(43 74% 52%)',
     },
     {
-      icon:        GraduationCap,
-      label:       'Find a Tutor',
-      description: 'Browse qualified tutors for personalised support.',
-      to:          '/tutors',
-      accent:      'hsl(180 60% 45%)',
+      icon:        Newspaper,
+      label:       'Latest from Our Blog',
+      description: 'Tips, study guides, and news from Chibondo Academy.',
+      to:          '/blog',
+      accent:      'hsl(200 80% 55%)',
     },
   ];
 
