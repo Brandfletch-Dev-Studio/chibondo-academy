@@ -6,6 +6,7 @@ import { BookOpen, Lock, ChevronRight, Search, Users, Calendar, PlayCircle, Star
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import SEO from '@/components/SEO';
 import { format } from 'date-fns';
 
 export default function SubjectsPage() {
@@ -80,6 +81,13 @@ export default function SubjectsPage() {
   }
 
   return (
+    <>
+      <SEO
+        title="All Subjects | MSCE Courses | Chibondo Academy"
+        description="Browse all MSCE subjects available at Chibondo Academy. Form 3 and Form 4 courses including Mathematics, Biology, Physics, Chemistry, English and more."
+        canonical={`${window.location.origin}/subjects`}
+        keywords="MSCE subjects, Form 3 courses, Form 4 courses, online learning Malawi, Chibondo Academy"
+      />
     <div className="space-y-6">
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
@@ -265,5 +273,6 @@ export default function SubjectsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
