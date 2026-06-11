@@ -629,7 +629,7 @@ export default function LessonPage() {
               )}
 
               <TabsContent value="discussion" className="mt-4">
-                <LessonDiscussion lessonId={lessonId} user={user} subjectId={lesson.subject_id} />
+                <LessonDiscussion lessonId={lessonId} lessonTitle={lesson.title} lessonUrl={`/lesson/${lessonId}`} user={user} subjectId={lesson.subject_id} />
               </TabsContent>
             </Tabs>
 
