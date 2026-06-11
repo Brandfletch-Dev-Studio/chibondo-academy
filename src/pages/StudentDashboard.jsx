@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import WelcomeCard from '@/components/dashboard/WelcomeCard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
+import SetupChecklist from '@/components/dashboard/SetupChecklist';
 import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle, BookOpen, ArrowRight, Trophy, Clock,
-  Brain, Users, FileText, Library, BarChart2, MessageSquare,
-  GraduationCap, Share2
+  Brain, GraduationCap
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -53,26 +53,20 @@ function MiniClassCard({ enrollment }) {
   );
 }
 
-/* ─── Platform service CTA card ───────────────────────────────────────────── */
+/* ─── Platform CTA card — only 2 now ──────────────────────────────────────── */
 function ServiceCTA({ icon: Icon, label, description, to, accent }) {
   return (
     <Link
       to={to}
       className="group flex items-start gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:bg-muted/30 transition-all duration-200"
     >
-      <div
-        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-        style={{ background: accent + '22' }}
-      >
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+        style={{ background: accent + '22' }}>
         <Icon className="w-5 h-5" style={{ color: accent }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-          {label}
-        </p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-          {description}
-        </p>
+        <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">{label}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
       </div>
       <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
     </Link>
@@ -111,71 +105,33 @@ export default function StudentDashboard() {
     streak:    user?.study_streak || 0,
   };
 
-  const services = [
+  const ctaServices = [
     {
       icon:        Brain,
       label:       'Revision Hub',
-      description: 'Sharpen your knowledge with smart revision materials and past papers.',
+      description: 'Smart revision materials and past papers.',
       to:          '/revision',
       accent:      'hsl(263 70% 65%)',
     },
     {
-      icon:        FileText,
-      label:       'My Assignments',
-      description: 'View, submit, and track all your pending and graded assignments.',
-      to:          '/my-assignments',
-      accent:      'hsl(43 74% 52%)',
-    },
-    {
       icon:        GraduationCap,
-      label:       'My Quizzes',
-      description: 'Test your understanding with quizzes across all your enrolled subjects.',
-      to:          '/my-quizzes',
-      accent:      'hsl(160 60% 45%)',
-    },
-    {
-      icon:        Library,
-      label:       'Library',
-      description: 'Browse study resources, documents, and multimedia learning materials.',
-      to:          '/library',
-      accent:      'hsl(200 80% 55%)',
-    },
-    {
-      icon:        MessageSquare,
-      label:       'Forums',
-      description: 'Join subject discussions, ask questions, and connect with classmates.',
-      to:          '/forums',
-      accent:      'hsl(25 90% 55%)',
-    },
-    {
-      icon:        BarChart2,
-      label:       'My Progress',
-      description: 'Track your learning journey with detailed analytics and insights.',
-      to:          '/progress',
-      accent:      'hsl(340 80% 60%)',
-    },
-    {
-      icon:        Users,
       label:       'Find a Tutor',
-      description: 'Browse qualified tutors for one-on-one personalised support.',
+      description: 'Browse qualified tutors for personalised support.',
       to:          '/tutors',
       accent:      'hsl(180 60% 45%)',
-    },
-    {
-      icon:        Share2,
-      label:       'Affiliate Program',
-      description: 'Refer friends and earn commissions through the ACA affiliate programme.',
-      to:          '/affiliate',
-      accent:      'hsl(43 74% 52%)',
     },
   ];
 
   return (
     <div className="space-y-6">
       <WelcomeCard user={user} />
+
+      {/* Setup checklist — shown below welcome until complete */}
+      <SetupChecklist user={user} />
+
       <StatsGrid data={statsData} />
 
-      {/* My Classes section */}
+      {/* My Classes */}
       {enrollments.length > 0 && (
         <div className="bg-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between mb-3">
@@ -198,14 +154,9 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* Platform Services CTAs */}
-      <div className="bg-card rounded-2xl border border-border p-5">
-        <h3 className="font-display font-semibold text-base mb-4">Explore the Platform</h3>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {services.map(s => (
-            <ServiceCTA key={s.to} {...s} />
-          ))}
-        </div>
+      {/* 2 Platform CTAs */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        {ctaServices.map(s => <ServiceCTA key={s.to} {...s} />)}
       </div>
     </div>
   );
