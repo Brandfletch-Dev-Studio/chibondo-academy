@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { uploadImage } from '@/utils/uploadImage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -92,7 +93,7 @@ export default function StudentSettings() {
 
     setAvatarUploading(true);
     try {
-      const { file_url: url } = await base44.storage.uploadFile(file);
+      const url = await uploadImage(file);
       setAvatarUrl(url);
       setAvatarPreview(url);
       // Save to User record
