@@ -264,6 +264,5 @@ function ResourceCard({ resource, hasPaidFees }) {
         </div>
       </div>
     </div>
-    </>
   );
 }
