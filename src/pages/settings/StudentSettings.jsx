@@ -92,15 +92,7 @@ export default function StudentSettings() {
 
     setAvatarUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const resp = await fetch(`/api/apps/${window.__appParams?.appId || ''}/storage/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` },
-        body: fd,
-      });
-      const json = await resp.json();
-      const url = json.url || json.file_url || '';
+      const { file_url: url } = await base44.storage.uploadFile(file);
       setAvatarUrl(url);
       setAvatarPreview(url);
       // Save to User record
