@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { uploadImage } from '@/utils/uploadImage';
 import {
   User, Camera, GraduationCap, BookOpen, CreditCard,
   CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles
@@ -103,7 +104,7 @@ export default function SetupChecklist({ user }) {
     setPhotoPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
-      const { file_url: url } = await base44.storage.uploadFile(file);
+      const url = await uploadImage(file);
       setPhotoPreview(url);
       await base44.auth.updateMe({ avatar_url: url });
       if (studentProfile?.id) {
