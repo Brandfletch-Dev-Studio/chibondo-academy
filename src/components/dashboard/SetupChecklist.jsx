@@ -103,15 +103,7 @@ export default function SetupChecklist({ user }) {
     setPhotoPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const resp = await fetch(
-        `/api/apps/${window.__appParams?.appId || ''}/storage/upload`,
-        { method: 'POST', headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` }, body: fd }
-      );
-      if (!resp.ok) throw new Error('Upload failed');
-      const json = await resp.json();
-      const url  = json.url || json.file_url || '';
+      const { file_url: url } = await base44.storage.uploadFile(file);
       setPhotoPreview(url);
       await base44.auth.updateMe({ avatar_url: url });
       if (studentProfile?.id) {
