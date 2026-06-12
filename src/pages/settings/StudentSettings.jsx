@@ -131,7 +131,7 @@ export default function StudentSettings() {
   const saveProfile = async () => {
     setProfileSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: fullName.trim(), avatar_url: avatarUrl });
+      await base44.auth.updateMe({ full_name: fullName.trim(), ...(avatarUrl ? { avatar_url: avatarUrl } : {}) });
       if (profile?.id) {
         await base44.entities.StudentProfile.update(profile.id, {
           full_name: fullName.trim(),
@@ -152,7 +152,7 @@ export default function StudentSettings() {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       queryClient.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile saved!');
-    } catch { toast.error('Could not save profile'); }
+    } catch (err) { toast.error(`Could not save: ${err?.message || 'Unknown error'}`); }
     finally { setProfileSaving(false); }
   };
 
@@ -189,8 +189,7 @@ export default function StudentSettings() {
                       className="w-20 h-20 rounded-full object-cover border-2 border-border"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-border"
-                      className="bg-accent text-accent-foreground">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-border bg-accent text-accent-foreground">
                       {initial}
                     </div>
                   )}
