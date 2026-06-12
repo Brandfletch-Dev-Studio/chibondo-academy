@@ -1,24 +1,519 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { uploadImage } from '@/utils/uploadImage';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { User, Lock, Bell, CreditCard, Sun, Moon, Camera, Loader2, X, GraduationCap } from 'lucide-react';
+import {
+  User, Bell, CreditCard, Sun, Moon, Camera, Loader2, Save,
+  GraduationCap, Phone, School, BellRing, Palette, Shield,
+  ChevronRight, Star, Check, ExternalLink, BookOpen
+} from 'lucide-react';
 
+// ── Gold accent tokens ────────────────────────────────────────────────────────
+const GOLD        = 'hsl(43 74% 52%)';
+const GOLD_BG     = 'hsl(43 74% 52% / 0.12)';
+const GOLD_BORDER = 'hsl(43 74% 52% / 0.3)';
+
+// ── Sidebar nav ───────────────────────────────────────────────────────────────
+const NAV = [
+  { key: 'profile',       label: 'My Profile',    icon: User       },
+  { key: 'academic',      label: 'Academic',       icon: GraduationCap },
+  { key: 'notifications', label: 'Notifications',  icon: BellRing   },
+  { key: 'billing',       label: 'Billing',        icon: CreditCard },
+  { key: 'appearance',    label: 'Appearance',     icon: Palette    },
+];
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
+function Section({ icon: Icon, title, subtitle, children, gold = false }) {
+  return (
+    <div className={cn(
+      'rounded-2xl border p-6 space-y-5',
+      gold
+        ? 'bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-card border-[hsl(43_74%_52%_/_0.25)]'
+        : 'bg-card border-border'
+    )}>
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
+          gold ? 'bg-[hsl(43_74%_52%_/_0.15)]' : 'bg-muted'
+        )}>
+          <Icon className="w-4 h-4" style={gold ? { color: GOLD } : {}} />
+        </div>
+        <div>
+          <h2 className="font-semibold text-sm">{title}</h2>
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SaveBtn({ onClick, loading, label = 'Save Changes' }) {
+  return (
+    <div className="flex justify-end pt-2">
+      <Button onClick={onClick} disabled={loading} className="gap-2 px-6 font-semibold"
+        style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+function Field({ label, hint, children }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</Label>
+      {hint && <p className="text-[11px] text-muted-foreground -mt-1">{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PANELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Profile Panel ─────────────────────────────────────────────────────────────
+function ProfilePanel({ user, profile, qc }) {
+  const avatarRef = useRef();
+  const [uploading, setUploading]   = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [preview, setPreview]       = useState(user?.avatar_url || '');
+  const [confirmedUrl, setConfirmedUrl] = useState(user?.avatar_url || '');
+  const [fullName, setFullName]     = useState(user?.full_name || '');
+  const [phone, setPhone]           = useState('');
+  const [schoolName, setSchoolName] = useState('');
+
+  useEffect(() => {
+    setPreview(user?.avatar_url || '');
+    setConfirmedUrl(user?.avatar_url || '');
+    setFullName(user?.full_name || '');
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (profile) {
+      setPhone(profile.phone_number || '');
+      setSchoolName(profile.school_name || '');
+    }
+  }, [profile?.id]);
+
+  const handleAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setConfirmedUrl(url);
+      setPreview(url);
+      await base44.auth.updateMe({ avatar_url: url });
+      if (profile?.id) {
+        await base44.entities.StudentProfile.update(profile.id, { avatar_url: url });
+      } else if (user?.id) {
+        await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: url });
+      }
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
+      toast.success('Profile photo updated!');
+    } catch (err) {
+      toast.error(`Upload failed: ${err?.message || 'Unknown error'}`);
+      setPreview(user?.avatar_url || '');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await base44.auth.updateMe({ full_name: fullName.trim(), ...(confirmedUrl ? { avatar_url: confirmedUrl } : {}) });
+      if (profile?.id) {
+        await base44.entities.StudentProfile.update(profile.id, {
+          full_name: fullName.trim(),
+          phone_number: phone,
+          school_name: schoolName,
+        });
+      } else if (user?.id) {
+        await base44.entities.StudentProfile.create({
+          user_id: user.id,
+          full_name: fullName.trim(),
+          phone_number: phone,
+          school_name: schoolName,
+        });
+      }
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
+      toast.success('Profile saved!');
+    } catch (err) {
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const initials = (fullName || user?.email || 'S').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  return (
+    <div className="space-y-5">
+      {/* Hero avatar card */}
+      <div className="rounded-2xl border p-6 bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-card border-[hsl(43_74%_52%_/_0.25)] flex flex-col sm:flex-row items-center gap-6">
+        <div className="relative flex-shrink-0">
+          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[hsl(43_74%_52%_/_0.4)] shadow-lg">
+            {preview
+              ? <img src={preview} alt="avatar" className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center text-2xl font-bold"
+                  style={{ background: GOLD_BG, color: GOLD }}>{initials}</div>
+            }
+          </div>
+          <button onClick={() => avatarRef.current?.click()} disabled={uploading}
+            className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl flex items-center justify-center shadow-lg border border-border transition-all hover:scale-105"
+            style={{ background: GOLD, color: 'hsl(222 47% 8%)' }}>
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+          </button>
+          <input ref={avatarRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatar} />
+        </div>
+        <div className="text-center sm:text-left">
+          <div className="flex items-center gap-2 justify-center sm:justify-start">
+            <h2 className="text-xl font-bold">{fullName || 'Student'}</h2>
+            <Badge className="text-[10px] px-2 py-0.5 font-semibold"
+              style={{ background: GOLD_BG, color: GOLD, border: `1px solid ${GOLD_BORDER}` }}>
+              <Star className="w-2.5 h-2.5 mr-1 inline" />Student
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
+          <p className="text-xs text-muted-foreground mt-1">Tap the camera icon to update your photo</p>
+        </div>
+      </div>
+
+      {/* Personal details */}
+      <Section icon={User} title="Personal Information" subtitle="Your name and contact details">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="col-span-full">
+            <Field label="Full Name">
+              <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
+            </Field>
+          </div>
+          <Field label="Email Address" hint="Cannot be changed here">
+            <Input value={user?.email || ''} disabled className="opacity-60 cursor-not-allowed" />
+          </Field>
+          <Field label="Phone Number">
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input value={phone} onChange={e => setPhone(e.target.value)}
+                placeholder="+265 XXX XXX XXX" className="pl-9" />
+            </div>
+          </Field>
+          <div className="col-span-full">
+            <Field label="School Name">
+              <div className="relative">
+                <School className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input value={schoolName} onChange={e => setSchoolName(e.target.value)}
+                  placeholder="Your school" className="pl-9" />
+              </div>
+            </Field>
+          </div>
+        </div>
+        <SaveBtn onClick={handleSave} loading={saving} />
+      </Section>
+    </div>
+  );
+}
+
+// ── Academic Panel ────────────────────────────────────────────────────────────
+function AcademicPanel({ user, profile, qc }) {
+  const [saving, setSaving]           = useState(false);
+  const [selectedForm, setSelectedForm] = useState('');
+
+  useEffect(() => {
+    if (profile) setSelectedForm(profile.form || '');
+  }, [profile?.id]);
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', user?.id],
+    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }),
+    enabled: !!user?.id,
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (profile?.id) {
+        await base44.entities.StudentProfile.update(profile.id, { form: selectedForm });
+      } else if (user?.id) {
+        await base44.entities.StudentProfile.create({ user_id: user.id, form: selectedForm });
+      }
+      qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
+      toast.success('Academic info saved!');
+    } catch (err) {
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const FORMS = ['Form 3', 'Form 4'];
+
+  return (
+    <div className="space-y-5">
+      <Section icon={GraduationCap} title="Class & Form" subtitle="Your current academic level" gold>
+        <div className="space-y-3">
+          <Field label="Select Your Form">
+            <div className="flex gap-3 mt-1">
+              {FORMS.map(f => (
+                <button key={f} onClick={() => setSelectedForm(f)}
+                  className={cn(
+                    'flex-1 py-3 rounded-xl border text-sm font-semibold transition-all',
+                    selectedForm === f
+                      ? 'border-[hsl(43_74%_52%_/_0.6)] text-foreground'
+                      : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted'
+                  )}
+                  style={selectedForm === f ? { background: GOLD_BG, color: GOLD } : {}}>
+                  {f}
+                </button>
+              ))}
+            </div>
+          </Field>
+        </div>
+        <SaveBtn onClick={handleSave} loading={saving} />
+      </Section>
+
+      <Section icon={BookOpen} title="Enrolled Subjects" subtitle="Subjects you are currently studying">
+        {enrollments.length === 0 ? (
+          <div className="text-center py-6 space-y-3">
+            <p className="text-sm text-muted-foreground">You haven't enrolled in any subjects yet.</p>
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/enroll-subjects'}
+              className="gap-2">
+              <BookOpen className="w-4 h-4" /> Browse Subjects
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {enrollments.map(e => (
+              <div key={e.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ background: GOLD_BG }}>
+                    <BookOpen className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                  </div>
+                  <span className="text-sm font-medium">{e.subject_name || e.subject_id}</span>
+                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  <Check className="w-2.5 h-2.5 mr-1" />Enrolled
+                </Badge>
+              </div>
+            ))}
+            <div className="pt-1">
+              <Button variant="ghost" size="sm" onClick={() => window.location.href = '/enroll-subjects'}
+                className="text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+                <ExternalLink className="w-3 h-3" /> Manage Subjects
+              </Button>
+            </div>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+// ── Notifications Panel ───────────────────────────────────────────────────────
+function NotificationsPanel() {
+  const [lessons, setLessons]         = useState(true);
+  const [assignments, setAssignments] = useState(true);
+  const [quizzes, setQuizzes]         = useState(true);
+  const [announcements, setAnnouncements] = useState(true);
+
+  const rows = [
+    { label: 'New Lessons',     hint: 'When a new lesson is published in your subjects', val: lessons,       set: setLessons },
+    { label: 'Assignments',     hint: 'When an assignment is due or graded',              val: assignments,   set: setAssignments },
+    { label: 'Quizzes',         hint: 'Quiz results and upcoming quiz reminders',         val: quizzes,       set: setQuizzes },
+    { label: 'Announcements',   hint: 'Platform-wide news and updates',                   val: announcements, set: setAnnouncements },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <Section icon={BellRing} title="Notification Preferences" subtitle="Choose what you want to be notified about" gold>
+        <div className="space-y-3">
+          {rows.map(({ label, hint, val, set }) => (
+            <div key={label} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+              <div>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
+              </div>
+              <Switch checked={val} onCheckedChange={set} />
+            </div>
+          ))}
+        </div>
+        <SaveBtn onClick={() => toast.success('Notification preferences saved!')} loading={false} />
+      </Section>
+    </div>
+  );
+}
+
+// ── Billing Panel ─────────────────────────────────────────────────────────────
+function BillingPanel({ user }) {
+  const { data: subscription } = useQuery({
+    queryKey: ['mySubscription', user?.id],
+    queryFn: async () => {
+      const r = await base44.entities.Subscription.filter({ student_id: user.id });
+      return r[0] || null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: payments = [] } = useQuery({
+    queryKey: ['myPayments', user?.id],
+    queryFn: () => base44.entities.Payment.filter({ student_id: user.id }),
+    enabled: !!user?.id,
+  });
+
+  const isActive = !!subscription;
+
+  return (
+    <div className="space-y-5">
+      {/* Status card */}
+      <div className={cn(
+        'rounded-2xl border p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4',
+        isActive
+          ? 'bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-card border-[hsl(43_74%_52%_/_0.25)]'
+          : 'bg-card border-border'
+      )}>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+          style={{ background: isActive ? GOLD_BG : 'hsl(var(--muted))' }}>
+          <CreditCard className="w-5 h-5" style={{ color: isActive ? GOLD : undefined }} />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">{isActive ? 'Active Subscription' : 'No Active Plan'}</h3>
+            <Badge className="text-[10px] px-2 py-0.5"
+              style={isActive
+                ? { background: 'hsl(142 76% 36% / 0.15)', color: 'hsl(142 76% 46%)', border: '1px solid hsl(142 76% 36% / 0.3)' }
+                : { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+              {isActive ? '● Active' : '○ Inactive'}
+            </Badge>
+          </div>
+          {isActive ? (
+            <p className="text-xs text-muted-foreground mt-1">
+              Plan: <span className="font-medium capitalize">{subscription?.plan || 'Monthly'}</span>
+              {subscription?.expires_at && ` · Renews ${new Date(subscription.expires_at).toLocaleDateString()}`}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">Subscribe to unlock all lessons and resources.</p>
+          )}
+        </div>
+        {!isActive && (
+          <Button size="sm" className="font-semibold"
+            style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}
+            onClick={() => window.location.href = '/subscription'}>
+            Subscribe Now
+          </Button>
+        )}
+      </div>
+
+      {/* Payment history */}
+      <Section icon={CreditCard} title="Payment History" subtitle="Your recent transactions">
+        {payments.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">No payments found.</p>
+        ) : (
+          <div className="space-y-2">
+            {payments.slice(0, 5).map(p => (
+              <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
+                <div>
+                  <p className="text-sm font-medium capitalize">{p.plan || 'Subscription'} Plan</p>
+                  <p className="text-xs text-muted-foreground">{new Date(p.created_date).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">MWK {Number(p.amount || 0).toLocaleString()}</p>
+                  <Badge className="text-[10px]"
+                    style={{ background: 'hsl(142 76% 36% / 0.15)', color: 'hsl(142 76% 46%)', border: '1px solid hsl(142 76% 36% / 0.3)' }}>
+                    Paid
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+// ── Appearance Panel ──────────────────────────────────────────────────────────
+function AppearancePanel() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  const setT = (t) => {
+    setTheme(t);
+    localStorage.setItem('theme', t);
+    document.documentElement.classList.toggle('dark', t === 'dark');
+    toast.success(`${t === 'dark' ? 'Dark' : 'Light'} mode enabled`);
+  };
+
+  return (
+    <div className="space-y-5">
+      <Section icon={Palette} title="Theme" subtitle="Choose your preferred display mode" gold>
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { key: 'light', label: 'Light Mode', icon: Sun,  desc: 'Clean white background' },
+            { key: 'dark',  label: 'Dark Mode',  icon: Moon, desc: 'Easy on the eyes at night' },
+          ].map(({ key, label, icon: Icon, desc }) => (
+            <button key={key} onClick={() => setT(key)}
+              className={cn(
+                'flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all',
+                theme === key
+                  ? 'border-[hsl(43_74%_52%_/_0.6)]'
+                  : 'border-border bg-muted/30 hover:bg-muted/60'
+              )}
+              style={theme === key ? { background: GOLD_BG } : {}}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={theme === key ? { background: GOLD_BG } : { background: 'hsl(var(--muted))' }}>
+                <Icon className="w-5 h-5" style={theme === key ? { color: GOLD } : {}} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold">{label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{desc}</p>
+              </div>
+              {theme === key && (
+                <div className="w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: GOLD }}>
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
 export default function StudentSettings() {
   const { user } = useOutletContext() ?? {};
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const qc = useQueryClient();
+
   const defaultTab = searchParams.get('tab') || 'profile';
-  const queryClient = useQueryClient();
-  const avatarInputRef = useRef();
+  const [active, setActive] = useState(defaultTab);
+
+  useEffect(() => {
+    setActive(searchParams.get('tab') || 'profile');
+  }, [searchParams]);
+
+  const setTab = (key) => {
+    setActive(key);
+    setSearchParams({ tab: key }, { replace: true });
+  };
 
   const { data: profile } = useQuery({
     queryKey: ['studentProfile', user?.id],
@@ -29,345 +524,45 @@ export default function StudentSettings() {
     enabled: !!user?.id,
   });
 
-  const { data: subscription } = useQuery({
-    queryKey: ['mySubscription', user?.id],
-    queryFn: async () => {
-      const r = await base44.entities.Subscription.filter({ student_id: user.id }, '-created_date', 1);
-      return r[0] || null;
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: payments = [] } = useQuery({
-    queryKey: ['myPayments', user?.id],
-    queryFn: () => base44.entities.Payment.filter({ student_id: user.id }, '-created_date', 10),
-    enabled: !!user?.id,
-  });
-
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [schoolName, setSchoolName] = useState('');
-  const [selectedForm, setSelectedForm] = useState('');
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState('');
-
-  const [notifAssignments, setNotifAssignments] = useState(true);
-  const [notifLessons, setNotifLessons] = useState(true);
-  const [notifQuizzes, setNotifQuizzes] = useState(true);
-  const [notifAnnouncements, setNotifAnnouncements] = useState(true);
-
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
-
-  useEffect(() => {
-    if (user) {
-      setFullName(user.full_name || '');
-      setAvatarUrl(user.avatar_url || '');
-      setAvatarPreview(user.avatar_url || '');
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (profile) {
-      setPhone(profile.phone_number || '');
-      setSchoolName(profile.school_name || '');
-      setSelectedForm(profile.form || '');
-    }
-  }, [profile]);
-
-  const handleTheme = (t) => {
-    setTheme(t);
-    localStorage.setItem('theme', t);
-    document.documentElement.classList.toggle('dark', t === 'dark');
+  const panels = {
+    profile:       <ProfilePanel       user={user} profile={profile} qc={qc} />,
+    academic:      <AcademicPanel      user={user} profile={profile} qc={qc} />,
+    notifications: <NotificationsPanel />,
+    billing:       <BillingPanel       user={user} />,
+    appearance:    <AppearancePanel />,
   };
-
-  /* ── Avatar upload ── */
-  const handleAvatarFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Local preview immediately
-    const localUrl = URL.createObjectURL(file);
-    setAvatarPreview(localUrl);
-
-    setAvatarUploading(true);
-    try {
-      const url = await uploadImage(file);
-      setAvatarUrl(url);
-      setAvatarPreview(url);
-      // Save to User record
-      await base44.auth.updateMe({ avatar_url: url });
-      // Also persist to StudentProfile so it survives session changes
-      try {
-        if (profile?.id) {
-          await base44.entities.StudentProfile.update(profile.id, { avatar_url: url });
-        } else if (user?.id) {
-          await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: url });
-        }
-      } catch (_) {}
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      queryClient.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
-      toast.success('Profile photo updated!');
-    } catch {
-      toast.error('Photo upload failed. Please try again.');
-      setAvatarPreview(user?.avatar_url || '');
-    } finally {
-      setAvatarUploading(false);
-    }
-  };
-
-  const removeAvatar = async () => {
-    setAvatarPreview('');
-    setAvatarUrl('');
-    await base44.auth.updateMe({ avatar_url: '' });
-    if (profile?.id) {
-      await base44.entities.StudentProfile.update(profile.id, { avatar_url: '' });
-    }
-    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-    toast.success('Profile photo removed');
-  };
-
-  const saveProfile = async () => {
-    setProfileSaving(true);
-    try {
-      await base44.auth.updateMe({ full_name: fullName.trim(), ...(avatarUrl ? { avatar_url: avatarUrl } : {}) });
-      if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, {
-          full_name: fullName.trim(),
-          phone_number: phone,
-          school_name: schoolName,
-          avatar_url: avatarUrl,
-          form: selectedForm || undefined,
-        });
-      } else if (user?.id) {
-        await base44.entities.StudentProfile.create({
-          user_id: user.id,
-          full_name: fullName.trim(),
-          phone_number: phone,
-          school_name: schoolName,
-          avatar_url: avatarUrl,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      queryClient.invalidateQueries({ queryKey: ['studentProfile'] });
-      toast.success('Profile saved!');
-    } catch (err) { toast.error(`Could not save: ${err?.message || 'Unknown error'}`); }
-    finally { setProfileSaving(false); }
-  };
-
-  const initial = (user?.full_name || user?.email || 'U')[0].toUpperCase();
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences</p>
-      </div>
-
-      <Tabs defaultValue={defaultTab}>
-        <TabsList className="bg-muted w-full justify-start flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="profile" className="gap-1.5"><User className="w-3.5 h-3.5" />Profile</TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-1.5"><Bell className="w-3.5 h-3.5" />Notifications</TabsTrigger>
-          <TabsTrigger value="billing" className="gap-1.5"><CreditCard className="w-3.5 h-3.5" />Billing</TabsTrigger>
-          <TabsTrigger value="appearance" className="gap-1.5"><Sun className="w-3.5 h-3.5" />Appearance</TabsTrigger>
-        </TabsList>
-
-        {/* ── PROFILE ── */}
-        <TabsContent value="profile" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Personal Information</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-
-              {/* Avatar section */}
-              <div className="flex items-center gap-4">
-                <div className="relative flex-shrink-0">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Profile"
-                      className="w-20 h-20 rounded-full object-cover border-2 border-border"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-border bg-accent text-accent-foreground">
-                      {initial}
-                    </div>
-                  )}
-                  {avatarUploading && (
-                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 text-white animate-spin" />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Profile Photo</p>
-                  <p className="text-xs text-muted-foreground">Shows in forums, discussions, and the top bar</p>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={avatarUploading}
-                    >
-                      <Camera className="w-3.5 h-3.5 mr-1.5" />
-                      {avatarPreview ? 'Change' : 'Upload'} Photo
-                    </Button>
-                    {avatarPreview && (
-                      <Button type="button" variant="ghost" size="sm" onClick={removeAvatar} className="text-destructive">
-                        <X className="w-3.5 h-3.5 mr-1" /> Remove
-                      </Button>
-                    )}
-                  </div>
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarFile}
-                  />
-                </div>
-              </div>
-
-              {/* Form fields */}
-              <div className="space-y-1.5">
-                <Label>Full Name</Label>
-                <Input value={fullName} onChange={e => setFullName(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Email Address</Label>
-                <Input value={user?.email || ''} disabled className="opacity-60" />
-                <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Phone Number</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+265 XXX XXX XXX" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>School Name</Label>
-                <Input value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="Your school" />
-              </div>
-
-              {/* Class / Form selection */}
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">
-                  <GraduationCap className="w-3.5 h-3.5 text-accent" />
-                  Your Class
-                </Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {['Form 1', 'Form 2', 'Form 3', 'Form 4'].map(f => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setSelectedForm(f)}
-                      className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all ${
-                        selectedForm === f
-                          ? 'border-accent bg-accent text-accent-foreground'
-                          : 'border-border bg-background text-foreground hover:border-accent/50 hover:bg-muted'
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-                {selectedForm && (
-                  <p className="text-xs text-muted-foreground">Selected: <span className="font-semibold text-foreground">{selectedForm}</span></p>
+    <div className="flex flex-col lg:flex-row gap-6 max-w-5xl">
+      {/* Sidebar */}
+      <aside className="lg:w-56 flex-shrink-0">
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
+          </div>
+          <nav className="p-2 space-y-0.5">
+            {NAV.map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => setTab(key)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left',
+                  active === key
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                 )}
-              </div>
+                style={active === key ? { background: GOLD_BG, color: GOLD } : {}}>
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span>{label}</span>
+                {active === key && <ChevronRight className="w-3.5 h-3.5 ml-auto" style={{ color: GOLD }} />}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </aside>
 
-              <Button onClick={saveProfile} disabled={profileSaving}>
-                {profileSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : 'Save Changes'}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── NOTIFICATIONS ── */}
-        <TabsContent value="notifications" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Notification Preferences</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { label: 'New Assignments', desc: 'When a new assignment is posted', value: notifAssignments, onChange: setNotifAssignments },
-                { label: 'New Lessons', desc: 'When new lesson content is added', value: notifLessons, onChange: setNotifLessons },
-                { label: 'Quiz Results', desc: 'When your quiz is graded', value: notifQuizzes, onChange: setNotifQuizzes },
-                { label: 'Announcements', desc: 'From your teachers', value: notifAnnouncements, onChange: setNotifAnnouncements },
-              ].map(n => (
-                <div key={n.label} className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium">{n.label}</p>
-                    <p className="text-xs text-muted-foreground">{n.desc}</p>
-                  </div>
-                  <Switch checked={n.value} onCheckedChange={n.onChange} />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── BILLING ── */}
-        <TabsContent value="billing" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Current Plan</CardTitle></CardHeader>
-            <CardContent>
-              {subscription ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Badge className="capitalize">{subscription.plan}</Badge>
-                    <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'} className="capitalize">{subscription.status}</Badge>
-                  </div>
-                  {subscription.end_date && (
-                    <p className="text-sm text-muted-foreground">Expires: {new Date(subscription.end_date).toLocaleDateString()}</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No active subscription.</p>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Payment History</CardTitle></CardHeader>
-            <CardContent>
-              {payments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No payment records found.</p>
-              ) : (
-                <div className="space-y-2">
-                  {payments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                      <div>
-                        <p className="text-sm font-medium">{p.description || 'Payment'}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(p.created_date).toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">MWK {p.amount?.toLocaleString()}</p>
-                        <Badge variant={p.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">{p.status}</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── APPEARANCE ── */}
-        <TabsContent value="appearance" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Appearance</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {[{ value:'light', label:'Light Mode', icon:Sun }, { value:'dark', label:'Dark Mode', icon:Moon }].map(t => (
-                  <button key={t.value} onClick={() => handleTheme(t.value)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === t.value ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
-                    <t.icon className={`w-6 h-6 ${theme === t.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className={`text-sm font-medium ${theme === t.value ? 'text-primary' : 'text-muted-foreground'}`}>{t.label}</span>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Main panel */}
+      <main className="flex-1 min-w-0">
+        {panels[active] || panels.profile}
+      </main>
     </div>
   );
 }
