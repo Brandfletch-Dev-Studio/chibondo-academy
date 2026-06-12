@@ -72,7 +72,7 @@ export default function SetupChecklist({ user }) {
   const hasPhoto  = !!(photoPreview || user?.avatar_url);
   const hasClass  = !!(studentProfile?.form);
   const hasEnroll = enrollments.length > 0;
-  const hasFees   = !!(subscription || user?.subscription_plan !== 'free');
+  const hasFees   = !!(subscription); // only trust active Subscription record
 
   const items = [
     { id: 'name',   done: hasName,   label: 'Add your full name',            icon: User,          action: () => setEditingName(true) },
