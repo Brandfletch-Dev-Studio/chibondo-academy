@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,21 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Remove any platform-injected social login buttons on mount
+  useEffect(() => {
+    const selectors = [
+      '[data-provider="google"]',
+      'button[aria-label*="Google"]',
+      '.social-login',
+      '.oauth-buttons',
+      '[class*="google-login"]',
+      '[class*="social-auth"]',
+    ];
+    selectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => el.remove());
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
