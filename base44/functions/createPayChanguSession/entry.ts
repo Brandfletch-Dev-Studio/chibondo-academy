@@ -32,8 +32,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'PayChangu credentials not configured' }, { status: 500 });
     }
 
+    const appId = '6a2115bb078a7219b5cbd8b0';
     const txRef = `TCA-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     const origin = req.headers.get('origin') || 'https://app.chibondo.ac.mw';
+
+    // Correct Base44 webhook URL format
+    const webhookUrl = `https://api.base44.com/api/apps/${appId}/functions/payChanguWebhook`;
 
     // PayChangu Standard Checkout (hosted redirect mode)
     const paychanguResponse = await fetch('https://api.paychangu.com/payment', {
@@ -49,8 +53,8 @@ Deno.serve(async (req) => {
         email: user.email,
         first_name: user.full_name?.split(' ')[0] || 'Student',
         last_name: user.full_name?.split(' ').slice(1).join(' ') || 'Student',
-        callback_url: `${origin}/api/functions/payChanguWebhook`,
-        return_url: `${origin}/subscription?paid=1`,
+        callback_url: webhookUrl,
+        return_url: `${origin}/subscription?paid=1&tx_ref=${txRef}`,
         tx_ref: txRef,
         customization: {
           title: 'Chibondo Academy School Fees',
@@ -85,20 +89,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No checkout URL returned by payment gateway', details: data }, { status: 500 });
     }
 
-    // Create Payment record
+    // Create Payment record with tx_ref as reference
     await base44.asServiceRole.entities.Payment.create({
       student_id: user.id,
       student_name: user.full_name || '',
       amount,
       currency: 'MWK',
-      method: 'airtel_money', // will be chosen on PayChangu's page
+      method: 'airtel_money',
       reference: txRef,
       status: 'pending',
       description: `${plan} plan`,
     });
 
     // Create pending subscription record
-    await base44.asServiceRole.entities.Subscription.create({
+    const sub = await base44.asServiceRole.entities.Subscription.create({
       student_id: user.id,
       plan,
       status: 'trial',
@@ -111,6 +115,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       tx_ref: txRef,
+      subscription_id: sub.id,
       checkout_url: checkoutUrl,
     });
   } catch (error) {
