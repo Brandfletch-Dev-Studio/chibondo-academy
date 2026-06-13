@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import SEO from '@/components/SEO';
 export default function SubscriptionPage() {
   const { user } = useOutletContext() ?? {};
   const currentPlan = user?.subscription_plan || 'free';
+  const navigate = useNavigate();
 
   const [pricing, setPricing] = useState({
     monthly_price: 10000,
@@ -20,6 +21,7 @@ export default function SubscriptionPage() {
   });
 
   const [processing, setProcessing] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const { data: pricingData, isLoading } = useQuery({
     queryKey: ['pricing'],
@@ -30,7 +32,7 @@ export default function SubscriptionPage() {
   });
 
   // Check active subscription
-  const { data: subscription } = useQuery({
+  const { data: subscription, refetch: refetchSubscription } = useQuery({
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -41,6 +43,36 @@ export default function SubscriptionPage() {
   });
 
   const hasPaidFees = subscription && subscription.status === 'active';
+
+  // ── Handle Paychangu return redirect ──
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paid = params.get('paid');
+    const txRef = params.get('tx_ref');
+
+    if (paid === '1' && txRef && !hasPaidFees) {
+      setVerifying(true);
+      // Clean up URL immediately
+      window.history.replaceState({}, '', '/subscription');
+
+      base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
+        .then((res) => {
+          setVerifying(false);
+          if (res.data?.success) {
+            toast.success('🎉 Payment confirmed! You now have full access.');
+            refetchSubscription();
+          } else {
+            // Payment not yet confirmed — could be processing
+            toast.info('Payment is being processed. Please wait a moment and refresh.');
+          }
+        })
+        .catch((err) => {
+          setVerifying(false);
+          console.error('Payment verification error:', err);
+          toast.error('Could not verify payment. Please contact support if fees were deducted.');
+        });
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (pricingData) {
@@ -123,6 +155,18 @@ export default function SubscriptionPage() {
         canonical={`${window.location.origin}/subscription`}
       />
       <div className="space-y-8 max-w-4xl mx-auto">
+
+      {/* ── Verifying payment banner ── */}
+      {verifying && (
+        <div className="bg-primary/10 border border-primary/30 rounded-2xl p-6 flex items-center gap-4">
+          <Loader2 className="w-8 h-8 text-primary animate-spin flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-primary">Verifying your payment…</p>
+            <p className="text-sm text-muted-foreground">Please wait while we confirm your fees with Paychangu.</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Branded Hero ── */}
       <div className="rounded-2xl overflow-hidden relative" style={{ background:'hsl(222 47% 14%)' }}>
         <div className="absolute inset-0 pointer-events-none"
@@ -220,7 +264,7 @@ export default function SubscriptionPage() {
                 <Button
                   className="w-full"
                   variant={isCurrent ? "secondary" : "default"}
-                  disabled={isCurrent || isLoading || processing}
+                  disabled={isCurrent || isLoading || processing || verifying}
                   onClick={() => handlePlanSelect(plan.id)}
                 >
                   {processing ? (
