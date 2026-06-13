@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { uploadImage } from '@/utils/uploadImage';
 import {
-  User, Camera, GraduationCap, BookOpen, CreditCard,
-  CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles
+  User, Camera, GraduationCap, BookOpen, CreditCard, Mail,
+  CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,6 +46,7 @@ export default function SetupChecklist({ user }) {
   const [editingName,  setEditingName]  = useState(false);
   const [nameVal,      setNameVal]      = useState(user?.full_name || '');
   const [savingName,   setSavingName]   = useState(false);
+  const [sendingVerify, setSendingVerify] = useState(false);
   const fileRef = useRef();
 
   const { data: studentProfile } = useQuery({
@@ -69,18 +70,34 @@ export default function SetupChecklist({ user }) {
     staleTime: 0,
   });
 
-  const hasName   = !!(user?.full_name?.trim() && user.full_name.trim() !== user.email);
-  const hasPhoto  = !!(photoPreview || user?.avatar_url);
-  const hasClass  = !!(studentProfile?.form);
-  const hasEnroll = enrollments.length > 0;
-  const hasFees   = !!(subscription); // only trust active Subscription record
+  const hasName     = !!(user?.full_name?.trim() && user.full_name.trim() !== user.email);
+  const hasPhoto    = !!(photoPreview || user?.avatar_url);
+  const hasClass    = !!(studentProfile?.form);
+  const hasEnroll   = enrollments.length > 0;
+  const hasFees     = !!(subscription);
+  const isVerified  = !!(user?.email_verified);
+
+  const handleSendVerification = async (e) => {
+    e?.stopPropagation();
+    if (isVerified) return;
+    setSendingVerify(true);
+    try {
+      await base44.auth.resendVerificationEmail?.() ?? await base44.auth.resendOtp?.(user.email);
+      toast.success('Verification email sent! Check your inbox.');
+    } catch (err) {
+      toast.error('Could not send verification email. Try again.');
+    } finally {
+      setSendingVerify(false);
+    }
+  };
 
   const items = [
-    { id: 'name',   done: hasName,   label: 'Add your full name',            icon: User,          action: () => setEditingName(true) },
-    { id: 'photo',  done: hasPhoto,  label: 'Upload a profile picture',      icon: Camera,        action: () => navigate('/settings?tab=profile') },
-    { id: 'class',  done: hasClass,  label: 'Select your class',             icon: GraduationCap, action: () => navigate('/settings?tab=profile') },
-    { id: 'enroll', done: hasEnroll, label: 'Choose subjects to enroll in',  icon: BookOpen,      action: () => navigate('/enroll-subjects') },
-    { id: 'fees',   done: hasFees,   label: 'Pay fees to start learning',    icon: CreditCard,    action: () => navigate('/subscription') },
+    { id: 'name',   done: hasName,    label: 'Add your full name',              icon: User,          action: () => setEditingName(true) },
+    { id: 'photo',  done: hasPhoto,   label: 'Upload a profile picture',        icon: Camera,        action: () => navigate('/settings?tab=profile') },
+    { id: 'verify', done: isVerified, label: 'Verify your email address',       icon: Mail,          action: handleSendVerification },
+    { id: 'class',  done: hasClass,   label: 'Select your class',               icon: GraduationCap, action: () => navigate('/settings?tab=profile') },
+    { id: 'enroll', done: hasEnroll,  label: 'Choose subjects to enroll in',    icon: BookOpen,      action: () => navigate('/enroll-subjects') },
+    { id: 'fees',   done: hasFees,    label: 'Pay fees to start learning',      icon: CreditCard,    action: () => navigate('/subscription') },
   ];
 
   const doneCount = items.filter(i => i.done).length;
@@ -187,17 +204,17 @@ export default function SetupChecklist({ user }) {
               setEditingName={setEditingName}
               uploading={uploading}
               photoPreview={photoPreview}
+              sendingVerify={sendingVerify}
+              userEmail={user?.email}
             />
           ))}
         </div>
       )}
-
-
     </div>
   );
 }
 
-function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savingName, setEditingName, uploading, photoPreview }) {
+function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savingName, setEditingName, uploading, photoPreview, sendingVerify, userEmail }) {
   const Icon = item.icon;
   return (
     <div
@@ -248,6 +265,11 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
           </div>
         ) : item.id === 'photo' && uploading ? (
           <p className="text-sm text-muted-foreground">Uploading…</p>
+        ) : item.id === 'verify' && !item.done ? (
+          <div>
+            <p className="text-sm font-medium text-foreground">Verify your email address</p>
+            <p className="text-[11px] text-muted-foreground truncate">{userEmail}</p>
+          </div>
         ) : (
           <p className={`text-sm font-medium ${item.done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
             {item.label}
@@ -255,10 +277,18 @@ function ChecklistItem({ item, editingName, nameVal, setNameVal, saveName, savin
         )}
       </div>
 
-      {/* Arrow for incomplete items */}
-      {!item.done && item.id !== 'name' && (
+      {/* Send verification button or arrow */}
+      {!item.done && item.id === 'verify' ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); item.action(e); }}
+          disabled={sendingVerify}
+          className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-accent text-accent-foreground flex items-center gap-1 flex-shrink-0"
+        >
+          {sendingVerify ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Send'}
+        </button>
+      ) : !item.done && item.id !== 'name' ? (
         <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
-      )}
+      ) : null}
     </div>
   );
 }
