@@ -10,7 +10,6 @@
  */
 import { useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 
 export function useAuthGate() {
@@ -26,13 +25,13 @@ export function useAuthGate() {
       if (callback) callback();
       return;
     }
-    // Not logged in — save return destination + run intent
+    // Not logged in — save return destination + navigate to our own /login page
     const returnTo = options.returnTo || location.pathname + location.search;
     sessionStorage.setItem('auth_return_to', returnTo);
     if (options.intent) sessionStorage.setItem('auth_intent', options.intent);
-    // Redirect to login
-    base44.auth.redirectToLogin(window.location.origin + returnTo);
-  }, [isAuthenticated, location]);
+    // Use our own /login page — never redirect through Base44 hosted login (has Google OAuth)
+    navigate('/login', { state: { returnTo } });
+  }, [isAuthenticated, location, navigate]);
 
   return { isAuthenticated, requireAuth };
 }
