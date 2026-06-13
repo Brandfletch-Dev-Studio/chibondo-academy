@@ -8,30 +8,44 @@ Deno.serve(async (req) => {
     console.log('PayChangu webhook received:', JSON.stringify(payload));
 
     // PayChangu sends status=success and event=charge.completed on successful payment
+    // The tx_ref we generated is in payload.data.tx_ref (NOT charge_id)
     if (payload.status === 'success' && payload.event === 'charge.completed') {
-      const { charge_id, amount, customer } = payload.data || {};
+      const { tx_ref, amount } = payload.data || {};
 
-      if (!charge_id) {
-        console.error('Webhook missing charge_id');
-        return Response.json({ error: 'Missing charge_id' }, { status: 400 });
+      // Fallback: some PayChangu versions use charge_id instead
+      const ref = tx_ref || payload.data?.charge_id || payload.tx_ref;
+
+      if (!ref) {
+        console.error('Webhook missing tx_ref/charge_id. Payload:', JSON.stringify(payload));
+        return Response.json({ error: 'Missing payment reference' }, { status: 400 });
       }
 
-      // Find the pending payment by charge_id (stored as reference)
-      const payments = await base44.asServiceRole.entities.Payment.filter({
-        reference: charge_id,
+      console.log(`Processing webhook for ref: ${ref}`);
+
+      // Find the pending payment by tx_ref (stored as reference)
+      let payments = await base44.asServiceRole.entities.Payment.filter({
+        reference: ref,
         status: 'pending',
       });
 
+      // Already completed? Idempotent — just return success
       if (payments.length === 0) {
-        console.error(`No pending payment found for charge_id: ${charge_id}`);
+        const completed = await base44.asServiceRole.entities.Payment.filter({
+          reference: ref,
+          status: 'completed',
+        });
+        if (completed.length > 0) {
+          console.log(`Payment ${ref} already completed — idempotent OK`);
+          return Response.json({ received: true, already_processed: true });
+        }
+        console.error(`No payment found for ref: ${ref}`);
         return Response.json({ error: 'Payment record not found' }, { status: 404 });
       }
 
       const payment = payments[0];
-      const subscriptionId = payment.subscription_id;
       const studentId = payment.student_id;
 
-      // Find the pending subscription
+      // Find the pending subscription for this student
       const subscriptions = await base44.asServiceRole.entities.Subscription.filter({
         student_id: studentId,
         status: 'trial',
@@ -42,8 +56,7 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Subscription not found' }, { status: 404 });
       }
 
-      // Use the one matching subscription_id if multiple exist
-      const sub = subscriptions.find(s => s.id === subscriptionId) || subscriptions[0];
+      const sub = subscriptions[0];
 
       // Calculate end date based on plan
       const startDate = new Date();
@@ -85,27 +98,32 @@ Deno.serve(async (req) => {
         is_read: false,
       });
 
-      // Send payment confirmed email using template
-      const emailTemplateSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
-      const templates = emailTemplateSettings[0]?.value || {};
+      // Send payment confirmed email
+      try {
+        const emailTemplateSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
+        const templates = emailTemplateSettings[0]?.value || {};
 
-      const emailSubject = templates.payment_confirmed_subject || 'Payment Confirmed – Welcome to Chibondo Academy!';
-      const emailBodyTemplate = templates.payment_confirmed_body ||
-        `Dear Student,\n\nYour payment has been received and your subscription is now active until {end_date}.\n\nYou now have full access to all lessons and course materials.\n\nVisit {dashboard_link} to start learning.\n\nRegards,\nThe Chibondo Academy Team`;
+        const emailSubject = templates.payment_confirmed_subject || 'Payment Confirmed – Welcome to Chibondo Academy!';
+        const emailBodyTemplate = templates.payment_confirmed_body ||
+          `Dear Student,\n\nYour payment has been received and your subscription is now active until {end_date}.\n\nYou now have full access to all lessons and course materials.\n\nVisit {dashboard_link} to start learning.\n\nRegards,\nThe Chibondo Academy Team`;
 
-      const emailBody = emailBodyTemplate
-        .replace('{end_date}', endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))
-        .replace('{dashboard_link}', 'https://app.chibondo.mw/dashboard');
+        const emailBody = emailBodyTemplate
+          .replace('{end_date}', endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))
+          .replace('{dashboard_link}', 'https://app.chibondo.ac.mw/dashboard');
 
-      const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
-      if (users[0]?.email) {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: users[0].email,
-          subject: emailSubject,
-          body: emailBody,
-        });
-        console.log(`✅ Payment confirmed email sent to ${users[0].email}`);
+        const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
+        if (users[0]?.email) {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: users[0].email,
+            subject: emailSubject,
+            body: emailBody,
+          });
+          console.log(`✅ Payment confirmed email sent to ${users[0].email}`);
+        }
+      } catch (emailErr) {
+        console.error('Email send failed (non-fatal):', emailErr);
       }
+
     } else {
       console.log(`Webhook event ignored: status=${payload.status}, event=${payload.event}`);
     }
