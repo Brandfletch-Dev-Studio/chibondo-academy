@@ -489,7 +489,7 @@ function PricingPanel() {
 // ── Payments Panel ────────────────────────────────────────────────────────────
 function PaymentsPanel() {
   const [copied, setCopied] = useState(false);
-  const webhookUrl = `${window.location.origin}/api/functions/payChanguWebhook`;
+  const webhookUrl = `https://api.base44.com/api/apps/6a2115bb078a7219b5cbd8b0/functions/payChanguWebhook`;
 
   const copy = () => {
     navigator.clipboard.writeText(webhookUrl);
@@ -801,9 +801,16 @@ function DataPanel() {
   const deleteMutation = useMutation({
     mutationFn: async (entityKey) => {
       const entity = base44.entities[entityKey];
-      const records = await entity.filter({}, 'created_date', 500);
-      await Promise.all(records.map(r => entity.delete(r.id)));
-      return records.length;
+      let total = 0;
+      // Paginate to handle entities with >500 records
+      while (true) {
+        const records = await entity.filter({}, 'created_date', 500);
+        if (records.length === 0) break;
+        await Promise.all(records.map(r => entity.delete(r.id)));
+        total += records.length;
+        if (records.length < 500) break;
+      }
+      return total;
     },
     onSuccess: (count, entityKey) => {
       toast.success(`Deleted ${count} records from ${entityKey}`);
