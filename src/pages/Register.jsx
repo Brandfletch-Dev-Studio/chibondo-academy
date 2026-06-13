@@ -19,19 +19,38 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Remove any platform-injected social login buttons on mount
+  // Continuously remove any platform-injected social/Google login buttons.
+  // Uses MutationObserver so it catches buttons injected after initial render.
   useEffect(() => {
-    const selectors = [
+    const SOCIAL_SELECTORS = [
       '[data-provider="google"]',
+      '[data-provider="facebook"]',
       'button[aria-label*="Google"]',
+      'button[aria-label*="google"]',
       '.social-login',
       '.oauth-buttons',
       '[class*="google-login"]',
       '[class*="social-auth"]',
+      '[class*="GoogleLogin"]',
+      '.base44-social-login',
+      '[data-testid*="social"]',
+      '[data-testid*="google"]',
     ];
-    selectors.forEach(sel => {
-      document.querySelectorAll(sel).forEach(el => el.remove());
-    });
+
+    function removeSocialButtons() {
+      SOCIAL_SELECTORS.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => el.remove());
+      });
+    }
+
+    // Remove on mount
+    removeSocialButtons();
+
+    // Watch for dynamically injected buttons
+    const observer = new MutationObserver(removeSocialButtons);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
   }, []);
 
   const handleSubmit = async (e) => {
