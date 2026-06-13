@@ -252,3 +252,23 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Disable platform-injected social login buttons ────────────────────────
+   Social login is disabled for this app. These rules hide any Google/social
+   auth buttons the platform might inject into the auth pages.
+   ─────────────────────────────────────────────────────────────────────── */
+[data-provider="google"],
+button[aria-label*="Google"],
+button[aria-label*="google"],
+.social-login,
+.oauth-buttons,
+[class*="google-login"],
+[class*="social-auth"],
+[class*="GoogleLogin"],
+.base44-social-login,
+[data-testid*="social"],
+[data-testid*="google"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
