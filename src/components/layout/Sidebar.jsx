@@ -150,14 +150,14 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate, onAvata
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button onClick={() => base44.auth.logout()} className="w-full flex items-center justify-center p-2.5 rounded-xl text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                <button onClick={() => (() => { try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()} className="w-full flex items-center justify-center p-2.5 rounded-xl text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
                   <LogOut className="w-4 h-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">Sign Out</TooltipContent>
             </Tooltip>
           ) : (
-            <button onClick={() => base44.auth.logout()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+            <button onClick={() => (() => { try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
               <LogOut className="w-4 h-4" /><span>Sign Out</span>
             </button>
           )}
