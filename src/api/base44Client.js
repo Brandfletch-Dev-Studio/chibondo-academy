@@ -3,12 +3,13 @@ import { appParams } from '@/lib/app-params';
 
 const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
-//Create a client with authentication required
+// Social login is disabled — email/password only
 export const base44 = createClient({
   appId,
   token,
   functionsVersion,
   serverUrl: '',
   requiresAuth: false,
-  appBaseUrl
+  appBaseUrl,
+  disableSocialAuth: true,
 });
