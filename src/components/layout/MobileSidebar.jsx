@@ -106,7 +106,7 @@ export default function MobileSidebar({ user, onClose }) {
           </div>
         </div>
         <button
-          onClick={() => base44.auth.logout()}
+          onClick={() => (() => { try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
           <LogOut className="w-4 h-4" /><span>Sign Out</span>
