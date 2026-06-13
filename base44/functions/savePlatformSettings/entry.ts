@@ -15,9 +15,17 @@ Deno.serve(async (req) => {
 
     const { planKey, value } = await req.json();
 
-    // Validate pricing structure
+    if (!planKey || value === undefined) {
+      return Response.json({ error: 'planKey and value are required' }, { status: 400 });
+    }
+
+    // Validate pricing keys — now includes trial fields
     if (planKey === 'pricing') {
-      const allowedKeys = ['monthly_price', 'annual_price', 'biannual_price', 'currency', 'free_lessons_per_subject'];
+      const allowedKeys = [
+        'monthly_price', 'annual_price', 'biannual_price',
+        'currency', 'free_lessons_per_subject',
+        'trial_enabled', 'trial_days',
+      ];
       for (const key of Object.keys(value)) {
         if (!allowedKeys.includes(key)) {
           return Response.json({ error: `Invalid pricing key: ${key}` }, { status: 400 });
@@ -25,16 +33,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch existing settings or create new
-    const existing = await base44.entities.PlatformSettings.filter({ key: planKey });
-    
+    // Upsert: update existing or create new
+    const existing = await base44.asServiceRole.entities.PlatformSettings.filter({ key: planKey });
+
     if (existing.length > 0) {
-      await base44.entities.PlatformSettings.update(existing[0].id, {
+      await base44.asServiceRole.entities.PlatformSettings.update(existing[0].id, {
         value,
         updated_by: user.id,
       });
     } else {
-      await base44.entities.PlatformSettings.create({
+      await base44.asServiceRole.entities.PlatformSettings.create({
         key: planKey,
         value,
         updated_by: user.id,
