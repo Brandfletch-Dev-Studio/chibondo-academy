@@ -296,13 +296,26 @@ function AcademyPanel() {
     social_whatsapp: '',
   });
 
+  // Load saved academy settings from DB
+  const { data: savedSettings } = useQuery({
+    queryKey: ['platformSettings', 'academy'],
+    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'academy' }),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (savedSettings?.[0]?.value) {
+      setForm(f => ({ ...f, ...savedSettings[0].value }));
+    }
+  }, [savedSettings]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
       await base44.functions.invoke('savePlatformSettings', { planKey: 'academy', value: form });
       toast.success('Academy info saved');
-    } catch {
-      toast.error('Save failed');
+    } catch (e) {
+      toast.error('Save failed: ' + (e.message || ''));
     } finally { setSaving(false); }
   };
 
@@ -385,6 +398,19 @@ function PricingPanel() {
     trial_enabled: true,
     trial_days: 7,
   });
+
+  // Load saved pricing from DB
+  const { data: savedPricing } = useQuery({
+    queryKey: ['platformSettings', 'pricing'],
+    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'pricing' }),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (savedPricing?.[0]?.value) {
+      setForm(f => ({ ...f, ...savedPricing[0].value }));
+    }
+  }, [savedPricing]);
 
   const plans = [
     { key: 'monthly_price',  label: 'Monthly',   period: '/month',  icon: '📅', saving: null },
@@ -618,6 +644,19 @@ function NotificationsPanel() {
     push_system_alerts: true,
   });
 
+  // Load saved notification preferences from DB
+  const { data: savedNotif } = useQuery({
+    queryKey: ['platformSettings', 'notifications'],
+    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'notifications' }),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (savedNotif?.[0]?.value) {
+      setSettings(s => ({ ...s, ...savedNotif[0].value }));
+    }
+  }, [savedNotif]);
+
   const NOTIF_ITEMS = [
     { key: 'email_on_enrollment',    label: 'New Enrollment',      desc: 'Email when a student enrolls in a course',    icon: BookOpen },
     { key: 'email_on_payment',       label: 'Payment Received',    desc: 'Email on every successful payment',           icon: CreditCard },
@@ -684,6 +723,30 @@ function SecurityPanel() {
     } finally { setSavingPwd(false); }
   };
 
+  // Load saved security settings
+  const { data: savedSecurity } = useQuery({
+    queryKey: ['platformSettings', 'security'],
+    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'security' }),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (savedSecurity?.[0]?.value) {
+      setSettings(s => ({ ...s, ...savedSecurity[0].value }));
+    }
+  }, [savedSecurity]);
+
+  const [savingSettings, setSavingSettings] = useState(false);
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await base44.functions.invoke('savePlatformSettings', { planKey: 'security', value: settings });
+      toast.success('Security settings saved');
+    } catch (e) {
+      toast.error('Save failed: ' + (e.message || ''));
+    } finally { setSavingSettings(false); }
+  };
+
   return (
     <div className="space-y-5">
       <Section icon={Lock} title="Change Password" subtitle="Update your admin account password">
@@ -726,6 +789,7 @@ function SecurityPanel() {
               onChange={e => setSettings(s => ({ ...s, max_login_attempts: Number(e.target.value) }))} />
           </Field>
         </div>
+        <SaveButton onClick={handleSaveSettings} loading={savingSettings} label="Save Security Settings" />
       </Section>
     </div>
   );
@@ -901,3 +965,4 @@ export default function AdminSettings() {
     </div>
   );
 }
+
