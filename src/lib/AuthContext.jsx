@@ -119,15 +119,17 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    // Clear the token from local storage directly — do NOT redirect through
+    // Base44's hosted login page, which shows Google OAuth buttons.
+    try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch (_) {}
     if (shouldRedirect) {
-      base44.auth.logout(window.location.href);
-    } else {
-      base44.auth.logout();
+      window.location.href = '/login';
     }
   };
 
   const navigateToLogin = () => {
-    base44.auth.redirectToLogin(window.location.href);
+    // Redirect to our own login page, not Base44's hosted page
+    window.location.href = '/login';
   };
 
   return (
