@@ -15,6 +15,7 @@ export default function BulkUploadDialog({ subjects, forms, onUploadComplete }) 
   const downloadCsvTemplate = () => {
     const headers = ['title', 'description', 'type', 'subject_name', 'form_name', 'year', 'is_premium'];
     const exampleRow = ['2024 Mathematics Paper 1', 'First paper exam', 'past_paper', 'Mathematics', 'Form 4', '2024', 'true'];
+    // Valid types: book, past_paper, exam_tips
     const csvContent = [headers.join(','), exampleRow.join(',')].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -142,7 +143,7 @@ export default function BulkUploadDialog({ subjects, forms, onUploadComplete }) 
             </p>
             <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
               <li>Download the CSV template</li>
-              <li>Fill in your resources (title, type, subject, form, year, etc.)</li>
+              <li>Fill in your resources — valid types: <code className="text-xs bg-muted px-1 rounded">book</code>, <code className="text-xs bg-muted px-1 rounded">past_paper</code>, <code className="text-xs bg-muted px-1 rounded">exam_tips</code></li>
               <li>Upload the CSV file</li>
               <li>Review and confirm the upload</li>
             </ol>
