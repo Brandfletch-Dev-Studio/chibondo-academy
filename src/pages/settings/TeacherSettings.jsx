@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,16 +51,8 @@ function PhotoUploader({ value, onChange, size = 24, label = 'Photo', hint = 'JP
     setLocalPreview(objectUrl);
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const resp = await fetch(
-        `/api/apps/${import.meta.env.VITE_APP_ID || window.__appParams?.appId || ''}/storage/upload`,
-        { method: 'POST', headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` }, body: formData }
-      );
-      if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
-      const json = await resp.json();
-      const url = json.url || json.file_url || json.public_url || objectUrl;
-      onChange(url);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      onChange(file_url);
       toast.success('Photo uploaded!');
     } catch {
       toast.error('Upload failed — please try again.');
@@ -115,6 +108,7 @@ function PhotoUploader({ value, onChange, size = 24, label = 'Photo', hint = 'JP
 export default function TeacherSettings() {
   const { user } = useOutletContext() ?? {};
   const queryClient = useQueryClient();
+  const { checkUserAuth } = useAuth();
 
   /* ── Account state ── */
   const [fullName,       setFullName]       = useState('');
@@ -246,18 +240,11 @@ export default function TeacherSettings() {
     setAvatarPreview(URL.createObjectURL(file));
     setAvatarUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const resp = await fetch(
-        `/api/apps/${import.meta.env.VITE_APP_ID || window.__appParams?.appId || ''}/storage/upload`,
-        { method: 'POST', headers: { Authorization: `Bearer ${window.__appParams?.token || ''}` }, body: fd }
-      );
-      if (!resp.ok) throw new Error('Upload failed');
-      const json = await resp.json();
-      const url = json.url || json.file_url || '';
-      setAvatarPreview(url);
-      await base44.auth.updateMe({ avatar_url: url });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setAvatarPreview(file_url);
+      await base44.auth.updateMe({ avatar_url: file_url });
+      await checkUserAuth();
+      queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Profile photo updated!');
     } catch {
       toast.error('Upload failed — please try again.');
@@ -270,7 +257,8 @@ export default function TeacherSettings() {
   const removeAvatar = async () => {
     setAvatarPreview('');
     await base44.auth.updateMe({ avatar_url: '' });
-    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    await checkUserAuth();
+    queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
     toast.success('Profile photo removed');
   };
 
@@ -279,7 +267,8 @@ export default function TeacherSettings() {
     setProfileSaving(true);
     try {
       await base44.auth.updateMe({ full_name: fullName.trim(), phone_number: phone });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      await checkUserAuth();
+      queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Account saved!');
     } catch { toast.error('Could not save account'); }
     finally { setProfileSaving(false); }
