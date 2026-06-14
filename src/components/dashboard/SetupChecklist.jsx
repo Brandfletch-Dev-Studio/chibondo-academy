@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { uploadImage } from '@/utils/uploadImage';
+import { useAuth } from '@/lib/AuthContext';
 import {
   User, Camera, GraduationCap, BookOpen, CreditCard,
   CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles, Loader2
@@ -25,7 +26,7 @@ function useLocalDismiss(userId) {
     }
     return false;
   };
-  const snooze  = () => {
+  const snooze   = () => {
     const until = new Date(Date.now() + SNOOZE_HOURS * 60 * 60 * 1000);
     localStorage.setItem(SNOOZE_KEY(userId), until.toISOString());
   };
@@ -34,9 +35,10 @@ function useLocalDismiss(userId) {
 }
 
 export default function SetupChecklist({ user }) {
-  const navigate = useNavigate();
-  const qc       = useQueryClient();
-  const userId   = user?.id;
+  const navigate               = useNavigate();
+  const qc                     = useQueryClient();
+  const { checkUserAuth }      = useAuth(); // refresh user state in context globally
+  const userId                 = user?.id;
   const { isDismissed, snooze, markDone } = useLocalDismiss(userId);
 
   const [visible,      setVisible]      = useState(false);
@@ -48,7 +50,8 @@ export default function SetupChecklist({ user }) {
   const [savingName,   setSavingName]   = useState(false);
   const fileRef = useRef();
 
-  const { data: studentProfile } = useQuery({
+  // ── Remote data ────────────────────────────────────────────────────────────
+  const { data: studentProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['studentProfile', userId],
     queryFn:  () => base44.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
     enabled:  !!userId,
@@ -69,6 +72,8 @@ export default function SetupChecklist({ user }) {
     staleTime: 0,
   });
 
+  // ── Derived checklist state ────────────────────────────────────────────────
+  // hasPhoto checks the live photoPreview (optimistic) OR user?.avatar_url (from context)
   const hasName   = !!(user?.full_name?.trim() && user.full_name.trim() !== user.email);
   const hasPhoto  = !!(photoPreview || user?.avatar_url);
   const hasClass  = !!(studentProfile?.form);
@@ -77,7 +82,7 @@ export default function SetupChecklist({ user }) {
 
   const items = [
     { id: 'name',   done: hasName,   label: 'Add your full name',           icon: User,          action: () => setEditingName(true) },
-    { id: 'photo',  done: hasPhoto,  label: 'Upload a profile picture',     icon: Camera,        action: () => navigate('/settings?tab=profile') },
+    { id: 'photo',  done: hasPhoto,  label: 'Upload a profile picture',     icon: Camera,        action: () => fileRef.current?.click() },
     { id: 'class',  done: hasClass,  label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=profile') },
     { id: 'enroll', done: hasEnroll, label: 'Choose subjects to enroll in', icon: BookOpen,      action: () => navigate('/enroll-subjects') },
     { id: 'fees',   done: hasFees,   label: 'Pay fees to start learning',   icon: CreditCard,    action: () => navigate('/subscription') },
@@ -93,43 +98,72 @@ export default function SetupChecklist({ user }) {
     setVisible(!isDismissed());
   }, [userId, allDone, doneCount]);
 
+  // Keep local previews in sync when context user changes (e.g. after settings page saves)
   useEffect(() => { setPhotoPreview(user?.avatar_url || ''); }, [user?.avatar_url]);
   useEffect(() => { setNameVal(user?.full_name || ''); },      [user?.full_name]);
 
+  // ── Photo upload ───────────────────────────────────────────────────────────
   const handlePhotoFile = async (e) => {
     const file = e.target.files?.[0];
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image'); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
     if (file.size > 5 * 1024 * 1024)    { toast.error('Image must be under 5 MB'); return; }
-    setPhotoPreview(URL.createObjectURL(file));
+
+    // Optimistic preview
+    const localUrl = URL.createObjectURL(file);
+    setPhotoPreview(localUrl);
     setUploading(true);
+
     try {
+      // 1. Upload to Base44 storage
       const url = await uploadImage(file);
-      setPhotoPreview(url);
+
+      // 2. Update User record (avatar_url used by navbar, forums, everywhere)
       await base44.auth.updateMe({ avatar_url: url });
+
+      // 3. Sync StudentProfile (used by teacher views, leaderboard, etc.)
       if (studentProfile?.id) {
         await base44.entities.StudentProfile.update(studentProfile.id, { avatar_url: url });
       } else {
         await base44.entities.StudentProfile.create({ user_id: userId, avatar_url: url });
       }
-      qc.invalidateQueries({ queryKey: ['currentUser'] });
+
+      // 4. Confirm preview with real CDN URL
+      setPhotoPreview(url);
+
+      // 5. Refresh global user context so navbar + forums + everywhere updates instantly
+      await checkUserAuth();
+
+      // 6. Invalidate all related queries so any other component re-fetches
       qc.invalidateQueries({ queryKey: ['studentProfile', userId] });
+      qc.invalidateQueries({ queryKey: ['studentProfile'] });
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      qc.invalidateQueries({ queryKey: ['user', userId] });
+
       toast.success('Profile picture updated!');
-    } catch {
-      toast.error('Upload failed. Try again.');
+    } catch (err) {
+      console.error('Photo upload failed:', err);
+      toast.error('Upload failed. Please try again.');
+      // Revert optimistic preview
       setPhotoPreview(user?.avatar_url || '');
-    } finally { setUploading(false); }
+    } finally {
+      setUploading(false);
+    }
   };
 
+  // ── Name save ──────────────────────────────────────────────────────────────
   const saveName = async () => {
     if (!nameVal.trim()) return;
     setSavingName(true);
     try {
       await base44.auth.updateMe({ full_name: nameVal.trim() });
+      await checkUserAuth(); // refresh context so header name updates
       qc.invalidateQueries({ queryKey: ['currentUser'] });
       setEditingName(false);
       toast.success('Name saved!');
-    } catch { toast.error('Could not save name.'); }
+    } catch { toast.error('Could not save name. Please try again.'); }
     finally  { setSavingName(false); }
   };
 
@@ -175,8 +209,18 @@ export default function SetupChecklist({ user }) {
       {/* Items */}
       {!collapsed && (
         <div className="px-3 pb-4 space-y-0.5">
-          {/* Hidden file input for photo upload */}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFile} />
+          {/*
+            Hidden file input — placed OUTSIDE ChecklistItem so the ref is always
+            in the DOM and accessible. Mobile browsers require the click to originate
+            from a user gesture on the same element, so we keep it here in the parent.
+          */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoFile}
+          />
 
           {items.map(item => (
             <ChecklistItem
@@ -190,7 +234,6 @@ export default function SetupChecklist({ user }) {
               setEditingName={setEditingName}
               uploading={uploading}
               photoPreview={photoPreview}
-              onPhotoClick={() => fileRef.current?.click()}
             />
           ))}
         </div>
@@ -201,17 +244,20 @@ export default function SetupChecklist({ user }) {
 
 function ChecklistItem({
   item, editingName, nameVal, setNameVal, saveName, savingName, setEditingName,
-  uploading, photoPreview, onPhotoClick,
+  uploading, photoPreview,
 }) {
   const Icon = item.icon;
+  const isPhotoUploading = item.id === 'photo' && uploading;
 
   return (
     <div className="rounded-xl overflow-hidden">
       <div
-        className={`flex items-center gap-3 px-3 py-3 transition-colors ${
-          item.done ? 'opacity-50' : 'hover:bg-muted cursor-pointer'
+        className={`flex items-center gap-3 px-3 py-3 transition-colors rounded-xl ${
+          item.done
+            ? 'opacity-50 cursor-default'
+            : 'hover:bg-muted cursor-pointer active:bg-muted/70'
         }`}
-        onClick={item.done ? undefined : item.id === 'photo' ? onPhotoClick : item.action}
+        onClick={item.done ? undefined : item.action}
       >
         {/* Tick / circle */}
         <div className="flex-shrink-0 w-5">
@@ -220,16 +266,18 @@ function ChecklistItem({
             : <Circle       className="w-5 h-5 text-muted-foreground/40" />}
         </div>
 
-        {/* Icon badge */}
-        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-          {item.id === 'photo' && photoPreview && !item.done ? (
-            <img src={photoPreview} alt="" className="w-full h-full object-cover rounded-lg" />
+        {/* Icon / avatar badge */}
+        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {item.id === 'photo' && photoPreview ? (
+            <img src={photoPreview} alt="profile" className="w-full h-full object-cover" />
+          ) : isPhotoUploading ? (
+            <Loader2 className="w-4 h-4 text-accent animate-spin" />
           ) : (
             <Icon className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
 
-        {/* Label / inline input */}
+        {/* Label / inline name input */}
         <div className="flex-1 min-w-0">
           {item.id === 'name' && editingName && !item.done ? (
             <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
@@ -247,21 +295,21 @@ function ChecklistItem({
               <button
                 onClick={saveName}
                 disabled={savingName}
-                className="text-xs font-semibold px-3 py-1 rounded-lg bg-accent text-accent-foreground transition-opacity hover:opacity-90">
-                {savingName ? '…' : 'Save'}
+                className="text-xs font-semibold px-3 py-1 rounded-lg bg-accent text-accent-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
+                {savingName ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save'}
               </button>
             </div>
-          ) : item.id === 'photo' && uploading ? (
-            <p className="text-sm text-muted-foreground">Uploading…</p>
           ) : (
-            <p className={`text-sm font-medium ${item.done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-              {item.label}
+            <p className={`text-sm font-medium truncate ${
+              item.done ? 'line-through text-muted-foreground' : 'text-foreground'
+            }`}>
+              {isPhotoUploading ? 'Uploading…' : item.label}
             </p>
           )}
         </div>
 
         {/* Arrow */}
-        {!item.done && item.id !== 'name' && (
+        {!item.done && item.id !== 'name' && !isPhotoUploading && (
           <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
         )}
       </div>
