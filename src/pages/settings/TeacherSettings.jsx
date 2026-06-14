@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+
+// Ensure the SDK axios instance has the latest token from localStorage before any API call.
+// appParams.token is read once at module load — this refreshes it for sessions started
+// after the initial page load (e.g. post-registration OTP flow).
+function ensureSdkToken() {
+  const token =
+    window.localStorage.getItem('base44_access_token') ||
+    window.localStorage.getItem('token');
+  if (token) base44.auth.setToken(token);
+}
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +62,7 @@ function PhotoUploader({ value, onChange, size = 24, label = 'Photo', hint = 'JP
     setLocalPreview(objectUrl);
     setUploading(true);
     try {
+      ensureSdkToken();
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       onChange(file_url);
       toast.success('Photo uploaded!');
@@ -235,6 +247,7 @@ export default function TeacherSettings() {
 
   /* ── Avatar upload (topbar photo) ── */
   const handleAvatarFile = async (e) => {
+    ensureSdkToken();
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarPreview(URL.createObjectURL(file));
@@ -264,6 +277,7 @@ export default function TeacherSettings() {
 
   /* ── Save account (name, phone, avatar) ── */
   const saveAccount = async () => {
+    ensureSdkToken();
     setProfileSaving(true);
     try {
       await base44.auth.updateMe({ full_name: fullName.trim(), phone_number: phone });
@@ -286,6 +300,7 @@ export default function TeacherSettings() {
 
   /* ── Save tutor profile ── */
   const saveTutorProfile = async () => {
+    ensureSdkToken();
     if (!form.full_name.trim()) { toast.error('Full name is required'); return; }
     if (!form.slug.trim())      { toast.error('Profile URL slug is required'); return; }
     setSaveError(null);
