@@ -13,13 +13,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BulkUploadDialog from '@/components/library/BulkUploadDialog';
+import { uploadImage } from '@/utils/uploadImage';
 
 const TYPE_META = {
-  past_paper:     { label: 'Past Paper',   color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
-  model_answer:   { label: 'Model Answer', color: 'bg-green-500/10 text-green-600 border-green-200' },
-  revision_notes: { label: 'Rev. Notes',   color: 'bg-purple-500/10 text-purple-600 border-purple-200' },
-  exam_tips:      { label: 'Exam Tips',    color: 'bg-orange-500/10 text-orange-600 border-orange-200' },
-  mock_exam:      { label: 'Mock Exam',    color: 'bg-red-500/10 text-red-600 border-red-200' },
+  book:       { label: 'Book',       color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+  past_paper: { label: 'Past Paper', color: 'bg-primary/10 text-primary border-primary/20' },
+  exam_tips:  { label: 'Exam Tips',  color: 'bg-orange-500/10 text-orange-600 border-orange-200' },
 };
 
 const TYPE_KEYS = Object.keys(TYPE_META);
@@ -42,14 +41,17 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
   const handleFile = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 10 * 1024 * 1024) { toast.error('Max file size is 10 MB'); return; }
+    if (f.size > 20 * 1024 * 1024) { toast.error('Max file size is 20 MB'); return; }
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-      setFile({ name: f.name, url: file_url });
-      toast.success('File uploaded');
-    } catch { toast.error('Upload failed'); }
-    finally { setUploading(false); }
+      const url = await uploadImage(f);
+      setFile({ name: f.name, url });
+      toast.success('File uploaded successfully!');
+    } catch (err) {
+      toast.error(`Upload failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = () => {
@@ -134,7 +136,7 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
             <label className="mt-1.5 flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 cursor-pointer transition-colors bg-muted/20">
               {uploading ? <Loader2 className="w-6 h-6 animate-spin text-primary" /> : <Upload className="w-6 h-6 text-muted-foreground" />}
               <span className="text-xs text-muted-foreground">{uploading ? 'Uploading…' : 'Click to upload'}</span>
-              <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={handleFile} />
+              <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.epub,.txt" onChange={handleFile} />
             </label>
           )}
         </div>
