@@ -51,10 +51,14 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Payment.update(p.id, { status: 'cancelled' });
       }
     } catch (_) { /* non-fatal */ }
-    // Use app_origin sent by the client (window.location.origin) — never use
-    // req.headers.get('origin') because Base44 proxies requests through api.base44.com,
-    // which would make the return_url point to the wrong domain.
-    const origin = app_origin || 'https://6a2115bb078a7219b5cbd8b0.base44.app';
+    // Hardcode the real app domain — NEVER use req.headers.get('origin') because
+    // Base44 proxies all function requests through api.base44.com, which would
+    // make the return_url point to the wrong domain (the Wix error page).
+    // app_origin from the client is accepted as an override for dev/staging only.
+    const APP_DOMAIN = 'https://app.chibondo.ac.mw';
+    const origin = (app_origin && !app_origin.includes('api.base44.com') && !app_origin.includes('localhost:'))
+      ? app_origin
+      : APP_DOMAIN;
 
     // Correct Base44 webhook URL format
     const webhookUrl = `https://api.base44.com/api/apps/${appId}/functions/payChanguWebhook`;
