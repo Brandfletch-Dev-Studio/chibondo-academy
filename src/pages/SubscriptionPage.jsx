@@ -123,7 +123,7 @@ export default function SubscriptionPage() {
 
   const initiatePayment = useMutation({
     mutationFn: async (plan) => {
-      const res = await base44.functions.invoke('createPayChanguSession', { plan });
+      const res = await base44.functions.invoke('createPayChanguSession', { plan, app_origin: window.location.origin });
       return res.data;
     },
     onSuccess: (data) => {
