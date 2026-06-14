@@ -48,6 +48,9 @@ export default function SetupChecklist({ user }) {
   const [editingName,  setEditingName]  = useState(false);
   const [nameVal,      setNameVal]      = useState(user?.full_name || '');
   const [savingName,   setSavingName]   = useState(false);
+  const [otpSent,      setOtpSent]      = useState(false);
+  const [otpValue,     setOtpValue]     = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const fileRef = useRef();
 
   // ── Remote data ────────────────────────────────────────────────────────────
@@ -74,11 +77,35 @@ export default function SetupChecklist({ user }) {
 
   // ── Derived checklist state ────────────────────────────────────────────────
   // hasPhoto checks the live photoPreview (optimistic) OR user?.avatar_url (from context)
+  const isEmailVerified = !!(user?.email_verified);
   const hasName   = !!(user?.full_name?.trim() && user.full_name.trim() !== user.email);
   const hasPhoto  = !!(photoPreview || user?.avatar_url);
   const hasClass  = !!(studentProfile?.form);
   const hasEnroll = enrollments.length > 0;
   const hasFees   = !!(subscription);
+
+  const sendOtp = async (e) => {
+    e?.stopPropagation();
+    try {
+      await base44.auth.sendEmailVerificationCode();
+      setOtpSent(true);
+      toast.success('Verification code sent to your email');
+    } catch { toast.error('Could not send code. Try again.'); }
+  };
+
+  const verifyOtp = async (e) => {
+    e?.stopPropagation();
+    if (!otpValue.trim()) return;
+    setVerifyingOtp(true);
+    try {
+      await base44.auth.verifyEmail(otpValue.trim());
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      setOtpSent(false);
+      setOtpValue('');
+      toast.success('Email verified! ✅');
+    } catch { toast.error('Invalid code. Please try again.'); }
+    finally { setVerifyingOtp(false); }
+  };
 
   const items = [
     { id: 'name',   done: hasName,   label: 'Add your full name',           icon: User,          action: () => setEditingName(true) },
@@ -234,6 +261,12 @@ export default function SetupChecklist({ user }) {
               setEditingName={setEditingName}
               uploading={uploading}
               photoPreview={photoPreview}
+              otpSent={otpSent}
+              otpValue={otpValue}
+              setOtpValue={setOtpValue}
+              verifyOtp={verifyOtp}
+              verifyingOtp={verifyingOtp}
+              sendOtp={sendOtp}
             />
           ))}
         </div>
@@ -245,6 +278,7 @@ export default function SetupChecklist({ user }) {
 function ChecklistItem({
   item, editingName, nameVal, setNameVal, saveName, savingName, setEditingName,
   uploading, photoPreview,
+  otpSent, otpValue, setOtpValue, verifyOtp, verifyingOtp, sendOtp,
 }) {
   const Icon = item.icon;
   const isPhotoUploading = item.id === 'photo' && uploading;
@@ -279,7 +313,25 @@ function ChecklistItem({
 
         {/* Label / inline name input */}
         <div className="flex-1 min-w-0">
-          {item.id === 'name' && editingName && !item.done ? (
+          {item.id === 'email' && otpSent && !item.done ? (
+            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+              <input
+                autoFocus
+                value={otpValue}
+                onChange={e => setOtpValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') verifyOtp(e); }}
+                className="flex-1 text-sm bg-background border border-border rounded-lg px-2.5 py-1 outline-none focus:ring-1 focus:ring-accent text-foreground"
+                placeholder="Enter 6-digit code"
+                maxLength={6}
+              />
+              <button
+                onClick={verifyOtp}
+                disabled={verifyingOtp}
+                className="text-xs font-semibold px-3 py-1 rounded-lg bg-accent text-accent-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
+                {verifyingOtp ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Verify'}
+              </button>
+            </div>
+          ) : item.id === 'name' && editingName && !item.done ? (
             <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
               <input
                 autoFocus
