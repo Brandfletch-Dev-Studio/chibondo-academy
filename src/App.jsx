@@ -55,7 +55,6 @@ import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import LibraryPage from '@/pages/LibraryPage';
 import DocumentViewer from '@/pages/DocumentViewer';
-import MyReferrals from '@/pages/MyReferrals';
 import EnrollSubjectsPage from '@/pages/EnrollSubjectsPage';
 import AffiliateLayout from '@/pages/affiliate/AffiliateLayout';
 import AffiliateDashboard from '@/pages/affiliate/AffiliateDashboard';
@@ -181,7 +180,6 @@ const AppRoutes = () => {
           <Route path="/progress/analytics" element={<ProgressAnalytics />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-classes" element={<MyClassesPage />} />
-          <Route path="/my-referrals" element={<MyReferrals />} />
           <Route path="/enroll-subjects" element={<EnrollSubjectsPage />} />
 
           {/* ── Affiliate Program ── */}
