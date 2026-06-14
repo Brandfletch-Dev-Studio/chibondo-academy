@@ -12,24 +12,17 @@ Deno.serve(async (req) => {
     if (!plan) return Response.json({ error: 'Plan is required' }, { status: 400 });
     if (!return_url) return Response.json({ error: 'return_url is required' }, { status: 400 });
 
-    // Validate return_url is not api.base44.com
-    if (return_url.includes('api.base44.com')) {
-      return Response.json({ error: 'Invalid return_url' }, { status: 400 });
-    }
-
     const secretKey = Deno.env.get('PAYCHANGU_SECRET_KEY');
     if (!secretKey) return Response.json({ error: 'PayChangu not configured' }, { status: 500 });
 
-    // Get pricing from DB
     const settings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'pricing' });
     const pricing = { monthly_price: 10000, annual_price: 80000, biannual_price: 150000, ...(settings[0]?.value || {}) };
     const amount = pricing[`${plan}_price`] || 0;
     if (amount <= 0) return Response.json({ error: 'Invalid plan' }, { status: 400 });
 
     const txRef = `TCA-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    const appId = '6a2115bb078a7219b5cbd8b0';
 
-    // Cancel any stale trial/pending for this student before creating new
+    // Cancel stale records
     try {
       const stale = await base44.asServiceRole.entities.Subscription.filter({ student_id: user.id, status: 'trial' });
       for (const s of stale) await base44.asServiceRole.entities.Subscription.update(s.id, { status: 'cancelled' });
@@ -37,7 +30,6 @@ Deno.serve(async (req) => {
       for (const p of pending) await base44.asServiceRole.entities.Payment.update(p.id, { status: 'cancelled' });
     } catch (_) {}
 
-    // Hit PayChangu
     const pcRes = await fetch('https://api.paychangu.com/payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${secretKey}`, 'Accept': 'application/json' },
@@ -47,7 +39,7 @@ Deno.serve(async (req) => {
         email: user.email,
         first_name: user.full_name?.split(' ')[0] || 'Student',
         last_name: user.full_name?.split(' ').slice(1).join(' ') || '',
-        callback_url: `https://api.base44.com/api/apps/${appId}/functions/payChanguWebhook`,
+        callback_url: 'https://theaca.base44.app/api/functions/payChanguWebhook',
         return_url: `${return_url}&tx_ref=${txRef}`,
         tx_ref: txRef,
         customization: {
@@ -65,14 +57,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Bad response from PayChangu', raw: pcText }, { status: 500 });
     }
 
-    console.log('PayChangu create response:', JSON.stringify(pcData));
+    console.log('PayChangu create:', JSON.stringify(pcData));
 
     const checkoutUrl = pcData?.data?.checkout_url || pcData?.data?.link || pcData?.checkout_url || pcData?.link;
     if (!checkoutUrl) {
       return Response.json({ error: 'No checkout URL from PayChangu', details: pcData }, { status: 500 });
     }
 
-    // Save Payment record
     await base44.asServiceRole.entities.Payment.create({
       student_id: user.id,
       student_name: user.full_name || '',
@@ -80,7 +71,6 @@ Deno.serve(async (req) => {
       reference: txRef, status: 'pending', description: `${plan} plan`,
     });
 
-    // Save Subscription record (trial until confirmed)
     const sub = await base44.asServiceRole.entities.Subscription.create({
       student_id: user.id, plan, status: 'trial',
       start_date: new Date().toISOString(),
