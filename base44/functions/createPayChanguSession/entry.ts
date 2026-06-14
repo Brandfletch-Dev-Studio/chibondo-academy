@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { plan } = await req.json();
+    const { plan, app_origin } = await req.json();
 
     if (!plan) {
       return Response.json({ error: 'Plan is required' }, { status: 400 });
@@ -34,7 +34,10 @@ Deno.serve(async (req) => {
 
     const appId = '6a2115bb078a7219b5cbd8b0';
     const txRef = `TCA-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    const origin = req.headers.get('origin') || 'https://app.chibondo.ac.mw';
+    // Use app_origin sent by the client (window.location.origin) — never use
+    // req.headers.get('origin') because Base44 proxies requests through api.base44.com,
+    // which would make the return_url point to the wrong domain.
+    const origin = app_origin || 'https://6a2115bb078a7219b5cbd8b0.base44.app';
 
     // Correct Base44 webhook URL format
     const webhookUrl = `https://api.base44.com/api/apps/${appId}/functions/payChanguWebhook`;
