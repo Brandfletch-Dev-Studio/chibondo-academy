@@ -39,9 +39,8 @@ Deno.serve(async (req) => {
         email: user.email,
         first_name: user.full_name?.split(' ')[0] || 'Student',
         last_name: user.full_name?.split(' ').slice(1).join(' ') || '',
-        return_url: `${return_url}&tx_ref=${txRef}`,
-        cancel_url: return_url,
-        callback_url: 'https://theaca.base44.app/api/functions/payChanguWebhook',
+        callback_url: `${return_url}&tx_ref=${txRef}`,
+        return_url: return_url,
         tx_ref: txRef,
         customization: {
           title: 'Chibondo Academy School Fees',
