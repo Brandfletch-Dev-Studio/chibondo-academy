@@ -44,16 +44,27 @@ export default function SubscriptionPage() {
 
   const hasPaidFees = subscription && subscription.status === 'active';
 
-  // ── Handle Paychangu return redirect ──
+  // ── Handle PayChangu return redirect ──
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const paid = params.get('paid');
-    const txRef = params.get('tx_ref');
+    const paid   = params.get('paid');
+    const txRef  = params.get('tx_ref');
+    // PayChangu may also redirect with ?status=failed on cancellation
+    const status = params.get('status');
 
-    if (paid === '1' && txRef && !hasPaidFees) {
-      setVerifying(true);
-      // Clean up URL immediately
+    // Clean URL immediately regardless of outcome
+    if (paid || txRef || status) {
       window.history.replaceState({}, '', '/subscription');
+    }
+
+    // Cancelled/failed redirect with no tx_ref — just show a message
+    if ((status === 'failed' || status === 'cancelled') && !txRef) {
+      toast.error('Payment was cancelled. Please try again when you're ready.');
+      return;
+    }
+
+    if (txRef && !hasPaidFees) {
+      setVerifying(true);
 
       base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
         .then((res) => {
@@ -61,9 +72,12 @@ export default function SubscriptionPage() {
           if (res.data?.success) {
             toast.success('🎉 Payment confirmed! You now have full access.');
             refetchSubscription();
+          } else if (res.data?.failed) {
+            // PayChangu confirmed the payment failed
+            toast.error('Payment was not completed. Please try again or use a different payment method.');
           } else {
-            // Payment not yet confirmed — could be processing
-            toast.info('Payment is being processed. Please wait a moment and refresh.');
+            // Exhausted all retries — still pending
+            toast.warning('Your payment is still being confirmed. Please refresh in a minute. If fees were deducted, contact support.');
           }
         })
         .catch((err) => {
