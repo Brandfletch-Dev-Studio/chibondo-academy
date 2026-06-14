@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     // Build return_url from what the CLIENT sent — never derive origin on the server.
     // Base44 proxies function requests through api.base44.com, so any server-side
     // origin detection would point to the wrong domain.
-    const APP_DOMAIN = 'https://app.chibondo.ac.mw';
+    const APP_DOMAIN = 'https://www.chibondoacademy.com';
     const safeOrigin = (app_origin && !app_origin.includes('api.base44.com'))
       ? app_origin : APP_DOMAIN;
     const origin = safeOrigin;
