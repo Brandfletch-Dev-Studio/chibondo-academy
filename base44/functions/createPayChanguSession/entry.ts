@@ -34,6 +34,23 @@ Deno.serve(async (req) => {
 
     const appId = '6a2115bb078a7219b5cbd8b0';
     const txRef = `TCA-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+    // Cancel any stale 'trial' subscription + 'pending' payment for this student
+    // so retried payments never create duplicate orphan records
+    try {
+      const staleTrials = await base44.asServiceRole.entities.Subscription.filter({
+        student_id: user.id, status: 'trial',
+      });
+      for (const s of staleTrials) {
+        await base44.asServiceRole.entities.Subscription.update(s.id, { status: 'cancelled' });
+      }
+      const stalePending = await base44.asServiceRole.entities.Payment.filter({
+        student_id: user.id, status: 'pending',
+      });
+      for (const p of stalePending) {
+        await base44.asServiceRole.entities.Payment.update(p.id, { status: 'cancelled' });
+      }
+    } catch (_) { /* non-fatal */ }
     // Use app_origin sent by the client (window.location.origin) — never use
     // req.headers.get('origin') because Base44 proxies requests through api.base44.com,
     // which would make the return_url point to the wrong domain.
