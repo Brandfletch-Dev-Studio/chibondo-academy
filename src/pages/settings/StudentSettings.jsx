@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { uploadImage } from '@/utils/uploadImage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,25 +109,26 @@ function ProfilePanel({ user, profile, qc }) {
 
   const handleAvatar = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
-      const url = await uploadImage(file);
-      setConfirmedUrl(url);
-      setPreview(url);
-      await base44.auth.updateMe({ avatar_url: url });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setConfirmedUrl(file_url);
+      setPreview(file_url);
+      await base44.auth.updateMe({ avatar_url: file_url });
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, { avatar_url: url });
+        await base44.entities.StudentProfile.update(profile.id, { avatar_url: file_url });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: url });
+        await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: file_url });
       }
       await checkUserAuth();
       qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
       qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile photo updated!');
     } catch (err) {
-      toast.error(`Upload failed: ${err?.message || 'Unknown error'}`);
+      toast.error('Upload failed: ' + (err?.message || 'Unknown error'));
       setPreview(user?.avatar_url || '');
     } finally {
       setUploading(false);
