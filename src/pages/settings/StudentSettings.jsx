@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { uploadImage } from '@/utils/uploadImage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -84,6 +85,7 @@ function Field({ label, hint, children }) {
 
 // ── Profile Panel ─────────────────────────────────────────────────────────────
 function ProfilePanel({ user, profile, qc }) {
+  const { checkUserAuth } = useAuth();
   const avatarRef = useRef();
   const [uploading, setUploading]   = useState(false);
   const [saving, setSaving]         = useState(false);
@@ -121,8 +123,9 @@ function ProfilePanel({ user, profile, qc }) {
       } else if (user?.id) {
         await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: url });
       }
-      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      await checkUserAuth();
       qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
+      qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile photo updated!');
     } catch (err) {
       toast.error(`Upload failed: ${err?.message || 'Unknown error'}`);
@@ -150,8 +153,9 @@ function ProfilePanel({ user, profile, qc }) {
           school_name: schoolName,
         });
       }
-      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      await checkUserAuth();
       qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
+      qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile saved!');
     } catch (err) {
       toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
