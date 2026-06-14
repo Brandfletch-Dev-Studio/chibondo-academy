@@ -54,6 +54,7 @@ import ProgressAnalytics from '@/pages/ProgressAnalytics';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import LibraryPage from '@/pages/LibraryPage';
+import DocumentViewer from '@/pages/DocumentViewer';
 import MyReferrals from '@/pages/MyReferrals';
 import EnrollSubjectsPage from '@/pages/EnrollSubjectsPage';
 import AffiliateLayout from '@/pages/affiliate/AffiliateLayout';
@@ -164,6 +165,7 @@ const AppRoutes = () => {
         <Route path="/forums/:subjectSlug" element={<SubjectForum />} />
         <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
         <Route path="/library" element={<LibraryPage />} />
+        <Route path="/library/read/:resourceId" element={<DocumentViewer />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/lesson/:lessonId" element={<LessonPage />} />
 
