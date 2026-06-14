@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Search, BookOpen, FileText, Lightbulb, GraduationCap, ClipboardList, Library, Lock } from 'lucide-react';
+import { Download, Search, BookOpen, FileText, Lightbulb, GraduationCap, ClipboardList, Library, Lock, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SEO from '@/components/SEO';
 
@@ -209,6 +210,7 @@ export default function LibraryPage() {
 }
 
 function ResourceCard({ resource, hasPaidFees }) {
+  const navigate = useNavigate();
   const config = TYPE_CONFIG[resource.type] || { label: resource.type, icon: FileText, color: 'bg-muted text-muted-foreground border-muted' };
   const iconBg  = TYPE_ICON_BG[resource.type]  || 'bg-muted text-muted-foreground';
   const Icon    = config.icon;
@@ -251,14 +253,24 @@ function ResourceCard({ resource, hasPaidFees }) {
               <Lock className="w-3 h-3" /> Premium
             </span>
           ) : resource.file_url ? (
-            <a
-              href={resource.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              <Download className="w-3 h-3" /> Download
-            </a>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/library/read/${resource.id}`)}
+                className="flex items-center gap-1 text-xs font-semibold hover:underline"
+                style={{ color: 'hsl(43 74% 52%)' }}
+              >
+                <Eye className="w-3 h-3" /> Read
+              </button>
+              <span className="text-muted-foreground/40">·</span>
+              <a
+                href={resource.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+              >
+                <Download className="w-3 h-3" /> Download
+              </a>
+            </div>
           ) : (
             <span className="text-xs text-muted-foreground italic">No file</span>
           )}
