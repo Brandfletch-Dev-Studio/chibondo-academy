@@ -4,57 +4,40 @@ Deno.serve(async (req) => {
   try {
     const body = await req.text();
     let payload: any;
-
     try { payload = JSON.parse(body); }
-    catch { return new Response('Bad JSON', { status: 400 }); }
+    catch { return new Response('OK', { status: 200 }); }
 
     console.log('PayChangu webhook received:', JSON.stringify(payload));
 
-    const base44 = createClient({ appId: Deno.env.get('BASE44_APP_ID') || '6a2115bb078a7219b5cbd8b0' });
+    const base44 = createClient({ appId: '6a2115bb078a7219b5cbd8b0' });
 
-    const eventType = payload.event_type || '';
     const status = (payload.status || '').toLowerCase();
 
-    // Only handle successful checkout payments
-    if (!eventType.includes('checkout') && !eventType.includes('payment')) {
-      console.log(`Ignoring event_type: ${eventType}`);
+    if (!['success', 'successful'].includes(status)) {
+      console.log(`Ignoring status: ${status}`);
       return new Response('OK', { status: 200 });
     }
 
-    if (status !== 'success' && status !== 'successful') {
-      console.log(`Ignoring non-success status: ${status}`);
-      return new Response('OK', { status: 200 });
-    }
-
-    // Our tx_ref is in payload.tx_ref for checkout events
-    const txRef = payload.tx_ref || payload.reference;
+    // tx_ref is our TCA-xxx reference
+    const txRef = payload.tx_ref;
     if (!txRef) {
-      console.error('No tx_ref in webhook payload');
+      console.error('No tx_ref in payload, full payload:', JSON.stringify(payload));
       return new Response('OK', { status: 200 });
     }
 
-    // Find our Payment record by tx_ref
     const payments = await base44.asServiceRole.entities.Payment.filter({ reference: txRef });
 
     if (payments.length === 0) {
-      // Try to match by amount + email as fallback
-      console.log(`No payment found for tx_ref=${txRef}, trying amount/email match`);
-      const amount = Number(payload.amount);
+      // Fallback: match by email
+      console.log(`No payment for tx_ref=${txRef}, trying email fallback`);
       const email = payload.customer?.email || payload.email;
-
-      if (amount && email) {
+      if (email) {
         const users = await base44.asServiceRole.entities.User.filter({ email });
         if (users.length > 0) {
-          const studentId = users[0].id;
-          const pendingPayments = await base44.asServiceRole.entities.Payment.filter({
-            student_id: studentId, status: 'pending'
-          });
-          if (pendingPayments.length > 0) {
-            // Use the most recent pending payment
-            const match = pendingPayments.sort((a: any, b: any) =>
-              new Date(b.created_date).getTime() - new Date(a.created_date).getTime())[0];
-            console.log(`Fallback matched payment ${match.id} for student ${studentId}`);
-            await activateSubscription(base44, match, payload);
+          const pending = await base44.asServiceRole.entities.Payment.filter({ student_id: users[0].id, status: 'pending' });
+          if (pending.length > 0) {
+            const match = pending.sort((a: any, b: any) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime())[0];
+            await activateSubscription(base44, match);
           }
         }
       }
@@ -62,40 +45,31 @@ Deno.serve(async (req) => {
     }
 
     const payment = payments[0];
-
-    // Idempotency — already completed
     if (payment.status === 'completed') {
-      console.log(`Payment ${txRef} already completed — skipping`);
+      console.log(`Already completed: ${txRef}`);
       return new Response('OK', { status: 200 });
     }
 
-    await activateSubscription(base44, payment, payload);
+    await activateSubscription(base44, payment);
     return new Response('OK', { status: 200 });
 
   } catch (err: any) {
     console.error('Webhook error:', err);
-    // Always return 200 to prevent PayChangu retries on our bugs
     return new Response('OK', { status: 200 });
   }
 });
 
-async function activateSubscription(base44: any, payment: any, payload: any) {
+async function activateSubscription(base44: any, payment: any) {
   const studentId = payment.student_id;
 
-  // Idempotency — check for existing active sub
   const activeSubs = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'active' });
   if (activeSubs.length > 0) {
-    console.log(`Student ${studentId} already has active subscription`);
     await base44.asServiceRole.entities.Payment.update(payment.id, { status: 'completed' });
     return;
   }
 
-  // Find trial subscription
   const trials = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'trial' });
-  if (trials.length === 0) {
-    console.error(`No trial subscription found for student ${studentId}`);
-    return;
-  }
+  if (trials.length === 0) { console.error(`No trial sub for student ${studentId}`); return; }
 
   const sub = trials[0];
   const startDate = new Date();
@@ -134,5 +108,5 @@ async function activateSubscription(base44: any, payment: any, payload: any) {
     }
   } catch (e) { console.error('Email non-fatal:', e); }
 
-  console.log(`✅ Webhook activated ${sub.plan} for student ${studentId}`);
+  console.log(`✅ Activated ${sub.plan} for student ${studentId}`);
 }
