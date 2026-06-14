@@ -137,7 +137,10 @@ export default function SubscriptionPage() {
 
   const initiatePayment = useMutation({
     mutationFn: async (plan) => {
-      const res = await base44.functions.invoke('createPayChanguSession', { plan, app_origin: window.location.origin });
+      // Pass the exact return_url from the browser — the backend function MUST NOT
+      // use req.headers.get('origin') as Base44 proxies through api.base44.com
+      const return_url = `${window.location.origin}/subscription?paid=1`;
+      const res = await base44.functions.invoke('createPayChanguSession', { plan, return_url });
       return res.data;
     },
     onSuccess: (data) => {
