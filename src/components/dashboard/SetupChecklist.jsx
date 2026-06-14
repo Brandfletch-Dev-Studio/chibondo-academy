@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { uploadImage } from '@/utils/uploadImage';
 import { useAuth } from '@/lib/AuthContext';
 import {
-  User, Camera, GraduationCap, BookOpen, CreditCard,
+  User, Camera, GraduationCap, BookOpen, CreditCard, MailCheck,
   CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -108,6 +108,7 @@ export default function SetupChecklist({ user }) {
   };
 
   const items = [
+    { id: 'email',  done: isEmailVerified, label: 'Verify your email address',    icon: MailCheck,     action: sendOtp },
     { id: 'name',   done: hasName,   label: 'Add your full name',           icon: User,          action: () => setEditingName(true) },
     { id: 'photo',  done: hasPhoto,  label: 'Upload a profile picture',     icon: Camera,        action: () => fileRef.current?.click() },
     { id: 'class',  done: hasClass,  label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=profile') },
