@@ -59,7 +59,7 @@ export default function SubscriptionPage() {
 
     // Cancelled/failed redirect with no tx_ref — just show a message
     if ((status === 'failed' || status === 'cancelled') && !txRef) {
-      toast.error('Payment was cancelled. Please try again when you're ready.');
+      toast.error("Payment was cancelled. Please try again when you're ready.");
       return;
     }
 
