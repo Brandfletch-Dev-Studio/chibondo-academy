@@ -25,6 +25,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import TeacherRegister from '@/pages/TeacherRegister';
+import VerifyOtp from '@/pages/VerifyOtp';
 
 // Layout
 import AppLayout from '@/components/layout/AppLayout';
@@ -140,6 +141,7 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} />
       <Route path="/welcome" element={<LandingPage />} />
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -242,3 +244,4 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+
