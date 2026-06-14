@@ -62,12 +62,15 @@ export default function Register() {
 
     setLoading(true);
     try {
-      // Register — skip OTP gate, go straight to dashboard
+      // Register the user
       const result = await base44.auth.register({ email: email.trim(), password });
 
-      // Set token if returned directly (no OTP flow)
-      if (result?.access_token) {
-        await base44.auth.setToken(result.access_token);
+      // Persist token immediately so auth survives the page reload
+      const token = result?.access_token ?? result?.token ?? result?.data?.access_token;
+      if (token) {
+        try { localStorage.setItem('base44_access_token', token); } catch (_) {}
+        try { localStorage.setItem('token', token); } catch (_) {}
+        await base44.auth.setToken(token);
       }
 
       // Assign student role
@@ -92,7 +95,8 @@ export default function Register() {
         })();
       }
 
-      window.location.href = '/dashboard';
+      // Use replace so back-button doesn't return to register page
+      window.location.replace('/dashboard');
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
       setLoading(false);
