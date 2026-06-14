@@ -11,11 +11,9 @@
     "type": {
       "type": "string",
       "enum": [
+        "book",
         "past_paper",
-        "model_answer",
-        "revision_notes",
-        "exam_tips",
-        "mock_exam"
+        "exam_tips"
       ]
     },
     "subject_id": {
@@ -76,6 +74,11 @@
         {
           "user_condition": {
             "role": "teacher"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
           }
         },
         {
