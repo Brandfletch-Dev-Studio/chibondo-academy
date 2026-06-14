@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+
+// Ensure the SDK axios instance has the latest token from localStorage before any API call.
+// appParams.token is read once at module load — this refreshes it for sessions started
+// after the initial page load (e.g. post-registration OTP flow).
+function ensureSdkToken() {
+  const token =
+    window.localStorage.getItem('base44_access_token') ||
+    window.localStorage.getItem('token');
+  if (token) base44.auth.setToken(token);
+}
+
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -108,6 +119,7 @@ function ProfilePanel({ user, profile, qc }) {
   }, [profile?.id]);
 
   const handleAvatar = async (e) => {
+    ensureSdkToken();
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -136,6 +148,7 @@ function ProfilePanel({ user, profile, qc }) {
   };
 
   const handleSave = async () => {
+    ensureSdkToken();
     setSaving(true);
     try {
       await base44.auth.updateMe({ full_name: fullName.trim(), ...(confirmedUrl ? { avatar_url: confirmedUrl } : {}) });
@@ -248,6 +261,7 @@ function AcademicPanel({ user, profile, qc }) {
   });
 
   const handleSave = async () => {
+    ensureSdkToken();
     setSaving(true);
     try {
       if (profile?.id) {
