@@ -44,48 +44,46 @@ export default function SubscriptionPage() {
 
   const hasPaidFees = subscription && subscription.status === 'active';
 
-  // ── Handle PayChangu return redirect ──
+  // ── Handle PayChangu return redirect ──────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const paid   = params.get('paid');
     const txRef  = params.get('tx_ref');
-    // PayChangu may also redirect with ?status=failed on cancellation
+    const paid   = params.get('paid');
     const status = params.get('status');
 
-    // Clean URL immediately regardless of outcome
-    if (paid || txRef || status) {
+    // Always clean the URL immediately
+    if (txRef || paid || status) {
       window.history.replaceState({}, '', '/subscription');
     }
 
-    // Cancelled/failed redirect with no tx_ref — just show a message
-    if ((status === 'failed' || status === 'cancelled') && !txRef) {
-      toast.error("Payment was cancelled. Please try again when you're ready.");
-      return;
-    }
+    // No tx_ref — nothing to verify
+    if (!txRef) return;
 
-    if (txRef && !hasPaidFees) {
-      setVerifying(true);
+    // Already paid — nothing to do
+    if (hasPaidFees) return;
 
-      base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
-        .then((res) => {
-          setVerifying(false);
-          if (res.data?.success) {
-            toast.success('🎉 Payment confirmed! You now have full access.');
-            refetchSubscription();
-          } else if (res.data?.failed) {
-            // PayChangu confirmed the payment failed
-            toast.error('Payment was not completed. Please try again or use a different payment method.');
-          } else {
-            // Exhausted all retries — still pending
-            toast.warning('Your payment is still being confirmed. Please refresh in a minute. If fees were deducted, contact support.');
-          }
-        })
-        .catch((err) => {
-          setVerifying(false);
-          console.error('Payment verification error:', err);
-          toast.error('Could not verify payment. Please contact support if fees were deducted.');
-        });
-    }
+    setVerifying(true);
+
+    base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
+      .then((res) => {
+        setVerifying(false);
+        const d = res.data || {};
+        if (d.success) {
+          toast.success('🎉 Payment confirmed! You now have full access.');
+          refetchSubscription();
+        } else if (d.failed) {
+          toast.error('Payment was not completed. Please try again or use a different payment method.');
+        } else if (d.pending) {
+          toast.warning('Payment is still being processed. Refresh in a minute — if money was deducted contact support.');
+        } else {
+          toast.error('Could not confirm payment. Contact support if money was deducted.');
+        }
+      })
+      .catch((err) => {
+        setVerifying(false);
+        console.error('Verify error:', err);
+        toast.error('Verification failed. Contact support if money was deducted.');
+      });
   }, [user?.id]);
 
   useEffect(() => {
