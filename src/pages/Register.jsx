@@ -20,7 +20,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   // Continuously remove any platform-injected social/Google login buttons.
-  // Uses MutationObserver so it catches buttons injected after initial render.
   useEffect(() => {
     const SOCIAL_SELECTORS = [
       '[data-provider="google"]',
@@ -43,13 +42,9 @@ export default function Register() {
       });
     }
 
-    // Remove on mount
     removeSocialButtons();
-
-    // Watch for dynamically injected buttons
     const observer = new MutationObserver(removeSocialButtons);
     observer.observe(document.body, { childList: true, subtree: true });
-
     return () => observer.disconnect();
   }, []);
 
@@ -65,15 +60,10 @@ export default function Register() {
       // Register the user
       const result = await base44.auth.register({ email: email.trim(), password });
 
-      // Persist token immediately so auth survives the page reload
+      // Extract token from whatever shape the SDK returns
       const token = result?.access_token ?? result?.token ?? result?.data?.access_token;
-      if (token) {
-        try { localStorage.setItem('base44_access_token', token); } catch (_) {}
-        try { localStorage.setItem('token', token); } catch (_) {}
-        await base44.auth.setToken(token);
-      }
 
-      // Assign student role
+      // Assign student role (best-effort — token is live in-memory right now)
       try { await base44.auth.updateMe({ role: 'user' }); } catch (_) {}
 
       // Apply referral silently in background
@@ -95,8 +85,17 @@ export default function Register() {
         })();
       }
 
-      // Use replace so back-button doesn't return to register page
-      window.location.replace('/dashboard');
+      // app-params.js reads "access_token" from the URL query string first
+      // (before localStorage), so passing the token in the URL is the most
+      // reliable way to survive the full-page reload that follows.
+      // The "removeFromUrl: true" option in app-params strips it from the
+      // address bar immediately after it's read, keeping the URL clean.
+      if (token) {
+        window.location.replace(`/dashboard?access_token=${encodeURIComponent(token)}`);
+      } else {
+        // Fallback: no token returned — go to dashboard and let auth re-check
+        window.location.replace('/dashboard');
+      }
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
       setLoading(false);
