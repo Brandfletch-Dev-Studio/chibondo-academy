@@ -64,26 +64,38 @@ export default function SubscriptionPage() {
 
     setVerifying(true);
 
-    base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
-      .then((res) => {
-        setVerifying(false);
-        const d = res.data || {};
-        if (d.success) {
-          toast.success('🎉 Payment confirmed! You now have full access.');
-          refetchSubscription();
-        } else if (d.failed) {
-          toast.error('Payment was not completed. Please try again or use a different payment method.');
-        } else if (d.pending) {
-          toast.warning('Payment is still being processed. Refresh in a minute — if money was deducted contact support.');
-        } else {
-          toast.error('Could not confirm payment. Contact support if money was deducted.');
-        }
-      })
-      .catch((err) => {
-        setVerifying(false);
-        console.error('Verify error:', err);
-        toast.error('Verification failed. Contact support if money was deducted.');
-      });
+    // Poll every 3s for up to 30s — webhook fires async and may arrive after redirect
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const poll = () => {
+      attempts++;
+      base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
+        .then((res) => {
+          const d = res.data || {};
+          if (d.success) {
+            setVerifying(false);
+            toast.success('🎉 Payment confirmed! You now have full access.');
+            refetchSubscription();
+          } else if (d.failed) {
+            setVerifying(false);
+            toast.error('Payment was not completed. Please try again.');
+          } else if (d.pending && attempts < maxAttempts) {
+            // Still waiting for webhook — retry after 3s
+            setTimeout(poll, 3000);
+          } else {
+            setVerifying(false);
+            toast.warning('Payment is still being processed. Refresh in a minute — contact support if money was deducted.');
+          }
+        })
+        .catch((err) => {
+          setVerifying(false);
+          console.error('Verify error:', err);
+          toast.error('Verification failed. Contact support if money was deducted.');
+        });
+    };
+
+    poll();
   }, [user?.id]);
 
   useEffect(() => {
