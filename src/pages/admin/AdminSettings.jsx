@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -546,86 +546,34 @@ function PaymentsPanel() {
 
 // ── Affiliate Panel ───────────────────────────────────────────────────────────
 function AffiliatePanel() {
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    enabled: true,
-    commission_amount: 10000,
-    min_payout: 5000,
-    payout_schedule: 'monthly',
-    cookie_days: 30,
-  });
-
-  const { data: settingsData = [] } = useQuery({
-    queryKey: ['affiliateSettings'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }),
-  });
-
-  useEffect(() => {
-    if (settingsData[0]?.value) {
-      const v = settingsData[0].value;
-      setForm(f => ({ ...f, ...v }));
-    }
-  }, [settingsData]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      if (settingsData[0]?.id) {
-        await base44.entities.PlatformSettings.update(settingsData[0].id, { value: form });
-      } else {
-        await base44.entities.PlatformSettings.create({ key: 'affiliate_commission', value: form, description: 'Affiliate program configuration' });
-      }
-      toast.success('Affiliate settings saved');
-    } catch (e) { toast.error('Save failed: ' + e.message); }
-    finally { setSaving(false); }
-  };
-
+  const navigate = useNavigate();
   return (
     <div className="space-y-5">
-      <Section icon={Gift} title="Affiliate Program" subtitle="Referral commissions and payout rules" gold>
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
-          <div>
-            <p className="text-sm font-semibold">Affiliate Program Enabled</p>
-            <p className="text-xs text-muted-foreground">Allow users to earn commissions by referring new students</p>
-          </div>
-          <Switch checked={form.enabled} onCheckedChange={v => setForm(f => ({ ...f, enabled: v }))} />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Commission Per Referral (MWK)" hint="Fixed amount paid when a referred student subscribes">
-            <Input type="number" value={form.commission_amount}
-              onChange={e => setForm(f => ({ ...f, commission_amount: Number(e.target.value) }))} className="font-mono" />
-          </Field>
-          <Field label="Minimum Payout (MWK)" hint="Affiliate must earn at least this to request payout">
-            <Input type="number" value={form.min_payout}
-              onChange={e => setForm(f => ({ ...f, min_payout: Number(e.target.value) }))} className="font-mono" />
-          </Field>
-          <Field label="Payout Schedule">
-            <Select value={form.payout_schedule} onValueChange={v => setForm(f => ({ ...f, payout_schedule: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="manual">Manual (on request)</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Referral Cookie Duration" hint="Days the referral link stays attributed to the affiliate">
-            <div className="flex items-center gap-2">
-              <Input type="number" value={form.cookie_days}
-                onChange={e => setForm(f => ({ ...f, cookie_days: Number(e.target.value) }))} className="font-mono" />
-              <span className="text-sm text-muted-foreground flex-shrink-0">days</span>
+      <Section icon={Gift} title="Affiliate Program" subtitle="Manage the referral program and commissions" gold>
+        <p className="text-sm text-muted-foreground">
+          All affiliate settings — commission rates, payout rules, program details, and referral management — are configured in the dedicated Affiliate Management page.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
+          {[
+            { label: 'Commission Settings', desc: 'Rates, tiers, min payout' },
+            { label: 'Referral Tracking', desc: 'View all referrals & status' },
+            { label: 'Payout Requests', desc: 'Approve affiliate payouts' },
+          ].map(({ label, desc }) => (
+            <div key={label} className="rounded-xl border border-border bg-muted/30 p-4 space-y-1">
+              <p className="text-sm font-semibold">{label}</p>
+              <p className="text-xs text-muted-foreground">{desc}</p>
             </div>
-          </Field>
+          ))}
         </div>
-
-        {/* Preview card */}
-        <div className="rounded-xl p-4 border border-[hsl(43_74%_52%_/_0.2)] bg-[hsl(43_74%_52%_/_0.04)] space-y-1.5">
-          <p className="text-xs font-semibold" style={{ color: GOLD }}>Current Affiliate Rules</p>
-          <p className="text-sm text-muted-foreground">Earn <strong className="text-foreground">MWK {Number(form.commission_amount).toLocaleString()}</strong> per successful referral · Min payout <strong className="text-foreground">MWK {Number(form.min_payout).toLocaleString()}</strong> · Paid <strong className="text-foreground">{form.payout_schedule}</strong></p>
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={() => navigate('/admin/affiliates')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 8%)' }}>
+            <ExternalLink className="w-4 h-4" />
+            Go to Affiliate Management
+          </button>
         </div>
-
-        <SaveButton onClick={handleSave} loading={saving} />
       </Section>
     </div>
   );
