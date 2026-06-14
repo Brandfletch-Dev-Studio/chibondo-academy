@@ -5,7 +5,8 @@ import { base44 } from '@/api/base44Client';
 import { uploadImage } from '@/utils/uploadImage';
 import {
   User, Camera, GraduationCap, BookOpen, CreditCard, Mail,
-  CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles, Loader2
+  CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles, Loader2,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -105,6 +106,8 @@ export default function SetupChecklist({ user }) {
     try {
       const result = await base44.auth.verifyOtp({ email: user.email, otpCode: otpVal.trim() });
       if (result?.access_token) {
+        try { localStorage.setItem('base44_access_token', result.access_token); } catch (_) {}
+        try { localStorage.setItem('token', result.access_token); } catch (_) {}
         await base44.auth.setToken(result.access_token);
       }
       qc.invalidateQueries({ queryKey: ['currentUser'] });
@@ -118,9 +121,16 @@ export default function SetupChecklist({ user }) {
   };
 
   const items = [
+    {
+      id: 'verify',
+      done: isVerified,
+      label: 'Verify your email address',
+      icon: Mail,
+      action: handleSendOtp,
+      required: true, // enforced — shown at top with prominent styling
+    },
     { id: 'name',   done: hasName,    label: 'Add your full name',           icon: User,          action: () => setEditingName(true) },
     { id: 'photo',  done: hasPhoto,   label: 'Upload a profile picture',     icon: Camera,        action: () => navigate('/settings?tab=profile') },
-    { id: 'verify', done: isVerified, label: 'Verify your email address',    icon: Mail,          action: handleSendOtp },
     { id: 'class',  done: hasClass,   label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=profile') },
     { id: 'enroll', done: hasEnroll,  label: 'Choose subjects to enroll in', icon: BookOpen,      action: () => navigate('/enroll-subjects') },
     { id: 'fees',   done: hasFees,    label: 'Pay fees to start learning',   icon: CreditCard,    action: () => navigate('/subscription') },
@@ -215,6 +225,19 @@ export default function SetupChecklist({ user }) {
         </div>
       </div>
 
+      {/* Enforced OTP banner — shown prominently when email not verified */}
+      {!isVerified && !collapsed && (
+        <div className="mx-3 mb-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+          <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-amber-800">Email verification required</p>
+            <p className="text-[11px] text-amber-700 mt-0.5">
+              Please verify your email to secure your account. You can still learn while you do this.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Items */}
       {!collapsed && (
         <div className="px-3 pb-4 space-y-0.5">
@@ -247,14 +270,14 @@ export default function SetupChecklist({ user }) {
 
 function ChecklistItem({
   item, editingName, nameVal, setNameVal, saveName, savingName, setEditingName,
-  uploading, photoPreview, verifyStep, otpVal, setOtpVal, verifyError,
-  handleSendOtp, handleVerifyOtp, userEmail
+  uploading, photoPreview,
+  verifyStep, otpVal, setOtpVal, verifyError, handleSendOtp, handleVerifyOtp, userEmail,
 }) {
-  const Icon = item.icon;
+  const Icon        = item.icon;
   const isVerifyItem = item.id === 'verify';
 
   return (
-    <div className="rounded-xl overflow-hidden">
+    <div className={`rounded-xl overflow-hidden ${isVerifyItem && !item.done ? 'ring-1 ring-amber-200 bg-amber-50/30' : ''}`}>
       <div
         className={`flex items-center gap-3 px-3 py-3 transition-colors ${
           item.done
@@ -269,15 +292,19 @@ function ChecklistItem({
         <div className="flex-shrink-0 w-5">
           {item.done
             ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+            : isVerifyItem
+            ? <ShieldAlert className="w-5 h-5 text-amber-500" />
             : <Circle       className="w-5 h-5 text-muted-foreground/40" />}
         </div>
 
         {/* Icon badge */}
-        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          isVerifyItem && !item.done ? 'bg-amber-100' : 'bg-muted'
+        }`}>
           {item.id === 'photo' && photoPreview && !item.done ? (
             <img src={photoPreview} alt="" className="w-full h-full object-cover rounded-lg" />
           ) : (
-            <Icon className="w-4 h-4 text-muted-foreground" />
+            <Icon className={`w-4 h-4 ${isVerifyItem && !item.done ? 'text-amber-600' : 'text-muted-foreground'}`} />
           )}
         </div>
 
@@ -307,8 +334,11 @@ function ChecklistItem({
             <p className="text-sm text-muted-foreground">Uploading…</p>
           ) : isVerifyItem && !item.done ? (
             <div>
-              <p className="text-sm font-medium text-foreground">Verify your email address</p>
-              <p className="text-[11px] text-muted-foreground truncate">{userEmail}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-amber-800">Verify your email</p>
+                <span className="text-[10px] font-bold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Required</span>
+              </div>
+              <p className="text-[11px] text-amber-700 truncate">{userEmail}</p>
             </div>
           ) : (
             <p className={`text-sm font-medium ${item.done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
@@ -321,13 +351,13 @@ function ChecklistItem({
         {!item.done && isVerifyItem && verifyStep === 'idle' && (
           <button
             onClick={(e) => { e.stopPropagation(); handleSendOtp(); }}
-            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-accent text-accent-foreground flex items-center gap-1 flex-shrink-0 hover:opacity-90"
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-amber-500 text-white flex items-center gap-1 flex-shrink-0 hover:bg-amber-600 transition-colors"
           >
-            Verify
+            Verify now
           </button>
         )}
         {!item.done && isVerifyItem && verifyStep === 'sending' && (
-          <Loader2 className="w-4 h-4 animate-spin text-accent flex-shrink-0" />
+          <Loader2 className="w-4 h-4 animate-spin text-amber-500 flex-shrink-0" />
         )}
         {!item.done && !isVerifyItem && item.id !== 'name' && (
           <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
@@ -336,8 +366,8 @@ function ChecklistItem({
 
       {/* Inline OTP entry — shown below the row when step is otp or verifying */}
       {isVerifyItem && !item.done && (verifyStep === 'otp' || verifyStep === 'verifying') && (
-        <div className="px-4 pb-4 pt-1 bg-muted/40 rounded-b-xl" onClick={e => e.stopPropagation()}>
-          <p className="text-[11px] text-muted-foreground mb-2">Enter the 6-digit code sent to <span className="font-medium">{userEmail}</span></p>
+        <div className="px-4 pb-4 pt-1 bg-amber-50/60 rounded-b-xl" onClick={e => e.stopPropagation()}>
+          <p className="text-[11px] text-amber-700 mb-2">Enter the 6-digit code sent to <span className="font-medium">{userEmail}</span></p>
           <div className="flex items-center gap-2">
             <input
               autoFocus
@@ -348,19 +378,19 @@ function ChecklistItem({
               value={otpVal}
               onChange={e => setOtpVal(e.target.value.replace(/\D/g, ''))}
               onKeyDown={e => { if (e.key === 'Enter') handleVerifyOtp(); }}
-              className="flex-1 text-sm bg-background border border-border rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-accent text-foreground font-mono tracking-widest text-center"
+              className="flex-1 text-sm bg-background border border-amber-300 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-amber-400 text-foreground font-mono tracking-widest text-center"
             />
             <button
               onClick={handleVerifyOtp}
               disabled={verifyStep === 'verifying'}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-accent text-accent-foreground flex items-center gap-1 hover:opacity-90 disabled:opacity-60"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white flex items-center gap-1 hover:bg-amber-600 transition-colors disabled:opacity-60"
             >
               {verifyStep === 'verifying' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirm'}
             </button>
             <button
               onClick={() => { handleSendOtp(); }}
               disabled={verifyStep === 'verifying'}
-              className="text-xs text-muted-foreground hover:text-foreground underline disabled:opacity-50"
+              className="text-xs text-amber-700 hover:text-amber-900 underline disabled:opacity-50"
               title="Resend code"
             >
               Resend
