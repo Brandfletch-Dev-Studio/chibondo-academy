@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { plan, app_origin } = await req.json();
+    const { plan, return_url: clientReturnUrl, app_origin } = await req.json();
 
     if (!plan) {
       return Response.json({ error: 'Plan is required' }, { status: 400 });
@@ -51,14 +51,13 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Payment.update(p.id, { status: 'cancelled' });
       }
     } catch (_) { /* non-fatal */ }
-    // Hardcode the real app domain — NEVER use req.headers.get('origin') because
-    // Base44 proxies all function requests through api.base44.com, which would
-    // make the return_url point to the wrong domain (the Wix error page).
-    // app_origin from the client is accepted as an override for dev/staging only.
+    // Build return_url from what the CLIENT sent — never derive origin on the server.
+    // Base44 proxies function requests through api.base44.com, so any server-side
+    // origin detection would point to the wrong domain.
     const APP_DOMAIN = 'https://app.chibondo.ac.mw';
-    const origin = (app_origin && !app_origin.includes('api.base44.com') && !app_origin.includes('localhost:'))
-      ? app_origin
-      : APP_DOMAIN;
+    const safeOrigin = (app_origin && !app_origin.includes('api.base44.com'))
+      ? app_origin : APP_DOMAIN;
+    const origin = safeOrigin;
 
     // Correct Base44 webhook URL format
     const webhookUrl = `https://api.base44.com/api/apps/${appId}/functions/payChanguWebhook`;
@@ -78,7 +77,11 @@ Deno.serve(async (req) => {
         first_name: user.full_name?.split(' ')[0] || 'Student',
         last_name: user.full_name?.split(' ').slice(1).join(' ') || 'Student',
         callback_url: webhookUrl,
-        return_url: `${origin}/subscription?paid=1&tx_ref=${txRef}`,
+        // If client passed a full return_url, append tx_ref to it.
+        // Otherwise build it from the known app domain.
+        return_url: clientReturnUrl
+          ? `${clientReturnUrl}&tx_ref=${txRef}`
+          : `${origin}/subscription?paid=1&tx_ref=${txRef}`,
         tx_ref: txRef,
         customization: {
           title: 'Chibondo Academy School Fees',
