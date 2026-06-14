@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 // Nav items shown to authenticated students
 const authNavItems = [
   { label: 'Classes',   icon: BookOpen,      path: '/subjects' },
-  { label: 'Referrals', icon: Gift,          path: '/my-referrals' },
+  { label: 'Referrals', icon: Gift,          path: '/affiliate' },
   { label: 'Library',   icon: Library,       path: '/library' },
   { label: 'Forums',    icon: MessageSquare, path: '/forums' },
   { label: 'Fees',      icon: CreditCard,    path: '/subscription' },
