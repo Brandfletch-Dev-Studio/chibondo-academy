@@ -280,6 +280,8 @@ function AcademicPanel({ user, profile, qc }) {
     }
   };
 
+  const { saveStatus: academicSaveStatus } = useAutosave(handleSave, [selectedForm, selectedClass]);
+
   const FORMS = ['Form 3', 'Form 4'];
 
   return (
@@ -303,7 +305,7 @@ function AcademicPanel({ user, profile, qc }) {
             </div>
           </Field>
         </div>
-        <SaveBtn onClick={handleSave} loading={saving} saveStatus={profileSaveStatus} />
+        <SaveBtn onClick={handleSave} loading={saving} saveStatus={academicSaveStatus} />
       </Section>
 
       <Section icon={BookOpen} title="Enrolled Subjects" subtitle="Subjects you are currently studying">
