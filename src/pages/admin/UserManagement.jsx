@@ -173,23 +173,19 @@ export default function UserManagement() {
   const [inviting, setInviting] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list('-created_date', 500),
+  const { data: adminData, isLoading } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
+    staleTime: 30_000,
   });
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ['allEnrollments'],
-    queryFn: () => base44.entities.Enrollment.filter({}),
-  });
-  const { data: subscriptions = [] } = useQuery({
-    queryKey: ['allSubscriptions'],
-    queryFn: () => base44.entities.Subscription.filter({}),
-  });
+  const users        = adminData?.users        || [];
+  const enrollments  = adminData?.enrollments  ? [] : []; // pre-aggregated in function
+  const subscriptions = []; // pre-aggregated in function
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
       toast.success('User updated');
     },
   });
@@ -197,7 +193,7 @@ export default function UserManagement() {
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.User.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
       toast.success('User deleted');
     },
   });
