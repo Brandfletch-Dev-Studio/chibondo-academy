@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 const DEFAULT_TEMPLATES = {
   subscription_expired_subject: 'Your Chibondo Academy subscription has expired',
   subscription_expired_body:
-`Dear Student,
+`Dear {student_name},
 
 Your school fees subscription expired on {end_date}.
 
@@ -24,7 +24,7 @@ The Chibondo Academy Team`,
 
   subscription_expiring_subject: 'Your Chibondo Academy subscription expires soon',
   subscription_expiring_body:
-`Dear Student,
+`Dear {student_name},
 
 This is a reminder that your school fees subscription will expire on {end_date}.
 
@@ -37,7 +37,7 @@ The Chibondo Academy Team`,
 
   payment_confirmed_subject: 'Payment Confirmed – Welcome to Chibondo Academy!',
   payment_confirmed_body:
-`Dear Student,
+`Dear {student_name},
 
 Your payment has been received and your subscription is now active until {end_date}.
 
@@ -53,17 +53,17 @@ const TEMPLATE_FIELDS = [
   {
     id: 'subscription_expired',
     label: 'Subscription Expired',
-    description: 'Sent when a student\'s subscription expires. Variables: {end_date}, {subscription_link}',
+    description: 'Sent when a student\'s subscription expires. Variables: {student_name}, {end_date}, {subscription_link}',
   },
   {
     id: 'subscription_expiring',
     label: 'Subscription Expiring Soon',
-    description: 'Sent 3 days before expiry. Variables: {end_date}, {subscription_link}',
+    description: 'Sent 3 days before expiry. Variables: {student_name}, {end_date}, {subscription_link}, {days_left}',
   },
   {
     id: 'payment_confirmed',
     label: 'Payment Confirmed',
-    description: 'Sent after a successful fee payment. Variables: {end_date}, {dashboard_link}',
+    description: 'Sent after a successful fee payment. Variables: {student_name}, {end_date}, {dashboard_link}, {plan}',
   },
 ];
 
