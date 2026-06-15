@@ -339,6 +339,11 @@ export default function TeacherSettings() {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'account';
 
+  /* Tutor profile autosave - watch main form fields */
+  const { saveStatus: tutorSaveStatus } = useAutosave(saveTutorProfile, [
+    form.headline, form.bio, form.experience_years, form.education_level,
+  ], { delay: 2000 });
+
   /* ─────────────────────────────────────────────────────────────────────────
      RENDER
   ───────────────────────────────────────────────────────────────────────── */
