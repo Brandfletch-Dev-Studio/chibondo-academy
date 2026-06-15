@@ -191,10 +191,8 @@ export default function TeacherLibrary() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="past_paper">Past Paper</SelectItem>
-                      <SelectItem value="model_answer">Model Answer</SelectItem>
-                      <SelectItem value="revision_notes">Revision Notes</SelectItem>
+                      <SelectItem value="book">Book / Notes</SelectItem>
                       <SelectItem value="exam_tips">Exam Tips</SelectItem>
-                      <SelectItem value="mock_exam">Mock Exam</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
