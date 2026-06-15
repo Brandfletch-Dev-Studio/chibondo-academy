@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
 import {
   User, Bell, CreditCard, Sun, Moon, Camera, Loader2, Save,
   GraduationCap, Phone, School, BellRing, Palette, Shield,
@@ -65,9 +66,10 @@ function Section({ icon: Icon, title, subtitle, children, gold = false }) {
   );
 }
 
-function SaveBtn({ onClick, loading, label = 'Save Changes' }) {
+function SaveBtn({ onClick, loading, label = 'Save Changes', saveStatus }) {
   return (
-    <div className="flex justify-end pt-2">
+    <div className="flex items-center justify-end gap-3 pt-2">
+      <AutosaveIndicator status={saveStatus} />
       <Button onClick={onClick} disabled={loading} className="gap-2 px-6 font-semibold"
         style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -175,6 +177,8 @@ function ProfilePanel({ user, profile, qc }) {
     }
   };
 
+  const { saveStatus: profileSaveStatus } = useAutosave(handleSave, [fullName, phone, schoolName]);
+
   const initials = (fullName || user?.email || 'S').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
@@ -237,7 +241,7 @@ function ProfilePanel({ user, profile, qc }) {
             </Field>
           </div>
         </div>
-        <SaveBtn onClick={handleSave} loading={saving} />
+        <SaveBtn onClick={handleSave} loading={saving} saveStatus={profileSaveStatus} />
       </Section>
     </div>
   );
@@ -299,7 +303,7 @@ function AcademicPanel({ user, profile, qc }) {
             </div>
           </Field>
         </div>
-        <SaveBtn onClick={handleSave} loading={saving} />
+        <SaveBtn onClick={handleSave} loading={saving} saveStatus={profileSaveStatus} />
       </Section>
 
       <Section icon={BookOpen} title="Enrolled Subjects" subtitle="Subjects you are currently studying">
