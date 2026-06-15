@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 
 export default function AffiliateProfile() {
   const { user } = useOutletContext() || {};
