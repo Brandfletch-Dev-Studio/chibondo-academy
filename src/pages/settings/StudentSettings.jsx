@@ -471,58 +471,63 @@ function BillingPanel({ user }) {
 
 // ── Appearance Panel ──────────────────────────────────────────────────────────
 function AppearancePanel() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = React.useState(() => {
+    if (typeof window === 'undefined') return 'system';
+    return localStorage.getItem('theme') || 'system';
+  });
 
-  const setT = (t) => {
+  const applyTheme = (t) => {
     setTheme(t);
     localStorage.setItem('theme', t);
-    document.documentElement.classList.toggle('dark', t === 'dark');
-    toast.success(`${t === 'dark' ? 'Dark' : 'Light'} mode enabled`);
+    const root = document.documentElement;
+    if (t === 'dark') {
+      root.classList.add('dark');
+    } else if (t === 'light') {
+      root.classList.remove('dark');
+    } else {
+      // system
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      prefersDark ? root.classList.add('dark') : root.classList.remove('dark');
+    }
   };
 
+  const options = [
+    { value: 'light',  label: 'Light',  icon: Sun,  desc: 'Always light' },
+    { value: 'dark',   label: 'Dark',   icon: Moon, desc: 'Always dark (recommended for Android)' },
+    { value: 'system', label: 'System', icon: Palette, desc: 'Follow device setting' },
+  ];
+
   return (
-    <div className="space-y-5">
-      <Section icon={Palette} title="Theme" subtitle="Choose your preferred display mode" gold>
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { key: 'light', label: 'Light Mode', icon: Sun,  desc: 'Clean white background' },
-            { key: 'dark',  label: 'Dark Mode',  icon: Moon, desc: 'Easy on the eyes at night' },
-          ].map(({ key, label, icon: Icon, desc }) => (
-            <button key={key} onClick={() => setT(key)}
-              className={cn(
-                'flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all',
-                theme === key
-                  ? 'border-[hsl(43_74%_52%_/_0.6)]'
-                  : 'border-border bg-muted/30 hover:bg-muted/60'
-              )}
-              style={theme === key ? { background: GOLD_BG } : {}}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={theme === key ? { background: GOLD_BG } : { background: 'hsl(var(--muted))' }}>
-                <Icon className="w-5 h-5" style={theme === key ? { color: GOLD } : {}} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold">{label}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{desc}</p>
-              </div>
-              {theme === key && (
-                <div className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ background: GOLD }}>
-                  <Check className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      </Section>
-    </div>
+    <Section icon={Palette} title="Appearance" subtitle="Choose your preferred colour scheme">
+      <div className="space-y-2">
+        {options.map(({ value, label, icon: Icon, desc }) => (
+          <button
+            key={value}
+            onClick={() => applyTheme(value)}
+            className={cn(
+              'w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all',
+              theme === value
+                ? 'border-accent bg-accent/10'
+                : 'border-border bg-muted/30 hover:bg-muted/60'
+            )}
+          >
+            <Icon className="w-5 h-5 flex-shrink-0" style={theme === value ? { color: GOLD } : {}} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">{label}</p>
+              <p className="text-xs text-muted-foreground">{desc}</p>
+            </div>
+            {theme === value && <Check className="w-4 h-4 flex-shrink-0" style={{ color: GOLD }} />}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground pt-1">
+        Dark mode is mandatory on Android for Google Play. Choose "System" to respect the device setting automatically.
+      </p>
+    </Section>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Delete Account Panel ──────────────────────────────────────────────────────
 function DeleteAccountPanel({ user }) {
   const navigate = useNavigate();
   const [step, setStep]         = useState('idle'); // idle | confirm | deleting | done
