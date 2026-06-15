@@ -644,76 +644,10 @@ function NotificationsPanel() {
             </div>
           ))}
         </div>
-        <SaveButton onClick={handleSave} loading={saving} />
-      </Section>
-    </div>
-  );
-}
-<AutosaveIndicator status={notifsAS} className="mr-2" />tifications Panel ───────────────────────────────────────────────────────
-function NotificationsPanel() {
-  const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    email_on_enrollment: true,
-    email_on_payment: true,
-    email_on_submission: false,
-    email_on_new_teacher: true,
-    email_on_payout_request: true,
-    push_new_messages: true,
-    push_system_alerts: true,
-  });
-
-  // Load saved notification preferences from DB
-  const { data: savedNotif } = useQuery({
-    queryKey: ['platformSettings', 'notifications'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'notifications' }),
-    staleTime: 60_000,
-  });
-
-  useEffect(() => {
-    if (savedNotif?.[0]?.value) {
-      setSettings(s => ({ ...s, ...savedNotif[0].value }));
-    }
-  }, [savedNotif]);
-
-  const NOTIF_ITEMS = [
-    { key: 'email_on_enrollment',    label: 'New Enrollment',      desc: 'Email when a student enrolls in a course',    icon: BookOpen },
-    { key: 'email_on_payment',       label: 'Payment Received',    desc: 'Email on every successful payment',           icon: CreditCard },
-    { key: 'email_on_submission',    label: 'Assignment Submitted',desc: 'Email when a student submits an assignment',   icon: Layers },
-    { key: 'email_on_new_teacher',   label: 'New Tutor Application',desc: 'Email when a teacher applies to join',        icon: Users },
-    { key: 'email_on_payout_request',label: 'Payout Request',     desc: 'Email when an affiliate requests payout',     icon: Gift },
-  ];
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await base44.functions.invoke('savePlatformSettings', { planKey: 'notifications', value: settings });
-      toast.success('Notification preferences saved');
-    } catch { toast.error('Save failed'); }
-    finally { setSaving(false); }
-  };
-
-  const { saveStatus: notifsAS } = useAutosave(handleSave, [settings.push_enabled, settings.email_digest]);
-
-  return (
-    <div className="space-y-5">
-      <Section icon={BellRing} title="Email Notifications" subtitle="Choose which events trigger admin emails">
-        <div className="space-y-2">
-          {NOTIF_ITEMS.map(({ key, label, desc, icon: Icon }) => (
-            <div key={key} className="flex items-center justify-between p-3.5 rounded-xl border border-border hover:border-[hsl(43_74%_52%_/_0.2)] transition-colors bg-card">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
-                </div>
-              </div>
-              <Switch checked={settings[key]} onCheckedChange={v => setSettings(s => ({ ...s, [key]: v }))} />
-            </div>
-          ))}
+        <div className="flex items-center gap-3 justify-end">
+          <AutosaveIndicator status={notifsAS} />
+          <SaveButton onClick={handleSave} loading={saving} />
         </div>
-        <SaveButton onClick={handleSave} loading={saving} />
       </Section>
     </div>
   );
