@@ -174,18 +174,9 @@ export default function VerifyOtp() {
         base44.auth.setToken(token);
         try { await base44.auth.updateMe({ role: "user" }); } catch (_) {}
         if (refCode) {
-          (async () => {
-            try {
-              const referrers = await base44.entities.User.filter({ referral_code: refCode });
-              if (referrers.length > 0) {
-                const newUser = await base44.auth.me();
-                await base44.entities.Referral.create({
-                  referrer_id: referrers[0].id, referee_id: newUser.id,
-                  referee_email: email.trim(), status: "pending", referral_code: refCode,
-                }).catch(() => {});
-              }
-            } catch (_) {}
-          })();
+          // Fire-and-forget: call the secure backend function so referral is
+          // tracked with asServiceRole (bypasses RLS) and correct field names
+          base44.functions.invoke('trackReferral', { referralCode: refCode }).catch(() => {});
         }
         setTimeout(() => {
           window.location.replace(`/dashboard?access_token=${encodeURIComponent(token)}`);
