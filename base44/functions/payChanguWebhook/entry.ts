@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
       return new Response('OK', { status: 200 });
     }
 
-    // tx_ref is our TCA-xxx reference
     const txRef = payload.tx_ref;
     if (!txRef) {
       console.error('No tx_ref in payload, full payload:', JSON.stringify(payload));
@@ -28,7 +27,6 @@ Deno.serve(async (req) => {
     const payments = await base44.asServiceRole.entities.Payment.filter({ reference: txRef });
 
     if (payments.length === 0) {
-      // Fallback: match by email
       console.log(`No payment for tx_ref=${txRef}, trying email fallback`);
       const email = payload.customer?.email || payload.email;
       if (email) {
@@ -58,6 +56,15 @@ Deno.serve(async (req) => {
     return new Response('OK', { status: 200 });
   }
 });
+
+async function getEmailTemplate(base44: any, templateKey: string) {
+  try {
+    const settings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
+    return settings[0]?.value || {};
+  } catch {
+    return {};
+  }
+}
 
 async function activateSubscription(base44: any, payment: any) {
   const studentId = payment.student_id;
@@ -114,14 +121,28 @@ async function activateSubscription(base44: any, payment: any) {
     type: 'subscription', link: '/dashboard', is_read: false,
   });
 
+  // Send email using custom template from PlatformSettings
   try {
     const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
-    if (users[0]?.email) {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: users[0].email,
-        subject: 'Payment Confirmed – Chibondo Academy',
-        body: `Hi ${users[0].full_name || 'Student'},\n\nYour ${sub.plan} subscription is now active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\nStart learning at https://www.chibondoacademy.com/dashboard\n\nChibondo Academy`,
-      });
+    const userEmail = users[0]?.email;
+    const userName = users[0]?.full_name || 'Student';
+
+    if (userEmail) {
+      const templates = await getEmailTemplate(base44, 'email_templates');
+      const endDateFormatted = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      const subject = templates.payment_confirmed_subject || 'Payment Confirmed – Chibondo Academy';
+      const bodyTemplate = templates.payment_confirmed_body ||
+        `Dear {student_name},\n\nYour payment has been received and your subscription is now active until {end_date}.\n\nYou now have full access to all lessons and course materials.\n\nVisit {dashboard_link} to start learning.\n\nRegards,\nThe Chibondo Academy Team`;
+
+      const body = bodyTemplate
+        .replace(/\{student_name\}/g, userName)
+        .replace(/\{end_date\}/g, endDateFormatted)
+        .replace(/\{dashboard_link\}/g, 'https://www.chibondoacademy.com/dashboard')
+        .replace(/\{plan\}/g, sub.plan);
+
+      await base44.asServiceRole.integrations.Core.SendEmail({ to: userEmail, subject, body });
+      console.log(`✅ Payment confirmed email sent to ${userEmail}`);
     }
   } catch (e) { console.error('Email non-fatal:', e); }
 
