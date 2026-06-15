@@ -950,7 +950,18 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
     await base44.entities.Lesson.update(lesson.id, clean);
     qc.invalidateQueries({ queryKey: ['lessons', subjectId] });
     onSaved?.();
-  }, [lesson.id, subjectId]);
+    // Notify enrolled students when a lesson is published (fire-and-forget)
+    const wasPublished = lesson.status !== 'published' && clean.status === 'published';
+    const contentChanged = lesson.status === 'published' && clean.status === 'published' &&
+      (lesson.title !== clean.title || lesson.content !== clean.content || lesson.video_url !== clean.video_url);
+    if (wasPublished || contentChanged) {
+      base44.functions.invoke('notifyNewLesson', {
+        event: { type: 'update' },
+        data: { ...clean, id: lesson.id },
+        old_data: lesson,
+      }).catch(() => {});
+    }
+  }, [lesson.id, lesson.status, lesson.title, lesson.content, lesson.video_url, subjectId]);
 
   const { status: saveStatus, lastSaved, trigger: triggerSave } = useAutoSave(saveFn, 1200);
 
