@@ -24,15 +24,26 @@ function Section({ title, icon: Icon, children }) {
   );
 }
 
-function Field({ label, value, children }) {
+function Field({ label, value, onChange, type = 'text', placeholder, disabled, children }) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
-      {children || (
-        <p className="text-sm font-medium text-foreground bg-muted/40 px-3 py-2 rounded-lg border border-border">
-          {value || <span className="text-muted-foreground italic">Not set</span>}
-        </p>
-      )}
+      {children
+        ? children
+        : onChange
+          ? <Input
+              type={type}
+              value={value || ''}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              disabled={disabled}
+            />
+          : (
+            <p className="text-sm font-medium text-foreground bg-muted/40 px-3 py-2 rounded-lg border border-border">
+              {value || <span className="text-muted-foreground italic">Not set</span>}
+            </p>
+          )
+      }
     </div>
   );
 }
