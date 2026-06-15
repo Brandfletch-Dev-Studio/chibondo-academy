@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { Input } from '@/components/ui/input';
 import {
   DollarSign, Clock, CheckCircle2, Wallet,
-  Users, TrendingUp, ArrowRight, Gift, Info
+  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 function StatCard({ label, value, icon: Icon, color, sub }) {
   return (
@@ -23,8 +25,30 @@ function StatCard({ label, value, icon: Icon, color, sub }) {
 export default function AffiliateDashboard() {
   const ctx = useOutletContext() || {};
   const { user, commissionAmount = 10000, minPayout = 5000 } = ctx;
+  const qc = useQueryClient();
 
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
+
+  // Custom code editing
+  const [editingCode, setEditingCode] = useState(false);
+  const [draftCode, setDraftCode]     = useState('');
+  const [copied, setCopied]           = useState(false);
+
+  const saveCodeMut = useMutation({
+    mutationFn: (code) => base44.auth.updateMe({ referral_code: code.trim().toUpperCase() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      setEditingCode(false);
+      toast.success('Referral code updated!');
+    },
+    onError: () => toast.error('Could not save code. Try again.'),
+  });
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(`https://chibondoacademy.com/register?ref=${referralCode}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const { data: referrals = [] } = useQuery({
     queryKey: ['myReferrals', user?.id],
@@ -58,35 +82,84 @@ export default function AffiliateDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Commission Banner — fixed amount, clear and prominent */}
-      <div className="rounded-2xl p-5 border border-border"
-        style={{ background: 'linear-gradient(135deg, hsl(222 47% 14%), hsl(43 74% 52% / 0.1))' }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex-1 space-y-3">
+      {/* ── Hero banner — on-brand, consistent with site ── */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        {/* Gold accent bar */}
+        <div className="h-1 w-full" style={{ background: 'hsl(43 74% 52%)' }} />
+
+        <div className="p-6 flex flex-col sm:flex-row sm:items-center gap-6">
+          {/* Left: earning + referral code */}
+          <div className="flex-1 space-y-4">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-1">Your Earning</p>
-              <p className="text-3xl font-display font-bold" style={{ color: 'hsl(43 74% 52%)' }}>
-                MWK {commissionAmount.toLocaleString()}
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Your commission</p>
+              <p className="text-4xl font-display font-bold text-foreground">
+                MWK <span style={{ color: 'hsl(43 74% 52%)' }}>{commissionAmount.toLocaleString()}</span>
               </p>
-              <p className="text-sm text-muted-foreground mt-0.5">per successful paid subscription</p>
+              <p className="text-sm text-muted-foreground mt-1">per successful paid subscription referral</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex items-center gap-1.5 text-xs bg-background/40 border border-border/50 rounded-lg px-2.5 py-1.5">
-                <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">Min. payout:</span>
-                <span className="font-semibold text-foreground">MWK {minPayout.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs bg-background/40 border border-border/50 rounded-lg px-2.5 py-1.5">
-                <span className="text-muted-foreground">Code:</span>
-                <span className="font-mono font-bold text-foreground">{referralCode}</span>
-              </div>
+
+            {/* Referral code — editable */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your referral code</p>
+              {editingCode ? (
+                <div className="flex items-center gap-2 max-w-xs">
+                  <Input
+                    className="h-9 font-mono text-sm uppercase"
+                    value={draftCode}
+                    onChange={e => setDraftCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+                    placeholder={referralCode}
+                    maxLength={20}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => saveCodeMut.mutate(draftCode)}
+                    disabled={!draftCode.trim() || saveCodeMut.isPending}
+                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                    <Save className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setEditingCode(false)}
+                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 transition-colors text-muted-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-muted/40">
+                    <span className="font-mono font-bold text-sm tracking-widest">{referralCode}</span>
+                  </div>
+                  <button
+                    onClick={() => { setDraftCode(referralCode); setEditingCode(true); }}
+                    className="w-8 h-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    title="Edit code">
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={copyLink}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    title="Copy referral link">
+                    {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? 'Copied!' : 'Copy link'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          <Link to="/affiliate/links"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex-shrink-0 self-start sm:self-center"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
-            Share Link <ArrowRight className="w-4 h-4" />
-          </Link>
+
+          {/* Right: payout info + CTA */}
+          <div className="flex flex-col items-start sm:items-end gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-muted/30 text-sm">
+              <Wallet className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Min payout:</span>
+              <span className="font-bold">MWK {minPayout.toLocaleString()}</span>
+            </div>
+            <Link to="/affiliate/links"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+              Share Your Link <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
 
