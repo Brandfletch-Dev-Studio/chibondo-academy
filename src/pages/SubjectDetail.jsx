@@ -263,14 +263,14 @@ export default function SubjectDetail() {
         <div className="px-4 py-3 border-b border-border">
           <h2 className="font-semibold text-base">Course Content</h2>
         </div>
-        <Accordion type="multiple" defaultValue={topics.map(t => t.id)}>
-          {topics.map((topic, idx) => {
+        <Accordion type="multiple" defaultValue={topics.filter(t => t?.id).map(t => t.id)}>
+          {topics.filter(t => t?.id).map((topic, idx) => {
             const topicLessons = lessonsByTopic[topic.id] || [];
             return (
               <AccordionItem key={topic.id} value={topic.id} className="border-0 border-b border-border last:border-b-0">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline [&>svg]:text-primary">
                   <span className="font-medium text-sm text-left">
-                    {topic.title}
+                    {topic.title || 'Untitled Topic'}
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
