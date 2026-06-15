@@ -6,12 +6,12 @@ import { Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
-  { label: 'Dashboard',         path: '/affiliate',             exact: true  },
+  { label: 'Overview',          path: '/affiliate',             exact: true  },
   { label: 'Referral Links',    path: '/affiliate/links',       exact: false },
-  { label: 'My Referrals',      path: '/affiliate/referrals',   exact: false },
-  { label: 'Commissions',       path: '/affiliate/commissions', exact: false },
+  { label: 'Referrals',         path: '/affiliate/referrals',   exact: false },
+  { label: 'Earnings',          path: '/affiliate/commissions', exact: false },
   { label: 'Payouts',           path: '/affiliate/payouts',     exact: false },
-  { label: 'Marketing',         path: '/affiliate/materials',   exact: false },
+  { label: 'Marketing Kit',     path: '/affiliate/materials',   exact: false },
   { label: 'Profile & Payment', path: '/affiliate/profile',     exact: false },
 ];
 
@@ -57,7 +57,7 @@ export default function AffiliateLayout() {
         <div>
           <h1 className="text-2xl font-display font-bold">Affiliate Program</h1>
           <p className="text-sm text-muted-foreground">
-            Earn MWK {commissionAmount.toLocaleString()} per successful subscriber you refer
+            Earn <span className="font-semibold text-foreground">MWK {commissionAmount.toLocaleString()}</span> per successful paid referral
           </p>
         </div>
       </div>
