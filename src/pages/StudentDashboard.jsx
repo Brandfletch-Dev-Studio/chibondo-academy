@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -76,6 +76,19 @@ function ServiceCTA({ icon: Icon, label, description, to, accent }) {
 /* ─── Main dashboard ──────────────────────────────────────────────────────── */
 export default function StudentDashboard() {
   const { user } = useOutletContext() ?? {};
+
+  // ── Affiliate referral tracking ─────────────────────────────────────────
+  // Picks up the code saved to localStorage on Register — runs once after login
+  useEffect(() => {
+    if (!user?.id) return;
+    const pendingCode = localStorage.getItem("pending_referral_code");
+    if (!pendingCode) return;
+    localStorage.removeItem("pending_referral_code"); // clear before calling to prevent retries
+    base44.functions.invoke("trackReferral", { referralCode: pendingCode })
+      .then(() => console.log("✅ Referral tracked:", pendingCode))
+      .catch(err => console.warn("Referral tracking failed:", err));
+  }, [user?.id]);
+
   const userId   = user?.id;
 
   const { data: enrollments = [] } = useQuery({
