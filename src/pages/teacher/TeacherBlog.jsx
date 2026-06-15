@@ -85,11 +85,21 @@ export default function TeacherBlog() {
       if (editing) return base44.entities.BlogPost.update(editing.id, payload);
       return base44.entities.BlogPost.create(payload);
     },
-    onSuccess: () => {
+    onSuccess: (savedPost) => {
       queryClient.invalidateQueries({ queryKey:['teacherBlogPosts'] });
       queryClient.invalidateQueries({ queryKey:['blogPosts'] });
       toast.success(editing ? 'Post updated!' : 'Post saved!');
       setOpen(false);
+      // Notify subscribers when published (fire-and-forget)
+      const wasPublished = !editing && form.status === 'published';
+      const justPublished = editing && editing.status !== 'published' && form.status === 'published';
+      if (wasPublished || justPublished) {
+        base44.functions.invoke('notifyNewBlogPost', {
+          event: { type: editing ? 'update' : 'create' },
+          data: savedPost,
+          old_data: editing || null,
+        }).catch(() => {});
+      }
     },
     onError: () => toast.error('Could not save post'),
   });
