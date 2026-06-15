@@ -119,9 +119,7 @@ export default function VerifyOtp() {
         setSuccess(true);
         base44.auth.setToken(token);
         try { await base44.auth.updateMe({ role: "user" }); } catch (_) {}
-        if (refCode) {
-          base44.functions.invoke("trackReferral", { referralCode: refCode }).catch(() => {});
-        }
+        // trackReferral is handled by the dashboard on first load
         setTimeout(() => {
           window.location.replace(`/dashboard?access_token=${encodeURIComponent(token)}`);
         }, 900);
