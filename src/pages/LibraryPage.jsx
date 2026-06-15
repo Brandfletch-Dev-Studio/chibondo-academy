@@ -11,9 +11,9 @@ import SEO from '@/components/SEO';
 
 // ── Only 3 categories ─────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
-  book:       { label: 'Book',       icon: Book,      color: 'bg-blue-500/10 text-blue-600 border-blue-500/20',     iconBg: 'bg-blue-500/10 text-blue-600' },
-  past_paper: { label: 'Past Paper', icon: FileText,  color: 'bg-primary/10 text-primary border-primary/20',        iconBg: 'bg-primary/10 text-primary' },
-  exam_tips:  { label: 'Exam Tips',  icon: Lightbulb, color: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20', iconBg: 'bg-yellow-500/10 text-yellow-700' },
+  book:       { label: 'Book',       icon: Book,      color: 'bg-primary/10 text-primary border-primary/20',         iconBg: 'bg-primary/10 text-primary' },
+  past_paper: { label: 'Past Paper', icon: FileText,  color: 'bg-muted text-muted-foreground border-border',         iconBg: 'bg-muted text-muted-foreground' },
+  exam_tips:  { label: 'Exam Tips',  icon: Lightbulb, color: 'bg-accent/15 text-accent-foreground border-accent/20', iconBg: 'bg-accent/15 text-accent-foreground' },
 };
 
 const GOLD = 'hsl(43 74% 52%)';
