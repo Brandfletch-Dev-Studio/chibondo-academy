@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import SEO from '@/components/SEO';
 import { toast } from 'sonner';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
 import {
   User, Bell, Sun, Moon, Briefcase, Wallet,
   Camera, Loader2, X, Upload, Plus,
@@ -286,6 +287,9 @@ export default function TeacherSettings() {
     finally { setProfileSaving(false); }
   };
 
+  /* Account autosave */
+  const { saveStatus: accountSaveStatus } = useAutosave(saveAccount, [fullName, phone, avatarUrl]);
+
   /* ── Save payout ── */
   const savePayout = async () => {
     setPayoutSaving(true);
@@ -295,6 +299,9 @@ export default function TeacherSettings() {
     } catch { toast.error('Could not save payout details'); }
     finally { setPayoutSaving(false); }
   };
+
+  /* Payout autosave */
+  const { saveStatus: payoutSaveStatus } = useAutosave(savePayout, [payoutMethod, airtelNumber, tnmNumber, bankName, bankAccount]);
 
   /* ── Save tutor profile ── */
   const saveTutorProfile = async () => {
