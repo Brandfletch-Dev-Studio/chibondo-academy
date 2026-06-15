@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
 
 export default function AffiliateProfile() {
   const { user } = useOutletContext() || {};
@@ -57,6 +58,16 @@ export default function AffiliateProfile() {
     },
     onError: () => toast.error('Failed to save. Please try again.'),
   });
+
+  /* Autosave profile fields */
+  const { saveStatus: profileAS } = useAutosave(
+    () => saveMut.mutateAsync(),
+    [profile.full_name, profile.phone, profile.whatsapp,
+     payment.preferred_method, payment.airtel_number, payment.tnm_number,
+     payment.bank_name, payment.bank_account, payment.bank_holder,
+     notifs.email_notifications, notifs.inapp_notifications],
+    { delay: 1500 }
+  );
 
   const Section = ({ title, icon: Icon, children }) => (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
