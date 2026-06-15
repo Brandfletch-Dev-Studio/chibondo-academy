@@ -15,7 +15,7 @@ import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 import {
   User, Bell, CreditCard, Sun, Moon, Camera, Loader2, Save,
   GraduationCap, Phone, School, BellRing, Palette, Shield,
-  ChevronRight, Star, Check, ExternalLink, BookOpen
+  ChevronRight, Star, Check, ExternalLink, BookOpen, Trash2, AlertTriangle
 } from 'lucide-react';
 
 // Refresh SDK axios Authorization header from the latest token in localStorage.
@@ -38,6 +38,7 @@ const NAV = [
   { key: 'notifications', label: 'Notifications',  icon: BellRing   },
   { key: 'billing',       label: 'Billing',        icon: CreditCard },
   { key: 'appearance',    label: 'Appearance',     icon: Palette    },
+  { key: 'security',      label: 'Security',       icon: Shield     },
 ];
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
@@ -520,6 +521,117 @@ function AppearancePanel() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Delete Account Panel ──────────────────────────────────────────────────────
+function DeleteAccountPanel({ user }) {
+  const navigate = useNavigate();
+  const [step, setStep]         = useState('idle'); // idle | confirm | deleting | done
+  const [confirmText, setConfirmText] = useState('');
+  const CONFIRM_WORD = 'DELETE';
+
+  const handleDelete = async () => {
+    if (confirmText !== CONFIRM_WORD) return;
+    setStep('deleting');
+    try {
+      await base44.functions.invoke('deleteMyAccount', {});
+      setStep('done');
+      // Clear local storage and redirect to home
+      try { localStorage.clear(); } catch (_) {}
+      setTimeout(() => { window.location.replace('/'); }, 2000);
+    } catch (e) {
+      toast.error('Could not delete account. Please contact support.');
+      setStep('confirm');
+    }
+  };
+
+  if (step === 'done') {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-3">
+        <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto">
+          <Check className="w-6 h-6 text-green-500" />
+        </div>
+        <h3 className="font-semibold">Account deleted</h3>
+        <p className="text-sm text-muted-foreground">Your account and all associated data has been permanently removed. Redirecting…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Section icon={Shield} title="Security" subtitle="Manage your account security">
+        <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+          Your account is secured with email-based one-time passwords. No password to manage.
+        </div>
+      </Section>
+
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center flex-shrink-0">
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-sm text-destructive">Delete Account</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Permanently remove your account and all data</p>
+          </div>
+        </div>
+
+        {step === 'idle' && (
+          <div className="space-y-3">
+            <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                This will permanently delete your account, all enrolled courses, progress, payments history, and forum activity. <strong>This cannot be undone.</strong>
+              </p>
+            </div>
+            <button
+              onClick={() => setStep('confirm')}
+              className="w-full py-2.5 rounded-xl border border-destructive/40 text-destructive text-sm font-semibold hover:bg-destructive/10 transition-colors"
+            >
+              I want to delete my account
+            </button>
+          </div>
+        )}
+
+        {step === 'confirm' && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Type <strong className="text-foreground font-mono">{CONFIRM_WORD}</strong> to confirm permanent deletion:
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={e => setConfirmText(e.target.value.toUpperCase())}
+              placeholder={CONFIRM_WORD}
+              className="w-full px-3 py-2 text-sm rounded-xl border border-border bg-background font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-destructive/40"
+              autoComplete="off"
+              autoCorrect="off"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setStep('idle'); setConfirmText(''); }}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={confirmText !== CONFIRM_WORD}
+                className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold disabled:opacity-40 transition-opacity"
+              >
+                {step === 'deleting' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Delete Forever'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'deleting' && (
+          <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Deleting your account…
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function StudentSettings() {
   const { user } = useOutletContext() ?? {};
   const [searchParams, setSearchParams] = useSearchParams();
@@ -552,6 +664,7 @@ export default function StudentSettings() {
     notifications: <NotificationsPanel />,
     billing:       <BillingPanel       user={user} />,
     appearance:    <AppearancePanel />,
+    security:      <DeleteAccountPanel user={user} />,
   };
 
   return (
