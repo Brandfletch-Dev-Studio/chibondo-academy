@@ -15,7 +15,7 @@ import {
   UserCheck, Copy, Check, Link2, AlertCircle, Smartphone, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 
 const STATUS_COLORS = {
   pending:    'bg-yellow-500/10 text-yellow-600',
