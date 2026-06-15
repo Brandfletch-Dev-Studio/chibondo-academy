@@ -85,19 +85,41 @@ export default function TeacherLibrary() {
   });
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
+    // Guard: reject files larger than 25 MB — low-memory devices struggle beyond this
+    const MAX_MB = 25;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Please keep files under ${MAX_MB} MB.`);
+      e.target.value = '';
+      return;
+    }
+
+    // Guard: only allow safe file types
+    const allowed = ['.pdf','.doc','.docx','.ppt','.pptx','.txt','.png','.jpg','.jpeg','.gif','.zip'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!allowed.includes(ext)) {
+      toast.error(`File type "${ext}" is not supported. Allowed: PDF, Word, PPT, images, ZIP.`);
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
+    setForm(prev => ({ ...prev, file_url: '' })); // clear previous
     try {
+      // Release previous object URLs to free device memory
+      const uploadToast = toast.loading(`Uploading ${file.name}…`);
       const response = await base44.integrations.Core.UploadFile({ file });
-      setForm({ ...form, file_url: response.file_url });
-      toast.success('File uploaded successfully');
+      toast.dismiss(uploadToast);
+      setForm(prev => ({ ...prev, file_url: response.file_url }));
+      toast.success('File ready — fill in the details and save.');
     } catch (error) {
-      toast.error('Failed to upload file');
+      toast.error('Upload failed. Try a smaller file or a stable connection.');
       console.error(error);
     } finally {
       setUploading(false);
+      e.target.value = ''; // reset input so same file can be retried
     }
   };
 
@@ -238,21 +260,45 @@ export default function TeacherLibrary() {
 
               <div>
                 <Label>Upload File</Label>
-                <div className="mt-1 flex items-center gap-3">
-                  <Input
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                  PDF, Word, PPT, images or ZIP · Max 25 MB
+                </p>
+                {/* Custom drag-friendly file picker */}
+                <label className={[
+                  'flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-6 cursor-pointer transition-colors',
+                  uploading
+                    ? 'border-border bg-muted/40 pointer-events-none'
+                    : form.file_url
+                    ? 'border-green-500/40 bg-green-500/5'
+                    : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                ].join(' ')}>
+                  <input
                     type="file"
+                    className="sr-only"
                     onChange={handleFileUpload}
-                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif,.zip"
                     disabled={uploading}
                   />
-                  {uploading && <span className="text-sm text-muted-foreground">Uploading...</span>}
-                  {form.file_url && (
-                    <Badge className="bg-success/10 text-success">
-                      <FileText className="w-3 h-3 mr-1" />
-                      Uploaded
-                    </Badge>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-7 h-7 text-primary animate-spin" />
+                      <span className="text-sm text-muted-foreground">Uploading… please wait</span>
+                      <span className="text-xs text-muted-foreground">Don't close this page</span>
+                    </>
+                  ) : form.file_url ? (
+                    <>
+                      <FileText className="w-7 h-7 text-green-500" />
+                      <span className="text-sm font-medium text-green-600">File uploaded ✓</span>
+                      <span className="text-xs text-muted-foreground">Tap to replace</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-7 h-7 text-muted-foreground/60" />
+                      <span className="text-sm font-medium">Tap to choose a file</span>
+                      <span className="text-xs text-muted-foreground">PDF, Word, PPT, images, ZIP</span>
+                    </>
                   )}
-                </div>
+                </label>
               </div>
 
               <div>
