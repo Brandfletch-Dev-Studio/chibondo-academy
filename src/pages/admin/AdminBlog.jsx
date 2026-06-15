@@ -106,11 +106,21 @@ export default function AdminBlog() {
       if (editing) return base44.entities.BlogPost.update(editing.id, payload);
       return base44.entities.BlogPost.create(payload);
     },
-    onSuccess: () => {
+    onSuccess: (savedPost) => {
       queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
       queryClient.invalidateQueries({ queryKey:['blogPosts'] });
       toast.success(editing ? 'Post updated!' : 'Post created!');
       setOpen(false);
+      // Notify subscribers when a post is published (fire-and-forget)
+      const wasPublished = !editing && form.status === 'published';
+      const justPublished = editing && editing.status !== 'published' && form.status === 'published';
+      if (wasPublished || justPublished) {
+        base44.functions.invoke('notifyNewBlogPost', {
+          event: { type: editing ? 'update' : 'create' },
+          data: savedPost,
+          old_data: editing || null,
+        }).catch(() => {});
+      }
     },
     onError: e => toast.error('Could not save post', { description: e.message }),
   });
@@ -126,10 +136,21 @@ export default function AdminBlog() {
 
   const toggleStatus = (post) => {
     const newStatus = post.status === 'published' ? 'draft' : 'published';
+    const wasPublished = post.status !== 'published' && newStatus === 'published';
     base44.entities.BlogPost.update(post.id, {
       status: newStatus,
       ...(newStatus==='published' ? { published_at: post.published_at || new Date().toISOString() } : {}),
-    }).then(() => queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] }));
+    }).then((updated) => {
+      queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
+      // Fire notification when toggling to published
+      if (wasPublished) {
+        base44.functions.invoke('notifyNewBlogPost', {
+          event: { type: 'update' },
+          data: { ...post, status: newStatus },
+          old_data: post,
+        }).catch(() => {});
+      }
+    });
   };
 
   const toggleFeatured = (post) => {
