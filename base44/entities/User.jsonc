@@ -46,4 +46,24 @@
       "description": "ISO date of the last day the student completed a lesson \u2014 used to compute streak"
     }
   }
+,
+  "rls": {
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "teacher" } },
+        { "data.id": "{{user.id}}" }
+      ]
+    },
+    "create": {},
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.id": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
 }
