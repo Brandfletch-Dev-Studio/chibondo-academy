@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import SEO from '@/components/SEO';
 import { toast } from 'sonner';
-import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 import {
   User, Bell, Sun, Moon, Briefcase, Wallet,
   Camera, Loader2, X, Upload, Plus,
