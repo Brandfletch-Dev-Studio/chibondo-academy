@@ -17,7 +17,7 @@ import {
   Save, Clock, Wifi, WifiOff, Youtube, Globe, Upload,
   BookOpen, Layers, BarChart3, CheckCircle2, AlertCircle,
   X, Video, Link2, Settings, Eye, EyeOff, RefreshCw, ClipboardList,
-  MoreVertical, ArrowUp, ArrowDown, Search
+  MoreVertical, ArrowUp, ArrowDown, Search, Code2, Type, AlignLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -792,6 +792,146 @@ function LessonExtrasPanel({ lesson, subjectId, onChange }) {
   );
 }
 
+// ─── DUAL CONTENT EDITOR ─────────────────────────────────────────────────────
+// Visual mode: rich textarea with formatting toolbar (bold, italic, headings, lists)
+// Code mode: raw HTML/Markdown code editor with monospace font
+function DualContentEditor({ value, onChange }) {
+  const [mode, setMode] = useState('visual'); // 'visual' | 'code'
+  const textRef = useRef(null);
+
+  // ── Formatting helpers for visual mode ──
+  const wrap = (before, after = before) => {
+    const el = textRef.current;
+    if (!el) return;
+    const { selectionStart: s, selectionEnd: e, value: v } = el;
+    const sel = v.slice(s, e);
+    const newVal = v.slice(0, s) + before + sel + after + v.slice(e);
+    onChange(newVal);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(s + before.length, e + before.length);
+    }, 0);
+  };
+
+  const insertAtLineStart = (prefix) => {
+    const el = textRef.current;
+    if (!el) return;
+    const { selectionStart: s, value: v } = el;
+    const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+    const currentLine = v.slice(lineStart);
+    // Toggle: if already prefixed, remove; else add
+    if (currentLine.startsWith(prefix)) {
+      const newVal = v.slice(0, lineStart) + currentLine.slice(prefix.length);
+      onChange(newVal);
+    } else {
+      const newVal = v.slice(0, lineStart) + prefix + v.slice(lineStart);
+      onChange(newVal);
+    }
+    setTimeout(() => el.focus(), 0);
+  };
+
+  const TOOLBAR = [
+    { label: 'B',       title: 'Bold',          action: () => wrap('**'),                  mono: true  },
+    { label: 'I',       title: 'Italic',         action: () => wrap('_'),                   italic: true },
+    { label: 'H2',      title: 'Heading',        action: () => insertAtLineStart('## '),    mono: true  },
+    { label: 'H3',      title: 'Sub-heading',    action: () => insertAtLineStart('### '),   mono: true  },
+    { label: '• List',  title: 'Bullet list',    action: () => insertAtLineStart('- ')                  },
+    { label: '1. List', title: 'Numbered list',  action: () => insertAtLineStart('1. ')                 },
+    { label: '> Quote', title: 'Blockquote',     action: () => insertAtLineStart('> ')                  },
+    { label: '`code`',  title: 'Inline code',    action: () => wrap('\`'),                  mono: true  },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {/* Header + mode toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold">Lesson Notes</h3>
+        </div>
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+          <button
+            onClick={() => setMode('visual')}
+            className={[
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all',
+              mode === 'visual'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            ].join(' ')}
+          >
+            <Type className="w-3 h-3" />
+            Visual
+          </button>
+          <button
+            onClick={() => setMode('code')}
+            className={[
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all',
+              mode === 'code'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            ].join(' ')}
+          >
+            <Code2 className="w-3 h-3" />
+            Code
+          </button>
+        </div>
+      </div>
+
+      {mode === 'visual' ? (
+        <div className="rounded-xl border border-border overflow-hidden">
+          {/* Formatting toolbar */}
+          <div className="flex flex-wrap gap-0.5 p-2 bg-muted/40 border-b border-border">
+            {TOOLBAR.map(({ label, title, action, mono, italic: ital }) => (
+              <button
+                key={title}
+                title={title}
+                onClick={action}
+                className="px-2 py-1 rounded text-xs hover:bg-background hover:shadow-sm transition-all text-foreground/70 hover:text-foreground min-w-[28px] text-center"
+                style={{
+                  fontFamily: mono ? 'monospace' : undefined,
+                  fontStyle: ital ? 'italic' : undefined,
+                  fontWeight: label === 'B' ? 700 : undefined,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Editor area */}
+          <Textarea
+            ref={textRef}
+            className="min-h-[220px] resize-y text-sm leading-relaxed border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder="Write lesson notes here…&#10;&#10;Tip: use the toolbar above to format text, or switch to Code mode for HTML."
+          />
+          <div className="px-3 py-1.5 bg-muted/20 border-t border-border">
+            <p className="text-[10px] text-muted-foreground">Supports Markdown — **bold**, _italic_, ## heading, - list</p>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border">
+            <Code2 className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">HTML / Code editor</span>
+            <span className="ml-auto text-[10px] text-muted-foreground">Raw content — wrap text in HTML tags</span>
+          </div>
+          <Textarea
+            className="min-h-[260px] resize-y font-mono text-xs leading-relaxed border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-[hsl(222_47%_8%)] text-green-300"
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={"<h2>Lesson Title</h2>\n<p>Your content here…</p>\n\n<!-- Example code block: -->\n<pre><code>\nprint('Hello, World!')\n</code></pre>"}
+            spellCheck={false}
+          />
+          <div className="px-3 py-1.5 bg-muted/20 border-t border-border">
+            <p className="text-[10px] text-muted-foreground">Write valid HTML · &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;pre&gt;&lt;code&gt; all work in the lesson viewer</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── LESSON EDITOR (RIGHT PANEL) ──────────────────────────────────────────────
 function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
   const qc = useQueryClient();
@@ -910,19 +1050,11 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
           </div>
         </div>
 
-        {/* Lesson Notes */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Lesson Notes</h3>
-          </div>
-          <Textarea
-            className="min-h-[200px] resize-y font-mono text-sm leading-relaxed"
-            value={data.content || ''}
-            onChange={e => setContent(e.target.value)}
-            placeholder="Write lesson notes here… (supports plain text)"
-          />
-        </div>
+        {/* Lesson Notes — dual mode editor */}
+        <DualContentEditor
+          value={data.content || ''}
+          onChange={setContent}
+        />
 
         {/* Access */}
         <div className="flex items-center justify-between p-3 bg-card border border-border rounded-xl">
