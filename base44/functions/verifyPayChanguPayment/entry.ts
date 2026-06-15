@@ -86,6 +86,23 @@ Deno.serve(async (req) => {
       description: `${sub.plan} fees — verified via PayChangu API`,
     });
 
+    // Upgrade referral status from 'registered' → 'paid'
+    try {
+      const commSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'affiliate_commission' });
+      const commAmount = commSettings[0]?.value?.commission_amount ?? commSettings[0]?.value?.fixed_amount ?? 10000;
+      const referrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
+      for (const ref of referrals) {
+        if (ref.status === 'registered' || ref.status === 'pending') {
+          await base44.asServiceRole.entities.Referral.update(ref.id, {
+            status: 'paid',
+            reward_amount: commAmount,
+            reward_status: 'pending',
+          });
+          console.log(`✅ Referral ${ref.id} upgraded to paid — reward MWK ${commAmount}`);
+        }
+      }
+    } catch (refErr) { console.error('Referral upgrade error:', refErr); }
+
     // Send notification
     await base44.asServiceRole.entities.Notification.create({
       user_id: studentId,
