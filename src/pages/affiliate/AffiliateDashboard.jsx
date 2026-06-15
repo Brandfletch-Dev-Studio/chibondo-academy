@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import {
   DollarSign, Clock, CheckCircle2, Wallet,
-  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save
+  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 
