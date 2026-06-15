@@ -7,6 +7,8 @@ import { X, Camera } from 'lucide-react';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import { cn } from '@/lib/utils';
+import { RefreshCw } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import MobileSidebar from './MobileSidebar';
 
@@ -137,8 +139,28 @@ export default function AppLayout() {
   const sRoleLabel = enrichedUser?.role === 'admin' ? 'Admin' : enrichedUser?.role === 'teacher' ? 'Tutor' : 'Student';
   const sSettingsPath = enrichedUser?.role === 'admin' ? '/admin/settings' : enrichedUser?.role === 'teacher' ? '/teacher/settings' : '/settings';
 
+  // Pull-to-refresh — invalidate all queries
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const handlePullRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries();
+    setTimeout(() => setIsRefreshing(false), 600);
+  }, [queryClient]);
+
   return (
     <>
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[9998] flex items-center justify-center pointer-events-none"
+        style={{ transition: 'opacity 0.2s', opacity: isRefreshing ? 1 : 0, paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <div className="mt-2 flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5 shadow-lg text-xs font-medium text-muted-foreground">
+          <RefreshCw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
+          {isRefreshing ? 'Refreshing…' : 'Release to refresh'}
+        </div>
+      </div>
       {/* ── Sidebar avatar lightbox ── */}
       {sidebarPhotoOpen && (
         <div
