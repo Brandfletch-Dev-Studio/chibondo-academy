@@ -1,5 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// ── Branded email helper ────────────────────────────────────────────────────
+async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, string | number>) {
+  try {
+    const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
+    if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
+    await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: built.subject, body: built.html });
+    console.log(`✅ Branded email (${type}) sent to ${to}`);
+  } catch (err: any) {
+    console.error(`sendBrandedEmail(${type}) failed — falling back:`, err.message);
+    await base44.asServiceRole.integrations.Core.SendEmail({
+      to,
+      subject: 'Payment Confirmed – Chibondo Academy',
+      body: `Hi,\n\nYour subscription is now active. Visit https://www.chibondoacademy.com/dashboard to continue.\n\nChibondo Academy`,
+    });
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -10,16 +27,12 @@ Deno.serve(async (req) => {
     const { tx_ref } = body;
     if (!tx_ref) return Response.json({ error: 'tx_ref required' }, { status: 400 });
 
-    // Step 1: Check DB — already activated?
     const payments = await base44.asServiceRole.entities.Payment.filter({ reference: tx_ref });
     if (payments.length === 0) return Response.json({ error: 'Payment record not found' }, { status: 404 });
 
     const payment = payments[0];
-    if (payment.status === 'completed') {
-      return Response.json({ success: true, already_activated: true });
-    }
+    if (payment.status === 'completed') return Response.json({ success: true, already_activated: true });
 
-    // Step 2: Ask PayChangu directly to confirm the transaction
     const secretKey = Deno.env.get('PAYCHANGU_SECRET_KEY');
     if (!secretKey) return Response.json({ success: false, pending: true });
 
@@ -43,13 +56,11 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Payment.update(payment.id, { status: 'failed' });
       return Response.json({ success: false, failed: true });
     }
-
     if (!isSuccess) {
       console.log(`PayChangu status is "${pcStatus}" — still pending`);
       return Response.json({ success: false, pending: true });
     }
 
-    // Step 3: Payment confirmed — activate subscription
     const studentId = payment.student_id;
 
     const activeSubs = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'active' });
@@ -77,7 +88,6 @@ Deno.serve(async (req) => {
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
     });
-
     await base44.asServiceRole.entities.Payment.update(payment.id, {
       status: 'completed',
       description: `${sub.plan} fees — verified via PayChangu API`,
@@ -91,15 +101,12 @@ Deno.serve(async (req) => {
       for (const ref of referrals) {
         if (ref.status === 'registered' || ref.status === 'pending') {
           await base44.asServiceRole.entities.Referral.update(ref.id, {
-            status: 'paid',
-            reward_amount: commAmount,
-            reward_status: 'pending',
+            status: 'paid', reward_amount: commAmount, reward_status: 'pending',
           });
         }
       }
     } catch (refErr) { console.error('Referral upgrade error:', refErr); }
 
-    // Notification
     await base44.asServiceRole.entities.Notification.create({
       user_id: studentId,
       title: 'Payment confirmed — full access unlocked!',
@@ -107,29 +114,17 @@ Deno.serve(async (req) => {
       type: 'subscription', link: '/dashboard', is_read: false,
     });
 
-    // Send email using custom template
+    // Send branded HTML email
     try {
       const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
-      const userEmail = users[0]?.email;
-      const userName = users[0]?.full_name || 'Student';
-
-      if (userEmail) {
-        const templateSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
-        const templates = templateSettings[0]?.value || {};
-        const endDateFormatted = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-
-        const subject = templates.payment_confirmed_subject || 'Payment Confirmed – Chibondo Academy';
-        const bodyTemplate = templates.payment_confirmed_body ||
-          `Dear {student_name},\n\nYour payment has been received and your subscription is now active until {end_date}.\n\nYou now have full access to all lessons and course materials.\n\nVisit {dashboard_link} to start learning.\n\nRegards,\nThe Chibondo Academy Team`;
-
-        const body = bodyTemplate
-          .replace(/\{student_name\}/g, userName)
-          .replace(/\{end_date\}/g, endDateFormatted)
-          .replace(/\{dashboard_link\}/g, 'https://www.chibondoacademy.com/dashboard')
-          .replace(/\{plan\}/g, sub.plan);
-
-        await base44.asServiceRole.integrations.Core.SendEmail({ to: userEmail, subject, body });
-        console.log(`✅ Payment confirmed email sent to ${userEmail}`);
+      if (users[0]?.email) {
+        await sendBrandedEmail(base44, users[0].email, 'payment_confirmed', {
+          student_name: users[0].full_name || 'Student',
+          end_date: endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+          plan: sub.plan,
+          highlight_label: 'Plan',
+          highlight_value: `${sub.plan.charAt(0).toUpperCase() + sub.plan.slice(1)} — active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+        });
       }
     } catch (e) { console.error('Email non-fatal:', e); }
 
