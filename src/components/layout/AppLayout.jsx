@@ -125,6 +125,9 @@ export default function AppLayout() {
       return base44.entities.Notification.filter({ user_id: user.id, is_read: false }, '-created_date', 50);
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000, // poll every 60s for new notifications
   });
 
   const isGuest = !enrichedUser;
