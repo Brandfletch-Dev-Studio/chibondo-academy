@@ -15,6 +15,7 @@ import {
   UserCheck, Copy, Check, Link2, AlertCircle, Smartphone, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
 
 const STATUS_COLORS = {
   pending:    'bg-yellow-500/10 text-yellow-600',
@@ -60,6 +61,13 @@ function CommissionSettings() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['affiliateSettings'] }); toast.success('Settings saved'); },
   });
+
+  const { saveStatus: commissionAS } = useAutosave(
+    () => saveMutation.mutateAsync(),
+    [settings.enabled, settings.commission_type, settings.percentage_rate,
+     settings.fixed_amount, settings.min_payout, settings.program_name],
+    { delay: 2000 }
+  );
 
   return (
     <div className="space-y-6 max-w-2xl">
