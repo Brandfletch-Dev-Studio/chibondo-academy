@@ -30,7 +30,6 @@ Deno.serve(async (req) => {
       });
       const pcData = await pcRes.json();
       console.log('PayChangu verify response:', JSON.stringify(pcData));
-      // Status can be at pcData.data.status or pcData.status
       pcStatus = (pcData?.data?.status || pcData?.status || '').toLowerCase();
     } catch (e) {
       console.error('PayChangu verify API error:', e);
@@ -50,17 +49,15 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, pending: true });
     }
 
-    // Step 3: Payment confirmed by PayChangu — activate subscription
+    // Step 3: Payment confirmed — activate subscription
     const studentId = payment.student_id;
 
-    // Check if already active
     const activeSubs = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'active' });
     if (activeSubs.length > 0) {
       await base44.asServiceRole.entities.Payment.update(payment.id, { status: 'completed' });
       return Response.json({ success: true, already_activated: true });
     }
 
-    // Get trial subscription to upgrade
     const trials = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'trial' });
     if (trials.length === 0) {
       console.error(`No trial sub for student ${studentId}`);
@@ -86,7 +83,7 @@ Deno.serve(async (req) => {
       description: `${sub.plan} fees — verified via PayChangu API`,
     });
 
-    // Upgrade referral status from 'registered' → 'paid'
+    // Upgrade referral
     try {
       const commSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'affiliate_commission' });
       const commAmount = commSettings[0]?.value?.commission_amount ?? commSettings[0]?.value?.fixed_amount ?? 10000;
@@ -98,12 +95,11 @@ Deno.serve(async (req) => {
             reward_amount: commAmount,
             reward_status: 'pending',
           });
-          console.log(`✅ Referral ${ref.id} upgraded to paid — reward MWK ${commAmount}`);
         }
       }
     } catch (refErr) { console.error('Referral upgrade error:', refErr); }
 
-    // Send notification
+    // Notification
     await base44.asServiceRole.entities.Notification.create({
       user_id: studentId,
       title: 'Payment confirmed — full access unlocked!',
@@ -111,15 +107,29 @@ Deno.serve(async (req) => {
       type: 'subscription', link: '/dashboard', is_read: false,
     });
 
-    // Send email
+    // Send email using custom template
     try {
       const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
-      if (users[0]?.email) {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: users[0].email,
-          subject: 'Payment Confirmed – Chibondo Academy',
-          body: `Hi ${users[0].full_name || 'Student'},\n\nYour ${sub.plan} subscription is now active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\nStart learning at https://www.chibondoacademy.com/dashboard\n\nChibondo Academy`,
-        });
+      const userEmail = users[0]?.email;
+      const userName = users[0]?.full_name || 'Student';
+
+      if (userEmail) {
+        const templateSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
+        const templates = templateSettings[0]?.value || {};
+        const endDateFormatted = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        const subject = templates.payment_confirmed_subject || 'Payment Confirmed – Chibondo Academy';
+        const bodyTemplate = templates.payment_confirmed_body ||
+          `Dear {student_name},\n\nYour payment has been received and your subscription is now active until {end_date}.\n\nYou now have full access to all lessons and course materials.\n\nVisit {dashboard_link} to start learning.\n\nRegards,\nThe Chibondo Academy Team`;
+
+        const body = bodyTemplate
+          .replace(/\{student_name\}/g, userName)
+          .replace(/\{end_date\}/g, endDateFormatted)
+          .replace(/\{dashboard_link\}/g, 'https://www.chibondoacademy.com/dashboard')
+          .replace(/\{plan\}/g, sub.plan);
+
+        await base44.asServiceRole.integrations.Core.SendEmail({ to: userEmail, subject, body });
+        console.log(`✅ Payment confirmed email sent to ${userEmail}`);
       }
     } catch (e) { console.error('Email non-fatal:', e); }
 
