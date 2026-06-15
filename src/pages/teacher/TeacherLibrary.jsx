@@ -88,14 +88,6 @@ export default function TeacherLibrary() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Guard: reject files larger than 25 MB — low-memory devices struggle beyond this
-    const MAX_MB = 25;
-    if (file.size > MAX_MB * 1024 * 1024) {
-      toast.error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Please keep files under ${MAX_MB} MB.`);
-      e.target.value = '';
-      return;
-    }
-
     // Guard: only allow safe file types
     const allowed = ['.pdf','.doc','.docx','.ppt','.pptx','.txt','.png','.jpg','.jpeg','.gif','.zip'];
     const ext = '.' + file.name.split('.').pop().toLowerCase();
@@ -261,7 +253,7 @@ export default function TeacherLibrary() {
               <div>
                 <Label>Upload File</Label>
                 <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-                  PDF, Word, PPT, images or ZIP · Max 25 MB
+                  PDF, Word, PPT, images or ZIP · Any size
                 </p>
                 {/* Custom drag-friendly file picker */}
                 <label className={[
