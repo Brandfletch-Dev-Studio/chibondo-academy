@@ -15,7 +15,7 @@ import {
   Palette, BellRing, Key, Building2, DollarSign, Zap, Star
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import EmailTemplateSettings from '@/components/admin/EmailTemplateSettings';
