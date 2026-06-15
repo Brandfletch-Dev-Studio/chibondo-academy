@@ -208,13 +208,13 @@ export default function AppLayout() {
           notificationCount={notifications.length}
           onMenuClick={() => setMobileOpen(true)}
         />
-        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto">
+        <main key={location.pathname} className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter">
           <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
 
       {/* Bottom nav — shown for ALL users (guests get public-only nav items) */}
-      <BottomNav user={enrichedUser} />
+      <BottomNav user={enrichedUser} notifications={notifications} />
     </div>
     </>
   );
