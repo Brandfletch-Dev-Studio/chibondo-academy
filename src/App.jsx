@@ -213,7 +213,7 @@ const AppRoutes = () => {
           {/* Admin */}
           <Route path="/admin" element={<RoleGuard allowed={['admin']}><AdminDashboard /></RoleGuard>} />
           <Route path="/admin/users" element={<RoleGuard allowed={['admin']}><UserManagement /></RoleGuard>} />
-          <Route path="/admin/teachers" element={<RoleGuard allowed={['admin']}><TeacherApplications /></RoleGuard>} />
+          <Route path="/admin/teachers" element={<Navigate to="/admin/tutors" replace />} />
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
           <Route path="/admin/settings" element={<RoleGuard allowed={['admin']}><AdminSettings /></RoleGuard>} />
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
