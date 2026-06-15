@@ -142,6 +142,25 @@ export default function AppLayout() {
   // Pull-to-refresh — invalidate all queries
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const touchStartY = React.useRef(0);
+  const isPulling   = React.useRef(false);
+
+  const onTouchStart = React.useCallback((e) => {
+    if (window.scrollY === 0) {
+      touchStartY.current = e.touches[0].clientY;
+      isPulling.current = true;
+    }
+  }, []);
+  const onTouchEnd = React.useCallback(async (e) => {
+    if (!isPulling.current) return;
+    isPulling.current = false;
+    const dy = (e.changedTouches[0]?.clientY || 0) - touchStartY.current;
+    if (dy > 70 && !isRefreshing) {
+      setIsRefreshing(true);
+      await queryClient.invalidateQueries();
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  }, [isRefreshing, queryClient]);
 
   const handlePullRefresh = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -221,10 +240,14 @@ export default function AppLayout() {
       )}
 
       {/* Main Content */}
-      <div className={cn(
-        "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
-        !isGuest && collapsed ? "lg:ml-16" : !isGuest ? "lg:ml-64" : ""
-      )}>
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
+          !isGuest && collapsed ? "lg:ml-16" : !isGuest ? "lg:ml-64" : ""
+        )}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <TopBar
           user={enrichedUser}
           notificationCount={notifications.length}
