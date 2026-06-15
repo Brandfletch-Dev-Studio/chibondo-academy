@@ -212,7 +212,7 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                     </span>
                   )}
                   {discussion.is_pinned && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1" style={{ background: 'hsl(43 74% 52%)', color: '#1e293b' }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
                       <Pin className="w-3 h-3" /> Pinned
                     </span>
                   )}
