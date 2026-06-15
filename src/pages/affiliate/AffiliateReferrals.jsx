@@ -26,6 +26,9 @@ export default function AffiliateReferrals() {
       catch { return []; }
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
 
   const filtered = referrals.filter(r => {
