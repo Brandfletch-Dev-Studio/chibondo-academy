@@ -54,8 +54,9 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 // ─── USER DETAIL DRAWER ───────────────────────────────────────────────────────
 function UserDetailDialog({ user, enrollments, subscriptions, open, onClose, onUpdate, onDelete }) {
   if (!user) return null;
+  // Enrollment + sub data is pre-enriched on user object from getAdminUsers
   const userEnrollments = enrollments.filter(e => e.student_id === user.id);
-  const userSub = subscriptions.find(s => s.student_id === user.id && s.status === 'active');
+  const userSub = user._has_active_sub ? { plan: user._sub_plan, status: 'active' } : subscriptions.find(s => s.student_id === user.id && s.status === 'active');
   const avgProgress = userEnrollments.length > 0
     ? Math.round(userEnrollments.reduce((s, e) => s + (e.progress_percentage || 0), 0) / userEnrollments.length)
     : 0;
@@ -219,14 +220,14 @@ export default function UserManagement() {
   });
 
   const counts = {
-    all: users.length,
-    student: users.filter(u => u.role === 'student' || !u.role).length,
-    teacher: users.filter(u => u.role === 'teacher').length,
-    admin: users.filter(u => u.role === 'admin').length,
+    all:       adminData?.total    ?? users.length,
+    student:   adminData?.students ?? users.filter(u => u.role === 'user' || u.role === 'student' || !u.role).length,
+    teacher:   adminData?.teachers ?? users.filter(u => u.role === 'teacher').length,
+    admin:     adminData?.admins   ?? users.filter(u => u.role === 'admin').length,
     suspended: users.filter(u => u.status === 'suspended').length,
   };
 
-  const activeSubCount = subscriptions.filter(s => s.status === 'active').length;
+  const activeSubCount = adminData?.subscribed ?? 0;
   const newThisMonth = users.filter(u => {
     const d = new Date(u.created_date);
     const now = new Date();
@@ -259,7 +260,7 @@ export default function UserManagement() {
         <StatCard icon={Users} label="Total Users" value={users.length} sub={`+${newThisMonth} this month`} color="bg-primary/10 text-primary" />
         <StatCard icon={BookOpen} label="Students" value={counts.student} sub={`${activeSubCount} subscribed`} color="bg-sky-500/10 text-sky-600" />
         <StatCard icon={GraduationCap} label="Tutors" value={counts.teacher} sub="Active educators" color="bg-amber-500/10 text-amber-600" />
-        <StatCard icon={TrendingUp} label="Enrollments" value={enrollments.length} sub="Total course enrollments" color="bg-emerald-500/10 text-emerald-600" />
+        <StatCard icon={TrendingUp} label="Enrollments" value={adminData?.enrollments ?? 0} sub="Total course enrollments" color="bg-emerald-500/10 text-emerald-600" />
       </div>
 
       {/* Filters + Search */}
@@ -325,7 +326,7 @@ export default function UserManagement() {
         <div className="divide-y divide-border">
           {!isLoading && filteredUsers.map(u => {
             const isSuspended = u.status === 'suspended';
-            const userEnrollCount = enrollments.filter(e => e.student_id === u.id).length;
+            const userEnrollCount = u._enrollment_count ?? 0;
             return (
               <div
                 key={u.id}
