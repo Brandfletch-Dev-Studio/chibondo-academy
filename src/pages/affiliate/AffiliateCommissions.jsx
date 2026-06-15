@@ -24,6 +24,9 @@ export default function AffiliateCommissions() {
       catch { return []; }
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
 
   // Derive commission items from paid referrals — fixed amount model
