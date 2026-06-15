@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Referral code required' }, { status: 400 });
     }
 
-    // Check if referral already exists for this user
+    // Check if referral already exists for this user (one-time commission only)
     const existingReferrals = await base44.asServiceRole.entities.Referral.filter({
       referred_email: user.email,
     });
@@ -36,7 +36,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid referral code' }, { status: 404 });
     }
 
-    // Create referral record
+    // ── Self-referral guard ──────────────────────────────────────────────────
+    if (referrer.id === user.id) {
+      console.warn(`⚠️ Self-referral attempt blocked: user ${user.email} tried to use their own code`);
+      return Response.json({ error: 'You cannot refer yourself.' }, { status: 400 });
+    }
+
+    // ── Existing student guard (commission applies to NEW students only) ─────
+    // Check if this user had any prior payments/subscriptions before this referral
+    const priorPayments = await base44.asServiceRole.entities.Payment.filter({
+      student_id: user.id,
+    });
+    if (priorPayments.length > 0) {
+      console.warn(`⚠️ Referral blocked: ${user.email} is an existing paying student`);
+      return Response.json({ message: 'Referral only applies to new students', existing_student: true });
+    }
+
+    // Create referral record — reward_amount set to 0 until first payment confirmed
     await base44.asServiceRole.entities.Referral.create({
       referrer_id: referrer.id,
       referrer_name: referrer.full_name,
@@ -47,6 +63,7 @@ Deno.serve(async (req) => {
       status: 'registered',
       reward_amount: 0,
       reward_status: 'pending',
+      notes: 'Commission applies on first payment only',
     });
 
     console.log(`✅ Referral tracked: ${user.email} referred by ${referrer.full_name} (${referralCode})`);
