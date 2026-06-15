@@ -949,15 +949,20 @@ function ActionMenu({ items }) {
   useEffect(() => {
     if (!open) return;
     const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    // Support both mouse and touch dismiss
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
   }, [open]);
 
   return (
     <div ref={ref} className="relative flex-shrink-0" onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(v => !v)}
-        className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+        className="p-1.5 min-w-[28px] min-h-[28px] rounded-lg hover:bg-muted text-muted-foreground transition-colors touch-manipulation"
       >
         <MoreVertical className="w-3.5 h-3.5" />
       </button>
@@ -974,7 +979,7 @@ function ActionMenu({ items }) {
                   onClick={() => { item.onClick(); setOpen(false); }}
                   disabled={!!item.disabled}
                   className={[
-                    'flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium transition-colors text-left',
+                    'flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-medium transition-colors text-left touch-manipulation',
                     item.danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground hover:bg-muted',
                     item.disabled ? 'opacity-30 pointer-events-none' : '',
                   ].join(' ')}>
@@ -1063,7 +1068,7 @@ function CurriculumTree({
                   <span className="text-[10px] text-muted-foreground flex-shrink-0 mr-1">
                     {topicLessons.length}
                   </span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-60 group-hover:opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     <ActionMenu items={[
                       { icon: Plus,      label: 'Add Lesson',  onClick: () => onAddLesson(topic) },
                       { icon: Edit2,     label: 'Edit Topic',  onClick: () => onEditTopic(topic) },
@@ -1096,7 +1101,7 @@ function CurriculumTree({
                           ? <Eye className="w-2.5 h-2.5 flex-shrink-0 opacity-40" />
                           : <EyeOff className="w-2.5 h-2.5 flex-shrink-0 opacity-20" />
                         }
-                        <div className="opacity-0 group-hover/lesson:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                        <div className="opacity-60 group-hover/lesson:opacity-100 transition-opacity sm:opacity-0 sm:group-hover/lesson:opacity-100" onClick={e => e.stopPropagation()}>
                           <ActionMenu items={[
                             { icon: Edit2,     label: 'Edit',       onClick: () => onSelectLesson(lesson) },
                             { icon: Copy,      label: 'Duplicate',  onClick: () => onDuplicateLesson(lesson) },
