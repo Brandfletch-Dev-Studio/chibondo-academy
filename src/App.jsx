@@ -8,6 +8,19 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useOutletContext } from 'react-router-dom';
 
+// Sync dark mode with system preference (mandatory for Android Google Play)
+// Base44 apps inherit system theme automatically via Tailwind dark: classes,
+// but we also need the <meta color-scheme> and <html class> to match.
+if (typeof window !== 'undefined') {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || (!saved && prefersDark)) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
 function RoleHome() {
   const { user } = useOutletContext() ?? {};
   // If user is still loading (undefined), show nothing (AppLayout handles it)
