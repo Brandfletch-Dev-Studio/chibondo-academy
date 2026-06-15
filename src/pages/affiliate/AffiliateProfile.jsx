@@ -10,6 +10,33 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 
+
+/* ── Tiny layout helpers ─────────────────────────────────────────────────── */
+function Section({ title, icon: Icon, children }) {
+  return (
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-muted/30">
+        {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function Field({ label, value, children }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children || (
+        <p className="text-sm font-medium text-foreground bg-muted/40 px-3 py-2 rounded-lg border border-border">
+          {value || <span className="text-muted-foreground italic">Not set</span>}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AffiliateProfile() {
   const { user } = useOutletContext() || {};
   const qc = useQueryClient();
