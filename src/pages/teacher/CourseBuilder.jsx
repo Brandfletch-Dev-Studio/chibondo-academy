@@ -1510,14 +1510,14 @@ function CourseStats({ topics, lessons }) {
 }
 
 // ─── TOPIC DIALOG ─────────────────────────────────────────────────────────────
-function TopicDialog({ open, onOpenChange, topic, subjectId, formId }) {
+function TopicDialog({ open, onOpenChange, topic, subjectId, formId, nextOrder }) {
   const qc = useQueryClient();
   const [data, setData] = useState({ title: '', description: '', order: 0 });
 
   useEffect(() => {
     if (topic) setData({ title: topic.title, description: topic.description || '', order: topic.order || 0 });
-    else setData({ title: '', description: '', order: 0 });
-  }, [topic, open]);
+    else setData({ title: '', description: '', order: nextOrder ?? 0 });
+  }, [topic, open, nextOrder]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -1860,6 +1860,7 @@ export default function CourseBuilder() {
         topic={topicDialog.topic}
         subjectId={subjectId}
         formId={subject?.form_id}
+        nextOrder={topics.length}
       />
     </div>
   );
