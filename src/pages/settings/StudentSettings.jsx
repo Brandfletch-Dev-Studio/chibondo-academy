@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave';
+import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
 import {
   User, Bell, CreditCard, Sun, Moon, Camera, Loader2, Save,
   GraduationCap, Phone, School, BellRing, Palette, Shield,
