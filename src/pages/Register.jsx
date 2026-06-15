@@ -13,6 +13,14 @@ export default function Register() {
   const navigate = useNavigate();
   const refCode  = searchParams.get("ref");
 
+  // Persist the referral code to localStorage immediately so it survives
+  // page reloads and the OTP redirect — dashboard will pick it up
+  useEffect(() => {
+    if (refCode) {
+      localStorage.setItem("pending_referral_code", refCode);
+    }
+  }, [refCode]);
+
   const [email,           setEmail]           = useState("");
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
