@@ -57,6 +57,9 @@ export default function AffiliateDashboard() {
       catch { return []; }
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000, // refresh every 30s for live tracking
   });
 
   const { data: payouts = [] } = useQuery({
@@ -66,6 +69,8 @@ export default function AffiliateDashboard() {
       catch { return []; }
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // Commission stats — fixed-amount model
