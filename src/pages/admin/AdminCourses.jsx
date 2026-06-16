@@ -164,7 +164,7 @@ export default function AdminCourses() {
 
   const { data: teachers = [] } = useQuery({
     queryKey: ['teachers'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 100),
+    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []),
   });
 
   /* Live topic counts for ALL subjects */
