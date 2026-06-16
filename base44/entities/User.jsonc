@@ -47,15 +47,7 @@
     }
   },
   "rls": {
-    "read": {
-      "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "user_condition": { "role": "teacher" } },
-        { "user_condition": { "_app_role": "admin" } },
-        { "user_condition": { "_app_role": "editor" } },
-        { "data.id": "{{user.id}}" }
-      ]
-    },
+    "read": {},
     "create": {},
     "update": {
       "$or": [
