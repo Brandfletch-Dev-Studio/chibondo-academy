@@ -290,7 +290,7 @@ export default function AdminNotifications() {
 
   const { data: teachers = [] } = useQuery({
     queryKey: ['all-teachers-notif'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 200),
+    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []),
   });
 
   const { data: allNotifications = [], isLoading, refetch } = useQuery({
