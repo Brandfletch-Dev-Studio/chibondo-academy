@@ -61,6 +61,16 @@
         },
         {
           "user_condition": {
+            "_app_role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "editor"
+          }
+        },
+        {
+          "user_condition": {
             "role": "teacher"
           }
         },
@@ -74,6 +84,16 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "editor"
           }
         },
         {
