@@ -68,7 +68,7 @@ export default function AdminSubscriptions() {
 
   const { data: payments = [] } = useQuery({
     queryKey: ['allPayments'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 200),
+    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['payments'] }).then(d => d.payments || []),
   });
 
   const { data: users = [] } = useQuery({
