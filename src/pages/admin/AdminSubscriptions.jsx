@@ -63,17 +63,20 @@ export default function AdminSubscriptions() {
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ['allSubscriptions'],
-    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['subscriptions'] }).then(d => d.subscriptions || []),
+    queryFn: () => base44.entities.Subscription.list('-created_date', 2000),
+    staleTime: 30_000,
   });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['allPayments'],
-    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['payments'] }).then(d => d.payments || []),
+    queryFn: () => base44.entities.Payment.list('-created_date', 2000),
+    staleTime: 30_000,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['users'] }).then(d => d.users || []),
+    queryFn: () => base44.entities.User.list('-created_date', 2000),
+    staleTime: 60_000,
   });
 
   const updateMutation = useMutation({
