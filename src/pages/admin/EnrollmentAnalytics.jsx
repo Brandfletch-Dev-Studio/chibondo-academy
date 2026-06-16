@@ -26,7 +26,7 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
 export default function EnrollmentAnalytics() {
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['admin-all-enrollments'],
-    queryFn: () => base44.entities.Enrollment.filter({}, '-created_date', 2000),
+    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['enrollments'] }).then(d => d.enrollments || []),
     staleTime: 60_000,
   });
   const { data: subjects = [] } = useQuery({
