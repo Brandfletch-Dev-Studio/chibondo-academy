@@ -71,15 +71,23 @@ export default function AdminDashboard() {
   const [timePeriod, setTimePeriod] = useState('month');
   const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
 
-  const { data: subjects = [] }      = useQuery({ queryKey: ['allSubjects'],      queryFn: () => base44.entities.Subject.filter({}) });
-  const { data: enrollments = [] }   = useQuery({ queryKey: ['allEnrollments'],   queryFn: () => base44.entities.Enrollment.filter({}) });
-  const { data: students = [] }      = useQuery({ queryKey: ['allStudents'],      queryFn: () => base44.entities.StudentProfile.filter({}) });
-  const { data: teachers = [] }      = useQuery({ queryKey: ['allTeachers'],      queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
-  const { data: applications = [] }  = useQuery({ queryKey: ['teacherApplications'], queryFn: () => base44.entities.TeacherApplication.filter({}) });
-  const { data: subscriptions = [] } = useQuery({ queryKey: ['allSubscriptions'], queryFn: () => base44.entities.Subscription.filter({}) });
-  const { data: payments = [] }      = useQuery({ queryKey: ['allPayments'],      queryFn: () => base44.entities.Payment.filter({}) });
-  const { data: referrals = [] }     = useQuery({ queryKey: ['allReferrals'],     queryFn: () => base44.entities.Referral.list('-created_date', 500) });
-  const { data: lessons = [] }       = useQuery({ queryKey: ['allLessons'],       queryFn: () => base44.entities.Lesson.filter({}) });
+  // ── Single service-role call — bypasses RLS, consistent for all admins ──────
+  const { data: adminData = {}, isLoading: adminLoading } = useQuery({
+    queryKey: ['adminData', 'dashboard'],
+    queryFn: () => base44.functions.invoke('getAdminData', {
+      datasets: ['users','enrollments','subscriptions','payments','referrals','subjects','lessons','teachers','applications','students'],
+    }),
+    staleTime: 60_000,
+  });
+  const subjects      = adminData.subjects      || [];
+  const enrollments   = adminData.enrollments   || [];
+  const students      = adminData.students      || [];
+  const teachers      = adminData.teachers      || [];
+  const applications  = adminData.applications  || [];
+  const subscriptions = adminData.subscriptions || [];
+  const payments      = adminData.payments      || [];
+  const referrals     = adminData.referrals     || [];
+  const lessons       = adminData.lessons       || [];
 
   const startDate = useMemo(() => getStartDate(timePeriod), [timePeriod]);
 
