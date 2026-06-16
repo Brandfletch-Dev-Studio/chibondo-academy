@@ -70,6 +70,16 @@
           }
         },
         {
+          "user_condition": {
+            "_app_role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "editor"
+          }
+        },
+        {
           "data.student_id": "{{user.id}}"
         }
       ]
@@ -82,6 +92,16 @@
           }
         },
         {
+          "user_condition": {
+            "_app_role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "editor"
+          }
+        },
+        {
           "data.student_id": "{{user.id}}"
         }
       ]
@@ -91,6 +111,16 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "_app_role": "editor"
           }
         },
         {
