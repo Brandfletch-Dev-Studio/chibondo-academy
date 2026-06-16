@@ -834,6 +834,51 @@ function DataPanel() {
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
+// ── Maintenance tool — run once after deploy ──────────────────────────────
+function BackfillButton() {
+  const [status, setStatus] = React.useState('idle'); // idle | running | done | error
+  const [result, setResult] = React.useState(null);
+
+  const run = async () => {
+    setStatus('running');
+    try {
+      const res = await base44.functions.invoke('backfillStudentProfiles', {});
+      setResult(res);
+      setStatus('done');
+    } catch (e) {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-sm">Fix Missing Student Profiles</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Creates StudentProfile + referral codes for users registered before the auto-creation fix. Safe to run multiple times.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={status === 'running'}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground disabled:opacity-50 transition-opacity"
+        >
+          {status === 'running' ? '⏳ Running…' : status === 'done' ? '✅ Done' : 'Run Backfill'}
+        </button>
+      </div>
+      {result && (
+        <div className="text-xs bg-muted/40 rounded-lg p-3 font-mono space-y-0.5">
+          <p>👥 Total users: <strong>{result.total_users}</strong></p>
+          <p>✅ Profiles created: <strong>{result.profiles_created}</strong></p>
+          <p>🏷️ Codes set: <strong>{result.codes_set}</strong></p>
+          {result.errors?.length > 0 && <p className="text-destructive">⚠️ {result.errors.length} errors</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { user } = useOutletContext() ?? {};
   const [active, setActive] = useState('profile');
