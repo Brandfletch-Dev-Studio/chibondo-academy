@@ -1,16 +1,78 @@
 /**
- * uploadImage(file) → Promise<string>
- * Uploads any file to Base44 storage via the SDK and returns the public CDN URL.
+ * uploadFile(file, { onProgress }) → Promise<string>
+ *
+ * Uploads any file to Base44 storage via raw XHR (not the SDK wrapper)
+ * so we get real upload progress events and proper error surfacing.
+ *
+ * @param {File} file
+ * @param {{ onProgress?: (pct: number) => void, maxMB?: number }} options
+ * @returns {Promise<string>} CDN URL of the uploaded file
  */
-import { base44 } from '@/api/base44Client';
+import { appParams } from '@/lib/app-params';
 
-export async function uploadImage(file) {
-  try {
-    const result = await base44.integrations.Core.UploadFile({ file });
-    const url = result?.file_url || result?.url || result?.publicUrl || '';
-    if (!url) throw new Error('Upload succeeded but no URL returned');
-    return url;
-  } catch (err) {
-    throw new Error(`Upload failed: ${err?.message || 'Unknown error'}`);
+const MAX_MB_DEFAULT = 100;
+
+export async function uploadFile(file, { onProgress, maxMB = MAX_MB_DEFAULT } = {}) {
+  if (!file) throw new Error('No file provided');
+
+  const sizeMB = file.size / (1024 * 1024);
+  if (sizeMB > maxMB) {
+    throw new Error(`File too large: ${sizeMB.toFixed(1)} MB (max ${maxMB} MB)`);
   }
+
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+
+    // Progress
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+    }
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          const url = data?.file_url || data?.url || data?.publicUrl || data?.data?.url || '';
+          if (!url) reject(new Error('Upload succeeded but no URL returned — contact support'));
+          else resolve(url);
+        } catch {
+          reject(new Error('Upload response was not valid JSON'));
+        }
+      } else {
+        let msg = `Upload failed (HTTP ${xhr.status})`;
+        try {
+          const err = JSON.parse(xhr.responseText);
+          if (err?.message || err?.error) msg = err.message || err.error;
+        } catch {}
+        reject(new Error(msg));
+      }
+    });
+
+    xhr.addEventListener('error', () => reject(new Error('Network error during upload — check your connection')));
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+    xhr.addEventListener('timeout', () => reject(new Error('Upload timed out — try a smaller file or check your connection')));
+
+    // 5-minute timeout for large files
+    xhr.timeout = 5 * 60 * 1000;
+
+    // Use the Base44 upload endpoint directly
+    const appId = appParams.appId || import.meta.env.VITE_BASE44_APP_ID;
+    const token = appParams.token || localStorage.getItem('base44_access_token') || '';
+
+    xhr.open('POST', `/api/apps/${appId}/integrations/core/upload-file`);
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send(formData);
+  });
+}
+
+// ── Backwards-compatible alias (existing code uses uploadImage) ───────────
+export async function uploadImage(file, opts) {
+  return uploadFile(file, opts);
 }
