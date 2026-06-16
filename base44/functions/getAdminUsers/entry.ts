@@ -1,8 +1,9 @@
 /**
  * getAdminUsers
  * Returns the full user list for admin dashboards.
- * Uses asServiceRole so RLS never filters — any authenticated admin gets all users.
- * Role values in DB: "admin" | "teacher" | "user" (students are role="user")
+ * Uses asServiceRole so RLS never filters — any authenticated user with admin role gets all users.
+ * NOTE: role check is done via DB lookup (asServiceRole), NOT from the JWT token,
+ * so it works even when the session token hasn't refreshed yet.
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
@@ -10,10 +11,16 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Auth guard — must be admin
+    // Auth guard — must be logged in
     const me = await base44.auth.me();
     if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (me.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+
+    // Verify admin role from DB (asServiceRole) — not from potentially stale JWT
+    const dbUsers = await base44.asServiceRole.entities.User.filter({ id: me.id });
+    const dbMe = dbUsers[0];
+    if (!dbMe || dbMe.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Fetch everything as service role — bypasses ALL RLS
     const [users, enrollments, subscriptions] = await Promise.all([
@@ -43,11 +50,9 @@ Deno.serve(async (req) => {
       _sub_plan:         activeSubByUser[u.id]?.plan || null,
     }));
 
-    // Summary stats
-    // NOTE: students have role="user" in the DB (not "student")
-    const students  = users.filter((u: any) => u.role === 'user' || !u.role);
-    const teachers  = users.filter((u: any) => u.role === 'teacher');
-    const admins    = users.filter((u: any) => u.role === 'admin');
+    const students = users.filter((u: any) => u.role === 'user' || !u.role);
+    const teachers = users.filter((u: any) => u.role === 'teacher');
+    const admins   = users.filter((u: any) => u.role === 'admin');
 
     return Response.json({
       users:       enriched,
