@@ -69,11 +69,13 @@ export default function AdminDashboard() {
   });
 
   // ── Direct entity queries — bypass backend function entirely ─────────────────
-  const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
+  // Use getAdminUsers (asServiceRole) — bypasses RLS, all admins see all users
+  const { data: adminUsersData = {}, isLoading: loadingUsers } = useQuery({
     queryKey: ['dash_users'],
-    queryFn: () => base44.entities.User.list('-created_date', 2000),
+    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
     staleTime: 60_000,
   });
+  const allUsers = adminUsersData.users || [];
 
   const { data: allSubscriptions = [], isLoading: loadingSubs } = useQuery({
     queryKey: ['dash_subs'],
