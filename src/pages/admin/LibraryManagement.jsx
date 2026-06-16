@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BulkUploadDialog from '@/components/library/BulkUploadDialog';
-import { uploadImage } from '@/utils/uploadImage';
+import { uploadFile } from '@/utils/uploadImage';
 
 const TYPE_META = {
   book:       { label: 'Book',       color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
@@ -37,20 +37,25 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
   });
   const [file, setFile]         = useState(resource?.file_url ? { name: 'Current file', url: resource.file_url } : null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleFile = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 20 * 1024 * 1024) { toast.error('Max file size is 20 MB'); return; }
     setUploading(true);
+    setUploadProgress(0);
     try {
-      const url = await uploadImage(f);
+      const url = await uploadFile(f, {
+        maxMB: 100,
+        onProgress: (pct) => setUploadProgress(pct),
+      });
       setFile({ name: f.name, url });
-      toast.success('File uploaded successfully!');
+      toast.success('File uploaded!');
     } catch (err) {
-      toast.error(`Upload failed: ${err?.message || 'Unknown error'}`);
+      toast.error(err?.message || 'Upload failed');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -134,8 +139,22 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
             </div>
           ) : (
             <label className="mt-1.5 flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 cursor-pointer transition-colors bg-muted/20">
-              {uploading ? <Loader2 className="w-6 h-6 animate-spin text-primary" /> : <Upload className="w-6 h-6 text-muted-foreground" />}
-              <span className="text-xs text-muted-foreground">{uploading ? 'Uploading…' : 'Click to upload'}</span>
+              {uploading ? (
+                <div className="w-full space-y-2 px-2">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="text-xs text-primary font-medium">Uploading… {uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Click to upload (max 100 MB)</span>
+                </>
+              )}
               <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.epub,.txt" onChange={handleFile} />
             </label>
           )}
