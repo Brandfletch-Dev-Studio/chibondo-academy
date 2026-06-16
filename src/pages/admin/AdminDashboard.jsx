@@ -69,11 +69,20 @@ export default function AdminDashboard() {
   });
 
   // ── Direct entity queries — bypass backend function entirely ─────────────────
-  // Use getAdminUsers (asServiceRole) — bypasses RLS, all admins see all users
+  // Use getAdminUsers (asServiceRole) with direct-entity fallback
   const { data: adminUsersData = {}, isLoading: loadingUsers } = useQuery({
     queryKey: ['dash_users'],
-    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
+    queryFn: async () => {
+      try {
+        const result = await base44.functions.invoke('getAdminUsers', {});
+        if (result && Array.isArray(result.users) && result.users.length > 0) return result;
+      } catch (_) {}
+      // Fallback: direct entity query (works now that User read RLS is open)
+      const users = await base44.entities.User.list('-created_date', 2000);
+      return { users, total: users.length };
+    },
     staleTime: 60_000,
+    retry: 1,
   });
   const allUsers = adminUsersData.users || [];
 
