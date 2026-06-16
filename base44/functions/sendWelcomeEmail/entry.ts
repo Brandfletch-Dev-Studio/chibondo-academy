@@ -34,7 +34,18 @@ Deno.serve(async (req) => {
       console.error('StudentProfile creation error:', profileErr.message);
     }
 
-    // ── 2. Idempotency: only send welcome email once ─────────────────────────
+    // ── 2. Ensure user has a referral code (used for the affiliate programme) ──
+    try {
+      if (!user.referral_code) {
+        const code = 'CHIB-' + user.id.slice(-6).toUpperCase();
+        await base44.asServiceRole.entities.User.update(user.id, { referral_code: code });
+        console.log(`✅ Referral code set: ${code} for ${user.email}`);
+      }
+    } catch (codeErr: any) {
+      console.error('referral_code set error (non-fatal):', codeErr.message);
+    }
+
+    // ── 3. Idempotency: only send welcome email once ─────────────────────────
     const existingNotif = await base44.asServiceRole.entities.Notification.filter({
       user_id: user.id,
       type: 'welcome',
@@ -44,7 +55,7 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true });
     }
 
-    // ── 3. Build and send branded email ─────────────────────────────────────
+    // ── 4. Build and send branded email ─────────────────────────────────────
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', {
       type: 'welcome',
       variables: { student_name: user.full_name || user.email.split('@')[0] },
@@ -58,7 +69,7 @@ Deno.serve(async (req) => {
       body: built.html,
     });
 
-    // ── 4. Record welcome notification to prevent re-sending ────────────────
+    // ── 5. Record welcome notification to prevent re-sending ────────────────
     await base44.asServiceRole.entities.Notification.create({
       user_id: user.id,
       title:   'Welcome to Chibondo Academy!',
