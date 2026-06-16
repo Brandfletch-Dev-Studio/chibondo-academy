@@ -118,8 +118,8 @@ function CourseManager() {
 
   const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => base44.entities.AcademicForm.list('order', 50) });
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['enrollments'] }).then(d => d.enrollments || []) });
+  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
+  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.entities.Enrollment.list('-created_date', 5000) });
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -409,7 +409,7 @@ function TopicManager() {
 function PendingApprovals() {
   const queryClient = useQueryClient();
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.filter({ pending_approval: true }) });
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []) });
+  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
 
   const approveMutation = useMutation({
     mutationFn: (id) => base44.entities.Subject.update(id, { status: 'published', pending_approval: false }),
@@ -469,9 +469,9 @@ function PendingApprovals() {
 // ─── TUTOR ALLOCATION ─────────────────────────────────────────────────────────
 function TutorAllocation() {
   const queryClient = useQueryClient();
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []) });
+  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['enrollments'] }).then(d => d.enrollments || []) });
+  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.entities.Enrollment.list('-created_date', 5000) });
 
   const reassignMutation = useMutation({
     mutationFn: ({ subjectId, teacherId, teacherName }) =>
@@ -551,9 +551,9 @@ function TutorAllocation() {
 function CourseEnrollments() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['enrollments'] }).then(d => d.enrollments || []) });
+  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.entities.Enrollment.list('-created_date', 5000) });
   const { data: students = [] } = useQuery({ queryKey: ['allStudents'], queryFn: () => base44.entities.StudentProfile.filter({}) });
-  const { data: users = [] } = useQuery({ queryKey: ['allUsers'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['users'] }).then(d => (d.users || []).filter(u => u.role === 'user' || !u.role)) });
+  const { data: users = [] } = useQuery({ queryKey: ['allUsers'], queryFn: () => base44.entities.User.filter({ role: 'user' }) });
 
   const courseEnrollments = selectedSubject ? enrollments.filter(e => e.subject_id === selectedSubject) : [];
 
@@ -617,8 +617,8 @@ export default function CurriculumManagement() {
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => base44.entities.Subject.list('order', 200) });
   const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => base44.entities.AcademicForm.list('order', 50) });
   const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => base44.entities.Topic.list('order', 500) });
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['enrollments'] }).then(d => d.enrollments || []) });
+  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => base44.entities.User.filter({ role: 'teacher' }) });
+  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => base44.entities.Enrollment.list('-created_date', 5000) });
   const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => base44.entities.Lesson.filter({}) });
 
   const stats = [
