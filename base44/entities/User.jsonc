@@ -13,7 +13,7 @@
     },
     "avatar_url": {
       "type": "string",
-      "description": "Profile photo URL \u2014 set from settings page"
+      "description": "Profile photo URL — set from settings page"
     },
     "referral_code": {
       "type": "string",
@@ -33,7 +33,7 @@
     "total_learning_hours": {
       "type": "number",
       "default": 0,
-      "description": "Cumulative learning hours \u2014 incremented by lesson completion automation"
+      "description": "Cumulative learning hours — incremented by lesson completion automation"
     },
     "study_streak": {
       "type": "number",
@@ -43,15 +43,16 @@
     "last_study_date": {
       "type": "string",
       "format": "date",
-      "description": "ISO date of the last day the student completed a lesson \u2014 used to compute streak"
+      "description": "ISO date of the last day the student completed a lesson — used to compute streak"
     }
-  }
-,
+  },
   "rls": {
     "read": {
       "$or": [
         { "user_condition": { "role": "admin" } },
         { "user_condition": { "role": "teacher" } },
+        { "user_condition": { "_app_role": "admin" } },
+        { "user_condition": { "_app_role": "editor" } },
         { "data.id": "{{user.id}}" }
       ]
     },
@@ -59,11 +60,16 @@
     "update": {
       "$or": [
         { "user_condition": { "role": "admin" } },
+        { "user_condition": { "_app_role": "admin" } },
+        { "user_condition": { "_app_role": "editor" } },
         { "data.id": "{{user.id}}" }
       ]
     },
     "delete": {
-      "user_condition": { "role": "admin" }
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "_app_role": "admin" } }
+      ]
     }
   }
 }
