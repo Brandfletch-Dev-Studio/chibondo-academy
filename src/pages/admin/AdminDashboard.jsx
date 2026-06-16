@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, BookOpen, TrendingUp, CreditCard, GraduationCap,
   Gift, AlertCircle, CheckCircle2, Clock, Layers,
-  UserCheck, ArrowRight, ArrowUpRight, DollarSign
+  UserCheck, ArrowRight, ArrowUpRight, DollarSign, Loader2
 } from 'lucide-react';
 
 const TIME_FILTERS = [
@@ -21,11 +21,11 @@ const TIME_FILTERS = [
 function getStartDate(key) {
   const now = new Date();
   switch (key) {
-    case 'today':   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    case 'week': {   const d = new Date(now); d.setDate(now.getDate() - 7); return d; }
-    case 'month': {  const d = new Date(now); d.setMonth(now.getMonth() - 1); return d; }
-    case '6months': { const d = new Date(now); d.setMonth(now.getMonth() - 6); return d; }
-    case 'year': {   const d = new Date(now); d.setFullYear(now.getFullYear() - 1); return d; }
+    case 'today':    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    case 'week':   { const d = new Date(now); d.setDate(now.getDate() - 7); return d; }
+    case 'month':  { const d = new Date(now); d.setMonth(now.getMonth() - 1); return d; }
+    case '6months':{ const d = new Date(now); d.setMonth(now.getMonth() - 6); return d; }
+    case 'year':   { const d = new Date(now); d.setFullYear(now.getFullYear() - 1); return d; }
     default: return null;
   }
 }
@@ -35,7 +35,7 @@ function inRange(dateStr, startDate) {
   return new Date(dateStr) >= startDate;
 }
 
-function StatCard({ label, value, sub, icon: Icon, gradient, to }) {
+function StatCard({ label, value, sub, icon: Icon, gradient, to, loading }) {
   const content = (
     <div className={`relative overflow-hidden rounded-2xl p-5 ${gradient} group transition-all duration-200 hover:scale-[1.01] hover:shadow-xl`}>
       <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
@@ -47,7 +47,10 @@ function StatCard({ label, value, sub, icon: Icon, gradient, to }) {
         {to && <ArrowUpRight className="w-4 h-4 text-white/40 group-hover:text-white/80 transition-colors" />}
       </div>
       <div className="relative z-10 mt-4">
-        <p className="text-3xl font-display font-bold text-white leading-none">{value}</p>
+        {loading
+          ? <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
+          : <p className="text-3xl font-display font-bold text-white leading-none">{value}</p>
+        }
         <p className="text-sm font-semibold text-white/80 mt-1">{label}</p>
         {sub && <p className="text-xs text-white/50 mt-0.5">{sub}</p>}
       </div>
@@ -58,53 +61,94 @@ function StatCard({ label, value, sub, icon: Icon, gradient, to }) {
 
 export default function AdminDashboard() {
   const [timePeriod, setTimePeriod] = useState('month');
-  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
 
-  const { data: adminData = {}, isLoading: adminLoading } = useQuery({
-    queryKey: ['adminData', 'dashboard'],
-    queryFn: () => base44.functions.invoke('getAdminData', {
-      datasets: ['users','enrollments','subscriptions','payments','referrals','subjects','lessons','teachers','applications','students'],
-    }),
-    staleTime: 60_000,
-    refetchOnWindowFocus: true,
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 300_000,
   });
 
-  const subjects      = adminData.subjects      || [];
-  const enrollments   = adminData.enrollments   || [];
-  const teachers      = adminData.teachers      || [];
-  const applications  = adminData.applications  || [];
-  const subscriptions = adminData.subscriptions || [];
-  const payments      = adminData.payments      || [];
-  const referrals     = adminData.referrals     || [];
-  const lessons       = adminData.lessons       || [];
+  // ── Direct entity queries — bypass backend function entirely ─────────────────
+  const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ['dash_users'],
+    queryFn: () => base44.entities.User.list('-created_date', 2000),
+    staleTime: 60_000,
+  });
 
-  // students = all users with role 'user' (from getAdminData 'students' dataset = User.filter({role:'user'}))
-  const allStudents   = adminData.students || adminData.users?.filter(u => u.role === 'user' || !u.role) || [];
+  const { data: allSubscriptions = [], isLoading: loadingSubs } = useQuery({
+    queryKey: ['dash_subs'],
+    queryFn: () => base44.entities.Subscription.list('-created_date', 2000),
+    staleTime: 60_000,
+  });
+
+  const { data: allPayments = [], isLoading: loadingPayments } = useQuery({
+    queryKey: ['dash_payments'],
+    queryFn: () => base44.entities.Payment.list('-created_date', 2000),
+    staleTime: 60_000,
+  });
+
+  const { data: allEnrollments = [], isLoading: loadingEnrollments } = useQuery({
+    queryKey: ['dash_enrollments'],
+    queryFn: () => base44.entities.Enrollment.list('-created_date', 5000),
+    staleTime: 60_000,
+  });
+
+  const { data: allReferrals = [] } = useQuery({
+    queryKey: ['dash_referrals'],
+    queryFn: () => base44.entities.Referral.list('-created_date', 2000),
+    staleTime: 60_000,
+  });
+
+  const { data: allSubjects = [] } = useQuery({
+    queryKey: ['dash_subjects'],
+    queryFn: () => base44.entities.Subject.list('order', 500),
+    staleTime: 300_000,
+  });
+
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ['dash_lessons'],
+    queryFn: () => base44.entities.Lesson.list('order', 5000),
+    staleTime: 300_000,
+  });
+
+  const { data: allApplications = [] } = useQuery({
+    queryKey: ['dash_applications'],
+    queryFn: () => base44.entities.TeacherApplication.list('-created_date', 200),
+    staleTime: 60_000,
+  });
+
+  const isLoading = loadingUsers || loadingSubs || loadingPayments;
+
+  // ── Derived data ─────────────────────────────────────────────────────────────
+  const allStudents = useMemo(() => allUsers.filter(u => u.role === 'user' || !u.role), [allUsers]);
+  const allTeachers = useMemo(() => allUsers.filter(u => u.role === 'teacher'), [allUsers]);
 
   const startDate = useMemo(() => getStartDate(timePeriod), [timePeriod]);
 
-  // Time-filtered datasets
-  const filteredPayments      = useMemo(() => payments.filter(p => inRange(p.created_date, startDate)), [payments, startDate]);
-  const filteredEnrollments   = useMemo(() => enrollments.filter(e => inRange(e.created_date, startDate)), [enrollments, startDate]);
-  const filteredNewStudents   = useMemo(() => allStudents.filter(s => inRange(s.created_date, startDate)), [allStudents, startDate]);
-  const filteredNewSubs       = useMemo(() => subscriptions.filter(s => inRange(s.created_date, startDate)), [subscriptions, startDate]);
-  const filteredReferrals     = useMemo(() => referrals.filter(r => inRange(r.created_date, startDate)), [referrals, startDate]);
+  const filteredPayments    = useMemo(() => allPayments.filter(p => inRange(p.created_date, startDate)), [allPayments, startDate]);
+  const filteredEnrollments = useMemo(() => allEnrollments.filter(e => inRange(e.created_date, startDate)), [allEnrollments, startDate]);
+  const filteredNewStudents = useMemo(() => allStudents.filter(s => inRange(s.created_date, startDate)), [allStudents, startDate]);
+  const filteredNewSubs     = useMemo(() => allSubscriptions.filter(s => inRange(s.created_date, startDate)), [allSubscriptions, startDate]);
+  const filteredReferrals   = useMemo(() => allReferrals.filter(r => inRange(r.created_date, startDate)), [allReferrals, startDate]);
 
-  // Revenue — from completed payments in period
-  const confirmedRevenue  = filteredPayments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
-  const pendingRevenue    = filteredPayments.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
+  // Revenue — completed payments in selected period
+  const confirmedRevenue = filteredPayments
+    .filter(p => p.status === 'completed')
+    .reduce((s, p) => s + (p.amount || 0), 0);
+  const pendingRevenue = filteredPayments
+    .filter(p => p.status === 'pending')
+    .reduce((s, p) => s + (p.amount || 0), 0);
 
-  // Active subscriptions = ALL currently active (not time-filtered — this is a current state metric)
-  const activeSubscriptions = subscriptions.filter(s => s.status === 'active').length;
+  // Active subs = current state (not time-filtered)
+  const activeSubscriptions = allSubscriptions.filter(s => s.status === 'active').length;
 
-  const pendingApps = applications.filter(a => a.status === 'pending').length;
+  const pendingApps = allApplications.filter(a => a.status === 'pending').length;
 
-  // Avg progress across ALL enrollments (not time filtered — progress is cumulative)
-  const avgProgress = enrollments.length > 0
-    ? Math.round(enrollments.reduce((s, e) => s + (e.progress_percentage || 0), 0) / enrollments.length)
+  const avgProgress = allEnrollments.length > 0
+    ? Math.round(allEnrollments.reduce((s, e) => s + (e.progress_percentage || 0), 0) / allEnrollments.length)
     : 0;
 
-  const totalAffiliates = [...new Set(filteredReferrals.map(r => r.referrer_id))].length;
+  const totalAffiliates = new Set(filteredReferrals.map(r => r.referrer_id)).size;
 
   const recentPayments = [...filteredPayments]
     .filter(p => p.status === 'completed')
@@ -120,7 +164,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-display font-bold">Overview</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Welcome back, {user?.full_name?.split(' ')[0] || 'Admin'} · {new Date().toLocaleDateString('en-MW', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            Welcome back, {currentUser?.full_name?.split(' ')[0] || 'Admin'} · {new Date().toLocaleDateString('en-MW', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
         <div className="flex gap-1 flex-wrap bg-muted/50 rounded-xl p-1">
@@ -166,17 +210,22 @@ export default function AdminDashboard() {
                 View all <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            <p className="text-4xl font-display font-bold tracking-tight">MWK {confirmedRevenue.toLocaleString()}</p>
-            <p className="text-sm font-semibold text-white/70 mt-1">Confirmed Revenue</p>
-            <p className="text-xs text-white/40 mt-0.5">
-              From {filteredPayments.filter(p => p.status === 'completed').length} completed payments
-            </p>
-            {pendingRevenue > 0 && (
-              <div className="mt-3 inline-flex items-center gap-1.5 text-xs bg-white/10 px-2.5 py-1 rounded-full">
-                <Clock className="w-3 h-3 text-yellow-300" />
-                <span className="text-yellow-200">MWK {pendingRevenue.toLocaleString()} pending</span>
-              </div>
-            )}
+            {loadingPayments
+              ? <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
+              : <>
+                  <p className="text-4xl font-display font-bold tracking-tight">MWK {confirmedRevenue.toLocaleString()}</p>
+                  <p className="text-sm font-semibold text-white/70 mt-1">Confirmed Revenue</p>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    From {filteredPayments.filter(p => p.status === 'completed').length} completed payments
+                  </p>
+                  {pendingRevenue > 0 && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 text-xs bg-white/10 px-2.5 py-1 rounded-full">
+                      <Clock className="w-3 h-3 text-yellow-300" />
+                      <span className="text-yellow-200">MWK {pendingRevenue.toLocaleString()} pending</span>
+                    </div>
+                  )}
+                </>
+            }
           </div>
         </div>
 
@@ -188,6 +237,7 @@ export default function AdminDashboard() {
             icon={CreditCard}
             gradient="bg-gradient-to-br from-emerald-600 to-emerald-800"
             to="/admin/subscriptions"
+            loading={loadingSubs}
           />
           <StatCard
             label="New Students"
@@ -196,14 +246,16 @@ export default function AdminDashboard() {
             icon={Users}
             gradient="bg-gradient-to-br from-sky-600 to-sky-800"
             to="/admin/users"
+            loading={loadingUsers}
           />
           <StatCard
             label="Tutors"
-            value={teachers.length}
+            value={allTeachers.length}
             sub={pendingApps > 0 ? `${pendingApps} pending` : 'All approved'}
             icon={GraduationCap}
             gradient="bg-gradient-to-br from-violet-600 to-violet-800"
             to="/admin/teachers"
+            loading={loadingUsers}
           />
           <StatCard
             label="Enrollments"
@@ -211,17 +263,18 @@ export default function AdminDashboard() {
             sub={`${avgProgress}% avg progress`}
             icon={BookOpen}
             gradient="bg-gradient-to-br from-amber-600 to-amber-800"
+            loading={loadingEnrollments}
           />
         </div>
       </div>
 
-      {/* Secondary stats grid */}
+      {/* Secondary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
           <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-1">
             <BookOpen className="w-4 h-4 text-blue-500" />
           </div>
-          <p className="text-2xl font-display font-bold">{subjects.length}</p>
+          <p className="text-2xl font-display font-bold">{allSubjects.length}</p>
           <p className="text-xs font-semibold text-foreground/80">Total Courses</p>
           <p className="text-[11px] text-muted-foreground">{filteredEnrollments.length} enrolments this period</p>
         </div>
@@ -229,9 +282,9 @@ export default function AdminDashboard() {
           <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center mb-1">
             <Layers className="w-4 h-4 text-orange-500" />
           </div>
-          <p className="text-2xl font-display font-bold">{lessons.length}</p>
+          <p className="text-2xl font-display font-bold">{allLessons.length}</p>
           <p className="text-xs font-semibold text-foreground/80">Total Lessons</p>
-          <p className="text-[11px] text-muted-foreground">Across {subjects.length} courses</p>
+          <p className="text-[11px] text-muted-foreground">Across {allSubjects.length} courses</p>
         </div>
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
           <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center mb-1">
@@ -239,7 +292,7 @@ export default function AdminDashboard() {
           </div>
           <p className="text-2xl font-display font-bold">{avgProgress}%</p>
           <p className="text-xs font-semibold text-foreground/80">Avg. Progress</p>
-          <p className="text-[11px] text-muted-foreground">{enrollments.length} total enrollments</p>
+          <p className="text-[11px] text-muted-foreground">{allEnrollments.length} total enrolments</p>
         </div>
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
           <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center mb-1">
@@ -262,8 +315,8 @@ export default function AdminDashboard() {
               View all <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
-          {adminLoading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+          {loadingPayments ? (
+            <div className="p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div>
           ) : recentPayments.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No completed payments in this period</div>
           ) : (
@@ -293,13 +346,11 @@ export default function AdminDashboard() {
               Manage <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
-          {adminLoading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : applications.length === 0 ? (
+          {allApplications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No applications yet</div>
           ) : (
             <div className="divide-y divide-border">
-              {applications.slice(0, 5).map(app => (
+              {allApplications.slice(0, 5).map(app => (
                 <div key={app.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                     {app.full_name?.[0]?.toUpperCase() || 'T'}
