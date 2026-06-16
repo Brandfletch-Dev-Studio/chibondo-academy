@@ -1,8 +1,8 @@
 /**
  * getAdminUsers
  * Returns the full user list for admin dashboards.
- * Uses asServiceRole so RLS never filters the result — any admin gets all users.
- * Also returns enrollment + subscription counts per user for the stats grid.
+ * Uses asServiceRole so RLS never filters — any authenticated admin gets all users.
+ * Role values in DB: "admin" | "teacher" | "user" (students are role="user")
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
@@ -10,43 +10,52 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Auth check — must be admin
+    // Auth guard — must be admin
     const me = await base44.auth.me();
     if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (me.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Fetch everything as service role — bypasses all RLS
+    // Fetch everything as service role — bypasses ALL RLS
     const [users, enrollments, subscriptions] = await Promise.all([
-      base44.asServiceRole.entities.User.list('-created_date', 1000),
-      base44.asServiceRole.entities.Enrollment.filter({}),
-      base44.asServiceRole.entities.Subscription.filter({}),
+      base44.asServiceRole.entities.User.list('-created_date', 2000),
+      base44.asServiceRole.entities.Enrollment.filter({}).catch(() => []),
+      base44.asServiceRole.entities.Subscription.filter({ status: 'active' }).catch(() => []),
     ]);
 
-    // Compute per-user stats
-    const enrollCountByStudent: Record<string, number> = {};
+    // Build per-user lookup maps
+    const enrollCountByUser: Record<string, number> = {};
     for (const e of enrollments) {
-      enrollCountByStudent[e.student_id] = (enrollCountByStudent[e.student_id] || 0) + 1;
+      const key = e.student_id || e.user_id;
+      if (key) enrollCountByUser[key] = (enrollCountByUser[key] || 0) + 1;
     }
 
-    const activeSubByStudent: Record<string, any> = {};
+    const activeSubByUser: Record<string, any> = {};
     for (const s of subscriptions) {
-      if (s.status === 'active') activeSubByStudent[s.student_id] = s;
+      const key = s.student_id || s.user_id;
+      if (key) activeSubByUser[key] = s;
     }
 
+    // Enrich each user with pre-computed data
     const enriched = users.map((u: any) => ({
       ...u,
-      _enrollment_count: enrollCountByStudent[u.id] || 0,
-      _has_active_sub:   !!activeSubByStudent[u.id],
-      _sub_plan:         activeSubByStudent[u.id]?.plan || null,
+      _enrollment_count: enrollCountByUser[u.id] || 0,
+      _has_active_sub:   !!activeSubByUser[u.id],
+      _sub_plan:         activeSubByUser[u.id]?.plan || null,
     }));
 
+    // Summary stats
+    // NOTE: students have role="user" in the DB (not "student")
+    const students  = users.filter((u: any) => u.role === 'user' || !u.role);
+    const teachers  = users.filter((u: any) => u.role === 'teacher');
+    const admins    = users.filter((u: any) => u.role === 'admin');
+
     return Response.json({
-      users: enriched,
-      total: users.length,
-      students:    users.filter((u: any) => u.role === 'user' || !u.role).length,
-      teachers:    users.filter((u: any) => u.role === 'teacher').length,
-      admins:      users.filter((u: any) => u.role === 'admin').length,
-      subscribed:  Object.keys(activeSubByStudent).length,
+      users:       enriched,
+      total:       users.length,
+      students:    students.length,
+      teachers:    teachers.length,
+      admins:      admins.length,
+      subscribed:  Object.keys(activeSubByUser).length,
       enrollments: enrollments.length,
     });
 
