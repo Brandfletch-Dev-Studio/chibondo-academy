@@ -298,7 +298,7 @@ export default function TutorManagement() {
   // All platform teachers (role = teacher) — to detect unlinked ones
   const { data: allTeachers = [] } = useQuery({
     queryKey: ['all-teachers-mgmt'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 500),
+    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['teachers'] }).then(d => d.teachers || []),
     staleTime: 60_000,
   });
 
