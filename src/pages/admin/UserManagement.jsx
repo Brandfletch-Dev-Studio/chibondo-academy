@@ -242,11 +242,48 @@ export default function UserManagement() {
   const [confirmDialog, setConfirmDialog] = useState(null); // { title, desc, action }
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  // ── Data — service-role via getAdminUsers (bypasses RLS for all admins) ──
+  // ── Data: try getAdminUsers (asServiceRole) first, fall back to direct entity query ──
   const { data: adminData, isLoading, refetch } = useQuery({
     queryKey: ['adminUsers'],
-    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
+    queryFn: async () => {
+      try {
+        const result = await base44.functions.invoke('getAdminUsers', {});
+        // If function returned an error object or no users array, fall back
+        if (!result || result.error || !Array.isArray(result.users)) {
+          console.warn('getAdminUsers failed, falling back to direct entity query:', result?.error);
+          const users = await base44.entities.User.list('-created_date', 2000);
+          const enrollments = await base44.entities.Enrollment.filter({}).catch(() => []);
+          const activeSubs = await base44.entities.Subscription.filter({ status: 'active' }).catch(() => []);
+          const activeSubByUser = {};
+          activeSubs.forEach(s => { if (s.student_id) activeSubByUser[s.student_id] = s; });
+          const enrollCountByUser = {};
+          enrollments.forEach(e => { if (e.student_id) enrollCountByUser[e.student_id] = (enrollCountByUser[e.student_id] || 0) + 1; });
+          const enriched = users.map(u => ({
+            ...u,
+            _enrollment_count: enrollCountByUser[u.id] || 0,
+            _has_active_sub: !!activeSubByUser[u.id],
+            _sub_plan: activeSubByUser[u.id]?.plan || null,
+          }));
+          return {
+            users: enriched,
+            total: users.length,
+            students: users.filter(u => u.role === 'user' || !u.role).length,
+            teachers: users.filter(u => u.role === 'teacher').length,
+            admins: users.filter(u => u.role === 'admin').length,
+            subscribed: Object.keys(activeSubByUser).length,
+            enrollments: enrollments.length,
+          };
+        }
+        return result;
+      } catch (e) {
+        console.error('UserManagement data fetch error:', e);
+        // Last resort: direct entity query
+        const users = await base44.entities.User.list('-created_date', 2000);
+        return { users, total: users.length, students: 0, teachers: 0, admins: 0, subscribed: 0, enrollments: 0 };
+      }
+    },
     staleTime: 30_000,
+    retry: 2,
   });
 
   // getAdminUsers returns { users, total, students, teachers, admins, subscribed, enrollments }
