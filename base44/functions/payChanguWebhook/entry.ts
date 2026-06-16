@@ -1,6 +1,5 @@
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
-// ── Branded email helper ────────────────────────────────────────────────────
 async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, string | number>) {
   try {
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
@@ -9,7 +8,6 @@ async function sendBrandedEmail(base44: any, to: string, type: string, variables
     console.log(`✅ Branded email (${type}) sent to ${to}`);
   } catch (err: any) {
     console.error(`sendBrandedEmail(${type}) failed — falling back:`, err.message);
-    // Plain text fallback
     await base44.asServiceRole.integrations.Core.SendEmail({
       to,
       subject: type === 'payment_confirmed' ? 'Payment Confirmed – Chibondo Academy' : type,
@@ -77,55 +75,129 @@ Deno.serve(async (req) => {
 async function activateSubscription(base44: any, payment: any) {
   const studentId = payment.student_id;
 
+  // Check if there's already an active sub — if so this is a renewal payment
   const activeSubs = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'active' });
-  if (activeSubs.length > 0) {
-    await base44.asServiceRole.entities.Payment.update(payment.id, { status: 'completed' });
-    return;
+  const isRenewal = activeSubs.length > 0;
+
+  let sub: any;
+
+  if (isRenewal) {
+    // Extend the existing active subscription
+    sub = activeSubs[0];
+    const currentEnd = sub.end_date ? new Date(sub.end_date) : new Date();
+    // Extend from current end date (not today) to avoid losing time
+    const baseDate = currentEnd > new Date() ? currentEnd : new Date();
+    const newEnd = new Date(baseDate);
+    if (sub.plan === 'monthly')       newEnd.setMonth(newEnd.getMonth() + 1);
+    else if (sub.plan === 'annual')   newEnd.setFullYear(newEnd.getFullYear() + 1);
+    else if (sub.plan === 'biannual') newEnd.setFullYear(newEnd.getFullYear() + 2);
+    else if (sub.plan === 'quarterly') newEnd.setMonth(newEnd.getMonth() + 3);
+
+    await base44.asServiceRole.entities.Subscription.update(sub.id, {
+      end_date: newEnd.toISOString(),
+    });
+    await base44.asServiceRole.entities.Payment.update(payment.id, {
+      status: 'completed',
+      description: `${sub.plan} renewal — webhook confirmed`,
+    });
+    console.log(`✅ Renewed ${sub.plan} for student ${studentId} until ${newEnd.toISOString()}`);
+  } else {
+    // First-time activation from trial
+    const trials = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'trial' });
+    if (trials.length === 0) {
+      console.error(`No trial or active sub for student ${studentId}`);
+      return;
+    }
+    sub = trials[0];
+    const startDate = new Date();
+    const endDate = new Date();
+    if (sub.plan === 'monthly')        endDate.setMonth(endDate.getMonth() + 1);
+    else if (sub.plan === 'annual')    endDate.setFullYear(endDate.getFullYear() + 1);
+    else if (sub.plan === 'biannual')  endDate.setFullYear(endDate.getFullYear() + 2);
+    else if (sub.plan === 'quarterly') endDate.setMonth(endDate.getMonth() + 3);
+
+    await base44.asServiceRole.entities.Subscription.update(sub.id, {
+      status: 'active',
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+    });
+    await base44.asServiceRole.entities.Payment.update(payment.id, {
+      status: 'completed',
+      description: `${sub.plan} fees — webhook confirmed`,
+    });
   }
 
-  const trials = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'trial' });
-  if (trials.length === 0) { console.error(`No trial sub for student ${studentId}`); return; }
-
-  const sub = trials[0];
-  const startDate = new Date();
-  const endDate = new Date();
-  if (sub.plan === 'monthly')        endDate.setMonth(endDate.getMonth() + 1);
-  else if (sub.plan === 'annual')    endDate.setFullYear(endDate.getFullYear() + 1);
-  else if (sub.plan === 'biannual')  endDate.setFullYear(endDate.getFullYear() + 2);
-  else if (sub.plan === 'quarterly') endDate.setMonth(endDate.getMonth() + 3);
-
-  await base44.asServiceRole.entities.Subscription.update(sub.id, {
-    status: 'active',
-    start_date: startDate.toISOString(),
-    end_date: endDate.toISOString(),
-  });
-  await base44.asServiceRole.entities.Payment.update(payment.id, {
-    status: 'completed',
-    description: `${sub.plan} fees — webhook confirmed`,
-  });
-
-  // Upgrade referral
+  // ── Commission logic ──────────────────────────────────────────────────────
   try {
     const commSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'affiliate_commission' });
-    const commAmount = commSettings[0]?.value?.commission_amount ?? commSettings[0]?.value?.fixed_amount ?? 10000;
-    const referrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
-    for (const ref of referrals) {
-      if (ref.status === 'registered' || ref.status === 'pending') {
-        await base44.asServiceRole.entities.Referral.update(ref.id, {
-          status: 'paid', reward_amount: commAmount, reward_status: 'pending',
-        });
+    const cfg = commSettings[0]?.value || {};
+    const recurringEnabled = cfg.recurring_commission === true;
+
+    // Calculate commission amount based on commission_type
+    let commAmount = 0;
+    if (cfg.commission_type === 'percentage') {
+      commAmount = Math.round(((cfg.percentage_rate || 10) / 100) * (payment.amount || 0));
+    } else if (cfg.commission_type === 'tiered') {
+      // Count referrer's total paid referrals to determine tier
+      const referrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
+      const referrerId = referrals[0]?.referrer_id;
+      if (referrerId) {
+        const allRefByReferrer = await base44.asServiceRole.entities.Referral.filter({ referrer_id: referrerId });
+        const paidCount = allRefByReferrer.filter((r: any) => ['paid','rewarded'].includes(r.status)).length;
+        if (paidCount >= (cfg.tier3_referrals || 30)) commAmount = Math.round(((cfg.tier3_rate || 20) / 100) * (payment.amount || 0));
+        else if (paidCount >= (cfg.tier2_referrals || 15)) commAmount = Math.round(((cfg.tier2_rate || 15) / 100) * (payment.amount || 0));
+        else commAmount = Math.round(((cfg.tier1_rate || 10) / 100) * (payment.amount || 0));
+      }
+    } else {
+      // fixed
+      commAmount = cfg.fixed_amount ?? cfg.commission_amount ?? 10000;
+    }
+
+    const existingReferrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
+
+    if (!isRenewal) {
+      // First payment: upgrade the pending referral record
+      for (const ref of existingReferrals) {
+        if (ref.status === 'registered' || ref.status === 'pending') {
+          await base44.asServiceRole.entities.Referral.update(ref.id, {
+            status: 'paid',
+            reward_amount: commAmount,
+            reward_status: 'pending',
+          });
+        }
+      }
+    } else if (recurringEnabled && existingReferrals.length > 0) {
+      // Renewal payment: create a new referral reward record for each referrer
+      for (const ref of existingReferrals) {
+        if (['paid', 'rewarded'].includes(ref.status)) {
+          await base44.asServiceRole.entities.Referral.create({
+            referrer_id: ref.referrer_id,
+            referrer_name: ref.referrer_name,
+            referred_email: ref.referred_email,
+            referred_user_id: studentId,
+            referred_name: ref.referred_name,
+            referral_code: ref.referral_code,
+            status: 'paid',
+            reward_amount: commAmount,
+            reward_status: 'pending',
+            notes: `Recurring commission — renewal payment ${payment.reference || payment.id}`,
+          });
+          console.log(`✅ Recurring commission MWK ${commAmount} created for referrer ${ref.referrer_id}`);
+        }
       }
     }
-  } catch (refErr) { console.error('Referral upgrade error:', refErr); }
+  } catch (refErr) { console.error('Commission error:', refErr); }
 
+  // Notification to student
+  const endDate = sub.end_date ? new Date(sub.end_date) : new Date();
   await base44.asServiceRole.entities.Notification.create({
     user_id: studentId,
-    title: 'Payment confirmed — full access unlocked!',
+    title: isRenewal ? 'Subscription renewed!' : 'Payment confirmed — full access unlocked!',
     message: `Your ${sub.plan} subscription is active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.`,
     type: 'subscription', link: '/dashboard', is_read: false,
   });
 
-  // Send branded HTML email
+  // Branded email
   try {
     const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
     if (users[0]?.email) {
@@ -138,6 +210,4 @@ async function activateSubscription(base44: any, payment: any) {
       });
     }
   } catch (e) { console.error('Email non-fatal:', e); }
-
-  console.log(`✅ Activated ${sub.plan} for student ${studentId}`);
 }

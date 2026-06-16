@@ -1,13 +1,7 @@
 /**
- * getAdminData
- * Single service-role endpoint for all admin dashboard data.
- * Bypasses ALL RLS — returns complete platform data for any authenticated admin.
- * 
- * POST { datasets: string[] }
- * Available datasets: users, enrollments, subscriptions, payments, referrals,
- *                     subjects, lessons, teachers, applications, students,
- *                     payouts, notifications
- * Omit datasets or pass [] to get all.
+ * getAdminData — fixed version
+ * Uses User.list() for students count (not StudentProfile which may be incomplete),
+ * and uses filter() with proper sort/limit signatures throughout.
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
@@ -20,7 +14,6 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Auth guard — admin only
     const me = await base44.auth.me();
     if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (me.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
@@ -32,36 +25,55 @@ Deno.serve(async (req) => {
 
     const result: Record<string, any[]> = {};
 
-    const fetch = async (key: string, fn: () => Promise<any[]>) => {
+    const fetchSet = async (key: string, fn: () => Promise<any[]>) => {
       if (!requested.includes(key)) return;
       try { result[key] = await fn(); }
       catch (e: any) { console.error(`getAdminData: ${key} failed:`, e.message); result[key] = []; }
     };
 
     await Promise.all([
-      fetch('users',         () => base44.asServiceRole.entities.User.list('-created_date', 2000)),
-      fetch('enrollments',   () => base44.asServiceRole.entities.Enrollment.filter({}, '-created_date', 5000)),
-      fetch('subscriptions', () => base44.asServiceRole.entities.Subscription.list('-created_date', 2000)),
-      fetch('payments',      () => base44.asServiceRole.entities.Payment.list('-created_date', 2000)),
-      fetch('referrals',     () => base44.asServiceRole.entities.Referral.list('-created_date', 2000)),
-      fetch('subjects',      () => base44.asServiceRole.entities.Subject.list('order', 500)),
-      fetch('lessons',       () => base44.asServiceRole.entities.Lesson.list('order', 5000)),
-      fetch('teachers',      () => base44.asServiceRole.entities.User.filter({ role: 'teacher' }, 'full_name', 500)),
-      fetch('applications',  () => base44.asServiceRole.entities.TeacherApplication.filter({}, '-created_date', 200)),
-      fetch('students',      () => base44.asServiceRole.entities.StudentProfile.filter({}, '-created_date', 2000)),
-      fetch('payouts',       () => base44.asServiceRole.entities.PayoutRequest.list('-created_date', 200)),
+      // users — all roles
+      fetchSet('users', () => base44.asServiceRole.entities.User.list('-created_date', 2000)),
+      // enrollments
+      fetchSet('enrollments', () => base44.asServiceRole.entities.Enrollment.list('-created_date', 5000)),
+      // subscriptions
+      fetchSet('subscriptions', () => base44.asServiceRole.entities.Subscription.list('-created_date', 2000)),
+      // payments — all statuses
+      fetchSet('payments', () => base44.asServiceRole.entities.Payment.list('-created_date', 2000)),
+      // referrals
+      fetchSet('referrals', () => base44.asServiceRole.entities.Referral.list('-created_date', 2000)),
+      // subjects
+      fetchSet('subjects', () => base44.asServiceRole.entities.Subject.list('order', 500)),
+      // lessons
+      fetchSet('lessons', () => base44.asServiceRole.entities.Lesson.list('order', 5000)),
+      // teachers — filter by role
+      fetchSet('teachers', () => base44.asServiceRole.entities.User.filter({ role: 'teacher' }, 'full_name', 500)),
+      // teacher applications
+      fetchSet('applications', () => base44.asServiceRole.entities.TeacherApplication.list('-created_date', 200)),
+      // students — User records with role 'user' (most reliable source for count)
+      fetchSet('students', () => base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', 2000)),
+      // payouts
+      fetchSet('payouts', () => base44.asServiceRole.entities.PayoutRequest.list('-created_date', 200)),
     ]);
 
-    // Summary stats always included
+    // Derived stats — always included
+    const allUsers      = result.users      || [];
+    const allSubs       = result.subscriptions || [];
+    const allPayments   = result.payments   || [];
+    const allReferrals  = result.referrals  || [];
+
     const stats = {
-      total_users:       result.users?.length       ?? 0,
-      total_students:    result.users?.filter((u: any) => u.role === 'user' || !u.role).length ?? 0,
-      total_teachers:    result.teachers?.length    ?? result.users?.filter((u: any) => u.role === 'teacher').length ?? 0,
-      total_admins:      result.users?.filter((u: any) => u.role === 'admin').length ?? 0,
-      total_subjects:    result.subjects?.length    ?? 0,
-      total_lessons:     result.lessons?.length     ?? 0,
+      total_users:       allUsers.length,
+      total_students:    allUsers.filter((u: any) => u.role === 'user' || !u.role).length,
+      total_teachers:    result.teachers?.length ?? allUsers.filter((u: any) => u.role === 'teacher').length,
+      total_admins:      allUsers.filter((u: any) => u.role === 'admin').length,
+      total_subjects:    result.subjects?.length   ?? 0,
+      total_lessons:     result.lessons?.length    ?? 0,
       total_enrollments: result.enrollments?.length ?? 0,
-      active_subs:       result.subscriptions?.filter((s: any) => s.status === 'active').length ?? 0,
+      active_subs:       allSubs.filter((s: any) => s.status === 'active').length,
+      completed_payments: allPayments.filter((p: any) => p.status === 'completed').length,
+      total_revenue:     allPayments.filter((p: any) => p.status === 'completed').reduce((s: number, p: any) => s + (p.amount || 0), 0),
+      total_affiliates:  new Set(allReferrals.map((r: any) => r.referrer_id)).size,
     };
 
     return Response.json({ ...result, stats });

@@ -9,33 +9,24 @@ import {
   UserCheck, ArrowRight, ArrowUpRight, DollarSign
 } from 'lucide-react';
 
-// ─── TIME FILTER ─────────────────────────────────────────────────────────────
 const TIME_FILTERS = [
-  { key: 'today',    label: 'Today' },
-  { key: 'week',     label: 'This Week' },
-  { key: 'month',    label: 'This Month' },
-  { key: '6months',  label: '6 Months' },
-  { key: 'year',     label: '1 Year' },
-  { key: 'all',      label: 'All Time' },
+  { key: 'today',   label: 'Today' },
+  { key: 'week',    label: 'This Week' },
+  { key: 'month',   label: 'This Month' },
+  { key: '6months', label: '6 Months' },
+  { key: 'year',    label: '1 Year' },
+  { key: 'all',     label: 'All Time' },
 ];
 
 function getStartDate(key) {
   const now = new Date();
   switch (key) {
     case 'today':   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    case 'week': {
-      const d = new Date(now); d.setDate(now.getDate() - 7); return d;
-    }
-    case 'month': {
-      const d = new Date(now); d.setMonth(now.getMonth() - 1); return d;
-    }
-    case '6months': {
-      const d = new Date(now); d.setMonth(now.getMonth() - 6); return d;
-    }
-    case 'year': {
-      const d = new Date(now); d.setFullYear(now.getFullYear() - 1); return d;
-    }
-    default: return null; // all time
+    case 'week': {   const d = new Date(now); d.setDate(now.getDate() - 7); return d; }
+    case 'month': {  const d = new Date(now); d.setMonth(now.getMonth() - 1); return d; }
+    case '6months': { const d = new Date(now); d.setMonth(now.getMonth() - 6); return d; }
+    case 'year': {   const d = new Date(now); d.setFullYear(now.getFullYear() - 1); return d; }
+    default: return null;
   }
 }
 
@@ -44,7 +35,6 @@ function inRange(dateStr, startDate) {
   return new Date(dateStr) >= startDate;
 }
 
-// ─── STAT CARD ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, gradient, to }) {
   const content = (
     <div className={`relative overflow-hidden rounded-2xl p-5 ${gradient} group transition-all duration-200 hover:scale-[1.01] hover:shadow-xl`}>
@@ -66,22 +56,21 @@ function StatCard({ label, value, sub, icon: Icon, gradient, to }) {
   return to ? <Link to={to}>{content}</Link> : content;
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [timePeriod, setTimePeriod] = useState('month');
   const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
 
-  // ── Single service-role call — bypasses RLS, consistent for all admins ──────
   const { data: adminData = {}, isLoading: adminLoading } = useQuery({
     queryKey: ['adminData', 'dashboard'],
     queryFn: () => base44.functions.invoke('getAdminData', {
       datasets: ['users','enrollments','subscriptions','payments','referrals','subjects','lessons','teachers','applications','students'],
     }),
     staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
+
   const subjects      = adminData.subjects      || [];
   const enrollments   = adminData.enrollments   || [];
-  const students      = adminData.students      || [];
   const teachers      = adminData.teachers      || [];
   const applications  = adminData.applications  || [];
   const subscriptions = adminData.subscriptions || [];
@@ -89,25 +78,38 @@ export default function AdminDashboard() {
   const referrals     = adminData.referrals     || [];
   const lessons       = adminData.lessons       || [];
 
+  // students = all users with role 'user' (from getAdminData 'students' dataset = User.filter({role:'user'}))
+  const allStudents   = adminData.students || adminData.users?.filter(u => u.role === 'user' || !u.role) || [];
+
   const startDate = useMemo(() => getStartDate(timePeriod), [timePeriod]);
 
-  // Filter all time-sensitive data
-  const filteredPayments     = useMemo(() => payments.filter(p => inRange(p.created_date, startDate)), [payments, startDate]);
-  const filteredEnrollments  = useMemo(() => enrollments.filter(e => inRange(e.created_date, startDate)), [enrollments, startDate]);
-  const filteredStudents     = useMemo(() => students.filter(s => inRange(s.created_date, startDate)), [students, startDate]);
-  const filteredSubscriptions= useMemo(() => subscriptions.filter(s => inRange(s.created_date, startDate)), [subscriptions, startDate]);
-  const filteredReferrals    = useMemo(() => referrals.filter(r => inRange(r.created_date, startDate)), [referrals, startDate]);
+  // Time-filtered datasets
+  const filteredPayments      = useMemo(() => payments.filter(p => inRange(p.created_date, startDate)), [payments, startDate]);
+  const filteredEnrollments   = useMemo(() => enrollments.filter(e => inRange(e.created_date, startDate)), [enrollments, startDate]);
+  const filteredNewStudents   = useMemo(() => allStudents.filter(s => inRange(s.created_date, startDate)), [allStudents, startDate]);
+  const filteredNewSubs       = useMemo(() => subscriptions.filter(s => inRange(s.created_date, startDate)), [subscriptions, startDate]);
+  const filteredReferrals     = useMemo(() => referrals.filter(r => inRange(r.created_date, startDate)), [referrals, startDate]);
 
-  const confirmedRevenue   = filteredPayments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
-  const pendingRevenue     = filteredPayments.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
-  const activeSubscriptions= filteredSubscriptions.filter(s => s.status === 'active').length;
-  const pendingApps        = applications.filter(a => a.status === 'pending').length; // always show pending
-  const avgProgress        = enrollments.length > 0
-    ? Math.round(enrollments.reduce((s, e) => s + (e.progress_percentage || 0), 0) / enrollments.length) : 0;
-  const totalAffiliates    = [...new Set(filteredReferrals.map(r => r.referrer_id))].length;
+  // Revenue — from completed payments in period
+  const confirmedRevenue  = filteredPayments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
+  const pendingRevenue    = filteredPayments.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
 
-  const recentPayments = [...filteredPayments].filter(p => p.status === 'completed')
-    .sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 5);
+  // Active subscriptions = ALL currently active (not time-filtered — this is a current state metric)
+  const activeSubscriptions = subscriptions.filter(s => s.status === 'active').length;
+
+  const pendingApps = applications.filter(a => a.status === 'pending').length;
+
+  // Avg progress across ALL enrollments (not time filtered — progress is cumulative)
+  const avgProgress = enrollments.length > 0
+    ? Math.round(enrollments.reduce((s, e) => s + (e.progress_percentage || 0), 0) / enrollments.length)
+    : 0;
+
+  const totalAffiliates = [...new Set(filteredReferrals.map(r => r.referrer_id))].length;
+
+  const recentPayments = [...filteredPayments]
+    .filter(p => p.status === 'completed')
+    .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+    .slice(0, 5);
 
   const periodLabel = TIME_FILTERS.find(f => f.key === timePeriod)?.label || '';
 
@@ -121,26 +123,19 @@ export default function AdminDashboard() {
             Welcome back, {user?.full_name?.split(' ')[0] || 'Admin'} · {new Date().toLocaleDateString('en-MW', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-
-        {/* Time Period Filter */}
         <div className="flex gap-1 flex-wrap bg-muted/50 rounded-xl p-1">
           {TIME_FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setTimePeriod(f.key)}
+            <button key={f.key} onClick={() => setTimePeriod(f.key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                timePeriod === f.key
-                  ? 'bg-card shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
+                timePeriod === f.key ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}>
               {f.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Alert banner */}
+      {/* Pending apps alert */}
       {pendingApps > 0 && (
         <Link to="/admin/teachers">
           <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-sm hover:bg-yellow-500/15 transition-colors">
@@ -153,7 +148,6 @@ export default function AdminDashboard() {
         </Link>
       )}
 
-      {/* Period label */}
       <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
         Showing data for: {periodLabel}
       </p>
@@ -187,15 +181,50 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Active Subs" value={activeSubscriptions} sub={`${filteredStudents.length} new students`} icon={CreditCard} gradient="bg-gradient-to-br from-emerald-600 to-emerald-800" to="/admin/subscriptions" />
-          <StatCard label="Students" value={filteredStudents.length} sub="In period" icon={Users} gradient="bg-gradient-to-br from-sky-600 to-sky-800" to="/admin/users" />
-          <StatCard label="Tutors" value={teachers.length} sub={pendingApps > 0 ? `${pendingApps} pending` : 'All approved'} icon={GraduationCap} gradient="bg-gradient-to-br from-violet-600 to-violet-800" to="/admin/teachers" />
-          <StatCard label="Courses" value={subjects.length} sub={`${subjects.filter(s => s.status === 'published').length} published`} icon={BookOpen} gradient="bg-gradient-to-br from-amber-600 to-amber-800" to="/admin/courses" />
+          <StatCard
+            label="Active Subs"
+            value={activeSubscriptions}
+            sub={`${filteredNewSubs.filter(s => s.status === 'active').length} new this period`}
+            icon={CreditCard}
+            gradient="bg-gradient-to-br from-emerald-600 to-emerald-800"
+            to="/admin/subscriptions"
+          />
+          <StatCard
+            label="New Students"
+            value={filteredNewStudents.length}
+            sub={`${allStudents.length} total`}
+            icon={Users}
+            gradient="bg-gradient-to-br from-sky-600 to-sky-800"
+            to="/admin/users"
+          />
+          <StatCard
+            label="Tutors"
+            value={teachers.length}
+            sub={pendingApps > 0 ? `${pendingApps} pending` : 'All approved'}
+            icon={GraduationCap}
+            gradient="bg-gradient-to-br from-violet-600 to-violet-800"
+            to="/admin/teachers"
+          />
+          <StatCard
+            label="Enrollments"
+            value={filteredEnrollments.length}
+            sub={`${avgProgress}% avg progress`}
+            icon={BookOpen}
+            gradient="bg-gradient-to-br from-amber-600 to-amber-800"
+          />
         </div>
       </div>
 
-      {/* Secondary stats */}
+      {/* Secondary stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-1">
+            <BookOpen className="w-4 h-4 text-blue-500" />
+          </div>
+          <p className="text-2xl font-display font-bold">{subjects.length}</p>
+          <p className="text-xs font-semibold text-foreground/80">Total Courses</p>
+          <p className="text-[11px] text-muted-foreground">{filteredEnrollments.length} enrolments this period</p>
+        </div>
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
           <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center mb-1">
             <Layers className="w-4 h-4 text-orange-500" />
@@ -210,7 +239,7 @@ export default function AdminDashboard() {
           </div>
           <p className="text-2xl font-display font-bold">{avgProgress}%</p>
           <p className="text-xs font-semibold text-foreground/80">Avg. Progress</p>
-          <p className="text-[11px] text-muted-foreground">{filteredEnrollments.length} enrollments</p>
+          <p className="text-[11px] text-muted-foreground">{enrollments.length} total enrollments</p>
         </div>
         <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
           <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center mb-1">
@@ -219,14 +248,6 @@ export default function AdminDashboard() {
           <p className="text-2xl font-display font-bold">{totalAffiliates}</p>
           <p className="text-xs font-semibold text-foreground/80">Affiliates</p>
           <p className="text-[11px] text-muted-foreground">{filteredReferrals.filter(r => ['paid','rewarded'].includes(r.status)).length} conversions</p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-1">
-            <UserCheck className="w-4 h-4 text-primary" />
-          </div>
-          <p className="text-2xl font-display font-bold">{applications.length}</p>
-          <p className="text-xs font-semibold text-foreground/80">Applications</p>
-          <p className="text-[11px] text-muted-foreground">{pendingApps} pending review</p>
         </div>
       </div>
 
@@ -241,8 +262,10 @@ export default function AdminDashboard() {
               View all <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
-          {recentPayments.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No payments in this period</div>
+          {adminLoading ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : recentPayments.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No completed payments in this period</div>
           ) : (
             <div className="divide-y divide-border">
               {recentPayments.map(p => (
@@ -270,7 +293,9 @@ export default function AdminDashboard() {
               Manage <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
-          {applications.length === 0 ? (
+          {adminLoading ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : applications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No applications yet</div>
           ) : (
             <div className="divide-y divide-border">

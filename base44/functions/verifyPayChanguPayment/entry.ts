@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// ── Branded email helper ────────────────────────────────────────────────────
 async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, string | number>) {
   try {
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
@@ -63,58 +62,117 @@ Deno.serve(async (req) => {
 
     const studentId = payment.student_id;
 
+    // Check renewal vs first activation
     const activeSubs = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'active' });
-    if (activeSubs.length > 0) {
-      await base44.asServiceRole.entities.Payment.update(payment.id, { status: 'completed' });
-      return Response.json({ success: true, already_activated: true });
+    const isRenewal = activeSubs.length > 0;
+
+    let sub: any;
+    let endDate: Date;
+
+    if (isRenewal) {
+      sub = activeSubs[0];
+      const currentEnd = sub.end_date ? new Date(sub.end_date) : new Date();
+      const baseDate = currentEnd > new Date() ? currentEnd : new Date();
+      endDate = new Date(baseDate);
+      if (sub.plan === 'monthly')        endDate.setMonth(endDate.getMonth() + 1);
+      else if (sub.plan === 'annual')    endDate.setFullYear(endDate.getFullYear() + 1);
+      else if (sub.plan === 'biannual')  endDate.setFullYear(endDate.getFullYear() + 2);
+      else if (sub.plan === 'quarterly') endDate.setMonth(endDate.getMonth() + 3);
+
+      await base44.asServiceRole.entities.Subscription.update(sub.id, {
+        end_date: endDate.toISOString(),
+      });
+      await base44.asServiceRole.entities.Payment.update(payment.id, {
+        status: 'completed',
+        description: `${sub.plan} renewal — verified via PayChangu API`,
+      });
+    } else {
+      const trials = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'trial' });
+      if (trials.length === 0) {
+        console.error(`No trial sub for student ${studentId}`);
+        return Response.json({ success: false, pending: true });
+      }
+      sub = trials[0];
+      const startDate = new Date();
+      endDate = new Date();
+      if (sub.plan === 'monthly')        endDate.setMonth(endDate.getMonth() + 1);
+      else if (sub.plan === 'annual')    endDate.setFullYear(endDate.getFullYear() + 1);
+      else if (sub.plan === 'biannual')  endDate.setFullYear(endDate.getFullYear() + 2);
+      else if (sub.plan === 'quarterly') endDate.setMonth(endDate.getMonth() + 3);
+
+      await base44.asServiceRole.entities.Subscription.update(sub.id, {
+        status: 'active',
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+      });
+      await base44.asServiceRole.entities.Payment.update(payment.id, {
+        status: 'completed',
+        description: `${sub.plan} fees — verified via PayChangu API`,
+      });
     }
 
-    const trials = await base44.asServiceRole.entities.Subscription.filter({ student_id: studentId, status: 'trial' });
-    if (trials.length === 0) {
-      console.error(`No trial sub for student ${studentId}`);
-      return Response.json({ success: false, pending: true });
-    }
-
-    const sub = trials[0];
-    const startDate = new Date();
-    const endDate = new Date();
-    if (sub.plan === 'monthly')        endDate.setMonth(endDate.getMonth() + 1);
-    else if (sub.plan === 'annual')    endDate.setFullYear(endDate.getFullYear() + 1);
-    else if (sub.plan === 'biannual')  endDate.setFullYear(endDate.getFullYear() + 2);
-    else if (sub.plan === 'quarterly') endDate.setMonth(endDate.getMonth() + 3);
-
-    await base44.asServiceRole.entities.Subscription.update(sub.id, {
-      status: 'active',
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString(),
-    });
-    await base44.asServiceRole.entities.Payment.update(payment.id, {
-      status: 'completed',
-      description: `${sub.plan} fees — verified via PayChangu API`,
-    });
-
-    // Upgrade referral
+    // ── Commission logic ──────────────────────────────────────────────────
     try {
       const commSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'affiliate_commission' });
-      const commAmount = commSettings[0]?.value?.commission_amount ?? commSettings[0]?.value?.fixed_amount ?? 10000;
-      const referrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
-      for (const ref of referrals) {
-        if (ref.status === 'registered' || ref.status === 'pending') {
-          await base44.asServiceRole.entities.Referral.update(ref.id, {
-            status: 'paid', reward_amount: commAmount, reward_status: 'pending',
-          });
+      const cfg = commSettings[0]?.value || {};
+      const recurringEnabled = cfg.recurring_commission === true;
+
+      let commAmount = 0;
+      if (cfg.commission_type === 'percentage') {
+        commAmount = Math.round(((cfg.percentage_rate || 10) / 100) * (payment.amount || 0));
+      } else if (cfg.commission_type === 'tiered') {
+        const referrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
+        const referrerId = referrals[0]?.referrer_id;
+        if (referrerId) {
+          const allRefByReferrer = await base44.asServiceRole.entities.Referral.filter({ referrer_id: referrerId });
+          const paidCount = allRefByReferrer.filter((r: any) => ['paid','rewarded'].includes(r.status)).length;
+          if (paidCount >= (cfg.tier3_referrals || 30)) commAmount = Math.round(((cfg.tier3_rate || 20) / 100) * (payment.amount || 0));
+          else if (paidCount >= (cfg.tier2_referrals || 15)) commAmount = Math.round(((cfg.tier2_rate || 15) / 100) * (payment.amount || 0));
+          else commAmount = Math.round(((cfg.tier1_rate || 10) / 100) * (payment.amount || 0));
+        }
+      } else {
+        commAmount = cfg.fixed_amount ?? cfg.commission_amount ?? 10000;
+      }
+
+      const existingReferrals = await base44.asServiceRole.entities.Referral.filter({ referred_user_id: studentId });
+
+      if (!isRenewal) {
+        for (const ref of existingReferrals) {
+          if (ref.status === 'registered' || ref.status === 'pending') {
+            await base44.asServiceRole.entities.Referral.update(ref.id, {
+              status: 'paid',
+              reward_amount: commAmount,
+              reward_status: 'pending',
+            });
+          }
+        }
+      } else if (recurringEnabled && existingReferrals.length > 0) {
+        for (const ref of existingReferrals) {
+          if (['paid', 'rewarded'].includes(ref.status)) {
+            await base44.asServiceRole.entities.Referral.create({
+              referrer_id: ref.referrer_id,
+              referrer_name: ref.referrer_name,
+              referred_email: ref.referred_email,
+              referred_user_id: studentId,
+              referred_name: ref.referred_name,
+              referral_code: ref.referral_code,
+              status: 'paid',
+              reward_amount: commAmount,
+              reward_status: 'pending',
+              notes: `Recurring commission — renewal payment ${payment.reference || payment.id}`,
+            });
+          }
         }
       }
-    } catch (refErr) { console.error('Referral upgrade error:', refErr); }
+    } catch (refErr) { console.error('Commission error:', refErr); }
 
     await base44.asServiceRole.entities.Notification.create({
       user_id: studentId,
-      title: 'Payment confirmed — full access unlocked!',
+      title: isRenewal ? 'Subscription renewed!' : 'Payment confirmed — full access unlocked!',
       message: `Your ${sub.plan} subscription is active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.`,
       type: 'subscription', link: '/dashboard', is_read: false,
     });
 
-    // Send branded HTML email
     try {
       const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
       if (users[0]?.email) {
@@ -128,7 +186,7 @@ Deno.serve(async (req) => {
       }
     } catch (e) { console.error('Email non-fatal:', e); }
 
-    console.log(`✅ Activated ${sub.plan} for student ${studentId} via API verify`);
+    console.log(`✅ ${isRenewal ? 'Renewed' : 'Activated'} ${sub.plan} for student ${studentId} via API verify`);
     return Response.json({ success: true });
 
   } catch (err: any) {
