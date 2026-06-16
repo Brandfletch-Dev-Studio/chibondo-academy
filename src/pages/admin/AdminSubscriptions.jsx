@@ -73,11 +73,13 @@ export default function AdminSubscriptions() {
     staleTime: 30_000,
   });
 
-  const { data: users = [] } = useQuery({
+  // Use getAdminUsers (asServiceRole) so all admins see all users regardless of RLS
+  const { data: adminUsersResult = {}, } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list('-created_date', 2000),
+    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
     staleTime: 60_000,
   });
+  const users = adminUsersResult.users || [];
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Subscription.update(id, data),
