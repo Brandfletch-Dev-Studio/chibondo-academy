@@ -554,7 +554,7 @@ export default function AffiliateManagement() {
   });
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list('full_name', 500),
+    queryFn: () => base44.functions.invoke('getAdminData', { datasets: ['users'] }).then(d => d.users || []),
   });
   const { data: commissionSettingsData = [] } = useQuery({
     queryKey: ['affiliateSettings'],
