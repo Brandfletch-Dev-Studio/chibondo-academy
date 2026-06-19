@@ -176,27 +176,36 @@ export default function AdminSubscriptions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold">School Fees & Subscriptions</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage student fee payments and access</p>
+      {/* Page header — stacks on mobile, row on md+ */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-display font-bold leading-tight">School Fees &amp; Subscriptions</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage student fee payments and access</p>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline"
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 px-3 text-xs gap-1.5 border-border hover:bg-muted"
             onClick={async () => {
-              const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 2h ago
+              const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
               const stale = subscriptions.filter(s =>
                 ['trial', 'cancelled'].includes(s.status) && s.created_date < cutoff
               );
               if (stale.length === 0) { toast.info('No stale records to clean'); return; }
               await Promise.all(stale.map(s => base44.entities.Subscription.delete(s.id)));
               queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
-              toast.success(`Cleaned ${stale.length} stale subscription record(s)`);
+              toast.success(`Cleaned ${stale.length} stale record(s)`);
             }}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Clean Stale
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Clean Stale</span>
           </Button>
-          <Button size="sm" onClick={() => setGrantOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Grant Access
+          <Button
+            size="sm"
+            className="h-8 px-3 text-xs gap-1.5"
+            onClick={() => setGrantOpen(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Grant Access</span>
           </Button>
         </div>
       </div>
