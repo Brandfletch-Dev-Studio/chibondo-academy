@@ -205,6 +205,7 @@ async function activateSubscription(base44: any, payment: any) {
         student_name: users[0].full_name || 'Student',
         end_date: endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
         plan: sub.plan,
+        amount: String(payment.amount || ''),
         highlight_label: 'Plan',
         highlight_value: `${sub.plan.charAt(0).toUpperCase() + sub.plan.slice(1)} — active until ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
       });
