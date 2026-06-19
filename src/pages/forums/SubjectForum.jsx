@@ -173,7 +173,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
 }
 
 /* ── Thread card ─────────────────────────────────────────────────────────── */
-function ThreadCard({ thread, subjectSlug, navigate, user, onShare, onAvatarClick }) {
+function ThreadCard({ thread, subjectSlug, navigate, user, onShare, onAvatarClick, onDelete }) {
   const badge = STATUS_BADGE[thread.thread_status] || STATUS_BADGE.open;
   const ago = useLiveAgo(thread.last_activity_at || thread.updated_date);
 
@@ -252,6 +252,16 @@ function ThreadCard({ thread, subjectSlug, navigate, user, onShare, onAvatarClic
       >
         <Share2 className="w-3.5 h-3.5" />
       </button>
+      {/* Delete button — visible on hover for thread author or admin/teacher */}
+      {onDelete && (user?.id === thread.author_id || user?.role === 'admin' || user?.role === 'teacher') && (
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(thread); }}
+          className="absolute top-3 right-[3.75rem] opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          title="Delete thread"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -395,6 +405,22 @@ export default function SubjectForum() {
       setShowRename(false);
     } catch { toast.error('Could not rename forum'); }
     finally { setRenameSaving(false); }
+  };
+
+  /* ── Delete single thread (author or admin/teacher) ── */
+  const deleteThreadMut = useMutation({
+    mutationFn: (thread) => base44.entities.Discussion.update(thread.id, { status: 'deleted' }),
+    onSuccess: () => {
+      toast.success('Thread deleted');
+      qc.invalidateQueries({ queryKey: ['forum-threads', subject?.id] });
+    },
+    onError: (e) => toast.error(e.message || 'Failed to delete thread'),
+  });
+
+  const handleDeleteThread = (thread) => {
+    if (window.confirm(`Delete "${thread.title}"? This cannot be undone.`)) {
+      deleteThreadMut.mutate(thread);
+    }
   };
 
   /* ── Delete forum (admin only — deletes all threads) ── */
