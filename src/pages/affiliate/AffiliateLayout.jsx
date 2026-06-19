@@ -27,10 +27,27 @@ export default function AffiliateLayout() {
     },
     staleTime: 60_000,
   });
-  const settings       = settingsData[0]?.value || {};
-  const commissionAmount = settings.commission_amount ?? settings.fixed_amount ?? 10000;
-  const minPayout        = settings.min_payout ?? 5000;
-  const programEnabled   = settings.enabled !== false;
+  const settings           = settingsData[0]?.value || {};
+  const commissionAmount   = settings.commission_amount ?? settings.fixed_amount ?? 10000;
+  const minPayout          = settings.min_payout ?? 5000;
+  const programEnabled     = settings.enabled !== false;
+  const recurringEnabled   = !!settings.recurring_commission;
+  // Compute what a recurring commission amount looks like for display
+  // If rate_type='same' it mirrors the main structure; if 'custom' use custom fields
+  const recurringRateType  = settings.recurring_rate_type || 'same';
+  const recurringCommType  = recurringRateType === 'same'
+    ? settings.commission_type
+    : (settings.recurring_commission_type || 'fixed');
+  const recurringAmount    = recurringRateType === 'same'
+    ? commissionAmount
+    : recurringCommType === 'fixed'
+      ? (settings.recurring_fixed_amount ?? 5000)
+      : recurringCommType === 'percentage'
+        ? null  // percentage — display as "X% of renewal"
+        : null; // tiered — computed per referral
+  const recurringPct       = recurringRateType === 'same'
+    ? (settings.percentage_rate ?? 10)
+    : (settings.recurring_percentage_rate ?? 5);
 
   if (!programEnabled) {
     return (
@@ -58,6 +75,12 @@ export default function AffiliateLayout() {
           <h1 className="text-2xl font-display font-bold">Affiliate Program</h1>
           <p className="text-sm text-muted-foreground">
             Earn <span className="font-semibold text-foreground">MWK {commissionAmount.toLocaleString()}</span> per successful paid referral
+            {recurringEnabled && (
+              <span className="ml-1.5 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
+                style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 38%)' }}>
+                + recurring ♻
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -90,7 +113,12 @@ export default function AffiliateLayout() {
 
       {/* Sub-page content */}
       <div>
-        <Outlet context={{ user, notifications, settings, settingsData, commissionAmount, minPayout }} />
+        <Outlet context={{
+        user, notifications, settings, settingsData,
+        commissionAmount, minPayout,
+        recurringEnabled, recurringRateType, recurringCommType,
+        recurringAmount, recurringPct,
+      }} />
       </div>
     </div>
   );
