@@ -4,8 +4,9 @@
  * POST { type, variables } → { subject, html, text }
  *
  * Types:
- *   welcome              – after OTP verification
- *   payment_confirmed    – after PayChangu payment
+ *   welcome              – after registration
+ *   payment_confirmed    – after PayChangu payment (now with amount/plan table)
+ *   cart_recovery        – 1hr after abandoned payment
  *   subscription_expired – when subscription lapses
  *   subscription_expiring – 3 days before expiry
  *   new_lesson           – new/updated lesson published
@@ -175,25 +176,71 @@ Deno.serve(async (req) => {
         };
       },
 
+      // ── Welcome ──────────────────────────────────────────────────────────
+      welcome: () => {
+        const name = v.student_name || 'Student';
+        const rawBody = (tpls.welcome_body ||
+          `Dear {student_name},\n\nWelcome to ${b.academyName}! We are thrilled to have you join our learning community.\n\nYour referral code is: {referral_code}\n\nGet started at: {dashboard_link}`)
+          .replace(/\{student_name\}/g,   name)
+          .replace(/\{referral_code\}/g,  v.referral_code || '')
+          .replace(/\{dashboard_link\}/g, `${b.website}/dashboard`);
+        return {
+          subject:   tpls.welcome_subject || `Welcome to ${b.academyName}! 🎓`,
+          preheader: `Hi ${name}, your account is ready — start exploring today`,
+          bodyHtml:  toHtml(rawBody),
+          ctaLabel:  'Go to My Dashboard',
+          ctaUrl:    `${b.website}/dashboard`,
+          text: rawBody,
+        };
+      },
+
       // ── Payment confirmed ─────────────────────────────────────────────────
       payment_confirmed: () => {
         const name = v.student_name || 'Student';
+        const planLabel = (v.plan || 'subscription').charAt(0).toUpperCase() + (v.plan || 'subscription').slice(1);
         const rawBody = (tpls.payment_confirmed_body ||
           `Dear {student_name},\n\nYour payment has been received and your {plan} subscription is now active until {end_date}.\n\nYou now have full access to all lessons, quizzes, and course materials.`)
-          .replace(/\{student_name\}/g, name)
-          .replace(/\{end_date\}/g,     v.end_date || '')
-          .replace(/\{plan\}/g,         v.plan || 'subscription')
-          .replace(/\{dashboard_link\}/g, `${b.website}/dashboard`);
+          .replace(/\{student_name\}/g,  name)
+          .replace(/\{end_date\}/g,      v.end_date || '')
+          .replace(/\{plan\}/g,          planLabel)
+          .replace(/\{amount\}/g,        v.amount ? Number(v.amount).toLocaleString() : '')
+          .replace(/\{dashboard_link\}/g, `${b.website}/dashboard`)
+          .replace(/\{contact_email\}/g, b.contactEmail);
 
-        const highlight = v.end_date
-          ? `\n\n> Plan: ${(v.plan || 'subscription').charAt(0).toUpperCase() + (v.plan || 'subscription').slice(1)} · Active until ${v.end_date}`
-          : '';
+        const infoTable = v.end_date ? `
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;width:100%;background:${CARD};border-radius:8px;border:1px solid ${BORDER};">
+            <tr><td style="padding:10px 16px;border-bottom:1px solid ${BORDER};">${metaRow('Plan', planLabel)}</td></tr>
+            <tr><td style="padding:10px 16px;border-bottom:1px solid ${BORDER};">${metaRow('Active until', v.end_date)}</td></tr>
+            ${v.amount ? `<tr><td style="padding:10px 16px;">${metaRow('Amount paid', 'MWK ' + Number(v.amount).toLocaleString())}</td></tr>` : ''}
+          </table>` : '';
+
         return {
           subject:   tpls.payment_confirmed_subject || `Payment Confirmed – ${b.academyName}`,
-          preheader: `Your subscription is active until ${v.end_date || ''}`,
-          bodyHtml:  toHtml(rawBody + highlight),
-          ctaLabel: 'Go to Dashboard',
-          ctaUrl: `${b.website}/dashboard`,
+          preheader: `Your ${planLabel} subscription is active until ${v.end_date || ''}`,
+          bodyHtml:  toHtml(rawBody) + infoTable,
+          ctaLabel:  'Go to Dashboard',
+          ctaUrl:    `${b.website}/dashboard`,
+          text: rawBody,
+        };
+      },
+
+      // ── Cart recovery ─────────────────────────────────────────────────────
+      cart_recovery: () => {
+        const name = v.student_name || 'Student';
+        const planLabel = (v.plan || 'monthly').charAt(0).toUpperCase() + (v.plan || 'monthly').slice(1);
+        const rawBody = (tpls.cart_recovery_body ||
+          `Dear {student_name},\n\nWe noticed you started the school fees payment process but didn't complete it.\n\nComplete your {plan} subscription (MWK {amount}) now: {payment_link}\n\nIf you already paid, please ignore this email or contact us at {contact_email}.`)
+          .replace(/\{student_name\}/g,  name)
+          .replace(/\{plan\}/g,          planLabel)
+          .replace(/\{amount\}/g,        v.amount ? Number(v.amount).toLocaleString() : '')
+          .replace(/\{payment_link\}/g,  `${b.website}/subscription`)
+          .replace(/\{contact_email\}/g, b.contactEmail);
+        return {
+          subject:   tpls.cart_recovery_subject || `Complete your ${b.academyName} fees payment`,
+          preheader: `Your payment session is still open — finish in seconds`,
+          bodyHtml:  toHtml(rawBody),
+          ctaLabel:  'Complete Payment',
+          ctaUrl:    `${b.website}/subscription`,
           text: rawBody,
         };
       },
