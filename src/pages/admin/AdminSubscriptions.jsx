@@ -546,6 +546,7 @@ export default function AdminSubscriptions() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Reference</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Date</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Amount</th>
+                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
