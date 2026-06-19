@@ -21,6 +21,16 @@ const STATUS_COLORS = {
   expired: 'bg-destructive/10 text-destructive border-destructive/20',
   cancelled: 'bg-muted text-muted-foreground border-border',
   trial: 'bg-accent/10 text-accent border-accent/20',
+  pending: 'bg-accent/10 text-accent border-accent/20',
+};
+
+// Map raw status values to display labels
+const STATUS_LABELS = {
+  active: 'Active',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
+  trial: 'Pending',
+  pending: 'Pending',
 };
 
 const PLAN_COLORS = {
@@ -73,10 +83,16 @@ export default function AdminSubscriptions() {
     staleTime: 30_000,
   });
 
-  // Use getAdminUsers (asServiceRole) so all admins see all users regardless of RLS
-  const { data: adminUsersResult = {}, } = useQuery({
+  // Fetch StudentProfiles directly — has user_id + full_name, no function call needed
+  const { data: studentProfiles = [] } = useQuery({
+    queryKey: ['allStudentProfiles'],
+    queryFn: () => base44.entities.StudentProfile.list('-created_date', 2000),
+    staleTime: 60_000,
+  });
+  // Also try getAdminUsers for email/role data (best-effort, may fail)
+  const { data: adminUsersResult = {} } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
+    queryFn: () => base44.functions.invoke('getAdminUsers', {}).catch(() => ({ users: [] })),
     staleTime: 60_000,
   });
   const users = adminUsersResult.users || [];
@@ -123,9 +139,21 @@ export default function AdminSubscriptions() {
     },
   });
 
-  // Enrich subscriptions with user data
+  // Build lookup: prefer User record (has email), fall back to StudentProfile (has full_name)
   const userMap = Object.fromEntries(users.map(u => [u.id, u]));
-  const enriched = subscriptions.map(s => ({ ...s, _user: userMap[s.student_id] }));
+  const profileMap = Object.fromEntries(studentProfiles.map(p => [p.user_id, p]));
+  const enriched = subscriptions.map(s => {
+    const userRec = userMap[s.student_id];
+    const profile = profileMap[s.student_id];
+    return {
+      ...s,
+      _user: userRec
+        ? { ...userRec, full_name: userRec.full_name || profile?.full_name || '' }
+        : profile
+          ? { id: s.student_id, full_name: profile.full_name, email: '', avatar_url: profile.avatar_url }
+          : null,
+    };
+  });
 
   const filtered = enriched.filter(s => {
     const matchStatus = filterStatus === 'all' || s.status === filterStatus;
