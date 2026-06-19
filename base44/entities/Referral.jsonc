@@ -48,6 +48,16 @@
     },
     "notes": {
       "type": "string"
+    },
+    "recurring_reward_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Total recurring commissions earned from this referral's renewals"
+    },
+    "recurring_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of renewal payments that have earned recurring commission"
     }
   },
   "required": [
