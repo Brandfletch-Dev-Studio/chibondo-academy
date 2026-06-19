@@ -8,19 +8,19 @@ import { Search, GraduationCap, BookOpen, Users, Clock, ChevronRight } from 'luc
 import { Input } from '@/components/ui/input';
 
 /* ── Tutor card ─────────────────────────────────────────────────────────────── */
-function TutorCard({ teacher, tutorProfile, courseCount, studentCount }) {
+function TutorCard({ profile, courseCount, studentCount }) {
   const [coverErr, setCoverErr]   = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
 
-  // Prefer TutorProfile fields, fall back to User fields
-  const name      = tutorProfile?.full_name      || teacher.full_name  || teacher.email || 'Tutor';
-  const photo     = tutorProfile?.profile_photo  || teacher.avatar_url || '';
-  const coverPhoto= tutorProfile?.cover_photo    || '';
-  const title     = tutorProfile?.professional_title || '';
-  const tagline   = tutorProfile?.tagline        || '';
-  const subjects  = tutorProfile?.subjects       || [];
-  const years     = tutorProfile?.years_teaching || 0;
-  const slug      = tutorProfile?.slug           || teacher.id;
+  // All data comes directly from TutorProfile (publicly readable)
+  const name      = profile.full_name            || 'Tutor';
+  const photo     = profile.profile_photo        || '';
+  const coverPhoto= profile.cover_photo          || '';
+  const title     = profile.professional_title   || '';
+  const tagline   = profile.tagline              || '';
+  const subjects  = profile.subjects             || [];
+  const years     = profile.years_teaching       || 0;
+  const slug      = profile.slug                 || profile.id;
 
   const initials  = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
 
