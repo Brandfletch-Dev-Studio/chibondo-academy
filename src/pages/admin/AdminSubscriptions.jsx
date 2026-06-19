@@ -348,7 +348,7 @@ export default function AdminSubscriptions() {
                   {payments.map(p => (
                     <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium">{p.student_name || 'Unknown'}</p>
+                        <p className="text-sm font-medium">{p.student_name && p.student_name !== 'Unknown' ? p.student_name : (profileMap[p.student_id]?.full_name || userMap[p.student_id]?.full_name || 'Unknown')}</p>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground capitalize">
                         {p.method?.replace(/_/g, ' ') || '—'}
