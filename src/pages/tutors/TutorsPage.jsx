@@ -114,78 +114,58 @@ function TutorCard({ teacher, tutorProfile, courseCount, studentCount }) {
 export default function TutorsPage() {
   const [search, setSearch] = useState('');
 
-  /* All published subjects — used to count courses + students per teacher */
+  // ── Data fetching ──────────────────────────────────────────────────────────
+  // TutorProfile has rls.read={} — fully public, works for logged-out users.
+  // We drive the directory from TutorProfile only; no User.filter() needed.
+  const { data: tutorProfiles = [], isLoading } = useQuery({
+    queryKey: ['all-tutor-profiles-public'],
+    queryFn:  () => base44.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200),
+    staleTime: 60_000,
+  });
+
+  // Published subjects — rls allows public reads on published records.
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects-all-for-tutors'],
     queryFn:  () => base44.entities.Subject.filter({ status: 'published' }, 'name', 500),
     staleTime: 60_000,
   });
 
-  /* All tutor profiles — used for rich profile data + visibility toggle */
-  const { data: tutorProfiles = [] } = useQuery({
-    queryKey: ['all-tutor-profiles'],
-    queryFn:  () => base44.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 200),
-    staleTime: 30_000,
-  });
-
-  /* All teachers (users with role=teacher) — source of truth for directory */
-  const { data: teachers = [], isLoading } = useQuery({
-    queryKey: ['all-teachers'],
-    queryFn:  () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 200),
-    staleTime: 30_000,
-  });
-
-  /* Map: user_id → TutorProfile */
-  const profileByUserId = useMemo(() => {
-    const map = {};
-    tutorProfiles.forEach(p => { if (p.user_id) map[p.user_id] = p; });
-    return map;
-  }, [tutorProfiles]);
-
-  /* Course count per teacher (by teacher_id on subject) */
-  const courseCountByTeacher = useMemo(() => {
+  // Course count per tutor (match on tutor_profile_id OR teacher_id === user_id)
+  const courseCountByProfile = useMemo(() => {
     const map = {};
     subjects.forEach(s => {
-      if (s.teacher_id) map[s.teacher_id] = (map[s.teacher_id] || 0) + 1;
+      const key = s.tutor_profile_id || s.teacher_id;
+      if (key) map[key] = (map[key] || 0) + 1;
     });
     return map;
   }, [subjects]);
 
-  /* Student count per teacher (sum of enrollment_count on their subjects) */
-  const studentCountByTeacher = useMemo(() => {
+  // Student count per tutor
+  const studentCountByProfile = useMemo(() => {
     const map = {};
     subjects.forEach(s => {
-      if (s.teacher_id && s.enrollment_count) {
-        map[s.teacher_id] = (map[s.teacher_id] || 0) + s.enrollment_count;
+      const key = s.tutor_profile_id || s.teacher_id;
+      if (key && s.enrollment_count) {
+        map[key] = (map[key] || 0) + s.enrollment_count;
       }
     });
     return map;
   }, [subjects]);
 
-  /* Filter out teachers who have is_visible=false on their TutorProfile */
-  const visibleTeachers = useMemo(() =>
-    teachers.filter(t => {
-      const profile = profileByUserId[t.id];
-      // If no profile exists, show by default; if profile exists, respect is_visible
-      if (!profile) return true;
-      return profile.is_visible !== false;
-    }),
-  [teachers, profileByUserId]);
-
-  /* Search filter */
+  // Search filter across TutorProfile fields directly
   const filtered = useMemo(() => {
-    if (!search.trim()) return visibleTeachers;
+    if (!search.trim()) return tutorProfiles;
     const q = search.toLowerCase();
-    return visibleTeachers.filter(t => {
-      const p = profileByUserId[t.id];
-      return (
-        t.full_name?.toLowerCase().includes(q) ||
-        t.email?.toLowerCase().includes(q) ||
-        p?.professional_title?.toLowerCase().includes(q) ||
-        p?.subjects?.some(s => s.toLowerCase().includes(q))
-      );
-    });
-  }, [visibleTeachers, search, profileByUserId]);
+    return tutorProfiles.filter(p =>
+      p.full_name?.toLowerCase().includes(q) ||
+      p.professional_title?.toLowerCase().includes(q) ||
+      p.tagline?.toLowerCase().includes(q) ||
+      p.subjects?.some(s => s.toLowerCase().includes(q))
+    );
+  }, [tutorProfiles, search]);
+
+  // Alias so the count in the hero header still works
+  const visibleTeachers = filtered;
 
   return (
     <>
