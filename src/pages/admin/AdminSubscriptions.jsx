@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   CreditCard, Search, CheckCircle2, XCircle, Clock, TrendingUp,
-  Users, Banknote, CalendarDays, MoreVertical, Plus, Loader2, RefreshCw
+  Users, Banknote, CalendarDays, MoreVertical, Plus, Loader2, RefreshCw,
+  Eye, X, ArrowRight
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
@@ -70,6 +71,7 @@ export default function AdminSubscriptions() {
   const [grantStudentEmail, setGrantStudentEmail] = useState('');
   const [grantPlan, setGrantPlan] = useState('monthly');
   const [grantMonths, setGrantMonths] = useState(1);
+  const [selectedSub, setSelectedSub] = useState(null); // membership detail drawer
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ['allSubscriptions'],
@@ -254,7 +256,7 @@ export default function AdminSubscriptions() {
             </Select>
           </div>
 
-          {/* Table */}
+          {/* Membership Table */}
           <div className="bg-card rounded-2xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -263,17 +265,23 @@ export default function AdminSubscriptions() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Student</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Plan</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Expires</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Amount Paid</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Start Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">End Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Amount</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {isLoading && (
-                    <tr><td colSpan={6} className="text-center py-10 text-muted-foreground text-sm"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
+                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
                   )}
-                  {!isLoading && filtered.map(sub => (
-                    <tr key={sub.id} className="hover:bg-muted/20 transition-colors">
+                  {!isLoading && filtered.map(sub => {
+                    const isExpiringSoon = sub.status === 'active' && sub.end_date &&
+                      (new Date(sub.end_date) - new Date()) < 4 * 24 * 60 * 60 * 1000 &&
+                      (new Date(sub.end_date) - new Date()) > 0;
+                    const isOverdue = sub.status === 'active' && sub.end_date && new Date(sub.end_date) < new Date();
+                    return (
+                    <tr key={sub.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelectedSub(sub)}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
@@ -289,54 +297,213 @@ export default function AdminSubscriptions() {
                         <Badge className={`text-[10px] capitalize ${PLAN_COLORS[sub.plan] || 'bg-muted'}`}>{sub.plan}</Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge className={`text-[10px] capitalize ${STATUS_COLORS[sub.status] || 'bg-muted'}`}>{sub.status === 'trial' ? 'pending' : sub.status}</Badge>
+                        <Badge className={`text-[10px] capitalize ${STATUS_COLORS[sub.status] || 'bg-muted'}`}>
+                          {STATUS_LABELS[sub.status] || sub.status}
+                        </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
-                        {sub.end_date ? format(new Date(sub.end_date), 'MMM d, yyyy') : '—'}
+                      {/* Start Date */}
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        {sub.start_date ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CalendarDays className="w-3 h-3 flex-shrink-0" />
+                            {format(new Date(sub.start_date), 'MMM d, yyyy')}
+                          </div>
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium hidden lg:table-cell">
+                      {/* End Date */}
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        {sub.end_date ? (
+                          <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-semibold' : isExpiringSoon ? 'text-amber-500 font-semibold' : 'text-muted-foreground'}`}>
+                            <CalendarDays className="w-3 h-3 flex-shrink-0" />
+                            {format(new Date(sub.end_date), 'MMM d, yyyy')}
+                            {isExpiringSoon && <span className="text-[9px] bg-amber-500/10 text-amber-500 px-1 rounded">Soon</span>}
+                            {isOverdue && <span className="text-[9px] bg-destructive/10 text-destructive px-1 rounded">Overdue</span>}
+                          </div>
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs font-medium hidden lg:table-cell">
                         {sub.amount_paid > 0 ? `MWK ${sub.amount_paid.toLocaleString()}` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {sub.status !== 'active' && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: sub.id, data: { status: 'active' } })}>
-                                <CheckCircle2 className="w-4 h-4 mr-2 text-success" /> Activate
+                      <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSub(sub)}>
+                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {sub.status !== 'active' && (
+                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: sub.id, data: { status: 'active' } })}>
+                                  <CheckCircle2 className="w-4 h-4 mr-2 text-success" /> Activate
+                                </DropdownMenuItem>
+                              )}
+                              {sub.status === 'active' && (
+                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: sub.id, data: { status: 'cancelled' } })}>
+                                  <XCircle className="w-4 h-4 mr-2 text-destructive" /> Cancel
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleExtend(sub, 30)}>
+                                <RefreshCw className="w-4 h-4 mr-2" /> Extend 30 days
                               </DropdownMenuItem>
-                            )}
-                            {sub.status === 'active' && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: sub.id, data: { status: 'cancelled' } })}>
-                                <XCircle className="w-4 h-4 mr-2 text-destructive" /> Cancel
+                              <DropdownMenuItem onClick={() => handleExtend(sub, 365)}>
+                                <RefreshCw className="w-4 h-4 mr-2" /> Extend 1 year
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleExtend(sub, 30)}>
-                              <RefreshCw className="w-4 h-4 mr-2" /> Extend 30 days
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleExtend(sub, 365)}>
-                              <RefreshCw className="w-4 h-4 mr-2" /> Extend 1 year
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteMutation.mutate(sub.id)}>
-                              <XCircle className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteMutation.mutate(sub.id)}>
+                                <XCircle className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                   {!isLoading && filtered.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">No subscriptions found</td></tr>
+                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">No subscriptions found</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
         </TabsContent>
+
+        {/* ── Membership Detail Drawer ────────────────────────────────────── */}
+        {selectedSub && (() => {
+          const s = selectedSub;
+          const daysLeft = s.end_date ? Math.ceil((new Date(s.end_date) - new Date()) / 86400000) : null;
+          const duration = s.start_date && s.end_date
+            ? Math.ceil((new Date(s.end_date) - new Date(s.start_date)) / 86400000)
+            : null;
+          return (
+            <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedSub(null)}>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+              <div
+                className="relative bg-card border-l border-border w-full max-w-sm h-full overflow-y-auto shadow-2xl"
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Drawer header */}
+                <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                      {s._user?.full_name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold leading-tight">{s._user?.full_name || 'Unknown'}</p>
+                      <p className="text-[10px] text-muted-foreground">{s._user?.email || '—'}</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSub(null)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="p-5 space-y-5">
+                  {/* Status + Plan badges */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={`capitalize ${STATUS_COLORS[s.status] || 'bg-muted'}`}>
+                      {STATUS_LABELS[s.status] || s.status}
+                    </Badge>
+                    <Badge className={`capitalize ${PLAN_COLORS[s.plan] || 'bg-muted'}`}>{s.plan}</Badge>
+                    {daysLeft !== null && daysLeft > 0 && (
+                      <span className="text-[10px] text-muted-foreground">{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span>
+                    )}
+                    {daysLeft !== null && daysLeft <= 0 && (
+                      <span className="text-[10px] text-destructive font-semibold">Expired {Math.abs(daysLeft)} day{Math.abs(daysLeft) !== 1 ? 's' : ''} ago</span>
+                    )}
+                  </div>
+
+                  {/* Membership period */}
+                  <div className="bg-muted/40 rounded-xl p-4 space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Membership Period</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Start Date</p>
+                        <p className="text-sm font-semibold">
+                          {s.start_date ? format(new Date(s.start_date), 'dd MMM yyyy') : '—'}
+                        </p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">End Date</p>
+                        <p className={`text-sm font-semibold ${daysLeft !== null && daysLeft <= 0 ? 'text-destructive' : daysLeft !== null && daysLeft <= 3 ? 'text-amber-500' : ''}`}>
+                          {s.end_date ? format(new Date(s.end_date), 'dd MMM yyyy') : '—'}
+                        </p>
+                      </div>
+                    </div>
+                    {duration && (
+                      <p className="text-[10px] text-muted-foreground">Duration: {duration} days</p>
+                    )}
+                  </div>
+
+                  {/* Payment details */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payment</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: 'Amount Paid', value: s.amount_paid > 0 ? `MWK ${s.amount_paid.toLocaleString()}` : '—' },
+                        { label: 'Currency',    value: s.currency || 'MWK' },
+                        { label: 'Method',      value: s.payment_method?.replace(/_/g, ' ') || '—' },
+                        { label: 'Auto-renew',  value: s.auto_renew ? 'Yes' : 'No' },
+                      ].map(item => (
+                        <div key={item.label} className="bg-muted/30 rounded-lg p-3">
+                          <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                          <p className="text-xs font-semibold capitalize mt-0.5">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Record metadata */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Record Info</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: 'Created',  value: s.created_date ? format(new Date(s.created_date), 'dd MMM yyyy HH:mm') : '—' },
+                        { label: 'Updated',  value: s.updated_date ? format(new Date(s.updated_date), 'dd MMM yyyy HH:mm') : '—' },
+                        { label: 'Record ID', value: s.id?.slice(0, 10) + '...' },
+                        { label: 'Student ID', value: s.student_id?.slice(0, 10) + '...' },
+                      ].map(item => (
+                        <div key={item.label} className="bg-muted/30 rounded-lg p-3">
+                          <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                          <p className="text-xs font-semibold mt-0.5 break-all">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quick actions */}
+                  <div className="space-y-2 pb-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick Actions</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {s.status !== 'active' && (
+                        <Button size="sm" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'active' } }); setSelectedSub(null); }}>
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Activate
+                        </Button>
+                      )}
+                      {s.status === 'active' && (
+                        <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'cancelled' } }); setSelectedSub(null); }}>
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 30); setSelectedSub(null); }}>
+                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> +30 days
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 365); setSelectedSub(null); }}>
+                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> +1 year
+                      </Button>
+                      <Button size="sm" variant="destructive" className="h-9 text-xs col-span-2" onClick={() => { deleteMutation.mutate(s.id); setSelectedSub(null); }}>
+                        <XCircle className="w-3.5 h-3.5 mr-1" /> Delete Record
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* PAYMENTS TAB */}
         <TabsContent value="payments" className="mt-5">
