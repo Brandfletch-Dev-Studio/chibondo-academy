@@ -55,10 +55,27 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true });
     }
 
-    // ── 4. Build and send branded email ─────────────────────────────────────
+    // ── 4. Check if welcome email is enabled in admin settings ──────────────
+    try {
+      const tplSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'email_templates' });
+      const tplConfig = tplSettings[0]?.value || {};
+      if (tplConfig.welcome_enabled === false) {
+        console.log('Welcome email disabled by admin — skipping');
+        return Response.json({ skipped: true, reason: 'disabled' });
+      }
+    } catch (_) { /* non-fatal — proceed with send */ }
+
+    // ── 5. Build and send branded email ─────────────────────────────────────
+    // Get referral code (may have just been set above)
+    const freshUser = await base44.asServiceRole.entities.User.filter({ id: user.id }).catch(() => [user]);
+    const referralCode = freshUser[0]?.referral_code || user.referral_code || '';
+
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', {
       type: 'welcome',
-      variables: { student_name: user.full_name || user.email.split('@')[0] },
+      variables: {
+        student_name: user.full_name || user.email.split('@')[0],
+        referral_code: referralCode,
+      },
     });
 
     if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
