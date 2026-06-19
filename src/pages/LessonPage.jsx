@@ -42,15 +42,50 @@ function VideoPlayer({ lesson }) {
   // YouTube — extract ID properly
   const ytId = getYouTubeId(video_url);
   if (ytId) {
+    // YouTube embed params:
+    //   rel=0            — no related videos at end
+    //   modestbranding=1 — hide YouTube logo in controls
+    //   iv_load_policy=3 — disable video annotations
+    //   disablekb=1      — disable keyboard shortcuts (harder to inspect)
+    //   fs=1             — allow fullscreen button
+    //   playsinline=1    — iOS inline play
+    //   vq=hd1080        — request 1080p HD quality (best-effort; YouTube may downgrade)
+    //   cc_load_policy=0 — no auto-captions
+    //   color=white      — white progress bar (no red YouTube branding)
+    //   controls=1       — keep basic play/pause/fullscreen, hides share/watch-later/logo
+    //   origin=<domain>  — locks embed to this origin (security)
+    const ytParams = [
+      'rel=0',
+      'modestbranding=1',
+      'iv_load_policy=3',
+      'disablekb=1',
+      'fs=1',
+      'playsinline=1',
+      'vq=hd1080',
+      'cc_load_policy=0',
+      'color=white',
+      'controls=1',
+      `origin=${encodeURIComponent(window.location.origin)}`,
+    ].join('&');
     return (
-      <div className="relative aspect-video bg-black w-full">
+      <div
+        className="relative aspect-video bg-black w-full select-none"
+        onContextMenu={e => e.preventDefault()}
+      >
         <iframe
-          src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&color=white&enablejsapi=1`}
-          className="absolute inset-0 w-full h-full"
+          src={`https://www.youtube-nocookie.com/embed/${ytId}?${ytParams}`}
+          className="absolute inset-0 w-full h-full pointer-events-auto"
           allow={EMBED_ALLOW}
           allowFullScreen
           referrerPolicy="strict-origin-when-cross-origin"
           title={lesson.title}
+          loading="lazy"
+        />
+        {/* Transparent overlay — blocks right-click context menu on the iframe */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          onContextMenu={e => e.preventDefault()}
+          style={{ zIndex: 1 }}
         />
       </div>
     );
