@@ -152,7 +152,7 @@ export default function EmailTemplateSettings() {
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
 
   const { data: settings, isLoading } = useQuery({
-    queryKey: ["platformSettings', 'email_templates'],
+    queryKey: ['platformSettings', 'email_templates'],
     queryFn: async () => {
       const res = await base44.entities.PlatformSettings.filter({ key: 'email_templates' });
       return res[0]?.value || null;
