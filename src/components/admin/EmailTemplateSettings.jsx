@@ -107,43 +107,43 @@ The Chibondo Academy Team`,
 const TEMPLATE_FIELDS = [
   {
     id: 'welcome',
-    label: 'Welcome Email',
+    label: "Welcome Email',
     icon: UserCheck,
-    badge: 'On Registration',
+    badge: "On Registration',
     badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    description: 'Sent immediately after a student registers. Variables: {student_name}, {referral_code}, {dashboard_link}',
+    description: "Sent immediately after a student registers. Variables: {student_name}, {referral_code}, {dashboard_link}',
   },
   {
-    id: 'payment_confirmed',
-    label: 'Payment Confirmed',
+    id: "payment_confirmed',
+    label: "Payment Confirmed',
     icon: CreditCard,
-    badge: 'On Payment',
+    badge: "On Payment',
     badgeColor: 'bg-success/10 text-success border-success/20',
-    description: 'Sent after a successful fee payment. Variables: {student_name}, {plan}, {end_date}, {amount}, {dashboard_link}, {contact_email}',
+    description: "Sent after a successful fee payment. Variables: {student_name}, {plan}, {end_date}, {amount}, {dashboard_link}, {contact_email}',
   },
   {
-    id: 'cart_recovery',
-    label: 'Cart Recovery',
+    id: "cart_recovery',
+    label: "Cart Recovery',
     icon: ShoppingCart,
-    badge: '1 hr after abandon',
+    badge: "1 hr after abandon',
     badgeColor: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-    description: 'Sent 1 hour after a student starts but does not complete payment. Variables: {student_name}, {plan}, {amount}, {payment_link}, {contact_email}',
+    description: "Sent 1 hour after a student starts but does not complete payment. Variables: {student_name}, {plan}, {amount}, {payment_link}, {contact_email}",
   },
   {
     id: 'subscription_expired',
-    label: 'Subscription Expired',
+    label: "Subscription Expired',
     icon: Bell,
-    badge: 'On Expiry',
+    badge: "On Expiry',
     badgeColor: 'bg-destructive/10 text-destructive border-destructive/20',
-    description: 'Sent when a student's subscription expires. Variables: {student_name}, {end_date}, {subscription_link}',
+    description: "Sent when a student's subscription expires. Variables: {student_name}, {end_date}, {subscription_link}",
   },
   {
     id: 'subscription_expiring',
-    label: 'Subscription Expiring Soon',
+    label: "Subscription Expiring Soon',
     icon: Zap,
-    badge: '3 days before',
+    badge: "3 days before',
     badgeColor: 'bg-accent/10 text-accent border-accent/20',
-    description: 'Sent 3 days before expiry. Variables: {student_name}, {end_date}, {days_left}, {subscription_link}',
+    description: "Sent 3 days before expiry. Variables: {student_name}, {end_date}, {days_left}, {subscription_link}',
   },
 ];
 
@@ -152,7 +152,7 @@ export default function EmailTemplateSettings() {
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
 
   const { data: settings, isLoading } = useQuery({
-    queryKey: ['platformSettings', 'email_templates'],
+    queryKey: ["platformSettings', 'email_templates'],
     queryFn: async () => {
       const res = await base44.entities.PlatformSettings.filter({ key: 'email_templates' });
       return res[0]?.value || null;
