@@ -576,10 +576,28 @@ export default function AdminSubscriptions() {
                           MWK {p.amount?.toLocaleString()}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        {p.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px] gap-1.5 border-accent/40 text-accent hover:bg-accent/10"
+                            onClick={() => handleSendRecovery(p)}
+                            disabled={sendingRecovery === p.id}
+                            title="Manually send a cart recovery email to this student"
+                          >
+                            {sendingRecovery === p.id
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <Send className="w-3 h-3" />
+                            }
+                            {sendingRecovery === p.id ? 'Sending…' : 'Nudge'}
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {payments.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">No payment records yet</td></tr>
+                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">No payment records yet</td></tr>
                   )}
                 </tbody>
               </table>
