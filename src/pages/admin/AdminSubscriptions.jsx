@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   CreditCard, Search, CheckCircle2, XCircle, Clock, TrendingUp,
   Users, Banknote, CalendarDays, MoreVertical, Plus, Loader2, RefreshCw,
-  Eye, X, ArrowRight
+  Eye, X, ArrowRight, Mail, Send
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
@@ -68,6 +68,7 @@ export default function AdminSubscriptions() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
   const [grantOpen, setGrantOpen] = useState(false);
+  const [sendingRecovery, setSendingRecovery] = useState(null); // payment id being sent
   const [grantStudentEmail, setGrantStudentEmail] = useState('');
   const [grantPlan, setGrantPlan] = useState('monthly');
   const [grantMonths, setGrantMonths] = useState(1);
@@ -174,6 +175,33 @@ export default function AdminSubscriptions() {
     const newEnd = new Date((sub.end_date ? new Date(sub.end_date) : new Date()).getTime() + days * 86400000);
     updateMutation.mutate({ id: sub.id, data: { end_date: newEnd.toISOString(), status: 'active' } });
     toast.success(`Extended by ${days} days`);
+  };
+
+  // ── Manual recovery email — triggers the cron function for a single student ──
+  const handleSendRecovery = async (payment) => {
+    setSendingRecovery(payment.id);
+    try {
+      // Look up the student email from userMap or profileMap
+      const email = userMap[payment.student_id]?.email || payment.student_email || '';
+      if (!email) {
+        toast.error('No email found for this student');
+        return;
+      }
+      // Call cartRecoveryEmails with force flag to bypass hourly eligibility check
+      const res = await base44.functions.invoke('cartRecoveryEmails', {
+        force_student_id: payment.student_id,
+        force_email: email,
+        payment_id: payment.id,
+        amount: payment.amount,
+        description: payment.description,
+      });
+      if (res?.error) throw new Error(res.error);
+      toast.success(`Recovery email sent to ${email}`);
+    } catch (e) {
+      toast.error(e.message || 'Failed to send recovery email');
+    } finally {
+      setSendingRecovery(null);
+    }
   };
 
   return (
