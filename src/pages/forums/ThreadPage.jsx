@@ -393,11 +393,28 @@ export default function ThreadPage() {
     onError: e => toast.error(e.message),
   });
 
-  /* ── Delete ── */
+  /* ── Delete reply ── */
   const deleteMut = useMutation({
     mutationFn: id => base44.entities.Discussion.update(id, { status: 'deleted' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] }),
   });
+
+  /* ── Delete thread (OP) ── */
+  const deleteThreadMut = useMutation({
+    mutationFn: () => base44.entities.Discussion.update(thread.id, { status: 'deleted' }),
+    onSuccess: () => {
+      toast.success('Thread deleted');
+      qc.invalidateQueries({ queryKey: ['forum-threads', thread?.subject_id] });
+      navigate(`/forums/${subjectSlug}`);
+    },
+    onError: (e) => toast.error(e.message || 'Failed to delete thread'),
+  });
+
+  const handleDeleteThread = () => {
+    if (window.confirm(`Delete "${thread?.title}"? All replies will also be removed. This cannot be undone.`)) {
+      deleteThreadMut.mutate();
+    }
+  };
 
   /* ── Accept answer ── */
   const acceptMut = useMutation({
@@ -588,6 +605,18 @@ export default function ThreadPage() {
                 className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                 <Pin className="w-3 h-3" />
                 {thread.is_pinned ? 'Unpin' : 'Pin'}
+              </button>
+            )}
+            {/* Delete thread — author or admin/teacher */}
+            {(user?.id === thread.author_id || isTeacherOrAdmin) && (
+              <button
+                onClick={handleDeleteThread}
+                disabled={deleteThreadMut.isPending}
+                className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors disabled:opacity-50"
+                title="Delete this thread"
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
               </button>
             )}
           </div>
