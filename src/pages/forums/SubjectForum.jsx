@@ -685,6 +685,7 @@ export default function SubjectForum() {
             {filtered.map(t => (
               <ThreadCard key={t.id} thread={t} subjectSlug={subjectSlug}
                 navigate={navigate} user={user} onShare={handleShare}
+                onDelete={handleDeleteThread}
                 onAvatarClick={t => setViewingAvatar({
                   name: t.author_name,
                   role: t.author_role,
