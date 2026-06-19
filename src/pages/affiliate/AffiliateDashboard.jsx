@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import {
   DollarSign, Clock, CheckCircle2, Wallet,
-  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save, Info
+  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save, Info, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,7 +24,11 @@ function StatCard({ label, value, icon: Icon, color, sub }) {
 
 export default function AffiliateDashboard() {
   const ctx = useOutletContext() || {};
-  const { user, commissionAmount = 10000, minPayout = 5000 } = ctx;
+  const {
+    user, commissionAmount = 10000, minPayout = 5000,
+    recurringEnabled = false, recurringRateType = 'same',
+    recurringCommType = 'fixed', recurringAmount, recurringPct = 5,
+  } = ctx;
   const qc = useQueryClient();
 
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
@@ -82,8 +86,20 @@ export default function AffiliateDashboard() {
   const totalEarnings    = paidReferrals.reduce((s, r) => s + (r.reward_amount || commissionAmount), 0);
   const pendingComm      = pendingReferrals.reduce((s, r) => s + (r.reward_amount || 0), 0);
   const paidOut          = payouts.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
-  const availableBalance = Math.max(0, totalEarnings - paidOut);
-  const convRate         = totalReferrals > 0 ? Math.round((paidReferrals.length / totalReferrals) * 100) : 0;
+
+  // Recurring earnings
+  const totalRecurringEarnings = referrals.reduce((s, r) => s + (r.recurring_reward_amount || 0), 0);
+  const totalRecurringCount    = referrals.reduce((s, r) => s + (r.recurring_count || 0), 0);
+  const grandTotalEarnings     = totalEarnings + totalRecurringEarnings;
+  const availableBalance       = Math.max(0, grandTotalEarnings - paidOut);
+  const convRate               = totalReferrals > 0 ? Math.round((paidReferrals.length / totalReferrals) * 100) : 0;
+
+  // Build recurring rate display string
+  const recurringRateDisplay = !recurringEnabled ? null
+    : recurringRateType === 'same' ? `Same as initial (MWK ${commissionAmount.toLocaleString()})`
+    : recurringCommType === 'fixed' ? `MWK ${(recurringAmount || 5000).toLocaleString()} per renewal`
+    : recurringCommType === 'percentage' ? `${recurringPct}% of each renewal`
+    : 'Tiered (varies by volume)';
 
   return (
     <div className="space-y-6">
@@ -101,6 +117,15 @@ export default function AffiliateDashboard() {
                 MWK <span style={{ color: 'hsl(43 74% 52%)' }}>{commissionAmount.toLocaleString()}</span>
               </p>
               <p className="text-sm text-muted-foreground mt-1">per successful paid subscription referral</p>
+              {recurringEnabled && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: 'hsl(43 74% 52% / 0.12)', color: 'hsl(43 60% 38%)', border: '1px solid hsl(43 74% 52% / 0.25)' }}>
+                    <RefreshCw className="w-3 h-3" /> Recurring
+                  </span>
+                  <span className="text-xs text-muted-foreground">{recurringRateDisplay}</span>
+                </div>
+              )}
             </div>
 
             {/* Referral code — editable */}
@@ -175,7 +200,11 @@ export default function AffiliateDashboard() {
           sub={`${convRate}% conversion rate`} />
         <StatCard label="Pending Commissions"  value={`MWK ${pendingComm.toLocaleString()}`}                      icon={Clock}        color="text-yellow-500 bg-yellow-500/10"
           sub="Awaiting payment confirmation" />
-        <StatCard label="Total Earnings"       value={`MWK ${totalEarnings.toLocaleString()}`}                    icon={DollarSign}   color="text-accent bg-accent/10" />
+        <StatCard label="Initial Earnings"     value={`MWK ${totalEarnings.toLocaleString()}`}                    icon={DollarSign}   color="text-accent bg-accent/10" />
+        {recurringEnabled && (
+          <StatCard label="Recurring Earnings"  value={`MWK ${totalRecurringEarnings.toLocaleString()}`}           icon={RefreshCw}    color="text-orange-500 bg-orange-500/10"
+            sub={totalRecurringCount > 0 ? `${totalRecurringCount} renewal${totalRecurringCount !== 1 ? 's' : ''} earned` : 'Earn on every renewal'} />
+        )}
         <StatCard label="Available Balance"    value={`MWK ${availableBalance.toLocaleString()}`}                 icon={Wallet}       color="text-primary bg-primary/10"
           sub={availableBalance >= minPayout ? '✓ Eligible for payout' : `Need MWK ${Math.max(0, minPayout - availableBalance).toLocaleString()} more`} />
         <StatCard label="Paid Out"             value={`MWK ${paidOut.toLocaleString()}`}                          icon={TrendingUp}   color="text-purple-500 bg-purple-500/10" />
@@ -192,7 +221,10 @@ export default function AffiliateDashboard() {
             `You earn MWK ${commissionAmount.toLocaleString()} per successful paid subscription`,
             'Commission is only credited after payment is confirmed',
             'Free trials and pending payments do NOT qualify',
-            'Commission applies only to the first subscription per referred user',
+            ...(recurringEnabled
+              ? [`Recurring: you also earn ${recurringRateDisplay} on every renewal`]
+              : ['Commission applies only to the first subscription per referred user']
+            ),
             'Cancellations or failed payments void the commission',
             'Payouts are processed within 48–72 hours of approval',
           ].map((rule, i) => (
@@ -248,6 +280,12 @@ export default function AffiliateDashboard() {
                     {isPaid && (
                       <p className="text-xs font-semibold" style={{ color: 'hsl(43 74% 52%)' }}>
                         +MWK {(r.reward_amount || commissionAmount).toLocaleString()}
+                      </p>
+                    )}
+                    {isPaid && recurringEnabled && (r.recurring_reward_amount || 0) > 0 && (
+                      <p className="text-[10px] text-orange-500 font-medium flex items-center gap-0.5">
+                        <RefreshCw className="w-2.5 h-2.5" />
+                        +MWK {(r.recurring_reward_amount || 0).toLocaleString()} recurring
                       </p>
                     )}
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
