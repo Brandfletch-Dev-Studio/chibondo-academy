@@ -181,9 +181,24 @@ export default function AdminSubscriptions() {
           <h1 className="text-2xl font-display font-bold">School Fees & Subscriptions</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage student fee payments and access</p>
         </div>
-        <Button size="sm" onClick={() => setGrantOpen(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Grant Access
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline"
+            onClick={async () => {
+              const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 2h ago
+              const stale = subscriptions.filter(s =>
+                ['trial', 'cancelled'].includes(s.status) && s.created_date < cutoff
+              );
+              if (stale.length === 0) { toast.info('No stale records to clean'); return; }
+              await Promise.all(stale.map(s => base44.entities.Subscription.delete(s.id)));
+              queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
+              toast.success(`Cleaned ${stale.length} stale subscription record(s)`);
+            }}>
+            <RefreshCw className="w-4 h-4 mr-1" /> Clean Stale
+          </Button>
+          <Button size="sm" onClick={() => setGrantOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Grant Access
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
