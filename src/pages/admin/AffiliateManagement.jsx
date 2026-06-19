@@ -382,6 +382,11 @@ function CommissionSettingsTab() {
     tier2_referrals: 15, tier2_rate: 15,
     tier3_referrals: 30, tier3_rate: 20,
     min_payout: 5000, recurring_commission: false,
+    recurring_rate_type: 'same',    // 'same' = follows main commission structure, 'custom' = separate config
+    recurring_commission_type: 'fixed',
+    recurring_percentage_rate: 5,
+    recurring_fixed_amount: 5000,
+    recurring_tier1_rate: 5,  recurring_tier2_rate: 8,  recurring_tier3_rate: 12,
     payment_methods: { airtel_money: true, tnm_mpamba: true, bank_transfer: false },
     airtel_number: '', tnm_number: '', bank_details: '',
     program_name: 'Chibondo Referral Program',
@@ -499,13 +504,101 @@ function CommissionSettingsTab() {
         </div>
       </div>
 
-      {/* Recurring */}
-      <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between">
-        <div>
-          <p className="font-semibold text-sm">Recurring Commission</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Award commission on every renewal, not just first payment</p>
+      {/* Recurring Commission */}
+      <div className={S}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-display font-bold text-sm">Recurring Commission</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">Award commission on every renewal, not just first payment</p>
+          </div>
+          <Switch checked={!!settings.recurring_commission} onCheckedChange={v => update({ recurring_commission: v })} />
         </div>
-        <Switch checked={!!settings.recurring_commission} onCheckedChange={v => update({ recurring_commission: v })} />
+
+        {settings.recurring_commission && (
+          <div className="space-y-4 pt-3 border-t border-border">
+            {/* Rate mode selector */}
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recurring Rate</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1.5">
+                {[
+                  { id: 'same',   label: 'Same as Initial', desc: 'Follows main commission structure' },
+                  { id: 'custom', label: 'Custom Rate',      desc: 'Set a different recurring rate' },
+                ].map(opt => (
+                  <button key={opt.id} onClick={() => update({ recurring_rate_type: opt.id })}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      (settings.recurring_rate_type || 'same') === opt.id
+                        ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/40'
+                    }`}>
+                    <p className="font-semibold text-xs">{opt.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom recurring commission config — mirrors main commission structure */}
+            {(settings.recurring_rate_type === 'custom') && (
+              <div className="space-y-3">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recurring Commission Type</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'percentage', label: 'Percentage', icon: Percent },
+                    { id: 'fixed',      label: 'Fixed',      icon: DollarSign },
+                    { id: 'tiered',     label: 'Tiered',     icon: Layers },
+                  ].map(opt => {
+                    const Icon = opt.icon;
+                    return (
+                      <button key={opt.id} onClick={() => update({ recurring_commission_type: opt.id })}
+                        className={`p-2.5 rounded-xl border-2 text-left transition-all ${
+                          (settings.recurring_commission_type || 'fixed') === opt.id
+                            ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/40'
+                        }`}>
+                        <Icon className={`w-3.5 h-3.5 mb-1 ${
+                          (settings.recurring_commission_type || 'fixed') === opt.id ? 'text-accent' : 'text-muted-foreground'
+                        }`} />
+                        <p className="font-semibold text-[11px]">{opt.label}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {(settings.recurring_commission_type || 'fixed') === 'percentage' && (
+                  <div>
+                    <Label className="text-xs">Recurring Rate (%)</Label>
+                    <div className="flex items-center gap-3 mt-1">
+                      <Input type="number" className="w-24 rounded-xl" value={settings.recurring_percentage_rate || 5}
+                        onChange={e => update({ recurring_percentage_rate: parseFloat(e.target.value) || 0 })} />
+                      <span className="text-sm text-muted-foreground">% of each renewal</span>
+                    </div>
+                  </div>
+                )}
+
+                {(settings.recurring_commission_type || 'fixed') === 'fixed' && (
+                  <div>
+                    <Label className="text-xs">Recurring Fixed Amount (MWK)</Label>
+                    <Input type="number" className="w-36 mt-1 rounded-xl" value={settings.recurring_fixed_amount || 5000}
+                      onChange={e => update({ recurring_fixed_amount: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                )}
+
+                {(settings.recurring_commission_type || 'fixed') === 'tiered' && (
+                  <div className="space-y-2">
+                    {[1,2,3].map(t => (
+                      <div key={t} className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-12">Tier {t}</span>
+                        <Input type="number" className="w-20 rounded-xl" placeholder="Rate %"
+                          value={settings[`recurring_tier${t}_rate`] || 0}
+                          onChange={e => update({ [`recurring_tier${t}_rate`]: parseFloat(e.target.value) || 0 })} />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground">Uses same referral thresholds as main tiers above</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Payment methods */}
