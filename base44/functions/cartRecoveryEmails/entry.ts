@@ -9,6 +9,28 @@
  */
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
+// ── Resend email sender ───────────────────────────────────────────────────────
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
+
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Resend error ${res.status}: ${err}`);
+  }
+  const d = await res.json();
+  console.log(`✅ Email sent to ${to} — Resend ID: ${d.id}`);
+}
+
+
 async function sendRecoveryEmail(base44: any, user: any, payment: any) {
   try {
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', {
