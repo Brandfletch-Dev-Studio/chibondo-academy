@@ -187,15 +187,21 @@ export default function AdminSubscriptions() {
         toast.error('No email found for this student');
         return;
       }
-      // Call cartRecoveryEmails with force flag to bypass hourly eligibility check
-      const res = await base44.functions.invoke('cartRecoveryEmails', {
-        force_student_id: payment.student_id,
-        force_email: email,
-        payment_id: payment.id,
-        amount: payment.amount,
-        description: payment.description,
+      // Call cartRecoveryEmails via direct POST so the body reaches req.json()
+      const nudgeRes = await fetch('https://theaca.base44.app/api/functions/cartRecoveryEmails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          force_student_id: payment.student_id,
+          force_email: email,
+          payment_id: payment.id,
+          amount: payment.amount,
+          description: payment.description,
+          student_name: userMap[payment.student_id]?.full_name || '',
+        }),
       });
-      if (res?.error) throw new Error(res.error);
+      const res = await nudgeRes.json();
+      if (!nudgeRes.ok || res?.error) throw new Error(res?.error || 'Nudge failed');
       toast.success(`Recovery email sent to ${email}`);
     } catch (e) {
       toast.error(e.message || 'Failed to send recovery email');
