@@ -8,12 +8,34 @@
  */
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
+// ── Resend email sender ───────────────────────────────────────────────────────
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
+
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Resend error ${res.status}: ${err}`);
+  }
+  const d = await res.json();
+  console.log(`✅ Email sent to ${to} — Resend ID: ${d.id}`);
+}
+
+
 // Shared email helper
 async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, any>) {
   try {
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
     if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
-    await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: built.subject, body: built.html });
+    await sendEmail(to, built.subject, built.html);
   } catch (err: any) {
     console.error(`Email to ${to} failed:`, err.message);
   }
