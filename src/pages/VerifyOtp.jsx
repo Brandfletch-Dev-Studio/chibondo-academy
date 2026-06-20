@@ -119,8 +119,15 @@ export default function VerifyOtp() {
         setSuccess(true);
         base44.auth.setToken(token);
         try { await base44.auth.updateMe({ role: "user" }); } catch (_) {}
-        // Send welcome email — fire and forget, non-blocking
-        base44.functions.invoke("sendWelcomeEmail", {}).catch(() => {});
+        // Send welcome email — fire and forget, pass auth token so function can identify the user
+        fetch("https://theaca.base44.app/api/functions/sendWelcomeEmail", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({}),
+        }).catch(() => {});
         // trackReferral is handled by the dashboard on first load
         setTimeout(() => {
           window.location.replace(`/dashboard?access_token=${encodeURIComponent(token)}`);
