@@ -43,11 +43,7 @@ async function sendRecoveryEmail(base44: any, user: any, payment: any) {
     });
     if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to:      user.email,
-      subject: built.subject,
-      body:    built.html || built.text,
-    });
+    await sendEmail(user.email, built.subject, built.html || built.text);
 
     // Log so we don't repeat in the next automated run
     await base44.asServiceRole.entities.Notification.create({
