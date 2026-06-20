@@ -1,18 +1,39 @@
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
+// ── Resend email sender ───────────────────────────────────────────────────────
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
+
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Resend error ${res.status}: ${err}`);
+  }
+  const d = await res.json();
+  console.log(`✅ Email sent to ${to} — Resend ID: ${d.id}`);
+}
+
+
 async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, string | number>) {
   try {
     const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
     if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
-    await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: built.subject, body: built.html });
-    console.log(`✅ Branded email (${type}) sent to ${to}`);
+    await sendEmail(to, built.subject, built.html);
   } catch (err: any) {
-    console.error(`sendBrandedEmail(${type}) failed — falling back:`, err.message);
-    await base44.asServiceRole.integrations.Core.SendEmail({
+    console.error(`sendBrandedEmail(${type}) failed — falling back to plain text:`, err.message);
+    await sendEmail(
       to,
-      subject: type === 'payment_confirmed' ? 'Payment Confirmed – Chibondo Academy' : type,
-      body: `Hi,\n\nYour subscription update is confirmed. Visit https://www.chibondoacademy.com/dashboard to continue.\n\nChibondo Academy`,
-    });
+      type === 'payment_confirmed' ? 'Payment Confirmed – Chibondo Academy' : 'Chibondo Academy Notification',
+      `<p>Hi,</p><p>Your subscription update is confirmed. Visit <a href="https://www.chibondoacademy.com/dashboard">your dashboard</a> to continue.</p><p>Chibondo Academy</p>`,
+    );
   }
 }
 
