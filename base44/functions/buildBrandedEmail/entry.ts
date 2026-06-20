@@ -165,20 +165,6 @@ Deno.serve(async (req) => {
       // ── Welcome ──────────────────────────────────────────────────────────
       welcome: () => {
         const name = v.student_name || 'Student';
-        const text = `Dear ${name},\n\nWelcome to ${b.academyName}! Your email has been verified and your account is ready.\n\n${b.tagline}.\n\nExplore your enrolled subjects, tackle quizzes, and track your progress — all in one place.`;
-        return {
-          subject: `Welcome to ${b.academyName}! 🎓`,
-          preheader: 'Your account is verified — start learning today',
-          bodyHtml: toHtml(text),
-          ctaLabel: 'Go to Dashboard',
-          ctaUrl: `${b.website}/dashboard`,
-          text,
-        };
-      },
-
-      // ── Welcome ──────────────────────────────────────────────────────────
-      welcome: () => {
-        const name = v.student_name || 'Student';
         const rawBody = (tpls.welcome_body ||
           `Dear {student_name},\n\nWelcome to ${b.academyName}! We are thrilled to have you join our learning community.\n\nYour referral code is: {referral_code}\n\nGet started at: {dashboard_link}`)
           .replace(/\{student_name\}/g,   name)
