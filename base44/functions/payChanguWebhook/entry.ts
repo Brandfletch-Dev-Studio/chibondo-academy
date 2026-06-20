@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
 // ── Resend email sender ───────────────────────────────────────────────────────
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_Z2rVV1Yz_BapfeMWdpLWbHuBjyJ6QTpaD';
 const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
 
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
