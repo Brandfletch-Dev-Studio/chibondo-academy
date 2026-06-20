@@ -8,13 +8,11 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useOutletContext } from 'react-router-dom';
 
-// Sync dark mode with system preference (mandatory for Android Google Play)
-// Base44 apps inherit system theme automatically via Tailwind dark: classes,
-// but we also need the <meta color-scheme> and <html class> to match.
+// Default theme is LIGHT. Only switch to dark if the user has explicitly chosen it.
+// System preference is intentionally ignored — the app ships light by default.
 if (typeof window !== 'undefined') {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const saved = localStorage.getItem('theme');
-  if (saved === 'dark' || (!saved && prefersDark)) {
+  if (saved === 'dark') {
     document.documentElement.classList.add('dark');
   } else {
     document.documentElement.classList.remove('dark');
