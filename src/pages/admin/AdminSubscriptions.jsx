@@ -187,8 +187,8 @@ export default function AdminSubscriptions() {
         toast.error('No email found for this student');
         return;
       }
-      // Call the deployed agent nudge function — fully live, no GitHub sync needed
-      const nudgeRes = await fetch('https://api.base44.com/api/apps/6a2d58da724ffb952612d870/functions/cartRecoveryEmails', {
+      // Call the ACA's own cartRecoveryEmails function — self-contained, no external deps
+      const nudgeRes = await fetch('https://theaca.base44.app/api/functions/cartRecoveryEmails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
