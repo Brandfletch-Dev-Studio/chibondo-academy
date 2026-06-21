@@ -26,6 +26,71 @@ function ensureSdkToken() {
   if (t) base44.auth.setToken(t);
 }
 
+// getLiveToken — reads the auth token fresh from localStorage every call.
+// base44Client.js freezes the token at module-load time, so post-login sessions
+// never update the SDK. This bypasses that by reading localStorage directly.
+function getLiveToken() {
+  return localStorage.getItem('base44_access_token') || localStorage.getItem('token') || '';
+}
+
+// patchMe — calls the Base44 /me endpoint directly with the live token.
+// Replaces base44.auth.updateMe() which uses the stale frozen token.
+async function patchMe(data) {
+  const appId = import.meta.env.VITE_BASE44_APP_ID;
+  const token = getLiveToken();
+  const res = await fetch(`/api/apps/${appId}/auth/me`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || err?.error || `Save failed (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+// patchEntity — updates an entity record directly with the live token.
+async function patchEntity(entityName, id, data) {
+  const appId = import.meta.env.VITE_BASE44_APP_ID;
+  const token = getLiveToken();
+  const res = await fetch(`/api/apps/${appId}/entities/${entityName}/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || err?.error || `Entity save failed (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+// createEntity — creates an entity record directly with the live token.
+async function createEntity(entityName, data) {
+  const appId = import.meta.env.VITE_BASE44_APP_ID;
+  const token = getLiveToken();
+  const res = await fetch(`/api/apps/${appId}/entities/${entityName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || err?.error || `Entity create failed (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
 // ── Gold accent tokens ────────────────────────────────────────────────────────
 const GOLD        = 'hsl(43 74% 52%)';
 const GOLD_BG     = 'hsl(43 74% 52% / 0.12)';
@@ -138,28 +203,38 @@ function ProfilePanel({ user, profile, qc }) {
   }, [profile?.id]);
 
   const handleAvatar = async (e) => {
-    ensureSdkToken();
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return; }
+
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // uploadImage uses raw XHR with live token — works post-login
+      const { uploadImage } = await import('@/utils/uploadImage');
+      const file_url = await uploadImage(file);
+
       setConfirmedUrl(file_url);
       setPreview(file_url);
-      await base44.auth.updateMe({ avatar_url: file_url });
+
+      // patchMe uses live token
+      await patchMe({ avatar_url: file_url });
+
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, { avatar_url: file_url });
+        await patchEntity('StudentProfile', profile.id, { avatar_url: file_url });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: file_url });
+        await createEntity('StudentProfile', { user_id: user.id, avatar_url: file_url });
       }
+
       await checkUserAuth();
       qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
       qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile photo updated!');
     } catch (err) {
-      toast.error('Upload failed: ' + (err?.message || 'Unknown error'));
+      console.error('Avatar upload error:', err);
+      toast.error(err?.message || 'Upload failed — please try again');
       setPreview(user?.avatar_url || '');
     } finally {
       setUploading(false);
@@ -167,32 +242,37 @@ function ProfilePanel({ user, profile, qc }) {
   };
 
   const handleSave = async () => {
-    ensureSdkToken();
     setSaving(true);
     try {
-      // Only update avatar_url if user uploaded a new photo this session
+      // Use patchMe (live token) instead of base44.auth.updateMe (frozen token)
       const avatarUpdate = confirmedUrl && confirmedUrl !== user?.avatar_url ? { avatar_url: confirmedUrl } : {};
-      await base44.auth.updateMe({ full_name: fullName.trim(), ...avatarUpdate });
+      await patchMe({ full_name: fullName.trim(), ...avatarUpdate });
+
+      // Update or create StudentProfile
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, {
+        await patchEntity('StudentProfile', profile.id, {
           full_name: fullName.trim(),
           phone_number: phone,
           school_name: schoolName,
+          ...(avatarUpdate.avatar_url ? { avatar_url: avatarUpdate.avatar_url } : {}),
         });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({
+        await createEntity('StudentProfile', {
           user_id: user.id,
           full_name: fullName.trim(),
           phone_number: phone,
           school_name: schoolName,
+          ...(avatarUpdate.avatar_url ? { avatar_url: avatarUpdate.avatar_url } : {}),
         });
       }
+
       await checkUserAuth();
       qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
       qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile saved!');
     } catch (err) {
-      toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
+      console.error('Profile save error:', err);
+      toast.error(err?.message || 'Save failed — please try again');
     } finally {
       setSaving(false);
     }
@@ -291,18 +371,19 @@ function AcademicPanel({ user, profile, qc }) {
   });
 
   const handleSave = async () => {
-    ensureSdkToken();
+    if (!selectedForm) { toast.error('Please select a form first'); return; }
     setSaving(true);
     try {
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, { form: selectedForm });
+        await patchEntity('StudentProfile', profile.id, { form: selectedForm });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({ user_id: user.id, form: selectedForm });
+        await createEntity('StudentProfile', { user_id: user.id, form: selectedForm });
       }
       qc.invalidateQueries({ queryKey: ['studentProfile', user?.id] });
       toast.success('Academic info saved!');
     } catch (err) {
-      toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
+      console.error('Academic save error:', err);
+      toast.error(err?.message || 'Save failed — please try again');
     } finally {
       setSaving(false);
     }
