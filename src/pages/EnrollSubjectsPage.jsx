@@ -35,6 +35,21 @@ export default function EnrollSubjectsPage() {
     staleTime: 30_000,
   });
 
+  /* ── Published lesson counts per subject ── */
+  const { data: publishedLessons = [] } = useQuery({
+    queryKey: ['lessons-published-count'],
+    queryFn:  () => base44.entities.Lesson.filter({ status: 'published' }, 'subject_id', 500),
+    staleTime: 60_000,
+  });
+
+  const lessonCountBySubject = useMemo(() => {
+    const map = {};
+    publishedLessons.forEach(l => {
+      map[l.subject_id] = (map[l.subject_id] || 0) + 1;
+    });
+    return map;
+  }, [publishedLessons]);
+
   /* ── Existing enrollments ── */
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
@@ -161,8 +176,8 @@ export default function EnrollSubjectsPage() {
               {studentForm ? `Your subjects — ${studentForm}` : 'Choose your subjects'}
             </span>
           </div>
-          <h1 className="text-xl font-display font-bold mb-1">Enrol in Subjects</h1>
-          <p className="text-sm text-muted-foreground mb-4">
+          <h1 className="text-xl font-display font-bold mb-1 text-white">Enrol in Subjects</h1>
+          <p className="text-sm text-white/70 mb-4">
             Tick all subjects you want to study. You'll be enrolled automatically.
             {studentForm === 'Form 4' && (
               <span className="block mt-1 text-xs" style={{ color: 'hsl(43 74% 52%)' }}>
@@ -174,7 +189,7 @@ export default function EnrollSubjectsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search subjects…"
-              className="pl-9 bg-white text-foreground border-0" />
+              className="pl-9 bg-white/95 text-gray-900 placeholder:text-gray-400 border-0" />
           </div>
         </div>
 
@@ -233,7 +248,7 @@ export default function EnrollSubjectsPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm">{subject.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {subject.total_lessons || 0} lessons
+                          {lessonCountBySubject[subject.id] || 0} lessons
                           {subject.teacher_name ? ` · ${subject.teacher_name}` : ''}
                         </p>
                         {isEnrolled && !isSelected && (
