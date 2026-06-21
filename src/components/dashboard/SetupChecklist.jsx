@@ -82,12 +82,14 @@ export default function SetupChecklist({ user }) {
 
 
 
+  // Profile is "complete" when BOTH name and photo are done
+  const hasProfile = hasName && hasPhoto;
+
   const items = [
-    { id: 'name',   done: hasName,   label: 'Add your full name',           icon: User,          action: () => setEditingName(true) },
-    { id: 'photo',  done: hasPhoto,  label: 'Upload a profile picture',     icon: Camera,        action: () => fileRef.current?.click() },
-    { id: 'class',  done: hasClass,  label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=profile') },
-    { id: 'enroll', done: hasEnroll, label: 'Choose subjects to enroll in', icon: BookOpen,      action: () => navigate('/enroll-subjects') },
-    { id: 'fees',   done: hasFees,   label: 'Pay fees to start learning',   icon: CreditCard,    action: () => navigate('/subscription') },
+    { id: 'profile', done: hasProfile, label: 'Complete your profile',        icon: User,          action: () => navigate('/settings?tab=profile') },
+    { id: 'class',   done: hasClass,   label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=academic') },
+    { id: 'enroll',  done: hasEnroll,  label: 'Choose subjects to enroll in', icon: BookOpen,      action: () => navigate('/enroll-subjects') },
+    { id: 'fees',    done: hasFees,    label: 'Pay fees to start learning',   icon: CreditCard,    action: () => navigate('/subscription') },
   ];
 
   const doneCount = items.filter(i => i.done).length;
