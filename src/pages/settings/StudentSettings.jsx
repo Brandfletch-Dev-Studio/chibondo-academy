@@ -152,7 +152,9 @@ function ProfilePanel({ user, profile, qc }) {
     ensureSdkToken();
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: fullName.trim(), ...(confirmedUrl ? { avatar_url: confirmedUrl } : {}) });
+      // Only update avatar_url if user uploaded a new photo this session
+      const avatarUpdate = confirmedUrl && confirmedUrl !== user?.avatar_url ? { avatar_url: confirmedUrl } : {};
+      await base44.auth.updateMe({ full_name: fullName.trim(), ...avatarUpdate });
       if (profile?.id) {
         await base44.entities.StudentProfile.update(profile.id, {
           full_name: fullName.trim(),
@@ -178,7 +180,7 @@ function ProfilePanel({ user, profile, qc }) {
     }
   };
 
-  const { saveStatus: profileSaveStatus } = useAutosave(handleSave, [fullName, phone, schoolName]);
+  // Manual save only — no autosave to avoid firing on mount or mid-type
 
   const initials = (fullName || user?.email || 'S').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -242,7 +244,7 @@ function ProfilePanel({ user, profile, qc }) {
             </Field>
           </div>
         </div>
-        <SaveBtn onClick={handleSave} loading={saving} saveStatus={profileSaveStatus} />
+        <SaveBtn onClick={handleSave} loading={saving} />
       </Section>
     </div>
   );
@@ -281,7 +283,7 @@ function AcademicPanel({ user, profile, qc }) {
     }
   };
 
-  const { saveStatus: academicSaveStatus } = useAutosave(handleSave, [selectedForm]);
+  // Manual save only — useAutosave removed to prevent phantom saves on mount
 
   const FORMS = ['Form 3', 'Form 4'];
 
@@ -306,7 +308,7 @@ function AcademicPanel({ user, profile, qc }) {
             </div>
           </Field>
         </div>
-        <SaveBtn onClick={handleSave} loading={saving} saveStatus={academicSaveStatus} />
+        <SaveBtn onClick={handleSave} loading={saving} />
       </Section>
 
       <Section icon={BookOpen} title="Enrolled Subjects" subtitle="Subjects you are currently studying">
@@ -375,7 +377,7 @@ function NotificationsPanel() {
             </div>
           ))}
         </div>
-        <SaveBtn onClick={() => toast.success('Notification preferences saved!')} loading={false} />
+        {/* Notification prefs are stored locally — no backend save needed */}
       </Section>
     </div>
   );
@@ -663,14 +665,16 @@ export default function StudentSettings() {
     enabled: !!user?.id,
   });
 
-  const panels = {
+  // useMemo prevents panel remount on every parent render
+  const panels = React.useMemo(() => ({
     profile:       <ProfilePanel       user={user} profile={profile} qc={qc} />,
     academic:      <AcademicPanel      user={user} profile={profile} qc={qc} />,
     notifications: <NotificationsPanel />,
     billing:       <BillingPanel       user={user} />,
     appearance:    <AppearancePanel />,
     security:      <DeleteAccountPanel user={user} />,
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [user?.id, profile?.id, active]); // re-create when user/profile/tab changes
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 max-w-5xl">
