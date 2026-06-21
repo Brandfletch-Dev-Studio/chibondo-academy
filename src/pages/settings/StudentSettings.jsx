@@ -106,14 +106,32 @@ function ProfilePanel({ user, profile, qc }) {
   const [phone, setPhone]           = useState('');
   const [schoolName, setSchoolName] = useState('');
 
+  // Only re-initialise when user identity changes, not on every prop update.
+  // Tracking user?.id prevents resetting mid-edit when the parent re-renders.
+  const prevUserId = React.useRef(user?.id);
   useEffect(() => {
-    setPreview(user?.avatar_url || '');
-    setConfirmedUrl(user?.avatar_url || '');
-    setFullName(user?.full_name || '');
+    if (user?.id && user.id !== prevUserId.current) {
+      prevUserId.current = user.id;
+      setPreview(user?.avatar_url || '');
+      setConfirmedUrl(user?.avatar_url || '');
+      setFullName(user?.full_name || '');
+    } else if (!prevUserId.current && user?.id) {
+      // First load
+      prevUserId.current = user.id;
+      setPreview(user?.avatar_url || '');
+      setConfirmedUrl(user?.avatar_url || '');
+      setFullName(user?.full_name || '');
+    }
   }, [user?.id]);
 
+  const prevProfileId = React.useRef(profile?.id);
   useEffect(() => {
-    if (profile) {
+    if (profile?.id && profile.id !== prevProfileId.current) {
+      prevProfileId.current = profile.id;
+      setPhone(profile.phone_number || '');
+      setSchoolName(profile.school_name || '');
+    } else if (!prevProfileId.current && profile?.id) {
+      prevProfileId.current = profile.id;
       setPhone(profile.phone_number || '');
       setSchoolName(profile.school_name || '');
     }
@@ -255,8 +273,15 @@ function AcademicPanel({ user, profile, qc }) {
   const [saving, setSaving]           = useState(false);
   const [selectedForm, setSelectedForm] = useState('');
 
+  const prevAcadProfileId = React.useRef(profile?.id);
   useEffect(() => {
-    if (profile) setSelectedForm(profile.form || '');
+    if (profile?.id && profile.id !== prevAcadProfileId.current) {
+      prevAcadProfileId.current = profile.id;
+      setSelectedForm(profile.form || '');
+    } else if (!prevAcadProfileId.current && profile?.id) {
+      prevAcadProfileId.current = profile.id;
+      setSelectedForm(profile.form || '');
+    }
   }, [profile?.id]);
 
   const { data: enrollments = [] } = useQuery({
@@ -665,7 +690,8 @@ export default function StudentSettings() {
     enabled: !!user?.id,
   });
 
-  // useMemo prevents panel remount on every parent render
+  // useMemo keyed ONLY on user/profile identity — NOT on active tab.
+  // If active were a dep, switching tabs would remount all panels and reset form state.
   const panels = React.useMemo(() => ({
     profile:       <ProfilePanel       user={user} profile={profile} qc={qc} />,
     academic:      <AcademicPanel      user={user} profile={profile} qc={qc} />,
@@ -674,7 +700,7 @@ export default function StudentSettings() {
     appearance:    <AppearancePanel />,
     security:      <DeleteAccountPanel user={user} />,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [user?.id, profile?.id, active]); // re-create when user/profile/tab changes
+  }), [user?.id, user?.full_name, user?.avatar_url, profile?.id]); // only when identity changes
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 max-w-5xl">
