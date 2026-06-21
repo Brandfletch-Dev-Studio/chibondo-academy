@@ -115,10 +115,24 @@ export default function AppLayout() {
     staleTime: 60_000,
   });
 
-  const enrichedUser = user ? {
-    ...user,
-    avatar_url: user.avatar_url || studentProfile?.avatar_url || null,
-  } : null; // null = guest
+  // useMemo prevents a new object reference on every render.
+  // Without this, every 60s notification poll creates a new enrichedUser object,
+  // which React sees as a changed prop → remounts child panels → resets form state mid-edit.
+  const enrichedUser = React.useMemo(() => {
+    if (!user) return null;
+    return {
+      ...user,
+      avatar_url: user.avatar_url || studentProfile?.avatar_url || null,
+    };
+  }, [
+    user?.id,
+    user?.email,
+    user?.full_name,
+    user?.role,
+    user?.avatar_url,
+    user?.referral_code,
+    studentProfile?.avatar_url,
+  ]); // only recreate when actual identity data changes
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['unreadNotifications'],
@@ -127,9 +141,9 @@ export default function AppLayout() {
       return base44.entities.Notification.filter({ user_id: user.id, is_read: false }, '-created_date', 50);
     },
     enabled: !!user?.id,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchInterval: 60_000, // poll every 60s for new notifications
+    staleTime: 30_000,          // 30s — don't refetch on every window focus
+    refetchOnWindowFocus: false, // prevent refetch cascade when user clicks back into app mid-edit
+    refetchInterval: 90_000,     // poll every 90s — notifications aren't critical-path
   });
 
   const isGuest = !enrichedUser;
