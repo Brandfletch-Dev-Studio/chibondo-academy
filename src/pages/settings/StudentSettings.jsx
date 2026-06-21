@@ -281,7 +281,7 @@ function AcademicPanel({ user, profile, qc }) {
     }
   };
 
-  const { saveStatus: academicSaveStatus } = useAutosave(handleSave, [selectedForm, selectedClass]);
+  const { saveStatus: academicSaveStatus } = useAutosave(handleSave, [selectedForm]);
 
   const FORMS = ['Form 3', 'Form 4'];
 
