@@ -2,6 +2,7 @@ import { createClient } from 'npm:@base44/sdk@0.8.31';
 
 // ── Resend email sender ───────────────────────────────────────────────────────
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_Z2rVV1Yz_BapfeMWdpLWbHuBjyJ6QTpaD';
+const APP_URL = Deno.env.get('APP_URL') || 'https://chibondoacademy.com';
 const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
 
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
@@ -22,19 +23,42 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
 }
 
 
-async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, string | number>) {
-  try {
-    const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
-    if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
-    await sendEmail(to, built.subject, built.html);
-  } catch (err: any) {
-    console.error(`sendBrandedEmail(${type}) failed — falling back to plain text:`, err.message);
-    await sendEmail(
-      to,
-      type === 'payment_confirmed' ? 'Payment Confirmed – Chibondo Academy' : 'Chibondo Academy Notification',
-      `<p>Hi,</p><p>Your subscription update is confirmed. Visit <a href="https://www.chibondoacademy.com/dashboard">your dashboard</a> to continue.</p><p>Chibondo Academy</p>`,
-    );
-  }
+function emailShell(bodyHtml: string): string {
+  return `<!DOCTYPE html><html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f6f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+  <div style="background:#1e2d5c;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center;">
+    <h1 style="color:#c9961a;margin:0;font-size:24px;font-weight:bold;">Chibondo Academy</h1>
+    <p style="color:#fff;margin:6px 0 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Excellence in Malawian Secondary Education</p>
+  </div>
+  <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;">
+    ${bodyHtml}
+    <p style="color:#888;font-size:13px;line-height:1.6;margin:24px 0 0;">Questions? <a href="mailto:support@chibondoacademy.com" style="color:#1e2d5c;">support@chibondoacademy.com</a></p>
+  </div>
+  <p style="text-align:center;color:#aaa;font-size:11px;margin:20px 0 0;">&copy; 2026 Chibondo Academy &middot; <a href="${APP_URL}" style="color:#aaa;">chibondoacademy.com</a></p>
+</div></body></html>`;
+}
+
+async function sendBrandedEmail(_base44: any, to: string, _type: string, variables: Record<string, string | number>) {
+  const name    = String(variables.student_name || '');
+  const plan    = String(variables.plan || 'monthly');
+  const endDate = String(variables.end_date || '');
+  const amount  = String(variables.amount || '0');
+  const body = `
+    <h2 style="color:#1e2d5c;margin:0 0 12px;font-size:20px;">Payment Confirmed! 🎉</h2>
+    <p style="color:#444;line-height:1.7;margin:0 0 16px;">Hi ${name}, your payment has been received and your subscription is now active.</p>
+    <div style="background:#f0f4ff;border:1px solid #d0d8f0;border-radius:8px;padding:16px;margin:0 0 20px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#666;font-size:14px;padding:4px 0;">Plan</td><td style="color:#1e2d5c;font-weight:bold;text-align:right;">${plan.charAt(0).toUpperCase()+plan.slice(1)}</td></tr>
+        <tr><td style="color:#666;font-size:14px;padding:4px 0;">Amount Paid</td><td style="color:#1e2d5c;font-weight:bold;text-align:right;">MWK ${Number(amount||0).toLocaleString()}</td></tr>
+        <tr><td style="color:#666;font-size:14px;padding:4px 0;">Active Until</td><td style="color:#1e2d5c;font-weight:bold;text-align:right;">${endDate}</td></tr>
+      </table>
+    </div>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${APP_URL}/dashboard" style="background:#c9961a;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block;">Go to Dashboard</a>
+    </div>`;
+  await sendEmail(to, 'Payment Confirmed – Chibondo Academy', emailShell(body));
 }
 
 Deno.serve(async (req) => {
