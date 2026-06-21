@@ -1,122 +1,83 @@
 /**
- * notifyNewBlogPost
- * Triggered by entity automation on BlogPost (update to published).
- * Emails all users who have an active subscription.
- *
- * Automation payload: { event, data, old_data }
+ * notifyNewBlogPost — triggered by BlogPost entity automation on publish
+ * Inline HTML, dynamic APP_URL, no buildBrandedEmail dependency.
  */
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
-// ── Resend email sender ───────────────────────────────────────────────────────
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_Z2rVV1Yz_BapfeMWdpLWbHuBjyJ6QTpaD';
 const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
+const APP_URL        = Deno.env.get('APP_URL') || 'https://chibondoacademy.com';
 
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Resend error ${res.status}: ${err}`);
-  }
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
   const d = await res.json();
   console.log(`✅ Email sent to ${to} — Resend ID: ${d.id}`);
 }
 
+function emailShell(bodyHtml: string): string {
+  return `<!DOCTYPE html><html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f6f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+  <div style="background:#1e2d5c;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center;">
+    <h1 style="color:#c9961a;margin:0;font-size:24px;font-weight:bold;">Chibondo Academy</h1>
+    <p style="color:#fff;margin:6px 0 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Excellence in Malawian Secondary Education</p>
+  </div>
+  <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;">
+    ${bodyHtml}
+    <p style="color:#888;font-size:13px;line-height:1.6;margin:24px 0 0;">
+      Questions? <a href="mailto:support@chibondoacademy.com" style="color:#1e2d5c;">support@chibondoacademy.com</a>
+    </p>
+  </div>
+  <p style="text-align:center;color:#aaa;font-size:11px;margin:20px 0 0;">
+    &copy; 2026 Chibondo Academy &middot; <a href="${APP_URL}" style="color:#aaa;">chibondoacademy.com</a>
+  </p>
+</div></body></html>`;
+}
 
-async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, any>) {
-  try {
-    const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
-    if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
-    await sendEmail(to, built.subject, built.html);
-  } catch (err: any) {
-    console.error(`Email to ${to} failed:`, err.message);
-  }
+function buildBlogHtml(name: string, title: string, excerpt: string, url: string): string {
+  return emailShell(`
+    <h2 style="color:#1e2d5c;margin:0 0 12px;font-size:20px;">New Post from Chibondo Academy</h2>
+    <p style="color:#444;line-height:1.7;margin:0 0 8px;">Hi ${name},</p>
+    <div style="background:#f0f4ff;border-left:4px solid #1e2d5c;padding:16px;border-radius:0 8px 8px 0;margin:0 0 16px;">
+      <p style="color:#1e2d5c;font-weight:bold;font-size:16px;margin:0 0 6px;">${title}</p>
+      ${excerpt ? `<p style="color:#555;font-size:14px;margin:0;">${excerpt}</p>` : ''}
+    </div>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${url}" style="background:#c9961a;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block;">
+        Read Post
+      </a>
+    </div>
+  `);
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClient({ appId: '6a2115bb078a7219b5cbd8b0' });
     const body = await req.json();
+    const post = body.data; const old = body.old_data; const evt = body.event?.type;
+    if (post?.status !== 'published') return Response.json({ skipped: true });
+    if (evt === 'update' && old?.status === 'published') return Response.json({ skipped: true, reason: 'already published' });
 
-    const post    = body.data;
-    const oldPost = body.old_data;
-    const eventType = body.event?.type;
-
-    // Only notify when post is published
-    if (post?.status !== 'published') {
-      console.log(`Skipping — post status is "${post?.status}"`);
-      return Response.json({ skipped: true });
-    }
-
-    // Only notify on create, or when it just transitioned draft → published
-    const justPublished = eventType === 'update' && oldPost?.status !== 'published' && post.status === 'published';
-    const isNew = eventType === 'create' && post.status === 'published';
-
-    if (!isNew && !justPublished) {
-      console.log('Post was already published and no trigger condition met — skipping');
-      return Response.json({ skipped: true });
-    }
-
-    // Get all active subscriptions to find active student IDs
-    const activeSubs = await base44.asServiceRole.entities.Subscription.filter({ status: 'active' });
-    if (activeSubs.length === 0) {
-      console.log('No active subscribers');
-      return Response.json({ sent: 0 });
-    }
-
-    const studentIds = [...new Set(activeSubs.map((s: any) => s.student_id))];
-    console.log(`Notifying ${studentIds.length} active subscribers about: ${post.title}`);
-
-    const postUrl = post.slug
-      ? `https://www.chibondoacademy.com/blog/${post.slug}`
-      : `https://www.chibondoacademy.com/blog`;
+    const postUrl = `${APP_URL}/blog/${post.id}`;
+    const excerpt = post.excerpt || (post.content || '').slice(0, 120);
+    const subs = await base44.asServiceRole.entities.Subscription.filter({ status: 'active' });
 
     let sent = 0;
-
-    for (const studentId of studentIds) {
-      try {
-        const users = await base44.asServiceRole.entities.User.filter({ id: studentId });
-        const user = users[0];
-        if (!user?.email) continue;
-
-        // In-app notification
-        await base44.asServiceRole.entities.Notification.create({
-          user_id: studentId,
-          title: `📖 New article: ${post.title}`,
-          message: post.excerpt ? post.excerpt.slice(0, 120) : `A new article has been published on ${post.category || 'the blog'}.`,
-          type: 'blog',
-          link: `/blog/${post.slug || ''}`,
-          is_read: false,
-        });
-
-        await sendBrandedEmail(base44, user.email, 'new_blog_post', {
-          student_name: user.full_name || user.email.split('@')[0],
-          post_title:   post.title,
-          post_slug:    post.slug || '',
-          post_url:     postUrl,
-          excerpt:      post.excerpt || '',
-          author_name:  post.author_name || '',
-          category:     post.category || '',
-          cover_image:  post.cover_image || post.og_image || '',
-        });
-
-        sent++;
-      } catch (e: any) {
-        console.error(`Failed for student ${studentId}:`, e.message);
-      }
+    for (const s of subs) {
+      const u = await base44.asServiceRole.entities.User.filter({ id: s.student_id });
+      if (!u[0]?.email) continue;
+      const name = u[0].full_name || u[0].email.split('@')[0];
+      await sendEmail(u[0].email, `New from Chibondo Academy: ${post.title}`, buildBlogHtml(name, post.title || 'New Post', excerpt, postUrl)).catch(e2 => console.error(e2.message));
+      sent++;
     }
-
-    console.log(`✅ notifyNewBlogPost: sent ${sent}/${studentIds.length} emails for "${post.title}"`);
-    return Response.json({ sent, total: studentIds.length });
-
-  } catch (err: any) {
-    console.error('notifyNewBlogPost error:', err);
-    return Response.json({ error: err.message }, { status: 500 });
+    return Response.json({ success: true, sent });
+  } catch (e: any) {
+    return Response.json({ error: e.message }, { status: 500 });
   }
 });
