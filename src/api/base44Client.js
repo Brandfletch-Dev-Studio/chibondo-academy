@@ -309,9 +309,26 @@ const auth = {
     const rows = await restGet(`/users?id=eq.${encodeURIComponent(sub)}&limit=1`);
     if (rows && rows.length > 0) return rows[0];
 
-    // Fallback: return minimal object from JWT
+    // User row missing — auto-create it (handles users who signed up before trigger)
     const jwt = parseJwt(token);
-    return { id: sub, email: jwt?.email, role: jwt?.role || 'user' };
+    const now = new Date().toISOString();
+    const newUser = {
+      id: sub,
+      email: jwt?.email || '',
+      full_name: jwt?.user_metadata?.full_name || jwt?.email?.split('@')[0] || '',
+      role: 'user',
+      subscription_plan: 'free',
+      total_learning_hours: 0,
+      study_streak: 0,
+      created_date: now,
+      updated_date: now,
+    };
+    try {
+      await restPost('/users', newUser);
+    } catch (_) {
+      // Ignore conflict errors (row already exists from concurrent request)
+    }
+    return newUser;
   },
 
   /**
@@ -326,9 +343,13 @@ const auth = {
   /**
    * register({ email, password })
    */
-  async register({ email, password }) {
+  async register({ email, password, full_name }) {
     // Supabase signup — with OTP email confirmation
-    const data = await authFetch('/signup', { email, password });
+    const data = await authFetch('/signup', {
+      email,
+      password,
+      data: { full_name: full_name || email.split('@')[0] },
+    });
     // Don't save token yet — user needs to verify OTP first
     return data;
   },
