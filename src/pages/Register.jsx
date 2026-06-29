@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/supabaseClient";
+import { db } from '@/api/supabaseClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +53,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await base44.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
+      await db.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
       navigate("/verify-otp", {
         replace: true,
         state: { email: email.trim(), refCode: refCode || null },
