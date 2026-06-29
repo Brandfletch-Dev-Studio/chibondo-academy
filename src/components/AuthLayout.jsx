@@ -7,7 +7,7 @@ export default function AuthLayout({ title, subtitle, footer, children }) {
         {/* Brand header */}
         <div className="text-center mb-8">
           <img
-            src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+            src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg"
             alt="The Chibondo Academy"
             className="w-20 h-20 rounded-2xl object-cover mx-auto shadow-md"
           />
