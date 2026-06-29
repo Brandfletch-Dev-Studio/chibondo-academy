@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     try {
-      localStorage.removeItem('base44_access_token');
+      localStorage.removeItem('aca_access_token');
       localStorage.removeItem('token');
     } catch (_) {}
     if (shouldRedirect) window.location.href = '/login';
