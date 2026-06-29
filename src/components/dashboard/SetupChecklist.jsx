@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { uploadImage } from '@/utils/uploadImage';
 import { useAuth } from '@/lib/AuthContext';
 import {
@@ -53,21 +53,21 @@ export default function SetupChecklist({ user }) {
   // ── Remote data ────────────────────────────────────────────────────────────
   const { data: studentProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['studentProfile', userId],
-    queryFn:  () => base44.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
+    queryFn:  () => db.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
     enabled:  !!userId,
     staleTime: 0,
   });
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
-    queryFn:  () => base44.entities.Enrollment.filter({ student_id: userId }, '-created_date', 100),
+    queryFn:  () => db.entities.Enrollment.filter({ student_id: userId }, '-created_date', 100),
     enabled:  !!userId,
     staleTime: 0,
   });
 
   const { data: subscription } = useQuery({
     queryKey: ['subscription', userId],
-    queryFn:  () => base44.entities.Subscription.filter({ student_id: userId, status: 'active' }, '-created_date', 1).then(r => r[0] || null),
+    queryFn:  () => db.entities.Subscription.filter({ student_id: userId, status: 'active' }, '-created_date', 1).then(r => r[0] || null),
     enabled:  !!userId,
     staleTime: 0,
   });
@@ -121,17 +121,17 @@ export default function SetupChecklist({ user }) {
     setUploading(true);
 
     try {
-      // 1. Upload to Base44 storage
+      // 1. Upload to Supabase storage
       const url = await uploadImage(file);
 
       // 2. Update User record (avatar_url used by navbar, forums, everywhere)
-      await base44.auth.updateMe({ avatar_url: url });
+      await db.auth.updateMe({ avatar_url: url });
 
       // 3. Sync StudentProfile (used by teacher views, leaderboard, etc.)
       if (studentProfile?.id) {
-        await base44.entities.StudentProfile.update(studentProfile.id, { avatar_url: url });
+        await db.entities.StudentProfile.update(studentProfile.id, { avatar_url: url });
       } else {
-        await base44.entities.StudentProfile.create({ user_id: userId, avatar_url: url });
+        await db.entities.StudentProfile.create({ user_id: userId, avatar_url: url });
       }
 
       // 4. Confirm preview with real CDN URL
@@ -162,7 +162,7 @@ export default function SetupChecklist({ user }) {
     if (!nameVal.trim()) return;
     setSavingName(true);
     try {
-      await base44.auth.updateMe({ full_name: nameVal.trim() });
+      await db.auth.updateMe({ full_name: nameVal.trim() });
       await checkUserAuth(); // refresh context so header name updates
       qc.invalidateQueries({ queryKey: ['currentUser'] });
       setEditingName(false);
