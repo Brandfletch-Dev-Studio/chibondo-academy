@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { DollarSign } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -20,7 +20,7 @@ export default function AffiliateCommissions() {
   const { data: referrals = [], isLoading } = useQuery({
     queryKey: ['myReferrals', user?.id],
     queryFn: async () => {
-      try { return await base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
+      try { return await db.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
       catch { return []; }
     },
     enabled: !!user?.id,
