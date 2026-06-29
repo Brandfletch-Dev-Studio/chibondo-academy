@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,7 @@ export default function Register() {
       'button[aria-label*="Google"]','button[aria-label*="google"]',
       '.social-login','.oauth-buttons','[class*="google-login"]',
       '[class*="social-auth"]','[class*="GoogleLogin"]',
-      '.base44-social-login','[data-testid*="social"]','[data-testid*="google"]',
+      '.aca-social-login','[data-testid*="social"]','[data-testid*="google"]',
     ];
     function remove() { SELECTORS.forEach(s => document.querySelectorAll(s).forEach(el => el.remove())); }
     remove();
