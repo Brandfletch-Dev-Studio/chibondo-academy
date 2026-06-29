@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,11 @@ export default function AssignmentSubmissionView({ assignment, onSubmit }) {
   const [newAttachment, setNewAttachment] = useState({ name: '', url: '' });
 
   const queryClient = useQueryClient();
-  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => db.auth.me() });
 
   const { data: existingSubmission } = useQuery({
     queryKey: ['assignmentSubmission', assignment.id, user?.id],
-    queryFn: () => base44.entities.AssignmentSubmission.filter({
+    queryFn: () => db.entities.AssignmentSubmission.filter({
       assignment_id: assignment.id,
       student_id: user?.id,
     }).then(subs => subs[0]),
@@ -30,9 +30,9 @@ export default function AssignmentSubmissionView({ assignment, onSubmit }) {
   const submitMutation = useMutation({
     mutationFn: async (submissionData) => {
       if (existingSubmission) {
-        return base44.entities.AssignmentSubmission.update(existingSubmission.id, submissionData);
+        return db.entities.AssignmentSubmission.update(existingSubmission.id, submissionData);
       }
-      return base44.entities.AssignmentSubmission.create(submissionData);
+      return db.entities.AssignmentSubmission.create(submissionData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignmentSubmission'] });
