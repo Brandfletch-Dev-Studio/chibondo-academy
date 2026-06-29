@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -120,11 +120,11 @@ export default function QuizBuilder() {
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['teacherQuizzes'],
-    queryFn: () => base44.entities.Quiz.list('-created_date', 100),
+    queryFn: () => db.entities.Quiz.list('-created_date', 100),
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data) => editingQuiz ? base44.entities.Quiz.update(editingQuiz.id, data) : base44.entities.Quiz.create(data),
+    mutationFn: (data) => editingQuiz ? db.entities.Quiz.update(editingQuiz.id, data) : db.entities.Quiz.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacherQuizzes'] });
       setDialogOpen(false);
@@ -133,7 +133,7 @@ export default function QuizBuilder() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Quiz.delete(id),
+    mutationFn: (id) => db.entities.Quiz.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['teacherQuizzes'] }),
   });
 
