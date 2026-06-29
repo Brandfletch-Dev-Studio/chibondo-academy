@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT_IMAGE = 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg';
+const DEFAULT_IMAGE = 'https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg';
 const SITE_NAME = 'Chibondo Academy';
 
 /**
