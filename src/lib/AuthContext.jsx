@@ -1,85 +1,31 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
 
-/**
- * Determine whether an error is a genuine auth rejection (token invalid / user
- * not registered) vs. a transient problem (network timeout, server 5xx).
- *
- * Only genuine auth rejections should clear the session.
- * Transient errors should be ignored so the cached auth state is preserved.
- */
-function isAuthRejection(error) {
-  const status = error?.status ?? error?.response?.status;
-  return status === 401 || status === 403;
-}
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]                                   = useState(null);
-  const [isAuthenticated, setIsAuthenticated]             = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth]                 = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
-  const [authError, setAuthError]                         = useState(null);
-  const [authChecked, setAuthChecked]                     = useState(false);
-  const [appPublicSettings, setAppPublicSettings]         = useState(null);
+  const [user, setUser]                   = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
+  const [authError, setAuthError]         = useState(null);
+  const [authChecked, setAuthChecked]     = useState(false);
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
 
   useEffect(() => {
-    checkAppState();
+    checkUserAuth();
+    loadPublicSettings();
   }, []);
 
-  const checkAppState = async () => {
+  const loadPublicSettings = async () => {
     try {
       setIsLoadingPublicSettings(true);
-      setAuthError(null);
-
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: { 'X-App-Id': appParams.appId },
-        token: appParams.token,
-        interceptResponses: true,
-      });
-
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          setAuthError({ type: reason, message: appError.message });
-        } else {
-          // Transient error loading app settings — don't block the app.
-          // Proceed as if settings loaded, let auth check run normally.
-          console.warn('Non-fatal: could not load public settings, continuing anyway');
-          if (appParams.token) {
-            await checkUserAuth();
-          } else {
-            setIsAuthenticated(false);
-            setAuthChecked(true);
-          }
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error in checkAppState:', error);
-      // Don't set a hard error — let the app render and let AppLayout handle auth
+      const settings = await base44.entities.PlatformSettings.list('created_date', 1);
+      if (settings && settings.length > 0) setAppPublicSettings(settings[0]);
+    } catch (_) {
+      // Non-fatal — settings are optional
+    } finally {
       setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
     }
   };
 
@@ -89,48 +35,35 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
     } catch (error) {
-      console.error('User auth check failed:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+      // Only log if it's not a plain "not authenticated" (expected when logged out)
+      if (error?.status !== 401) {
+        console.error('Auth check failed:', error);
+      }
+    } finally {
       setIsLoadingAuth(false);
       setAuthChecked(true);
-
-      if (isAuthRejection(error)) {
-        // Token genuinely rejected — clear session
-        setIsAuthenticated(false);
-        setUser(null);
-        setAuthError({ type: 'auth_required', message: 'Authentication required' });
-      } else {
-        // Transient failure (network blip, server error, timeout).
-        // Keep the user as authenticated if a token exists in storage.
-        // The page will retry on next interaction / navigation.
-        if (appParams.token) {
-          setIsAuthenticated(true);
-          // user stays null until the next successful me() call — AppLayout
-          // handles this gracefully by showing a loading skeleton.
-        } else {
-          setIsAuthenticated(false);
-        }
-      }
     }
   };
 
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    // Clear the token from local storage directly — do NOT redirect through
-    // Base44's hosted login page, which shows Google OAuth buttons.
-    try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch (_) {}
-    if (shouldRedirect) {
-      window.location.href = '/login';
-    }
+    try {
+      localStorage.removeItem('base44_access_token');
+      localStorage.removeItem('token');
+    } catch (_) {}
+    if (shouldRedirect) window.location.href = '/login';
   };
 
   const navigateToLogin = () => {
-    // Redirect to our own login page, not Base44's hosted page
     window.location.href = '/login';
   };
+
+  // Kept for backwards compat (some pages may call it)
+  const checkAppState = () => checkUserAuth();
 
   return (
     <AuthContext.Provider value={{
