@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Parses a Base44 ISO date string correctly.
+ * Parses a ISO date string correctly.
  *
- * Base44 stores all dates in UTC but WITHOUT the Z suffix,
+ * Dates are stored in UTC but WITHOUT the Z suffix,
  * e.g. "2026-06-09T07:45:00.000000"
  *
  * Without Z, browsers are inconsistent about whether to treat
@@ -23,7 +23,7 @@ function parseUTC(isoDate) {
     const d = new Date(isoDate);
     return isNaN(d.getTime()) ? null : d;
   }
-  // No timezone — Base44 UTC, force it
+  // No timezone — UTC, force it
   const d = new Date(isoDate + 'Z');
   return isNaN(d.getTime()) ? null : d;
 }
