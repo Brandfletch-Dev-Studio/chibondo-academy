@@ -7,7 +7,7 @@ import {
   PenTool, LayoutDashboard, Gift, UserCircle, Newspaper, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const studentNav = [
@@ -72,9 +72,9 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate, onAvata
         {/* Logo */}
         <div className={cn("flex items-center border-b border-sidebar-border flex-shrink-0 h-16", collapsed ? "justify-center px-3" : "px-4")}>
           {collapsed ? (
-            <img src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg" alt="Chibondo Academy" className="w-9 h-9 rounded-lg object-cover" />
+            <img src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg" alt="Chibondo Academy" className="w-9 h-9 rounded-lg object-cover" />
           ) : (
-            <img src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg" alt="Chibondo Academy" className="h-10 w-full object-contain object-left" />
+            <img src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_wide.jpg" alt="Chibondo Academy" className="h-10 w-full object-contain object-left" />
           )}
         </div>
 
@@ -149,14 +149,14 @@ export default function Sidebar({ user, collapsed, onToggle, onNavigate, onAvata
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button onClick={() => (() => { try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()} className="w-full flex items-center justify-center p-2.5 rounded-xl text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                <button onClick={() => (() => { try { localStorage.removeItem('aca_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()} className="w-full flex items-center justify-center p-2.5 rounded-xl text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
                   <LogOut className="w-4 h-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">Sign Out</TooltipContent>
             </Tooltip>
           ) : (
-            <button onClick={() => (() => { try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+            <button onClick={() => (() => { try { localStorage.removeItem('aca_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
               <LogOut className="w-4 h-4" /><span>Sign Out</span>
             </button>
           )}
