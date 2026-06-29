@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,12 +27,12 @@ export default function LibraryPage() {
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['library-resources'],
-    queryFn: () => base44.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 300),
+    queryFn: () => db.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 300),
   });
 
   const { data: subscription } = useQuery({
     queryKey: ['subscription', user?.id],
-    queryFn: () => base44.entities.Subscription.filter({ student_id: user.id, status: 'active' }, '-created_date', 1),
+    queryFn: () => db.entities.Subscription.filter({ student_id: user.id, status: 'active' }, '-created_date', 1),
     enabled: !!user?.id,
     select: data => data[0] || null,
   });
