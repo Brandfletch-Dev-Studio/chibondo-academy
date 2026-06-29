@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import EmailTemplateSettings from '@/components/admin/EmailTemplateSettings';
 import { cn } from '@/lib/utils';
