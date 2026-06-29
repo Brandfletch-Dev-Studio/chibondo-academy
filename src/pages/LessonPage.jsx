@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Download, MessageSquare,
   BookOpen, PlayCircle, FileText, Clock, Lock, ChevronDown,
@@ -269,14 +269,14 @@ export default function LessonPage() {
   const { data: lesson } = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async () => {
-      const results = await base44.entities.Lesson.filter({ id: lessonId });
+      const results = await db.entities.Lesson.filter({ id: lessonId });
       return results[0];
     },
   });
 
   const { data: allLessons = [] } = useQuery({
     queryKey: ['subjectLessons', lesson?.subject_id],
-    queryFn: () => base44.entities.Lesson.filter({ subject_id: lesson.subject_id }, 'order', 200),
+    queryFn: () => db.entities.Lesson.filter({ subject_id: lesson.subject_id }, 'order', 200),
     enabled: !!lesson?.subject_id,
     onSuccess: (lessons) => {
       // Auto-expand the topic containing the current lesson
@@ -289,14 +289,14 @@ export default function LessonPage() {
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', lesson?.subject_id],
-    queryFn: () => base44.entities.Topic.filter({ subject_id: lesson.subject_id }, 'order', 100),
+    queryFn: () => db.entities.Topic.filter({ subject_id: lesson.subject_id }, 'order', 100),
     enabled: !!lesson?.subject_id,
   });
 
   const { data: enrollment } = useQuery({
     queryKey: ['enrollment', user?.id, lesson?.subject_id],
     queryFn: async () => {
-      const results = await base44.entities.Enrollment.filter({ student_id: user.id, subject_id: lesson.subject_id });
+      const results = await db.entities.Enrollment.filter({ student_id: user.id, subject_id: lesson.subject_id });
       return results[0] || null;
     },
     enabled: !!user?.id && !!lesson?.subject_id,
@@ -306,7 +306,7 @@ export default function LessonPage() {
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
+      const results = await db.entities.Subscription.filter({ student_id: user.id, status: 'active' });
       if (!results[0]) return null;
       // Check if subscription is actually still valid (end_date not passed)
       const sub = results[0];
@@ -327,7 +327,7 @@ export default function LessonPage() {
       // Auto-create enrollment if missing (safety net)
       let enr = enrollment;
       if (!enr && lesson?.subject_id) {
-        enr = await base44.entities.Enrollment.create({
+        enr = await db.entities.Enrollment.create({
           student_id: user.id,
           subject_id: lesson.subject_id,
           subject_name: lesson.subject_name,
@@ -341,7 +341,7 @@ export default function LessonPage() {
       const completed = [...(enr.completed_lessons || [])];
       if (!completed.includes(lessonId)) completed.push(lessonId);
       const pct = allLessons.length > 0 ? Math.round((completed.length / allLessons.length) * 100) : 0;
-      await base44.entities.Enrollment.update(enr.id, {
+      await db.entities.Enrollment.update(enr.id, {
         completed_lessons: completed,
         progress_percentage: pct,
         last_lesson_id: lessonId,
