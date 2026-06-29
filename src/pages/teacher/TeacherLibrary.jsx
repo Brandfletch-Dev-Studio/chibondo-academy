@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,21 +43,21 @@ export default function TeacherLibrary() {
 
   const { data: resources = [] } = useQuery({
     queryKey: ['teacherLibraryResources'],
-    queryFn: () => base44.entities.RevisionResource.list('-created_date', 100),
+    queryFn: () => db.entities.RevisionResource.list('-created_date', 100),
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'order', 100),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'order', 100),
   });
 
   const { data: forms = [] } = useQuery({
     queryKey: ['academicForms'],
-    queryFn: () => base44.entities.AcademicForm.filter({ status: 'active' }, 'order', 100),
+    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 100),
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data) => base44.entities.RevisionResource.create(data),
+    mutationFn: (data) => db.entities.RevisionResource.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacherLibraryResources'] });
       setDialogOpen(false);
@@ -77,7 +77,7 @@ export default function TeacherLibrary() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RevisionResource.delete(id),
+    mutationFn: (id) => db.entities.RevisionResource.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacherLibraryResources'] });
       toast.success('Resource deleted');
@@ -102,7 +102,7 @@ export default function TeacherLibrary() {
     try {
       // Release previous object URLs to free device memory
       const uploadToast = toast.loading(`Uploading ${file.name}…`);
-      const response = await base44.integrations.Core.UploadFile({ file });
+      const response = await db.integrations.Core.UploadFile({ file });
       toast.dismiss(uploadToast);
       setForm(prev => ({ ...prev, file_url: response.file_url }));
       toast.success('File ready — fill in the details and save.');
