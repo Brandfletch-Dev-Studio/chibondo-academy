@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,11 @@ import {
 } from '@/components/ui/table';
 
 export default function StudentProgressTracker() {
-  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => db.auth.me() });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => base44.entities.Subject.filter({ teacher_id: user?.id }),
+    queryFn: () => db.entities.Subject.filter({ teacher_id: user?.id }),
     enabled: user?.role === 'teacher' || user?.role === 'admin',
   });
 
@@ -28,7 +28,7 @@ export default function StudentProgressTracker() {
     queryKey: ['subjectEnrollments'],
     queryFn: async () => {
       const subjectIds = subjects.map(s => s.id);
-      const all = await base44.entities.Enrollment.filter({});
+      const all = await db.entities.Enrollment.filter({});
       return all.filter(e => subjectIds.includes(e.subject_id));
     },
     enabled: subjects.length > 0,
@@ -36,7 +36,7 @@ export default function StudentProgressTracker() {
 
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['studentProfiles'],
-    queryFn: () => base44.entities.StudentProfile.filter({}),
+    queryFn: () => db.entities.StudentProfile.filter({}),
   });
 
   const getStudentName = (studentId) => {
