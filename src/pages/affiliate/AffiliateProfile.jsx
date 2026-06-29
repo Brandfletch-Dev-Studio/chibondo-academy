@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { UserCog, Smartphone, Building2, Bell, Save, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ export default function AffiliateProfile() {
   }, [user?.id]);
 
   const saveMut = useMutation({
-    mutationFn: () => base44.auth.updateMe({ ...profile, ...payment, ...notifs }),
+    mutationFn: () => db.auth.updateMe({ ...profile, ...payment, ...notifs }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['currentUser'] });
       toast.success('Profile saved!');
