@@ -17,7 +17,7 @@ export function useAuthGate() {
 
   // Check Supabase JWT in localStorage
   const isAuthenticated = !!(
-    localStorage.getItem('base44_access_token') ||
+    localStorage.getItem('aca_access_token') ||
     localStorage.getItem('token')
   );
 
