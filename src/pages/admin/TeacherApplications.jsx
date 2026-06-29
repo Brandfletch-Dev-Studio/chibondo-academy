@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,19 +22,19 @@ export default function TeacherApplications() {
 
   const { data: applications = [] } = useQuery({
     queryKey: ['teacherApplications'],
-    queryFn: () => base44.entities.TeacherApplication.filter({}, '-created_date'),
+    queryFn: () => db.entities.TeacherApplication.filter({}, '-created_date'),
   });
 
   const updateApplication = useMutation({
     mutationFn: async ({ id, status, notes }) => {
       const app = applications.find(a => a.id === id);
-      await base44.entities.TeacherApplication.update(id, {
+      await db.entities.TeacherApplication.update(id, {
         status,
         admin_notes: notes,
       });
       // If approved, update user role
       if (status === 'approved' && app?.user_id) {
-        await base44.entities.User.update(app.user_id, { role: 'teacher' });
+        await db.entities.User.update(app.user_id, { role: 'teacher' });
       }
     },
     onSuccess: () => {
