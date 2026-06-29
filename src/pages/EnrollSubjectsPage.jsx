@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { BookOpen, Check, Loader2, ArrowRight, GraduationCap, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -18,27 +18,27 @@ export default function EnrollSubjectsPage() {
   /* ── Student profile — to detect their form ── */
   const { data: studentProfile } = useQuery({
     queryKey: ['studentProfile', userId],
-    queryFn:  () => base44.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
+    queryFn:  () => db.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
     enabled:  !!userId,
   });
 
   /* ── Forms ── */
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn:  () => base44.entities.AcademicForm.filter({ status: 'active' }, 'order', 20),
+    queryFn:  () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 20),
   });
 
   /* ── All published subjects ── */
   const { data: subjects = [], isLoading } = useQuery({
     queryKey: ['subjects-for-enroll'],
-    queryFn:  () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn:  () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
     staleTime: 30_000,
   });
 
   /* ── Published lesson counts per subject ── */
   const { data: publishedLessons = [] } = useQuery({
     queryKey: ['lessons-published-count'],
-    queryFn:  () => base44.entities.Lesson.filter({ status: 'published' }, 'subject_id', 500),
+    queryFn:  () => db.entities.Lesson.filter({ status: 'published' }, 'subject_id', 500),
     staleTime: 60_000,
   });
 
@@ -53,7 +53,7 @@ export default function EnrollSubjectsPage() {
   /* ── Existing enrollments ── */
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
-    queryFn:  () => base44.entities.Enrollment.filter({ student_id: userId }, '-created_date', 200),
+    queryFn:  () => db.entities.Enrollment.filter({ student_id: userId }, '-created_date', 200),
     enabled:  !!userId,
     staleTime: 0,
   });
@@ -122,7 +122,7 @@ export default function EnrollSubjectsPage() {
       for (const subjectId of newlySelected) {
         const subj = subjects.find(s => s.id === subjectId);
         if (!subj) continue;
-        await base44.entities.Enrollment.create({
+        await db.entities.Enrollment.create({
           student_id:  userId,
           subject_id:  subjectId,
           subject_name: subj.name,
@@ -133,7 +133,7 @@ export default function EnrollSubjectsPage() {
         });
         // Bump enrollment_count on subject
         try {
-          await base44.entities.Subject.update(subjectId, {
+          await db.entities.Subject.update(subjectId, {
             enrollment_count: (subj.enrollment_count || 0) + 1,
           });
         } catch(_) {}
