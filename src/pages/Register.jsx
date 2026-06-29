@@ -54,7 +54,7 @@ export default function Register() {
     setLoading(true);
     try {
       // Create account — platform automatically sends OTP to email
-      await base44.auth.register({ email: email.trim(), password });
+      await base44.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
 
       // Navigate to the dedicated OTP verification page
       navigate("/verify-otp", {
@@ -103,11 +103,24 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name <span className="text-red-500">*</span></Label>
+            <div className="relative">
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="fullName" type="text" autoFocus autoComplete="name"
+                placeholder="Your full name" value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="pl-10 h-12" required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                id="email" type="email" autoFocus autoComplete="email"
+                id="email" type="email" autoComplete="email"
                 placeholder="you@example.com" value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 h-12" required
