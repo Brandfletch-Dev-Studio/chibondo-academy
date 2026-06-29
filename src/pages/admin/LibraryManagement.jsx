@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -263,24 +263,24 @@ export default function LibraryManagement() {
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['library-resources'],
-    queryFn: () => base44.entities.RevisionResource.filter({}, '-created_date', 500),
+    queryFn: () => db.entities.RevisionResource.filter({}, '-created_date', 500),
     staleTime: 30_000,
   });
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
     staleTime: 120_000,
   });
   const { data: forms = [] } = useQuery({
     queryKey: ['academic-forms'],
-    queryFn: () => base44.entities.AcademicForm.filter({}, 'name', 10),
+    queryFn: () => db.entities.AcademicForm.filter({}, 'name', 10),
     staleTime: 300_000,
   });
 
   const saveMutation = useMutation({
     mutationFn: (data) => editResource
-      ? base44.entities.RevisionResource.update(editResource.id, data)
-      : base44.entities.RevisionResource.create(data),
+      ? db.entities.RevisionResource.update(editResource.id, data)
+      : db.entities.RevisionResource.create(data),
     onSuccess: () => {
       toast.success(editResource ? 'Resource updated' : 'Resource added');
       qc.invalidateQueries({ queryKey: ['library-resources'] });
@@ -291,7 +291,7 @@ export default function LibraryManagement() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RevisionResource.delete(id),
+    mutationFn: (id) => db.entities.RevisionResource.delete(id),
     onSuccess: () => {
       toast.success('Resource deleted');
       qc.invalidateQueries({ queryKey: ['library-resources'] });
