@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import {
   ArrowLeft, Download, ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2,
   BookOpen, FileText, Loader2, Lock, AlertCircle, ChevronLeft, ChevronRight,
@@ -40,7 +40,7 @@ export default function DocumentViewer() {
   const { data: resource, isLoading, error } = useQuery({
     queryKey: ['library-resource', resourceId],
     queryFn: async () => {
-      const results = await base44.entities.RevisionResource.filter({ id: resourceId });
+      const results = await db.entities.RevisionResource.filter({ id: resourceId });
       return results[0] || null;
     },
     enabled: !!resourceId,
@@ -49,7 +49,7 @@ export default function DocumentViewer() {
   // Check subscription
   const { data: subscription } = useQuery({
     queryKey: ['subscription', user?.id],
-    queryFn: () => base44.entities.Subscription.filter(
+    queryFn: () => db.entities.Subscription.filter(
       { student_id: user.id, status: 'active' }, '-created_date', 1
     ),
     enabled: !!user?.id,
