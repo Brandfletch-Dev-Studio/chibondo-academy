@@ -490,7 +490,7 @@ function PricingPanel() {
 // ── Payments Panel ────────────────────────────────────────────────────────────
 function PaymentsPanel() {
   const [copied, setCopied] = useState(false);
-  const webhookUrl = `https://theaca.base44.app/api/functions/payChanguWebhook`;
+  const webhookUrl = `${window.location.origin}/api/payChangu-webhook`; // TODO: configure payment webhook
 
   const copy = () => {
     navigator.clipboard.writeText(webhookUrl);
