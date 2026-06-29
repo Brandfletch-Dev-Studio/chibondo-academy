@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { format } from 'date-fns';
 import { useLiveAgo, formatAgo } from '@/hooks/useLiveAgo';
