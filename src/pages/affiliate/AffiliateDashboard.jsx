@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import { Input } from '@/components/ui/input';
 import {
   DollarSign, Clock, CheckCircle2, Wallet,
