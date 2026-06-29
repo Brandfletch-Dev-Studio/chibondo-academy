@@ -94,7 +94,7 @@ export default function TutorProfilePage() {
 
   /* ─────────────────────────────────────────────────
      Step 1: Try to resolve the slug via TutorProfile.
-     If slug looks like a Base44 ID (24 hex chars), also
+     If slug looks like a legacy ID (24 hex chars), also
      try resolving as a User ID directly.
   ───────────────────────────────────────────────── */
   const looksLikeId = /^[a-f0-9]{24}$/.test(slug);
