@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 
 export default function BulkUploadDialog({ subjects, forms, onUploadComplete }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -92,7 +92,7 @@ export default function BulkUploadDialog({ subjects, forms, onUploadComplete }) 
     try {
       for (const resource of bulkResources) {
         try {
-          await base44.entities.RevisionResource.create({
+          await db.entities.RevisionResource.create({
             title: resource.title,
             description: resource.description,
             type: resource.type,
