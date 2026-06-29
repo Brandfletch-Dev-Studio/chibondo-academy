@@ -9,7 +9,19 @@ import AuthLayout from "@/components/AuthLayout";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
-  const resetToken = searchParams.get("token");
+
+  // Supabase sends reset links with hash fragment: /reset-password#access_token=xxx&type=recovery
+  // Fall back to ?token= for manual/legacy links
+  function getResetToken() {
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    if (params.get('type') === 'recovery' && params.get('access_token')) {
+      return params.get('access_token');
+    }
+    return searchParams.get('token') || searchParams.get('access_token') || null;
+  }
+
+  const resetToken = getResetToken();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
