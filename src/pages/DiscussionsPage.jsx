@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import {
   MessageSquare, Send, Reply, MoreVertical,
   Search, TrendingUp, Clock, Pin, ImageIcon, Mic,
@@ -56,7 +56,7 @@ function ComposeBar({ user, onPost, isPending }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await db.integrations.Core.UploadFile({ file });
     setImageUrl(file_url);
     setUploading(false);
   };
@@ -69,7 +69,7 @@ function ComposeBar({ user, onPost, isPending }) {
     mr.onstop = async () => {
       setUploading(true);
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: new File([blob], 'voice.webm', { type: 'audio/webm' }) });
+      const { file_url } = await db.integrations.Core.UploadFile({ file: new File([blob], 'voice.webm', { type: 'audio/webm' }) });
       setVoiceUrl(file_url);
       setUploading(false);
       stream.getTracks().forEach(t => t.stop());
@@ -157,7 +157,7 @@ function ReplyBar({ user, onPost, isPending, onCancel }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await db.integrations.Core.UploadFile({ file });
     setImageUrl(file_url);
     setUploading(false);
   };
@@ -337,13 +337,13 @@ export default function DiscussionsPage() {
 
   // Initial load
   useEffect(() => {
-    base44.entities.Discussion.filter({ status: 'active' }, '-created_date', 300)
+    db.entities.Discussion.filter({ status: 'active' }, '-created_date', 300)
       .then(data => { setAllDiscussions(data); setLoading(false); });
   }, []);
 
   // Real-time subscription
   useEffect(() => {
-    const unsub = base44.entities.Discussion.subscribe((event) => {
+    const unsub = db.entities.Discussion.subscribe((event) => {
       if (event.type === 'create') {
         setAllDiscussions(prev => [event.data, ...prev]);
       } else if (event.type === 'update') {
@@ -373,7 +373,7 @@ export default function DiscussionsPage() {
 
   const createMutation = useMutation({
     mutationFn: ({ content, image_url, voice_note_url }) =>
-      base44.entities.Discussion.create({
+      db.entities.Discussion.create({
         content, image_url: image_url || null, voice_note_url: voice_note_url || null,
         author_id: user.id, author_name: user.full_name, author_role: user.role,
         status: 'active', likes: 0, parent_id: null,
@@ -382,7 +382,7 @@ export default function DiscussionsPage() {
 
   const replyMutation = useMutation({
     mutationFn: ({ parentId, content, image_url }) =>
-      base44.entities.Discussion.create({
+      db.entities.Discussion.create({
         content, image_url: image_url || null,
         author_id: user.id, author_name: user.full_name, author_role: user.role,
         status: 'active', likes: 0, parent_id: parentId,
@@ -390,11 +390,11 @@ export default function DiscussionsPage() {
   });
 
   const likeMutation = useMutation({
-    mutationFn: (post) => base44.entities.Discussion.update(post.id, { likes: (post.likes || 0) + 1 }),
+    mutationFn: (post) => db.entities.Discussion.update(post.id, { likes: (post.likes || 0) + 1 }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Discussion.update(id, { status: 'deleted' }),
+    mutationFn: (id) => db.entities.Discussion.update(id, { status: 'deleted' }),
     onSuccess: () => toast.success('Deleted'),
   });
 
