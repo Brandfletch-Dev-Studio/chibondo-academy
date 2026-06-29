@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Search, GraduationCap, BookOpen, Users, ChevronRight, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -128,7 +128,7 @@ export default function TutorsDirectory() {
         title="Our Tutors"
         description="Meet the experienced tutors at Chibondo Academy. Browse tutor profiles, qualifications, and courses."
         canonical="https://aca.base44.app/tutors"
-        ogImage="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+        ogImage="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg"
       />
 
       <div className="min-h-screen" style={{ background: 'hsl(222 47% 8%)' }}>
