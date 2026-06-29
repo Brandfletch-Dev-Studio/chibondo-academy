@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,25 +152,25 @@ export default function AdminCourses() {
   /* ── Data ── */
   const { data: subjects = [], isLoading: loadingSubjects } = useQuery({
     queryKey: ['adminSubjects'],
-    queryFn: () => base44.entities.Subject.list('order', 300),
+    queryFn: () => db.entities.Subject.list('order', 300),
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => base44.entities.AcademicForm.list('order', 50),
+    queryFn: () => db.entities.AcademicForm.list('order', 50),
   });
 
   const { data: teachers = [] } = useQuery({
     queryKey: ['teachers'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }),
+    queryFn: () => db.entities.User.filter({ role: 'teacher' }),
   });
 
   /* Live topic counts for ALL subjects */
   const { data: topics = [], isLoading: loadingTopics } = useQuery({
     queryKey: ['allTopicsAdmin'],
-    queryFn: () => base44.entities.Topic.list('order', 1000),
+    queryFn: () => db.entities.Topic.list('order', 1000),
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
@@ -178,7 +178,7 @@ export default function AdminCourses() {
   /* Live lesson counts */
   const { data: lessons = [], isLoading: loadingLessons } = useQuery({
     queryKey: ['allLessonsAdmin'],
-    queryFn: () => base44.entities.Lesson.list('order', 3000),
+    queryFn: () => db.entities.Lesson.list('order', 3000),
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
@@ -226,8 +226,8 @@ export default function AdminCourses() {
         teacher_name: st?.full_name || '',
       };
       return editing
-        ? base44.entities.Subject.update(editing.id, data)
-        : base44.entities.Subject.create(data);
+        ? db.entities.Subject.update(editing.id, data)
+        : db.entities.Subject.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSubjects'] });
@@ -238,7 +238,7 @@ export default function AdminCourses() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Subject.delete(id),
+    mutationFn: (id) => db.entities.Subject.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSubjects'] });
       setDelTarget(null);
@@ -248,7 +248,7 @@ export default function AdminCourses() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (s) => base44.entities.Subject.update(s.id, { status: 'published', pending_approval: false }),
+    mutationFn: (s) => db.entities.Subject.update(s.id, { status: 'published', pending_approval: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSubjects'] });
       toast.success('Course approved and published');
