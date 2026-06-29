@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Download, MessageSquare,
   BookOpen, PlayCircle, FileText, Clock, Lock, ChevronDown,
