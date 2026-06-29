@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,16 +43,16 @@ export default function TeacherAssignments() {
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['teacherAssignments'],
-    queryFn: () => base44.entities.Assignment.list('-created_date', 100),
+    queryFn: () => db.entities.Assignment.list('-created_date', 100),
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'order', 100),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'order', 100),
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data) => base44.entities.Assignment.create(data),
+    mutationFn: (data) => db.entities.Assignment.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacherAssignments'] });
       setDialogOpen(false);
@@ -73,7 +73,7 @@ export default function TeacherAssignments() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Assignment.delete(id),
+    mutationFn: (id) => db.entities.Assignment.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacherAssignments'] });
       toast.success('Assignment deleted');
