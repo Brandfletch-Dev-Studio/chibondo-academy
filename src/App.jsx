@@ -117,7 +117,7 @@ const LoadingScreen = () => (
   <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'hsl(222 47% 8%)' }}>
     <div className="text-center flex flex-col items-center gap-6">
       <img
-        src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg"
+        src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg"
         alt="Chibondo Academy"
         className="w-32 h-32 rounded-2xl object-cover shadow-2xl"
         style={{ boxShadow: '0 0 60px rgba(184,144,55,0.3)' }}
