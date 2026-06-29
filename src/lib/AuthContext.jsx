@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   const loadPublicSettings = async () => {
     try {
       setIsLoadingPublicSettings(true);
-      const settings = await base44.entities.PlatformSettings.list('created_date', 1);
+      const settings = await db.entities.PlatformSettings.list('created_date', 1);
       if (settings && settings.length > 0) setAppPublicSettings(settings[0]);
     } catch (_) {
       // Non-fatal — settings are optional
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
   const checkUserAuth = async () => {
     try {
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await db.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
