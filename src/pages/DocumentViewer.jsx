@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import {
   ArrowLeft, Download, ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2,
   BookOpen, FileText, Loader2, Lock, AlertCircle, ChevronLeft, ChevronRight,
