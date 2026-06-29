@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import {
   Search, GraduationCap, BookOpen, Library, Newspaper,
   Users, Home, ArrowRight, Star, ChevronRight, MessageSquare
@@ -344,13 +344,13 @@ export default function PageNotFound() {
       timestamp:     new Date().toISOString(),
     };
     // Fire-and-forget — don't block render or crash on error
-    base44.entities.NotFoundLog.create(log).catch(() => {});
+    db.entities.NotFoundLog.create(log).catch(() => {});
   }, [location.pathname]);
 
   /* ── Popular courses (top by enrollment) ── */
   const { data: popularCourses = [] } = useQuery({
     queryKey: ['404_popular_courses'],
-    queryFn:  () => base44.entities.Subject.filter({ status: 'published' }, '-enrollment_count', 6),
+    queryFn:  () => db.entities.Subject.filter({ status: 'published' }, '-enrollment_count', 6),
     staleTime: 10 * 60_000,
   });
 
@@ -371,14 +371,14 @@ export default function PageNotFound() {
   /* ── Featured tutors ── */
   const { data: tutors = [] } = useQuery({
     queryKey: ['404_tutors'],
-    queryFn:  () => base44.entities.TutorProfile.filter({ status: 'active', is_visible: true }, '-created_date', 4),
+    queryFn:  () => db.entities.TutorProfile.filter({ status: 'active', is_visible: true }, '-created_date', 4),
     staleTime: 10 * 60_000,
   });
 
   /* ── Recent blog posts ── */
   const { data: blogPosts = [] } = useQuery({
     queryKey: ['404_blog'],
-    queryFn:  () => base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 4),
+    queryFn:  () => db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 4),
     staleTime: 10 * 60_000,
   });
 
