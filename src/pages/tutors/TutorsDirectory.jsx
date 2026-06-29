@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Search, GraduationCap, BookOpen, Users, ChevronRight, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -91,12 +91,12 @@ export default function TutorsDirectory() {
 
   const { data: tutors = [], isLoading } = useQuery({
     queryKey: ['tutors-public'],
-    queryFn: () => base44.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200),
+    queryFn: () => db.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200),
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects-all'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
   });
 
   // Count subjects per tutor via teacher_id or tutor_profile_id
@@ -127,7 +127,7 @@ export default function TutorsDirectory() {
       <SEO
         title="Our Tutors"
         description="Meet the experienced tutors at Chibondo Academy. Browse tutor profiles, qualifications, and courses."
-        canonical="https://aca.base44.app/tutors"
+        canonical="https://aca.db.app/tutors"
         ogImage="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg"
       />
 
