@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { BookOpen, Lock, ChevronRight, Search, Users, Calendar, PlayCircle, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,30 +16,30 @@ export default function SubjectsPage() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => base44.entities.AcademicForm.filter({ status: 'active' }, 'order', 50),
+    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 50),
   });
 
   const { data: subjects = [], isLoading } = useQuery({
     queryKey: ['subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'order', 100),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'order', 100),
   });
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['myEnrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }, '-created_date', 100),
+    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }, '-created_date', 100),
     enabled: !!user?.id,
   });
 
   // Fetch all lessons to compute real per-subject counts
   const { data: allLessons = [] } = useQuery({
     queryKey: ['allLessonsCount'],
-    queryFn: () => base44.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000),
+    queryFn: () => db.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000),
   });
 
   // Fetch all enrollments to count students per subject
   const { data: allEnrollments = [] } = useQuery({
     queryKey: ['allEnrollmentsCounts'],
-    queryFn: () => base44.entities.Enrollment.list('created_date', 2000),
+    queryFn: () => db.entities.Enrollment.list('created_date', 2000),
   });
 
   // Build maps
