@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Progress } from '@/components/ui/progress';
 import {
