@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -154,7 +154,7 @@ export default function EmailTemplateSettings() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['platformSettings', 'email_templates'],
     queryFn: async () => {
-      const res = await base44.entities.PlatformSettings.filter({ key: 'email_templates' });
+      const res = await db.entities.PlatformSettings.filter({ key: 'email_templates' });
       return res[0]?.value || null;
     },
   });
@@ -165,11 +165,11 @@ export default function EmailTemplateSettings() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const existing = await base44.entities.PlatformSettings.filter({ key: 'email_templates' });
+      const existing = await db.entities.PlatformSettings.filter({ key: 'email_templates' });
       if (existing[0]) {
-        await base44.entities.PlatformSettings.update(existing[0].id, { value: templates });
+        await db.entities.PlatformSettings.update(existing[0].id, { value: templates });
       } else {
-        await base44.entities.PlatformSettings.create({ key: 'email_templates', value: templates });
+        await db.entities.PlatformSettings.create({ key: 'email_templates', value: templates });
       }
     },
     onSuccess: () => {
