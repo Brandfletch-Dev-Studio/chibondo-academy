@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import {
@@ -64,7 +64,7 @@ export default function AdminDashboard() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => db.auth.me(),
     staleTime: 300_000,
   });
 
@@ -74,11 +74,11 @@ export default function AdminDashboard() {
     queryKey: ['dash_users'],
     queryFn: async () => {
       try {
-        const result = await base44.functions.invoke('getAdminUsers', {});
+        const result = await db.functions.invoke('getAdminUsers', {});
         if (result && Array.isArray(result.users) && result.users.length > 0) return result;
       } catch (_) {}
       // Fallback: direct entity query (works now that User read RLS is open)
-      const users = await base44.entities.User.list('-created_date', 2000);
+      const users = await db.entities.User.list('-created_date', 2000);
       return { users, total: users.length };
     },
     staleTime: 60_000,
@@ -88,43 +88,43 @@ export default function AdminDashboard() {
 
   const { data: allSubscriptions = [], isLoading: loadingSubs } = useQuery({
     queryKey: ['dash_subs'],
-    queryFn: () => base44.entities.Subscription.list('-created_date', 2000),
+    queryFn: () => db.entities.Subscription.list('-created_date', 2000),
     staleTime: 60_000,
   });
 
   const { data: allPayments = [], isLoading: loadingPayments } = useQuery({
     queryKey: ['dash_payments'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 2000),
+    queryFn: () => db.entities.Payment.list('-created_date', 2000),
     staleTime: 60_000,
   });
 
   const { data: allEnrollments = [], isLoading: loadingEnrollments } = useQuery({
     queryKey: ['dash_enrollments'],
-    queryFn: () => base44.entities.Enrollment.list('-created_date', 5000),
+    queryFn: () => db.entities.Enrollment.list('-created_date', 5000),
     staleTime: 60_000,
   });
 
   const { data: allReferrals = [] } = useQuery({
     queryKey: ['dash_referrals'],
-    queryFn: () => base44.entities.Referral.list('-created_date', 2000),
+    queryFn: () => db.entities.Referral.list('-created_date', 2000),
     staleTime: 60_000,
   });
 
   const { data: allSubjects = [] } = useQuery({
     queryKey: ['dash_subjects'],
-    queryFn: () => base44.entities.Subject.list('order', 500),
+    queryFn: () => db.entities.Subject.list('order', 500),
     staleTime: 300_000,
   });
 
   const { data: allLessons = [] } = useQuery({
     queryKey: ['dash_lessons'],
-    queryFn: () => base44.entities.Lesson.list('order', 5000),
+    queryFn: () => db.entities.Lesson.list('order', 5000),
     staleTime: 300_000,
   });
 
   const { data: allApplications = [] } = useQuery({
     queryKey: ['dash_applications'],
-    queryFn: () => base44.entities.TeacherApplication.list('-created_date', 200),
+    queryFn: () => db.entities.TeacherApplication.list('-created_date', 200),
     staleTime: 60_000,
   });
 
