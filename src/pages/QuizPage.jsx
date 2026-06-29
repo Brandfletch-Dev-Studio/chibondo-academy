@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,7 @@ export default function QuizPage() {
 
   const { data: quiz } = useQuery({
     queryKey: ['quiz', quizId],
-    queryFn: async () => { const r = await base44.entities.Quiz.filter({ id: quizId }); return r[0]; },
+    queryFn: async () => { const r = await db.entities.Quiz.filter({ id: quizId }); return r[0]; },
   });
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function QuizPage() {
   }, [quiz?.id]);
 
   const submitMutation = useMutation({
-    mutationFn: (attemptData) => base44.entities.QuizAttempt.create(attemptData),
+    mutationFn: (attemptData) => db.entities.QuizAttempt.create(attemptData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['myQuizAttempts'] });
     },
