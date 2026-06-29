@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Link, useSearchParams, useOutletContext } from 'react-router-dom';
 import { BookOpen, Tag, Clock, Search, User, ChevronRight, TrendingUp, Newspaper, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -109,7 +109,7 @@ export default function BlogPage() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['blogPosts'],
-    queryFn: () => base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 100),
+    queryFn: () => db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 100),
   });
 
   const featuredPosts = useMemo(() => posts.filter(p => p.is_featured).slice(0, 1), [posts]);
