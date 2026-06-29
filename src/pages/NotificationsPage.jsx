@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Bell, Check, BookOpen, ClipboardList, FileText, CreditCard, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,13 +22,13 @@ export default function NotificationsPage() {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications', user?.id],
-    queryFn: () => base44.entities.Notification.filter({ user_id: user.id }, '-created_date', 50),
+    queryFn: () => db.entities.Notification.filter({ user_id: user.id }, '-created_date', 50),
     enabled: !!user?.id,
     staleTime: 0,
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
+    mutationFn: (id) => db.entities.Notification.update(id, { is_read: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['unreadNotifications'] });
@@ -38,7 +38,7 @@ export default function NotificationsPage() {
   const markAllMutation = useMutation({
     mutationFn: async () => {
       const unread = notifications.filter(n => !n.is_read);
-      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { is_read: true })));
+      await Promise.all(unread.map(n => db.entities.Notification.update(n.id, { is_read: true })));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
