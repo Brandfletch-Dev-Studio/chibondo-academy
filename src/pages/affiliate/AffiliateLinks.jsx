@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Copy, Check, Share2, QrCode, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -74,7 +74,7 @@ export default function AffiliateLinks() {
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects-for-links'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 50),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 50),
   });
 
   const whatsappMsg = `📚 *The Chibondo Academy* — Malawi's #1 online secondary school!\n\nMSCE lessons for ALL subjects — Form 3 & Form 4.\n\nFees from *MWK 10,000/month* — affordable & comprehensive.\n\n📲 Register FREE 👇\n${baseRef}`;
