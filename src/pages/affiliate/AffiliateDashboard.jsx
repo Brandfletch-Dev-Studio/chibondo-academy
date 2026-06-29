@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Input } from '@/components/ui/input';
 import {
   DollarSign, Clock, CheckCircle2, Wallet,
@@ -39,7 +39,7 @@ export default function AffiliateDashboard() {
   const [copied, setCopied]           = useState(false);
 
   const saveCodeMut = useMutation({
-    mutationFn: (code) => base44.auth.updateMe({ referral_code: code.trim().toUpperCase() }),
+    mutationFn: (code) => db.auth.updateMe({ referral_code: code.trim().toUpperCase() }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['currentUser'] });
       setEditingCode(false);
@@ -57,7 +57,7 @@ export default function AffiliateDashboard() {
   const { data: referrals = [] } = useQuery({
     queryKey: ['myReferrals', user?.id],
     queryFn: async () => {
-      try { return await base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
+      try { return await db.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
       catch { return []; }
     },
     enabled: !!user?.id,
@@ -69,7 +69,7 @@ export default function AffiliateDashboard() {
   const { data: payouts = [] } = useQuery({
     queryKey: ['myPayouts', user?.id],
     queryFn: async () => {
-      try { return await base44.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50); }
+      try { return await db.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50); }
       catch { return []; }
     },
     enabled: !!user?.id,
