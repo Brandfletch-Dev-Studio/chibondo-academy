@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link, useSearchParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -26,7 +26,7 @@ import {
 // appParams.token is frozen at module-load time; this keeps uploads/saves working
 // for sessions created after the initial page load (e.g. post-registration flow).
 function ensureSdkToken() {
-  const t = window.localStorage.getItem('base44_access_token') || window.localStorage.getItem('token');
+  const t = window.localStorage.getItem('aca_access_token') || window.localStorage.getItem('token');
   if (t) base44.auth.setToken(t);
 }
 
