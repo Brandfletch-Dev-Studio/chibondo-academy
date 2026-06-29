@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -247,13 +247,13 @@ export default function UserManagement() {
     queryKey: ['adminUsers'],
     queryFn: async () => {
       try {
-        const result = await base44.functions.invoke('getAdminUsers', {});
+        const result = await db.functions.invoke('getAdminUsers', {});
         // If function returned an error object or no users array, fall back
         if (!result || result.error || !Array.isArray(result.users)) {
           console.warn('getAdminUsers failed, falling back to direct entity query:', result?.error);
-          const users = await base44.entities.User.list('-created_date', 2000);
-          const enrollments = await base44.entities.Enrollment.filter({}).catch(() => []);
-          const activeSubs = await base44.entities.Subscription.filter({ status: 'active' }).catch(() => []);
+          const users = await db.entities.User.list('-created_date', 2000);
+          const enrollments = await db.entities.Enrollment.filter({}).catch(() => []);
+          const activeSubs = await db.entities.Subscription.filter({ status: 'active' }).catch(() => []);
           const activeSubByUser = {};
           activeSubs.forEach(s => { if (s.student_id) activeSubByUser[s.student_id] = s; });
           const enrollCountByUser = {};
@@ -278,7 +278,7 @@ export default function UserManagement() {
       } catch (e) {
         console.error('UserManagement data fetch error:', e);
         // Last resort: direct entity query
-        const users = await base44.entities.User.list('-created_date', 2000);
+        const users = await db.entities.User.list('-created_date', 2000);
         return { users, total: users.length, students: 0, teachers: 0, admins: 0, subscribed: 0, enrollments: 0 };
       }
     },
@@ -319,13 +319,13 @@ export default function UserManagement() {
 
   // ── Mutations ──
   const updateUser = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
+    mutationFn: ({ id, data }) => db.entities.User.update(id, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['adminUsers'] }); toast.success('User updated'); },
     onError:   () => toast.error('Update failed'),
   });
 
   const deleteUser = useMutation({
-    mutationFn: (id) => base44.entities.User.delete(id),
+    mutationFn: (id) => db.entities.User.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['adminUsers'] }); toast.success('User deleted'); },
     onError:   () => toast.error('Delete failed'),
   });
@@ -358,7 +358,7 @@ export default function UserManagement() {
     `Suspend ${selected.size} users`,
     'Selected users will be suspended and lose access.',
     async () => {
-      await Promise.all([...selected].map(id => base44.entities.User.update(id, { status: 'suspended' })));
+      await Promise.all([...selected].map(id => db.entities.User.update(id, { status: 'suspended' })));
       qc.invalidateQueries({ queryKey: ['adminUsers'] });
       toast.success(`${selected.size} users suspended`);
       clearAll();
@@ -369,7 +369,7 @@ export default function UserManagement() {
     `Reactivate ${selected.size} users`,
     'Selected users will have their access restored.',
     async () => {
-      await Promise.all([...selected].map(id => base44.entities.User.update(id, { status: 'active' })));
+      await Promise.all([...selected].map(id => db.entities.User.update(id, { status: 'active' })));
       qc.invalidateQueries({ queryKey: ['adminUsers'] });
       toast.success(`${selected.size} users reactivated`);
       clearAll();
@@ -380,7 +380,7 @@ export default function UserManagement() {
     `Change role to ${roleLabel(role)}`,
     `${selected.size} users will be assigned the ${roleLabel(role)} role.`,
     async () => {
-      await Promise.all([...selected].map(id => base44.entities.User.update(id, { role })));
+      await Promise.all([...selected].map(id => db.entities.User.update(id, { role })));
       qc.invalidateQueries({ queryKey: ['adminUsers'] });
       toast.success(`${selected.size} users updated to ${roleLabel(role)}`);
       clearAll();
@@ -391,7 +391,7 @@ export default function UserManagement() {
     `Delete ${selected.size} users?`,
     'This is permanent and cannot be undone. All user data will be lost.',
     async () => {
-      await Promise.all([...selected].map(id => base44.entities.User.delete(id)));
+      await Promise.all([...selected].map(id => db.entities.User.delete(id)));
       qc.invalidateQueries({ queryKey: ['adminUsers'] });
       toast.success(`${selected.size} users deleted`);
       clearAll();
@@ -417,7 +417,7 @@ export default function UserManagement() {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteEmail.trim(), inviteRole === 'admin' ? 'admin' : 'user');
+      await db.users.inviteUser(inviteEmail.trim(), inviteRole === 'admin' ? 'admin' : 'user');
       toast.success(`Invitation sent to ${inviteEmail}`);
       setInviteOpen(false);
       setInviteEmail('');
