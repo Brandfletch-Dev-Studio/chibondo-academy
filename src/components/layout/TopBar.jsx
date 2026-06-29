@@ -112,7 +112,7 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
           <>
             <Link to="/blog" className="flex items-center flex-shrink-0">
               <img
-                src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+                src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_wide.jpg"
                 alt="Chibondo Academy"
                 className="h-9 w-auto object-contain"
               />
@@ -147,7 +147,7 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
             <div className="flex items-center">
               <Link to="/">
                 <img
-                  src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+                  src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_wide.jpg"
                   alt="Chibondo Academy"
                   className="h-9 w-auto object-contain"
                 />
