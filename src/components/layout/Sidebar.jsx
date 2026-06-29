@@ -7,7 +7,7 @@ import {
   PenTool, LayoutDashboard, Gift, UserCircle, Newspaper, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const studentNav = [
