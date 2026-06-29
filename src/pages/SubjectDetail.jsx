@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { BookOpen, PlayCircle, CheckCircle2, Lock, ArrowLeft, FileText, Copy, Check, Share2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,26 +25,26 @@ export default function SubjectDetail() {
   const { data: subject } = useQuery({
     queryKey: ['subject', subjectId],
     queryFn: async () => {
-      const results = await base44.entities.Subject.filter({ id: subjectId });
+      const results = await db.entities.Subject.filter({ id: subjectId });
       return results[0];
     },
   });
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', subjectId],
-    queryFn: () => base44.entities.Topic.filter({ subject_id: subjectId }, 'order', 100),
+    queryFn: () => db.entities.Topic.filter({ subject_id: subjectId }, 'order', 100),
   });
 
   const { data: lessons = [] } = useQuery({
     queryKey: ['lessons', subjectId],
-    queryFn: () => base44.entities.Lesson.filter({ subject_id: subjectId }, 'order', 200),
+    queryFn: () => db.entities.Lesson.filter({ subject_id: subjectId }, 'order', 200),
   });
 
   const { data: enrollment } = useQuery({
     queryKey: ['enrollment', user?.id, subjectId],
     queryFn: async () => {
       if (!user?.id) return null;
-      const results = await base44.entities.Enrollment.filter({ student_id: user.id, subject_id: subjectId });
+      const results = await db.entities.Enrollment.filter({ student_id: user.id, subject_id: subjectId });
       return results[0] || null;
     },
     enabled: !!user?.id,
@@ -54,7 +54,7 @@ export default function SubjectDetail() {
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
+      const results = await db.entities.Subscription.filter({ student_id: user.id, status: 'active' });
       if (!results[0]) return null;
       const sub = results[0];
       if (sub.end_date && new Date(sub.end_date) < new Date()) return null;
@@ -69,7 +69,7 @@ export default function SubjectDetail() {
 
   const enrollMutation = useMutation({
     mutationFn: async () => {
-      const rec = await base44.entities.Enrollment.create({
+      const rec = await db.entities.Enrollment.create({
         student_id: user.id,
         subject_id: subjectId,
         subject_name: subject?.name,
@@ -81,7 +81,7 @@ export default function SubjectDetail() {
         last_accessed: new Date().toISOString(),
       });
       try {
-        await base44.entities.Subject.update(subjectId, {
+        await db.entities.Subject.update(subjectId, {
           enrollment_count: (subject?.enrollment_count || 0) + 1,
         });
       } catch(_) {}
