@@ -23,7 +23,7 @@ function getToken() {
   // Support both new key and legacy keys from migration
   return (
     localStorage.getItem(TOKEN_KEY) ||
-    localStorage.getItem('base44_access_token') ||
+    localStorage.getItem('aca_access_token') ||
     null
   );
 }
@@ -32,11 +32,11 @@ function saveToken(token) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);
     // Remove legacy keys
-    localStorage.removeItem('base44_access_token');
+    localStorage.removeItem('aca_access_token');
     localStorage.removeItem('token');
   } else {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('base44_access_token');
+    localStorage.removeItem('aca_access_token');
     localStorage.removeItem('token');
   }
 }
@@ -447,5 +447,5 @@ const entities = new Proxy({}, { get(_, name) { return entityAPI(name); } });
 // ── Main export ───────────────────────────────────────────────────────────────
 export const db = { entities, auth, functions, storage, integrations };
 
-// Legacy alias — allows gradual migration: import { base44 } from '@/api/supabaseClient'
+// Legacy alias — allows gradual migration: import { db } from '@/api/supabaseClient'
 export const base44 = db;
