@@ -6,7 +6,7 @@ import {
   ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle, Newspaper, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 
 const studentNav = [
   { label: 'Dashboard',    icon: Home,          path: '/dashboard' },
@@ -62,7 +62,7 @@ export default function MobileSidebar({ user, onClose }) {
       {/* Logo */}
       <div className="h-16 px-4 flex items-center border-b border-sidebar-border flex-shrink-0">
         <img
-          src="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg"
+          src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_wide.jpg"
           alt="Chibondo Academy"
           className="h-10 w-full object-contain object-left"
         />
@@ -106,7 +106,7 @@ export default function MobileSidebar({ user, onClose }) {
           </div>
         </div>
         <button
-          onClick={() => (() => { try { localStorage.removeItem('base44_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()}
+          onClick={() => (() => { try { localStorage.removeItem('aca_access_token'); localStorage.removeItem('token'); } catch(_){} window.location.href = '/login'; })()}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
           <LogOut className="w-4 h-4" /><span>Sign Out</span>
