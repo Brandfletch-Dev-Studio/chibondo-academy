@@ -39,7 +39,7 @@ export default function TeacherRegister() {
     setLoading(true);
     try {
       // Register account — no OTP gate
-      const result = await base44.auth.register({ email: email.trim(), password });
+      const result = await base44.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
       if (result?.access_token) {
         await base44.auth.setToken(result.access_token);
       }
