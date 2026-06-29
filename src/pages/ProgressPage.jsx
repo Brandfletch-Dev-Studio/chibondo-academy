@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,13 +12,13 @@ export default function ProgressPage() {
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 50),
+    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 50),
     enabled: !!user?.id,
   });
 
   const { data: quizAttempts = [] } = useQuery({
     queryKey: ['myQuizAttempts', user?.id],
-    queryFn: () => base44.entities.QuizAttempt.filter({ student_id: user.id, status: 'completed' }, '-created_date', 100),
+    queryFn: () => db.entities.QuizAttempt.filter({ student_id: user.id, status: 'completed' }, '-created_date', 100),
     enabled: !!user?.id,
   });
 
