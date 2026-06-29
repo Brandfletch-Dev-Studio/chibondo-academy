@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/supabaseClient";
+import { db } from '@/api/supabaseClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email.trim(), password);
+      await db.auth.loginViaEmailPassword(email.trim(), password);
       window.location.href = "/";
     } catch (err) {
       setError("Incorrect email or password. Please try again.");
