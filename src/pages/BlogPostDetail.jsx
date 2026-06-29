@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import {
   ArrowLeft, Clock, User, Calendar, Tag, Share2,
   BookOpen, GraduationCap, ChevronRight, Newspaper,
@@ -231,7 +231,7 @@ export default function BlogPostDetail() {
     "publisher": {
       "@type": "Organization",
       "name": "Chibondo Academy",
-      "logo": { "@type": "ImageObject", "url": "https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg" }
+      "logo": { "@type": "ImageObject", "url": "https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg" }
     },
     "datePublished": post.published_at,
     "dateModified": post.updated_date,
