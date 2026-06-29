@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, GraduationCap, Zap, Crown, Loader2, BookOpen, Calendar, Users, Award } from 'lucide-react';
@@ -26,7 +26,7 @@ export default function SubscriptionPage() {
   const { data: pricingData, isLoading } = useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getPricing', {});
+      const res = await db.functions.invoke('getPricing', {});
       return res.data.pricing;
     },
   });
@@ -36,7 +36,7 @@ export default function SubscriptionPage() {
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const results = await base44.entities.Subscription.filter({ student_id: user.id, status: 'active' });
+      const results = await db.entities.Subscription.filter({ student_id: user.id, status: 'active' });
       return results[0] || null;
     },
     enabled: !!user?.id,
@@ -70,7 +70,7 @@ export default function SubscriptionPage() {
 
     const poll = () => {
       attempts++;
-      base44.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
+      db.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
         .then((res) => {
           const d = res.data || {};
           if (d.success) {
@@ -148,9 +148,9 @@ export default function SubscriptionPage() {
   const initiatePayment = useMutation({
     mutationFn: async (plan) => {
       // Pass the exact return_url from the browser — the backend function MUST NOT
-      // use req.headers.get('origin') as Base44 proxies through api.base44.com
+      // use req.headers.get('origin') as Base44 proxies through api.db.com
       const return_url = `${window.location.origin}/subscription?paid=1`;
-      const res = await base44.functions.invoke('createPayChanguSession', { plan, return_url });
+      const res = await db.functions.invoke('createPayChanguSession', { plan, return_url });
       return res.data;
     },
     onSuccess: (data) => {
