@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,24 +30,24 @@ export default function TeacherNotifications() {
   // Teacher's own subjects
   const { data: subjects = [] } = useQuery({
     queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => base44.entities.Subject.filter({ teacher_id: user.id }),
+    queryFn: () => db.entities.Subject.filter({ teacher_id: user.id }),
     enabled: !!user?.id,
   });
 
   // Enrollments for selected subject
   const { data: enrollments = [] } = useQuery({
     queryKey: ['subjectEnrollments', subjectId],
-    queryFn: () => base44.entities.Enrollment.filter({ subject_id: subjectId }),
+    queryFn: () => db.entities.Enrollment.filter({ subject_id: subjectId }),
     enabled: !!subjectId,
   });
 
   const { data: allEnrollments = [] } = useQuery({
     queryKey: ['teacherAllEnrollments', user?.id],
     queryFn: async () => {
-      const subs = await base44.entities.Subject.filter({ teacher_id: user.id });
+      const subs = await db.entities.Subject.filter({ teacher_id: user.id });
       if (!subs.length) return [];
       // Get enrollments for all teacher subjects
-      const all = await Promise.all(subs.map(s => base44.entities.Enrollment.filter({ subject_id: s.id })));
+      const all = await Promise.all(subs.map(s => db.entities.Enrollment.filter({ subject_id: s.id })));
       return all.flat();
     },
     enabled: !!user?.id,
@@ -72,7 +72,7 @@ export default function TeacherNotifications() {
       let recipients = [];
       if (audience === 'subject') {
         if (!subjectId) throw new Error('Please select a subject');
-        const enrolList = await base44.entities.Enrollment.filter({ subject_id: subjectId });
+        const enrolList = await db.entities.Enrollment.filter({ subject_id: subjectId });
         recipients = enrolList.map(e => e.student_id).filter(Boolean);
       } else if (audience === 'all_my_students') {
         recipients = [...new Set(allEnrollments.map(e => e.student_id).filter(Boolean))];
@@ -83,7 +83,7 @@ export default function TeacherNotifications() {
 
       await Promise.all(
         recipients.map(uid =>
-          base44.entities.Notification.create({ user_id: uid, title: title.trim(), message: message.trim(), type, is_read: false })
+          db.entities.Notification.create({ user_id: uid, title: title.trim(), message: message.trim(), type, is_read: false })
         )
       );
       return recipients.length;
