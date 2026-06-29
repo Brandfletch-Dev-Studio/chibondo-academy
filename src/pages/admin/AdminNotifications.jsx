@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -110,7 +110,7 @@ function EmailCampaignTab({ forms, subjects, students }) {
           .map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email);
       } else if (audience === 'by_subject') {
         if (!subjectId) { toast.error('Select a subject'); setSending(false); return; }
-        const enrolments = await base44.entities.Enrollment.filter({ subject_id: subjectId });
+        const enrolments = await db.entities.Enrollment.filter({ subject_id: subjectId });
         const userIds = new Set(enrolments.map(e => e.student_id));
         recipients = students.filter(s => userIds.has(s.user_id))
           .map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email);
@@ -123,7 +123,7 @@ function EmailCampaignTab({ forms, subjects, students }) {
       if (recipients.length === 0) { toast.error('No valid recipients found'); setSending(false); return; }
 
       // Send via Base44 email
-      await base44.integrations.Core.SendEmail({
+      await db.integrations.Core.SendEmail({
         to: recipients.map(r => r.email),
         subject: subject_.trim(),
         body: body.trim(),
@@ -275,34 +275,34 @@ export default function AdminNotifications() {
 
   const { data: students = [] } = useQuery({
     queryKey: ['allStudentProfiles'],
-    queryFn: () => base44.entities.StudentProfile.filter({}, 'full_name', 300),
+    queryFn: () => db.entities.StudentProfile.filter({}, 'full_name', 300),
   });
 
   const { data: forms = [] } = useQuery({
     queryKey: ['academic-forms'],
-    queryFn: () => base44.entities.AcademicForm.filter({}, 'order', 10),
+    queryFn: () => db.entities.AcademicForm.filter({}, 'order', 10),
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['all-subjects-notif'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
   });
 
   const { data: teachers = [] } = useQuery({
     queryKey: ['all-teachers-notif'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }),
+    queryFn: () => db.entities.User.filter({ role: 'teacher' }),
   });
 
   const { data: allNotifications = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-all-notifications'],
-    queryFn: () => base44.entities.Notification.list('-created_date', 300),
+    queryFn: () => db.entities.Notification.list('-created_date', 300),
     staleTime: 0,
   });
 
   // ── Enrollment lookup for by_subject audience ──
   const { data: subjectEnrollments = [] } = useQuery({
     queryKey: ['enrolments-for-notif', subjectId],
-    queryFn: () => base44.entities.Enrollment.filter({ subject_id: subjectId }, 'created_date', 500),
+    queryFn: () => db.entities.Enrollment.filter({ subject_id: subjectId }, 'created_date', 500),
     enabled: !!subjectId && audience === 'by_subject',
   });
 
@@ -358,7 +358,7 @@ export default function AdminNotifications() {
       for (let i = 0; i < userIds.length; i += 50) batches.push(userIds.slice(i, i + 50));
       for (const batch of batches) {
         await Promise.all(batch.map(uid =>
-          base44.entities.Notification.create({
+          db.entities.Notification.create({
             user_id: uid,
             title: title.trim(),
             message: message.trim(),
@@ -378,7 +378,7 @@ export default function AdminNotifications() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Notification.delete(id),
+    mutationFn: (id) => db.entities.Notification.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-all-notifications'] }),
   });
 
