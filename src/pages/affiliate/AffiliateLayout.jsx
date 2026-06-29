@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +22,7 @@ export default function AffiliateLayout() {
   const { data: settingsData = [] } = useQuery({
     queryKey: ['affiliateSettings'],
     queryFn: async () => {
-      try { return await base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }); }
+      try { return await db.entities.PlatformSettings.filter({ key: 'affiliate_commission' }); }
       catch { return []; }
     },
     staleTime: 60_000,
