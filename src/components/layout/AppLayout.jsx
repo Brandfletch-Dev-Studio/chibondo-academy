@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
 import Sidebar from './Sidebar';
 import { X, Camera } from 'lucide-react';
@@ -43,7 +43,7 @@ export default function AppLayout() {
     queryKey: ['currentUser'],
     queryFn: async () => {
       try {
-        return await base44.auth.me();
+        return await db.auth.me();
       } catch (err) {
         // Genuine auth rejection — no token or token revoked
         const status = err?.status ?? err?.response?.status;
@@ -64,7 +64,7 @@ export default function AppLayout() {
   // Guarantee every registered user has role='user' (student)
   useEffect(() => {
     if (user && !user.role) {
-      base44.auth.updateMe({ role: 'user' }).catch(() => {});
+      db.auth.updateMe({ role: 'user' }).catch(() => {});
     }
   }, [user?.id, user?.role]);
 
@@ -80,14 +80,14 @@ export default function AppLayout() {
       try {
         const now = new Date().toISOString();
         if (presenceId) {
-          await base44.entities.ForumPresence.update(presenceId, { last_seen: now });
+          await db.entities.ForumPresence.update(presenceId, { last_seen: now });
         } else {
-          const existing = await base44.entities.ForumPresence.filter({ user_id: user.id });
+          const existing = await db.entities.ForumPresence.filter({ user_id: user.id });
           if (existing[0]) {
             presenceId = existing[0].id;
-            await base44.entities.ForumPresence.update(presenceId, { last_seen: now });
+            await db.entities.ForumPresence.update(presenceId, { last_seen: now });
           } else {
-            const created = await base44.entities.ForumPresence.create({
+            const created = await db.entities.ForumPresence.create({
               user_id:   user.id,
               user_name: user.full_name || user.email || 'Student',
               user_role: user.role || 'user',
@@ -108,7 +108,7 @@ export default function AppLayout() {
   const { data: studentProfile } = useQuery({
     queryKey: ['studentProfile', user?.id],
     queryFn: async () => {
-      const r = await base44.entities.StudentProfile.filter({ user_id: user.id });
+      const r = await db.entities.StudentProfile.filter({ user_id: user.id });
       return r[0] || null;
     },
     enabled: !!user?.id && user?.role !== 'admin' && user?.role !== 'teacher',
@@ -138,7 +138,7 @@ export default function AppLayout() {
     queryKey: ['unreadNotifications'],
     queryFn: async () => {
       if (!user?.id) return [];
-      return base44.entities.Notification.filter({ user_id: user.id, is_read: false }, '-created_date', 50);
+      return db.entities.Notification.filter({ user_id: user.id, is_read: false }, '-created_date', 50);
     },
     enabled: !!user?.id,
     staleTime: 30_000,          // 30s — don't refetch on every window focus
