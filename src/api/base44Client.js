@@ -464,6 +464,145 @@ function parseJwt(token) {
   }
 }
 
+
+// ── Functions API ────────────────────────────────────────────────────────────
+// Replaces base44.functions.invoke(name, args) — previously called Base44 cloud
+// functions. Now either handled locally (pricing from platform_settings) or
+// gracefully stubbed so callers don't crash.
+
+const SUPABASE_URL_F  = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_F = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+async function getPricingFromSettings() {
+  try {
+    const rows = await restGet('/platform_settings?limit=1&order=created_date.asc');
+    const settings = rows?.[0] || {};
+    const pricing = settings.pricing_config || settings.pricing || null;
+    if (pricing && pricing.monthly_price) return pricing;
+  } catch (_) {}
+  // Fallback defaults
+  return { monthly_price: 10000, annual_price: 80000, biannual_price: 150000 };
+}
+
+async function getAdminUsersLocal() {
+  try {
+    const users = await restGet('/users?order=created_date.desc&limit=500');
+    return { users: users || [] };
+  } catch (_) {
+    return { users: [] };
+  }
+}
+
+const functions = {
+  async invoke(name, args = {}) {
+    switch (name) {
+
+      // ── Pricing ──────────────────────────────────────────────────────────
+      case 'getPricing': {
+        const pricing = await getPricingFromSettings();
+        return { data: { pricing } };
+      }
+
+      // ── Admin users ───────────────────────────────────────────────────────
+      case 'getAdminUsers': {
+        const result = await getAdminUsersLocal();
+        return { data: result };
+      }
+
+      // ── Save platform settings ────────────────────────────────────────────
+      case 'savePlatformSettings': {
+        try {
+          const rows = await restGet('/platform_settings?limit=1&order=created_date.asc');
+          const existing = rows?.[0];
+          const { planKey, value } = args;
+          if (existing) {
+            await restPatch(`/platform_settings?id=eq.${encodeURIComponent(existing.id)}`,
+              { [`${planKey}_config`]: value, updated_date: new Date().toISOString() });
+          } else {
+            await restPost('/platform_settings',
+              { [`${planKey}_config`]: value, id: generateId(),
+                created_date: new Date().toISOString(), updated_date: new Date().toISOString() });
+          }
+          return { data: { success: true } };
+        } catch (e) {
+          return { error: e.message };
+        }
+      }
+
+      // ── Referral tracking ─────────────────────────────────────────────────
+      case 'trackReferral': {
+        try {
+          const { referralCode } = args;
+          if (!referralCode) return { data: { tracked: false } };
+          const token = getToken();
+          if (!token) return { data: { tracked: false } };
+          const sub = parseJwt(token)?.sub;
+          const existing = await restGet(`/referrals?referral_code=eq.${encodeURIComponent(referralCode)}&limit=1`).catch(() => []);
+          if (existing?.[0]) {
+            await restPost('/referrals', {
+              id: generateId(),
+              referrer_id: existing[0].created_by || existing[0].student_id,
+              referred_id: sub,
+              referral_code: referralCode,
+              status: 'pending',
+              created_date: new Date().toISOString(),
+              updated_date: new Date().toISOString(),
+            }).catch(() => {});
+          }
+          return { data: { tracked: true } };
+        } catch (_) {
+          return { data: { tracked: false } };
+        }
+      }
+
+      // ── Payment verification (PayChangu) ──────────────────────────────────
+      case 'verifyPayChanguPayment':
+      case 'createPayChanguSession': {
+        // Payment gateway calls — return a safe stub; actual payment logic
+        // needs a server-side integration (Vercel Edge Function or similar).
+        console.warn(`[base44Client] ${name} is not yet implemented in the Supabase migration. Payment processing requires a backend function.`);
+        return { data: null, error: 'Payment processing not yet configured.' };
+      }
+
+      // ── Notifications (fire-and-forget — non-fatal) ────────────────────────
+      case 'notifyNewBlogPost':
+      case 'notifyNewLesson': {
+        // Notification dispatch was handled by Base44 cloud functions.
+        // For now, silently succeed — notifications can be added via
+        // Supabase Edge Functions or a webhook later.
+        return { data: { sent: false, reason: 'notifications_not_configured' } };
+      }
+
+      // ── Backfill (admin utility) ─────────────────────────────────────────
+      case 'backfillStudentProfiles': {
+        try {
+          const users = await restGet('/users?role=eq.user&limit=500');
+          let created = 0;
+          for (const u of (users || [])) {
+            const existing = await restGet(`/student_profiles?student_id=eq.${u.id}&limit=1`).catch(() => []);
+            if (!existing?.length) {
+              await restPost('/student_profiles', {
+                id: generateId(),
+                student_id: u.id,
+                created_date: new Date().toISOString(),
+                updated_date: new Date().toISOString(),
+              }).catch(() => {});
+              created++;
+            }
+          }
+          return { data: { created, total: users?.length || 0 } };
+        } catch (e) {
+          return { error: e.message };
+        }
+      }
+
+      default:
+        console.warn(`[base44Client] Unknown function: ${name}`);
+        return { data: null, error: `Function "${name}" not implemented` };
+    }
+  },
+};
+
 // ── Main export — same shape as @base44/sdk createClient() result ───────────
 
 const entities = new Proxy(
@@ -475,4 +614,4 @@ const entities = new Proxy(
   }
 );
 
-export const base44 = { entities, auth };
+export const base44 = { entities, auth, functions };
