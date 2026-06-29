@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import {
   ArrowLeft, Clock, User, Calendar, Tag, Share2,
   BookOpen, GraduationCap, ChevronRight, Newspaper,
@@ -32,7 +32,7 @@ function readTime(content = '') {
 function RelatedPosts({ currentId, category }) {
   const { data: related = [] } = useQuery({
     queryKey: ['relatedPosts', category, currentId],
-    queryFn: () => base44.entities.BlogPost.filter({ status: 'published', category }, '-published_at', 4),
+    queryFn: () => db.entities.BlogPost.filter({ status: 'published', category }, '-published_at', 4),
     enabled: !!category,
   });
   const filtered = related.filter(p => p.id !== currentId).slice(0, 3);
@@ -65,7 +65,7 @@ function RelatedPosts({ currentId, category }) {
 function TutorBlock({ tutorProfileId, tutorSlug }) {
   const { data: profiles = [] } = useQuery({
     queryKey: ['tutorProfile', tutorProfileId],
-    queryFn: () => base44.entities.TutorProfile.filter({ id: tutorProfileId }),
+    queryFn: () => db.entities.TutorProfile.filter({ id: tutorProfileId }),
     enabled: !!tutorProfileId,
   });
   const tutor = profiles[0];
@@ -100,12 +100,12 @@ function CourseCTA({ post }) {
     queryKey: ['subjectCTA', post.linked_subject_id, post.category],
     queryFn: async () => {
       if (post.linked_subject_id) {
-        const res = await base44.entities.Subject.filter({ id: post.linked_subject_id, status: 'published' });
+        const res = await db.entities.Subject.filter({ id: post.linked_subject_id, status: 'published' });
         if (res.length) return res;
       }
       // Fall back to category-matching subject
       if (post.category && !['Study Tips','Exam Strategy','Career Guidance','General'].includes(post.category)) {
-        return base44.entities.Subject.filter({ status: 'published' }, 'name', 5);
+        return db.entities.Subject.filter({ status: 'published' }, 'name', 5);
       }
       return [];
     },
@@ -190,8 +190,8 @@ export default function BlogPostDetail() {
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['blogPost', slugOrId],
     queryFn: async () => {
-      let res = await base44.entities.BlogPost.filter({ slug: slugOrId, status: 'published' });
-      if (!res.length) res = await base44.entities.BlogPost.filter({ id: slugOrId, status: 'published' });
+      let res = await db.entities.BlogPost.filter({ slug: slugOrId, status: 'published' });
+      if (!res.length) res = await db.entities.BlogPost.filter({ id: slugOrId, status: 'published' });
       return res;
     },
     staleTime: 1000 * 60 * 5,
@@ -201,7 +201,7 @@ export default function BlogPostDetail() {
 
   // Increment view count once per visit
   const viewMutation = useMutation({
-    mutationFn: () => base44.entities.BlogPost.update(post.id, { view_count: (post.view_count || 0) + 1 }),
+    mutationFn: () => db.entities.BlogPost.update(post.id, { view_count: (post.view_count || 0) + 1 }),
   });
 
   useEffect(() => {
