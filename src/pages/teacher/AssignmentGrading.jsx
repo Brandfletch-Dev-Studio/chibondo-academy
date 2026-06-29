@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,16 +21,16 @@ export default function AssignmentGrading() {
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['teacherAssignments'],
-    queryFn: () => base44.entities.Assignment.list('-created_date', 100),
+    queryFn: () => db.entities.Assignment.list('-created_date', 100),
   });
 
   const { data: submissions = [] } = useQuery({
     queryKey: ['allSubmissions'],
-    queryFn: () => base44.entities.AssignmentSubmission.list('-created_date', 200),
+    queryFn: () => db.entities.AssignmentSubmission.list('-created_date', 200),
   });
 
   const gradeMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.AssignmentSubmission.update(id, data),
+    mutationFn: ({ id, data }) => db.entities.AssignmentSubmission.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allSubmissions'] });
       setSelectedSubmission(null);
