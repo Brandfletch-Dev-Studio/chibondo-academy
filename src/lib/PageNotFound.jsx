@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import {
   Search, GraduationCap, BookOpen, Library, Newspaper,
   Users, Home, ArrowRight, Star, ChevronRight, MessageSquare
@@ -23,8 +23,8 @@ const BRAND = {
 };
 
 /* ─── logo URLs (from existing sidebar/topbar) ─────────────────────────────── */
-const LOGO_SQUARE = 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg';
-const LOGO_WIDE   = 'https://media.base44.com/images/public/6a212896f8e71114ad51c36f/7b5f37ed3_Screenshot_20260604-091622.jpg';
+const LOGO_SQUARE = 'https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg';
+const LOGO_WIDE   = 'https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_wide.jpg';
 
 /* ─── smart keyword extraction from the attempted URL ─────────────────────── */
 function extractKeywords(pathname) {
