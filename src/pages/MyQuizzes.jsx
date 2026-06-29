@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { ClipboardList, PlayCircle, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,12 @@ export default function MyQuizzes() {
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['availableQuizzes'],
-    queryFn: () => base44.entities.Quiz.filter({ status: 'published' }, '-created_date', 100),
+    queryFn: () => db.entities.Quiz.filter({ status: 'published' }, '-created_date', 100),
   });
 
   const { data: attempts = [] } = useQuery({
     queryKey: ['myAttempts', user?.id],
-    queryFn: () => base44.entities.QuizAttempt.filter({ student_id: user.id }, '-created_date', 200),
+    queryFn: () => db.entities.QuizAttempt.filter({ student_id: user.id }, '-created_date', 200),
     enabled: !!user?.id,
   });
 
