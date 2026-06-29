@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,17 +64,17 @@ export default function AdminBlog() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['adminBlogPosts'],
-    queryFn: () => base44.entities.BlogPost.filter({}, '-created_date', 200),
+    queryFn: () => db.entities.BlogPost.filter({}, '-created_date', 200),
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['allSubjects'],
-    queryFn: () => base44.entities.Subject.filter({ status:'published' }, 'name', 50),
+    queryFn: () => db.entities.Subject.filter({ status:'published' }, 'name', 50),
   });
 
   const { data: tutors = [] } = useQuery({
     queryKey: ['allTutors'],
-    queryFn: () => base44.entities.TutorProfile.filter({ is_visible:true, status:'active' }, 'full_name', 50),
+    queryFn: () => db.entities.TutorProfile.filter({ is_visible:true, status:'active' }, 'full_name', 50),
   });
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setTagInput(''); setActiveTab('content'); setOpen(true); };
@@ -103,8 +103,8 @@ export default function AdminBlog() {
         ...form,
         published_at: form.status==='published' ? (editing?.published_at||new Date().toISOString()) : form.published_at,
       };
-      if (editing) return base44.entities.BlogPost.update(editing.id, payload);
-      return base44.entities.BlogPost.create(payload);
+      if (editing) return db.entities.BlogPost.update(editing.id, payload);
+      return db.entities.BlogPost.create(payload);
     },
     onSuccess: (savedPost) => {
       queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
@@ -115,7 +115,7 @@ export default function AdminBlog() {
       const wasPublished = !editing && form.status === 'published';
       const justPublished = editing && editing.status !== 'published' && form.status === 'published';
       if (wasPublished || justPublished) {
-        base44.functions.invoke('notifyNewBlogPost', {
+        db.functions.invoke('notifyNewBlogPost', {
           event: { type: editing ? 'update' : 'create' },
           data: savedPost,
           old_data: editing || null,
@@ -126,7 +126,7 @@ export default function AdminBlog() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: id => base44.entities.BlogPost.delete(id),
+    mutationFn: id => db.entities.BlogPost.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
       queryClient.invalidateQueries({ queryKey:['blogPosts'] });
@@ -137,14 +137,14 @@ export default function AdminBlog() {
   const toggleStatus = (post) => {
     const newStatus = post.status === 'published' ? 'draft' : 'published';
     const wasPublished = post.status !== 'published' && newStatus === 'published';
-    base44.entities.BlogPost.update(post.id, {
+    db.entities.BlogPost.update(post.id, {
       status: newStatus,
       ...(newStatus==='published' ? { published_at: post.published_at || new Date().toISOString() } : {}),
     }).then((updated) => {
       queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
       // Fire notification when toggling to published
       if (wasPublished) {
-        base44.functions.invoke('notifyNewBlogPost', {
+        db.functions.invoke('notifyNewBlogPost', {
           event: { type: 'update' },
           data: { ...post, status: newStatus },
           old_data: post,
@@ -154,7 +154,7 @@ export default function AdminBlog() {
   };
 
   const toggleFeatured = (post) => {
-    base44.entities.BlogPost.update(post.id, { is_featured: !post.is_featured })
+    db.entities.BlogPost.update(post.id, { is_featured: !post.is_featured })
       .then(() => queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] }));
   };
 
