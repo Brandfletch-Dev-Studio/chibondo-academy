@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { format } from 'date-fns';
 import { useLiveAgo, formatAgo } from '@/hooks/useLiveAgo';
@@ -98,7 +98,7 @@ export default function LandingPage() {
   useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getPricing', {});
+      const res = await db.functions.invoke('getPricing', {});
       return res.data.pricing;
     },
     onSuccess: (data) => {
@@ -109,7 +109,7 @@ export default function LandingPage() {
   /* Featured subjects — 3 published */
   const { data: subjects = [] } = useQuery({
     queryKey: ['landing-subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'order', 6),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'order', 6),
     staleTime: 5 * 60_000,
   });
 
@@ -117,7 +117,7 @@ export default function LandingPage() {
   const { data: blogPosts = [] } = useQuery({
     queryKey: ['landing-blog'],
     queryFn: async () => {
-      try { return await base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 3); }
+      try { return await db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 3); }
       catch { return []; }
     },
     staleTime: 5 * 60_000,
@@ -127,7 +127,7 @@ export default function LandingPage() {
   const { data: recentThreads = [] } = useQuery({
     queryKey: ['landing-forum-activity'],
     queryFn: async () => {
-      try { return await base44.entities.Discussion.filter({ status: 'active' }, '-updated_date', 100); }
+      try { return await db.entities.Discussion.filter({ status: 'active' }, '-updated_date', 100); }
       catch { return []; }
     },
     staleTime: 2 * 60_000,
