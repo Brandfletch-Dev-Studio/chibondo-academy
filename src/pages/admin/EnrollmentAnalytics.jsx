@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Progress } from '@/components/ui/progress';
 import { Users, BookOpen, TrendingUp, CheckCircle2, GraduationCap, BarChart3, Clock } from 'lucide-react';
@@ -26,17 +26,17 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
 export default function EnrollmentAnalytics() {
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['admin-all-enrollments'],
-    queryFn: () => base44.entities.Enrollment.list('-created_date', 5000),
+    queryFn: () => db.entities.Enrollment.list('-created_date', 5000),
     staleTime: 60_000,
   });
   const { data: subjects = [] } = useQuery({
     queryKey: ['admin-all-subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
     staleTime: 120_000,
   });
   const { data: tutors = [] } = useQuery({
     queryKey: ['admin-tutors'],
-    queryFn: () => base44.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 100),
+    queryFn: () => db.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 100),
     staleTime: 120_000,
   });
 
