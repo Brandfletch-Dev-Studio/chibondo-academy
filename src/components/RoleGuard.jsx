@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 
 /**
  * RoleGuard - reads the current user from cache and redirects if role not allowed.
@@ -10,7 +10,7 @@ import { base44 } from '@/api/supabaseClient';
 export default function RoleGuard({ allowed, children }) {
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => db.auth.me(),
     staleTime: Infinity,
   });
 
