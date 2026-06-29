@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,44 +76,44 @@ export default function AdminSubscriptions() {
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ['allSubscriptions'],
-    queryFn: () => base44.entities.Subscription.list('-created_date', 2000),
+    queryFn: () => db.entities.Subscription.list('-created_date', 2000),
     staleTime: 30_000,
   });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['allPayments'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 2000),
+    queryFn: () => db.entities.Payment.list('-created_date', 2000),
     staleTime: 30_000,
   });
 
   // Fetch StudentProfiles directly — has user_id + full_name, no function call needed
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['allStudentProfiles'],
-    queryFn: () => base44.entities.StudentProfile.list('-created_date', 2000),
+    queryFn: () => db.entities.StudentProfile.list('-created_date', 2000),
     staleTime: 60_000,
   });
   // Also try getAdminUsers for email/role data (best-effort, may fail)
   const { data: adminUsersResult = {} } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => base44.functions.invoke('getAdminUsers', {}).catch(() => ({ users: [] })),
+    queryFn: () => db.functions.invoke('getAdminUsers', {}).catch(() => ({ users: [] })),
     staleTime: 60_000,
   });
   const users = adminUsersResult.users || [];
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Subscription.update(id, data),
+    mutationFn: ({ id, data }) => db.entities.Subscription.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] }); toast.success('Subscription updated'); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Subscription.delete(id),
+    mutationFn: (id) => db.entities.Subscription.delete(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] }); toast.success('Subscription removed'); },
   });
 
   const grantMutation = useMutation({
     mutationFn: async () => {
       // Find user by email
-      const users = await base44.entities.User.filter({ email: grantStudentEmail });
+      const users = await db.entities.User.filter({ email: grantStudentEmail });
       if (!users || users.length === 0) {
         throw new Error('Student with this email not found');
       }
@@ -123,7 +123,7 @@ export default function AdminSubscriptions() {
       const days = (planDurations[grantPlan] || 30) * grantMonths;
       const start = new Date();
       const end = new Date(Date.now() + days * 86400000);
-      await base44.entities.Subscription.create({
+      await db.entities.Subscription.create({
         student_id: user.id,
         plan: grantPlan,
         status: 'active',
@@ -229,7 +229,7 @@ export default function AdminSubscriptions() {
                 ['trial', 'cancelled'].includes(s.status) && s.created_date < cutoff
               );
               if (stale.length === 0) { toast.info('No stale records to clean'); return; }
-              await Promise.all(stale.map(s => base44.entities.Subscription.delete(s.id)));
+              await Promise.all(stale.map(s => db.entities.Subscription.delete(s.id)));
               queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
               toast.success(`Cleaned ${stale.length} stale record(s)`);
             }}>
