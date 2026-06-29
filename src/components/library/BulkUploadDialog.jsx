@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 
 export default function BulkUploadDialog({ subjects, forms, onUploadComplete }) {
   const [dialogOpen, setDialogOpen] = useState(false);
