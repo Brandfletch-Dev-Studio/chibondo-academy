@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import {
   BookOpen, Settings, Plus, Loader2, Clock,
   CheckCircle2, XCircle, Layers, BookMarked, ChevronRight
@@ -80,7 +80,7 @@ export default function TeacherCourses() {
   /* Subjects assigned to this teacher */
   const { data: subjects = [], isLoading: loadingSubjects } = useQuery({
     queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => base44.entities.Subject.filter({ teacher_id: user.id }, 'order', 100),
+    queryFn: () => db.entities.Subject.filter({ teacher_id: user.id }, 'order', 100),
     enabled: !!user?.id,
     staleTime: 30_000,
   });
@@ -93,7 +93,7 @@ export default function TeacherCourses() {
       if (!subjectIds.length) return [];
       const all = [];
       for (const sid of subjectIds) {
-        const t = await base44.entities.Topic.filter({ subject_id: sid }, 'order', 200);
+        const t = await db.entities.Topic.filter({ subject_id: sid }, 'order', 200);
         all.push(...t);
       }
       return all;
@@ -110,7 +110,7 @@ export default function TeacherCourses() {
       if (!subjectIds.length) return [];
       const all = [];
       for (const sid of subjectIds) {
-        const l = await base44.entities.Lesson.filter({ subject_id: sid }, 'order', 500);
+        const l = await db.entities.Lesson.filter({ subject_id: sid }, 'order', 500);
         all.push(...l);
       }
       return all;
@@ -122,7 +122,7 @@ export default function TeacherCourses() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => base44.entities.AcademicForm.list('order', 50),
+    queryFn: () => db.entities.AcademicForm.list('order', 50),
   });
 
   const pendingCourses = subjects.filter(s => s.pending_approval && s.status === 'draft');
@@ -134,7 +134,7 @@ export default function TeacherCourses() {
   const createCourseMutation = useMutation({
     mutationFn: () => {
       const selectedForm = forms.find(f => f.id === formData.form_id);
-      return base44.entities.Subject.create({
+      return db.entities.Subject.create({
         ...formData,
         teacher_id:   user.id,
         teacher_name: user.full_name,
