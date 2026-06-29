@@ -20,10 +20,11 @@ const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const TOKEN_KEY = 'aca_access_token';
 
 function getToken() {
-  // Support both new key and legacy keys from migration
+  // Support new key + legacy key from pre-migration sessions
   return (
     localStorage.getItem(TOKEN_KEY) ||
-    localStorage.getItem('aca_access_token') ||
+    localStorage.getItem('base44_access_token') ||
+    localStorage.getItem('token') ||
     null
   );
 }
@@ -31,12 +32,12 @@ function getToken() {
 function saveToken(token) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);
-    // Remove legacy keys
-    localStorage.removeItem('aca_access_token');
+    // Clean up legacy keys from pre-migration sessions
+    localStorage.removeItem('base44_access_token');
     localStorage.removeItem('token');
   } else {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('aca_access_token');
+    localStorage.removeItem('base44_access_token');
     localStorage.removeItem('token');
   }
 }
@@ -251,9 +252,20 @@ const auth = {
     return data;
   },
 
-  async register(email, password, extra = {}) {
-    const data = await authFetch('/signup', { email, password, data: extra });
-    return data;
+  async register(emailOrObj, password, extra = {}) {
+    // Support both register(email, password, extra) and register({ email, password, full_name, ... })
+    let email, data;
+    if (typeof emailOrObj === 'object' && emailOrObj !== null) {
+      const { email: e, password: p, ...rest } = emailOrObj;
+      email    = e;
+      password = p;
+      data     = rest;
+    } else {
+      email = emailOrObj;
+      data  = extra;
+    }
+    const res = await authFetch('/signup', { email, password, data });
+    return res;
   },
 
   async verifyOtp({ email, otpCode }) {
@@ -305,8 +317,17 @@ const auth = {
     return authFetch('/recover', { email });
   },
 
-  async resetPassword(newPassword, accessToken) {
-    if (accessToken) saveToken(accessToken);
+  async resetPassword(newPasswordOrObj, accessToken) {
+    // Support resetPassword({ resetToken, newPassword }) and resetPassword(pwd, token)
+    let newPassword, token;
+    if (typeof newPasswordOrObj === 'object' && newPasswordOrObj !== null) {
+      newPassword = newPasswordOrObj.newPassword;
+      token       = newPasswordOrObj.resetToken || newPasswordOrObj.accessToken;
+    } else {
+      newPassword = newPasswordOrObj;
+      token       = accessToken;
+    }
+    if (token) saveToken(token);
     return auth.changePassword(newPassword);
   },
 
