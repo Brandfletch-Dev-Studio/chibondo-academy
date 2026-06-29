@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,7 +147,7 @@ function VideoInput({ lesson, onChange }) {
     // Simulate progress while uploading
     const interval = setInterval(() => setUploadProgress(p => Math.min(p + 10, 90)), 400);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
       clearInterval(interval);
       setUploadProgress(100);
       onChange({ video_url: file_url, video_provider: 'upload' });
@@ -268,7 +268,7 @@ function AttachmentsPanel({ attachments = [], onChange }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
       const newAttachment = {
         id: Date.now().toString(),
         name: file.name,
@@ -445,7 +445,7 @@ function QuizPanel({ lesson, subjectId }) {
 
   const { data: existingQuizzes = [], isLoading } = useQuery({
     queryKey: ['lessonQuiz', lesson.id],
-    queryFn: () => base44.entities.Quiz.filter({ lesson_id: lesson.id }, '-created_date', 1),
+    queryFn: () => db.entities.Quiz.filter({ lesson_id: lesson.id }, '-created_date', 1),
   });
 
   useEffect(() => {
@@ -470,9 +470,9 @@ function QuizPanel({ lesson, subjectId }) {
         const payload = { ...meta, questions: qs, lesson_id: lesson.id, subject_id: subjectId, lesson_title: lesson.title };
         let id = quizId;
         if (id) {
-          await base44.entities.Quiz.update(id, payload);
+          await db.entities.Quiz.update(id, payload);
         } else {
-          const created = await base44.entities.Quiz.create(payload);
+          const created = await db.entities.Quiz.create(payload);
           id = created.id;
           setQuizId(id);
         }
@@ -615,7 +615,7 @@ function AssignmentPanel({ lesson, subjectId }) {
 
   const { data: existing = [], isLoading } = useQuery({
     queryKey: ['lessonAssignment', lesson.id],
-    queryFn: () => base44.entities.Assignment.filter({ lesson_id: lesson.id }, '-created_date', 1),
+    queryFn: () => db.entities.Assignment.filter({ lesson_id: lesson.id }, '-created_date', 1),
   });
 
   useEffect(() => {
@@ -645,9 +645,9 @@ function AssignmentPanel({ lesson, subjectId }) {
       try {
         const payload = { ...updated, lesson_id: lesson.id, subject_id: subjectId, lesson_title: lesson.title };
         if (assignmentId) {
-          await base44.entities.Assignment.update(assignmentId, payload);
+          await db.entities.Assignment.update(assignmentId, payload);
         } else {
-          const created = await base44.entities.Assignment.create(payload);
+          const created = await db.entities.Assignment.create(payload);
           setAssignmentId(created.id);
         }
         qc.invalidateQueries({ queryKey: ['lessonAssignment', lesson.id] });
@@ -670,7 +670,7 @@ function AssignmentPanel({ lesson, subjectId }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
       const att = { id: Date.now().toString(), name: file.name, url: file_url, type: file.type, size: file.size };
       const updated = { ...form, attachments: [...(form.attachments || []), att] };
       setForm(updated);
@@ -947,7 +947,7 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
   const saveFn = useCallback(async (payload) => {
     // Strip read-only system fields before sending to the update API
     const { id, created_date, updated_date, created_by, created_by_id, ...clean } = payload;
-    await base44.entities.Lesson.update(lesson.id, clean);
+    await db.entities.Lesson.update(lesson.id, clean);
     qc.invalidateQueries({ queryKey: ['lessons', subjectId] });
     onSaved?.();
     // Notify enrolled students when a lesson is published (fire-and-forget)
@@ -955,7 +955,7 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
     const contentChanged = lesson.status === 'published' && clean.status === 'published' &&
       (lesson.title !== clean.title || lesson.content !== clean.content || lesson.video_url !== clean.video_url);
     if (wasPublished || contentChanged) {
-      base44.functions.invoke('notifyNewLesson', {
+      db.functions.invoke('notifyNewLesson', {
         event: { type: 'update' },
         data: { ...clean, id: lesson.id },
         old_data: lesson,
@@ -1300,7 +1300,7 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
 
   const saveFn = useCallback(async (payload) => {
     const { id, created_date, updated_date, created_by, created_by_id, ...clean } = payload;
-    await base44.entities.Subject.update(subject.id, clean);
+    await db.entities.Subject.update(subject.id, clean);
     qc.invalidateQueries({ queryKey: ['subject', subject.id] });
     onSaved?.();
   }, [subject.id]);
@@ -1318,7 +1318,7 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
       set('cover_image', file_url);
       toast.success('Thumbnail uploaded');
     } catch {
@@ -1532,8 +1532,8 @@ function TopicDialog({ open, onOpenChange, topic, subjectId, formId, nextOrder }
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      if (topic) return base44.entities.Topic.update(topic.id, data);
-      return base44.entities.Topic.create({ ...data, subject_id: subjectId, form_id: formId, status: 'published' });
+      if (topic) return db.entities.Topic.update(topic.id, data);
+      return db.entities.Topic.create({ ...data, subject_id: subjectId, form_id: formId, status: 'published' });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['topics', subjectId] });
@@ -1590,23 +1590,23 @@ export default function CourseBuilder() {
   // ── Data fetching ──
   const { data: subject } = useQuery({
     queryKey: ['subject', subjectId],
-    queryFn: async () => { const r = await base44.entities.Subject.filter({ id: subjectId }); return r[0]; },
+    queryFn: async () => { const r = await db.entities.Subject.filter({ id: subjectId }); return r[0]; },
   });
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', subjectId],
-    queryFn: () => base44.entities.Topic.filter({ subject_id: subjectId }, 'order', 100),
+    queryFn: () => db.entities.Topic.filter({ subject_id: subjectId }, 'order', 100),
   });
 
   const { data: lessons = [] } = useQuery({
     queryKey: ['lessons', subjectId],
-    queryFn: () => base44.entities.Lesson.filter({ subject_id: subjectId }, 'order', 500),
+    queryFn: () => db.entities.Lesson.filter({ subject_id: subjectId }, 'order', 500),
     refetchInterval: selectedLesson ? false : 10000,
   });
 
   const { data: tutors = [] } = useQuery({
     queryKey: ['teacherUsers'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }, 'full_name', 200),
+    queryFn: () => db.entities.User.filter({ role: 'teacher' }, 'full_name', 200),
     enabled: user?.role === 'admin',
   });
 
@@ -1614,7 +1614,7 @@ export default function CourseBuilder() {
   const addLessonMut = useMutation({
     mutationFn: async ({ topicId, topicTitle }) => {
       const topicLessons = lessons.filter(l => l.topic_id === topicId);
-      return base44.entities.Lesson.create({
+      return db.entities.Lesson.create({
         title: 'New Lesson',
         topic_id: topicId,
         topic_title: topicTitle,
@@ -1635,7 +1635,7 @@ export default function CourseBuilder() {
   });
 
   const deleteLessonMut = useMutation({
-    mutationFn: (id) => base44.entities.Lesson.delete(id),
+    mutationFn: (id) => db.entities.Lesson.delete(id),
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: ['lessons', subjectId] });
       if (selectedLesson?.id === id) setSelectedLesson(null);
@@ -1646,7 +1646,7 @@ export default function CourseBuilder() {
   const duplicateLessonMut = useMutation({
     mutationFn: async (lesson) => {
       const { id, created_date, updated_date, created_by_id, created_by, ...rest } = lesson;
-      return base44.entities.Lesson.create({ ...rest, title: `${rest.title} (Copy)`, status: 'draft' });
+      return db.entities.Lesson.create({ ...rest, title: `${rest.title} (Copy)`, status: 'draft' });
     },
     onSuccess: (newLesson) => {
       qc.invalidateQueries({ queryKey: ['lessons', subjectId] });
@@ -1662,8 +1662,8 @@ export default function CourseBuilder() {
       const swapIdx = idx + direction;
       if (swapIdx < 0 || swapIdx >= siblings.length) return;
       const target = siblings[swapIdx];
-      await base44.entities.Lesson.update(lesson.id, { order: target.order ?? swapIdx });
-      await base44.entities.Lesson.update(target.id, { order: lesson.order ?? idx });
+      await db.entities.Lesson.update(lesson.id, { order: target.order ?? swapIdx });
+      await db.entities.Lesson.update(target.id, { order: lesson.order ?? idx });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons', subjectId] }),
     onError: () => toast.error('Could not move lesson'),
@@ -1677,8 +1677,8 @@ export default function CourseBuilder() {
       const swapIdx = idx + direction;
       if (swapIdx < 0 || swapIdx >= sorted.length) return;
       const target = sorted[swapIdx];
-      await base44.entities.Topic.update(topic.id, { order: target.order ?? swapIdx });
-      await base44.entities.Topic.update(target.id, { order: topic.order ?? idx });
+      await db.entities.Topic.update(topic.id, { order: target.order ?? swapIdx });
+      await db.entities.Topic.update(target.id, { order: topic.order ?? idx });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['topics', subjectId] }),
     onError: () => toast.error('Could not move topic'),
@@ -1688,13 +1688,13 @@ export default function CourseBuilder() {
   const duplicateTopicMut = useMutation({
     mutationFn: async (topic) => {
       const { id, created_date, updated_date, created_by, created_by_id, ...rest } = topic;
-      const newTopic = await base44.entities.Topic.create({
+      const newTopic = await db.entities.Topic.create({
         ...rest, title: rest.title + ' (Copy)', order: (rest.order || 0) + 0.5,
       });
       const topicLessons = lessons.filter(l => l.topic_id === topic.id);
       await Promise.all(topicLessons.map(l => {
         const { id: lid, created_date: lcd, updated_date: lud, created_by: lcb, created_by_id: lcbi, ...lr } = l;
-        return base44.entities.Lesson.create({ ...lr, topic_id: newTopic.id, topic_title: newTopic.title, status: 'draft' });
+        return db.entities.Lesson.create({ ...lr, topic_id: newTopic.id, topic_title: newTopic.title, status: 'draft' });
       }));
     },
     onSuccess: () => {
@@ -1706,7 +1706,7 @@ export default function CourseBuilder() {
   });
 
   const deleteTopicMut = useMutation({
-    mutationFn: (id) => base44.entities.Topic.delete(id),
+    mutationFn: (id) => db.entities.Topic.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['topics', subjectId] });
       toast.success('Topic deleted');
