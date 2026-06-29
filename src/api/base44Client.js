@@ -152,10 +152,16 @@ async function restDelete(path, headers = {}) {
 // Mirrors Base44 SDK: filter(query, sort, limit), list(sort, limit), get(id),
 //                     create(data), update(id, data), delete(id), subscribe(cb)
 
+// Column name remapping (Base44 field name → Supabase column name)
+const COL_REMAP = {
+  order: 'order_num',
+};
+
 function buildSort(sortStr) {
   if (!sortStr) return null;
   const desc = sortStr.startsWith('-');
-  const col  = desc ? sortStr.slice(1) : sortStr;
+  const rawCol = desc ? sortStr.slice(1) : sortStr;
+  const col = COL_REMAP[rawCol] || rawCol;
   return { col, desc };
 }
 
