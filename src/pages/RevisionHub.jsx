@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Library, FileText, Download, Filter, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,12 +28,12 @@ export default function RevisionHub() {
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['revisionResources'],
-    queryFn: () => base44.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 200),
+    queryFn: () => db.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 200),
   });
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => base44.entities.AcademicForm.filter({ status: 'active' }, 'order', 50),
+    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 50),
   });
 
   const filtered = resources.filter(r => {
