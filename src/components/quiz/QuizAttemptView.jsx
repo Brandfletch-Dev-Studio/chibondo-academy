@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ export default function QuizAttemptView({ quiz, onComplete }) {
   const [answers, setAnswers] = useState({});
   const [timeRemaining, setTimeRemaining] = useState(quiz.time_limit_minutes * 60 || null);
   const queryClient = useQueryClient();
-  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => db.auth.me() });
 
   // Timer
   React.useEffect(() => {
@@ -43,7 +43,7 @@ export default function QuizAttemptView({ quiz, onComplete }) {
 
   const submitMutation = useMutation({
     mutationFn: async (attemptData) => {
-      return base44.entities.QuizAttempt.create(attemptData);
+      return db.entities.QuizAttempt.create(attemptData);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quizAttempts'] });
