@@ -188,7 +188,7 @@ export default function AdminSubscriptions() {
         return;
       }
       // Call the ACA's own cartRecoveryEmails function — self-contained, no external deps
-      const nudgeRes = await fetch('https://theaca.base44.app/api/functions/cartRecoveryEmails', {
+      const nudgeRes = await fetch('https://chibondoacademy.com/api/cart-recovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
