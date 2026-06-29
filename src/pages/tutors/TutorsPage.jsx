@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Search, GraduationCap, BookOpen, Users, Clock, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -119,14 +119,14 @@ export default function TutorsPage() {
   // We drive the directory from TutorProfile only; no User.filter() needed.
   const { data: tutorProfiles = [], isLoading } = useQuery({
     queryKey: ['all-tutor-profiles-public'],
-    queryFn:  () => base44.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200),
+    queryFn:  () => db.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200),
     staleTime: 60_000,
   });
 
   // Published subjects — rls allows public reads on published records.
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects-all-for-tutors'],
-    queryFn:  () => base44.entities.Subject.filter({ status: 'published' }, 'name', 500),
+    queryFn:  () => db.entities.Subject.filter({ status: 'published' }, 'name', 500),
     staleTime: 60_000,
   });
 
