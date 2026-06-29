@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { BookOpen, Users, ArrowRight, Plus, CheckCircle2, Clock, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ export default function TeacherDashboard() {
 
   const { data: subjects = [] } = useQuery({
     queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => base44.entities.Subject.filter({ teacher_id: user.id }, 'order', 50),
+    queryFn: () => db.entities.Subject.filter({ teacher_id: user.id }, 'order', 50),
     enabled: !!user?.id,
   });
 
@@ -22,7 +22,7 @@ export default function TeacherDashboard() {
     queryFn: async () => {
       const results = [];
       for (const s of subjects) {
-        const e = await base44.entities.Enrollment.filter({ subject_id: s.id }, '-created_date', 200);
+        const e = await db.entities.Enrollment.filter({ subject_id: s.id }, '-created_date', 200);
         results.push(...e.map(en => ({ ...en, subject_name: s.name })));
       }
       return results;
@@ -32,7 +32,7 @@ export default function TeacherDashboard() {
 
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['studentProfiles'],
-    queryFn: () => base44.entities.StudentProfile.list('-created_date', 200),
+    queryFn: () => db.entities.StudentProfile.list('-created_date', 200),
     enabled: allEnrollments.length > 0,
   });
 
