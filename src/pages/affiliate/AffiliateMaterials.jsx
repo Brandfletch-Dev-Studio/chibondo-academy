@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Image, Download, ExternalLink, Video, MessageSquare, Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,15 +98,15 @@ export default function AffiliateMaterials() {
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ['affiliateMaterials'],
-    queryFn: () => base44.entities.AffiliateMaterial.filter({}, '-created_date', 100),
+    queryFn: () => db.entities.AffiliateMaterial.filter({}, '-created_date', 100),
     staleTime: 30_000,
   });
 
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!form.title) throw new Error('Title is required');
-      if (editing) return base44.entities.AffiliateMaterial.update(editing.id, form);
-      return base44.entities.AffiliateMaterial.create({ ...form, created_by_name: user.full_name });
+      if (editing) return db.entities.AffiliateMaterial.update(editing.id, form);
+      return db.entities.AffiliateMaterial.create({ ...form, created_by_name: user.full_name });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['affiliateMaterials'] });
@@ -118,7 +118,7 @@ export default function AffiliateMaterials() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: id => base44.entities.AffiliateMaterial.delete(id),
+    mutationFn: id => db.entities.AffiliateMaterial.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['affiliateMaterials'] }); toast.success('Deleted'); },
   });
 
