@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,14 +22,14 @@ export default function UserManagementTable() {
   // Use the service-role function — bypasses RLS so every admin sees all users
   const { data: adminData, isLoading } = useQuery({
     queryKey: ['adminUsers'],
-    queryFn: () => base44.functions.invoke('getAdminUsers', {}),
+    queryFn: () => db.functions.invoke('getAdminUsers', {}),
     staleTime: 30_000,
   });
   const users = adminData?.users ?? [];
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, newRole }) => {
-      await base44.entities.User.update(userId, { role: newRole });
+      await db.entities.User.update(userId, { role: newRole });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
