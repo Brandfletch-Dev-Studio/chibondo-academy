@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -285,50 +285,50 @@ export default function TutorManagement() {
   // ── Data fetching ──
   const { data: tutors = [], isLoading: loadingTutors } = useQuery({
     queryKey: ['admin-tutors'],
-    queryFn: () => base44.entities.TutorProfile.list('full_name', 500),
+    queryFn: () => db.entities.TutorProfile.list('full_name', 500),
     staleTime: 0,
   });
 
   const { data: applications = [], isLoading: loadingApps } = useQuery({
     queryKey: ['teacherApplications'],
-    queryFn: () => base44.entities.TeacherApplication.filter({}, '-created_date', 200),
+    queryFn: () => db.entities.TeacherApplication.filter({}, '-created_date', 200),
     staleTime: 0,
   });
 
   // All platform teachers (role = teacher) — to detect unlinked ones
   const { data: allTeachers = [] } = useQuery({
     queryKey: ['all-teachers-mgmt'],
-    queryFn: () => base44.entities.User.filter({ role: 'teacher' }),
+    queryFn: () => db.entities.User.filter({ role: 'teacher' }),
     staleTime: 60_000,
   });
 
   // Subjects with teacher_id set — for auto-profile detection
   const { data: subjects = [] } = useQuery({
     queryKey: ['all-subjects-mgmt'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 300),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 300),
     staleTime: 60_000,
   });
 
   // ── Mutations ──
   const createMut = useMutation({
-    mutationFn: data => base44.entities.TutorProfile.create(data),
+    mutationFn: data => db.entities.TutorProfile.create(data),
     onSuccess: () => { toast.success('Tutor profile created'); qc.invalidateQueries({ queryKey: ['admin-tutors'] }); setDialogOpen(false); },
     onError: e => toast.error('Failed: ' + e.message),
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TutorProfile.update(id, data),
+    mutationFn: ({ id, data }) => db.entities.TutorProfile.update(id, data),
     onSuccess: () => { toast.success('Profile updated'); qc.invalidateQueries({ queryKey: ['admin-tutors'] }); setDialogOpen(false); },
     onError: e => toast.error('Failed: ' + e.message),
   });
 
   const archiveMut = useMutation({
-    mutationFn: id => base44.entities.TutorProfile.update(id, { status: 'archived', is_visible: false }),
+    mutationFn: id => db.entities.TutorProfile.update(id, { status: 'archived', is_visible: false }),
     onSuccess: () => { toast.success('Tutor archived'); qc.invalidateQueries({ queryKey: ['admin-tutors'] }); },
   });
 
   const toggleVisibility = useMutation({
-    mutationFn: ({ id, is_visible }) => base44.entities.TutorProfile.update(id, { is_visible }),
+    mutationFn: ({ id, is_visible }) => db.entities.TutorProfile.update(id, { is_visible }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-tutors'] }),
   });
 
@@ -336,21 +336,21 @@ export default function TutorManagement() {
     mutationFn: async ({ id, status, notes }) => {
       const app = applications.find(a => a.id === id);
 
-      await base44.entities.TeacherApplication.update(id, { status, admin_notes: notes });
+      await db.entities.TeacherApplication.update(id, { status, admin_notes: notes });
 
       if (status === 'approved' && app?.user_id) {
         // 1. Promote user to teacher role
-        await base44.entities.User.update(app.user_id, { role: 'teacher' });
+        await db.entities.User.update(app.user_id, { role: 'teacher' });
 
         // 2. Auto-create a TutorProfile if one doesn't already exist for this user
-        const existingProfiles = await base44.entities.TutorProfile.filter({ user_id: app.user_id });
+        const existingProfiles = await db.entities.TutorProfile.filter({ user_id: app.user_id });
         if (existingProfiles.length === 0) {
           const slug = slugify(app.full_name);
           // Check slug uniqueness — append random suffix if taken
-          const existingSlug = await base44.entities.TutorProfile.filter({ slug });
+          const existingSlug = await db.entities.TutorProfile.filter({ slug });
           const finalSlug = existingSlug.length > 0 ? `${slug}-${Math.random().toString(36).slice(2,6)}` : slug;
 
-          await base44.entities.TutorProfile.create({
+          await db.entities.TutorProfile.create({
             full_name: app.full_name,
             slug: finalSlug,
             professional_title: '',
@@ -392,9 +392,9 @@ export default function TutorManagement() {
     mutationFn: async (teacher) => {
       const teacherSubjects = subjects.filter(s => s.teacher_id === teacher.id).map(s => s.name);
       const slug = slugify(teacher.full_name);
-      const existingSlug = await base44.entities.TutorProfile.filter({ slug });
+      const existingSlug = await db.entities.TutorProfile.filter({ slug });
       const finalSlug = existingSlug.length > 0 ? `${slug}-${Math.random().toString(36).slice(2,6)}` : slug;
-      return base44.entities.TutorProfile.create({
+      return db.entities.TutorProfile.create({
         full_name: teacher.full_name,
         slug: finalSlug,
         email: teacher.email || '',
