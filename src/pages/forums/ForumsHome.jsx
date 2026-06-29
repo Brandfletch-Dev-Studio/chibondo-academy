@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { MessageSquare, TrendingUp, Clock, ChevronRight, Search, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -40,14 +40,14 @@ export default function ForumsHome() {
 
   const { data: subjects = [], isLoading } = useQuery({
     queryKey: ['forum-subjects'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 100),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
     staleTime: 120_000,
   });
 
   // Count open threads per subject
   const { data: threadCounts = [] } = useQuery({
     queryKey: ['forum-thread-counts'],
-    queryFn: () => base44.entities.Discussion.filter({ status: 'active' }, '-created_date', 500),
+    queryFn: () => db.entities.Discussion.filter({ status: 'active' }, '-created_date', 500),
     staleTime: 60_000,
   });
 
@@ -87,7 +87,7 @@ export default function ForumsHome() {
   // Online students — anyone whose last_seen is within the last 2 minutes
   const { data: presenceList = [] } = useQuery({
     queryKey: ['forum-presence'],
-    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
+    queryFn: () => db.entities.ForumPresence.list('-last_seen', 200),
     refetchInterval: 30_000,
     staleTime: 0,
   });
