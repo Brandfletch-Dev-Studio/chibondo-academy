@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/supabaseClient";
+import { db } from '@/api/supabaseClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,16 +39,16 @@ export default function TeacherRegister() {
     setLoading(true);
     try {
       // Register account — no OTP gate
-      const result = await base44.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
+      const result = await db.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
       if (result?.access_token) {
-        await base44.auth.setToken(result.access_token);
+        await db.auth.setToken(result.access_token);
       }
 
       // Get the newly created user
-      const me = await base44.auth.me();
+      const me = await db.auth.me();
 
       // Create the teacher application record
-      await base44.entities.TeacherApplication.create({
+      await db.entities.TeacherApplication.create({
         full_name: fullName.trim(),
         email: email.trim(),
         phone_number: phone.trim(),
@@ -60,7 +60,7 @@ export default function TeacherRegister() {
       });
 
       // Update name on profile
-      try { await base44.auth.updateMe({ full_name: fullName.trim() }); } catch (_) {}
+      try { await db.auth.updateMe({ full_name: fullName.trim() }); } catch (_) {}
 
       setStep("done");
     } catch (err) {
