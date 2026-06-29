@@ -1,7 +1,7 @@
 import React, { useState } from 'react'; // v2
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -171,7 +171,7 @@ function PayoutsTab({ referrals, commissionSettings }) {
 
   const { data: payoutRequests = [] } = useQuery({
     queryKey: ['myPayoutRequests', user?.id],
-    queryFn: () => base44.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50),
+    queryFn: () => db.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50),
     enabled: !!user?.id,
   });
 
@@ -182,7 +182,7 @@ function PayoutsTab({ referrals, commissionSettings }) {
 
   const requestMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.PayoutRequest.create({
+      await db.entities.PayoutRequest.create({
         affiliate_id: user.id,
         affiliate_name: user.full_name,
         amount: parseFloat(payoutData.amount) || pendingEarnings,
@@ -300,7 +300,7 @@ function AffiliateSettings() {
     setCheckStatus('checking');
     debounceRef.current = setTimeout(async () => {
       try {
-        const existing = await base44.entities.User.filter({ referral_code: val });
+        const existing = await db.entities.User.filter({ referral_code: val });
         const taken = existing.find(u => u.id !== user.id);
         setCheckStatus(taken ? 'taken' : 'available');
       } catch { setCheckStatus(null); }
@@ -313,7 +313,7 @@ function AffiliateSettings() {
       if (!code) throw new Error('Referral code cannot be empty');
       if (code.length < 4) throw new Error('Code must be at least 4 characters');
       if (checkStatus === 'taken') throw new Error('This code is already taken. Please choose another.');
-      return base44.auth.updateMe({ referral_code: code });
+      return db.auth.updateMe({ referral_code: code });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
@@ -411,7 +411,7 @@ function AffiliateSettings() {
 
 function Leaderboard() {
   const { user } = useOutletContext() ?? {};
-  const { data: allReferrals = [] } = useQuery({ queryKey: ['all-referrals-leaderboard'], queryFn: () => base44.entities.Referral.list('-created_date', 500) });
+  const { data: allReferrals = [] } = useQuery({ queryKey: ['all-referrals-leaderboard'], queryFn: () => db.entities.Referral.list('-created_date', 500) });
 
   const leaderboard = Object.values(allReferrals.reduce((acc, r) => {
     if (!r.referrer_id) return acc;
@@ -482,15 +482,15 @@ function MaterialsTab({ user }) {
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ['affiliateMaterials'],
-    queryFn: () => base44.entities.AffiliateMaterial.filter({}, '-created_date', 100),
+    queryFn: () => db.entities.AffiliateMaterial.filter({}, '-created_date', 100),
     staleTime: 30_000,
   });
 
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!form.title) throw new Error('Title is required');
-      if (editing) return base44.entities.AffiliateMaterial.update(editing.id, form);
-      return base44.entities.AffiliateMaterial.create({ ...form, created_by_name: user.full_name });
+      if (editing) return db.entities.AffiliateMaterial.update(editing.id, form);
+      return db.entities.AffiliateMaterial.create({ ...form, created_by_name: user.full_name });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['affiliateMaterials'] });
@@ -502,7 +502,7 @@ function MaterialsTab({ user }) {
   });
 
   const deleteMut = useMutation({
-    mutationFn: id => base44.entities.AffiliateMaterial.delete(id),
+    mutationFn: id => db.entities.AffiliateMaterial.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['affiliateMaterials'] }); toast.success('Deleted'); },
   });
 
@@ -689,7 +689,7 @@ function ProfileTab({ user }) {
   }, [user?.id]);
 
   const saveMut = useMutation({
-    mutationFn: () => base44.auth.updateMe({ ...profile, ...payment, ...notifs }),
+    mutationFn: () => db.auth.updateMe({ ...profile, ...payment, ...notifs }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['currentUser'] }); toast.success('Profile saved!'); },
     onError: () => toast.error('Failed to save. Try again.'),
   });
@@ -760,8 +760,8 @@ export default function MyReferrals() {
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
   const queryClient = useQueryClient();
 
-  const { data: referrals = [] } = useQuery({ queryKey: ['myReferrals', user?.id], queryFn: () => base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 50), enabled: !!user?.id });
-  const { data: commissionSettingsData = [] } = useQuery({ queryKey: ['affiliateSettings'], queryFn: () => base44.entities.PlatformSettings.filter({ key: 'affiliate_commission' }) });
+  const { data: referrals = [] } = useQuery({ queryKey: ['myReferrals', user?.id], queryFn: () => db.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 50), enabled: !!user?.id });
+  const { data: commissionSettingsData = [] } = useQuery({ queryKey: ['affiliateSettings'], queryFn: () => db.entities.PlatformSettings.filter({ key: 'affiliate_commission' }) });
   const commissionSettings = commissionSettingsData[0]?.value || {};
 
   if (!user) return (
