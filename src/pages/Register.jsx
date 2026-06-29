@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Loader2, Eye, EyeOff, User as UserIcon } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
 
@@ -13,14 +13,13 @@ export default function Register() {
   const navigate = useNavigate();
   const refCode  = searchParams.get("ref");
 
-  // Persist the referral code to localStorage immediately so it survives
-  // page reloads and the OTP redirect — dashboard will pick it up
   useEffect(() => {
     if (refCode) {
       localStorage.setItem("pending_referral_code", refCode);
     }
   }, [refCode]);
 
+  const [fullName,        setFullName]        = useState("");
   const [email,           setEmail]           = useState("");
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,16 +46,14 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!fullName.trim())                     { setError("Please enter your full name"); return; }
     if (!email.trim())                        { setError("Please enter your email address"); return; }
     if (password !== confirmPassword)         { setError("Passwords do not match"); return; }
     if (password.length < 6)                  { setError("Password must be at least 6 characters"); return; }
 
     setLoading(true);
     try {
-      // Create account — platform automatically sends OTP to email
       await base44.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
-
-      // Navigate to the dedicated OTP verification page
       navigate("/verify-otp", {
         replace: true,
         state: { email: email.trim(), refCode: refCode || null },
