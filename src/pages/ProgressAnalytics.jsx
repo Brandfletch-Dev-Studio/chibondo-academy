@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Clock, Trophy, TrendingUp, Calendar, Award } from 'lucide-react';
@@ -23,23 +23,23 @@ import {
 const COLORS = ['hsl(222, 47%, 30%)', 'hsl(43, 74%, 52%)', 'hsl(160, 60%, 45%)', 'hsl(280, 65%, 60%)', 'hsl(340, 75%, 55%)'];
 
 export default function ProgressAnalytics() {
-  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => db.auth.me() });
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user?.id }),
+    queryFn: () => db.entities.Enrollment.filter({ student_id: user?.id }),
     enabled: !!user?.id,
   });
 
   const { data: quizAttempts = [] } = useQuery({
     queryKey: ['quizAttempts', user?.id],
-    queryFn: () => base44.entities.QuizAttempt.filter({ student_id: user?.id }, '-created_date', 100),
+    queryFn: () => db.entities.QuizAttempt.filter({ student_id: user?.id }, '-created_date', 100),
     enabled: !!user?.id,
   });
 
   const { data: lessons = [] } = useQuery({
     queryKey: ['lessons'],
-    queryFn: () => base44.entities.Lesson.filter({ status: 'published' }),
+    queryFn: () => db.entities.Lesson.filter({ status: 'published' }),
   });
 
   // Calculate stats
