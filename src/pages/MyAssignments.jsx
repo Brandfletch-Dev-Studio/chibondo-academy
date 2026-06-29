@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { FileText, Upload, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -11,12 +11,12 @@ export default function MyAssignments() {
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['assignments'],
-    queryFn: () => base44.entities.Assignment.filter({ status: 'published' }, '-created_date', 100),
+    queryFn: () => db.entities.Assignment.filter({ status: 'published' }, '-created_date', 100),
   });
 
   const { data: submissions = [] } = useQuery({
     queryKey: ['mySubmissions', user?.id],
-    queryFn: () => base44.entities.AssignmentSubmission.filter({ student_id: user.id }, '-created_date', 100),
+    queryFn: () => db.entities.AssignmentSubmission.filter({ student_id: user.id }, '-created_date', 100),
     enabled: !!user?.id,
   });
 
