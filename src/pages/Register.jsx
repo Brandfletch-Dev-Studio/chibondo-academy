@@ -59,7 +59,12 @@ export default function Register() {
         state: { email: email.trim(), refCode: refCode || null },
       });
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
+      const msg = err.message || "";
+      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists") || msg.toLowerCase().includes("user already")) {
+        setError("An account with this email already exists. Please sign in instead.");
+      } else {
+        setError(msg || "Registration failed. Please try again.");
+      }
       setLoading(false);
     }
   };
