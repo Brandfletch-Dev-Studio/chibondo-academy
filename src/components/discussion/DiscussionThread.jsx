@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,14 +46,14 @@ export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, sub
   const { data: discussions = [], isLoading } = useQuery({
     queryKey: ['discussions', lessonId],
     queryFn: async () => {
-      const all = await base44.entities.Discussion.filter({ lesson_id: lessonId, status: 'active' }, '-created_date', 100);
+      const all = await db.entities.Discussion.filter({ lesson_id: lessonId, status: 'active' }, '-created_date', 100);
       return all.sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
     },
     enabled: !!lessonId,
   });
 
   const createDiscussion = useMutation({
-    mutationFn: async (data) => base44.entities.Discussion.create(data),
+    mutationFn: async (data) => db.entities.Discussion.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] });
       setNewComment('');
@@ -61,7 +61,7 @@ export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, sub
   });
 
   const updateDiscussion = useMutation({
-    mutationFn: async ({ id, data }) => base44.entities.Discussion.update(id, data),
+    mutationFn: async ({ id, data }) => db.entities.Discussion.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] }),
   });
 
