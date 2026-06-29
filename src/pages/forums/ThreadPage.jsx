@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import {
   ArrowLeft, Send, Pin, CheckCircle, MoreVertical, Trash2,
@@ -85,7 +85,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
   // Fetch TutorProfile if this is a teacher — to get their slug
   const { data: tutorProfiles = [] } = useQuery({
     queryKey: ['tutor-profile-for-viewer', authorId],
-    queryFn:  () => base44.entities.TutorProfile.filter({ user_id: authorId, status: 'active' }, 'full_name', 1),
+    queryFn:  () => db.entities.TutorProfile.filter({ user_id: authorId, status: 'active' }, 'full_name', 1),
     enabled:  open && !!authorId && (role === 'teacher' || role === 'admin'),
     staleTime: 120_000,
   });
@@ -327,7 +327,7 @@ export default function ThreadPage() {
   const threadId = state?.thread?.id || threadSlug;
   const { data: threadArr = [], isLoading: loadingThread } = useQuery({
     queryKey: ['thread', threadSlug],
-    queryFn: () => base44.entities.Discussion.filter({ slug: threadSlug, status: 'active' }, 'created_date', 1),
+    queryFn: () => db.entities.Discussion.filter({ slug: threadSlug, status: 'active' }, 'created_date', 1),
     enabled: !state?.thread && !!threadSlug && threadSlug.length < 30,
     staleTime: 30_000,
   });
@@ -338,7 +338,7 @@ export default function ThreadPage() {
   /* ── All replies (comments + nested replies) ── */
   const { data: allReplies = [], isLoading: loadingReplies } = useQuery({
     queryKey: ['replies', resolvedThreadId],
-    queryFn: () => base44.entities.Discussion.filter(
+    queryFn: () => db.entities.Discussion.filter(
       { parent_id: resolvedThreadId, status: 'active' }, 'created_date', 500
     ),
     enabled: !!resolvedThreadId,
@@ -367,7 +367,7 @@ export default function ThreadPage() {
       if (!user) { window.location.href = '/register'; return; }
       if (!text.trim()) throw new Error('Write something first');
 
-      return base44.entities.Discussion.create({
+      return db.entities.Discussion.create({
         content: text.trim(),
         parent_id: resolvedThreadId,
         reply_to_id: replyTo?.id || undefined,
@@ -385,7 +385,7 @@ export default function ThreadPage() {
     onSuccess: async () => {
       setText(''); setReplyTo(null);
       if (thread?.id) {
-        try { await base44.entities.Discussion.update(thread.id, { reply_count: (thread.reply_count || 0) + 1 }); } catch(_) {}
+        try { await db.entities.Discussion.update(thread.id, { reply_count: (thread.reply_count || 0) + 1 }); } catch(_) {}
       }
       qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] });
       qc.invalidateQueries({ queryKey: ['forum-threads', thread?.subject_id] });
@@ -395,13 +395,13 @@ export default function ThreadPage() {
 
   /* ── Delete reply ── */
   const deleteMut = useMutation({
-    mutationFn: id => base44.entities.Discussion.update(id, { status: 'deleted' }),
+    mutationFn: id => db.entities.Discussion.update(id, { status: 'deleted' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] }),
   });
 
   /* ── Delete thread (OP) ── */
   const deleteThreadMut = useMutation({
-    mutationFn: () => base44.entities.Discussion.update(thread.id, { status: 'deleted' }),
+    mutationFn: () => db.entities.Discussion.update(thread.id, { status: 'deleted' }),
     onSuccess: () => {
       toast.success('Thread deleted');
       qc.invalidateQueries({ queryKey: ['forum-threads', thread?.subject_id] });
@@ -420,16 +420,16 @@ export default function ThreadPage() {
   const acceptMut = useMutation({
     mutationFn: async (reply) => {
       const prev = allReplies.find(r => r.is_accepted_answer);
-      if (prev) await base44.entities.Discussion.update(prev.id, { is_accepted_answer: false });
-      await base44.entities.Discussion.update(reply.id, { is_accepted_answer: true });
-      if (thread?.id) await base44.entities.Discussion.update(thread.id, { thread_status: 'resolved' });
+      if (prev) await db.entities.Discussion.update(prev.id, { is_accepted_answer: false });
+      await db.entities.Discussion.update(reply.id, { is_accepted_answer: true });
+      if (thread?.id) await db.entities.Discussion.update(thread.id, { thread_status: 'resolved' });
     },
     onSuccess: () => { toast.success('Answer marked as accepted'); qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] }); },
   });
 
   /* ── Pin thread ── */
   const pinMut = useMutation({
-    mutationFn: () => base44.entities.Discussion.update(thread.id, { is_pinned: !thread.is_pinned }),
+    mutationFn: () => db.entities.Discussion.update(thread.id, { is_pinned: !thread.is_pinned }),
     onSuccess: () => { toast.success(thread.is_pinned ? 'Unpinned' : 'Pinned'); qc.invalidateQueries({ queryKey: ['thread', threadSlug] }); },
   });
 
@@ -439,7 +439,7 @@ export default function ThreadPage() {
       const likedBy = item.liked_by || [];
       const hasLiked = likedBy.includes(user.id);
       const newLikedBy = hasLiked ? likedBy.filter(id => id !== user.id) : [...likedBy, user.id];
-      return base44.entities.Discussion.update(item.id, {
+      return db.entities.Discussion.update(item.id, {
         liked_by: newLikedBy,
         likes: newLikedBy.length,
       });
@@ -469,7 +469,7 @@ export default function ThreadPage() {
       const likedBy = thread.liked_by || [];
       const hasLiked = likedBy.includes(user.id);
       const newLikedBy = hasLiked ? likedBy.filter(id => id !== user.id) : [...likedBy, user.id];
-      return base44.entities.Discussion.update(thread.id, { liked_by: newLikedBy, likes: newLikedBy.length });
+      return db.entities.Discussion.update(thread.id, { liked_by: newLikedBy, likes: newLikedBy.length });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['thread', threadSlug] }),
   });
