@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext } from 'react-router-dom';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,14 +32,14 @@ export default function TeacherBlog() {
 
   const { data: tutorProfiles = [] } = useQuery({
     queryKey: ['myTutorProfile', user?.id],
-    queryFn: () => base44.entities.TutorProfile.filter({ user_id: user?.id }),
+    queryFn: () => db.entities.TutorProfile.filter({ user_id: user?.id }),
     enabled: !!user?.id,
   });
   const myProfile = tutorProfiles[0];
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['teacherBlogPosts', user?.id],
-    queryFn: () => base44.entities.BlogPost.filter({ created_by: user?.id }, '-created_date', 50),
+    queryFn: () => db.entities.BlogPost.filter({ created_by: user?.id }, '-created_date', 50),
     enabled: !!user?.id,
   });
 
@@ -82,8 +82,8 @@ export default function TeacherBlog() {
         tutor_slug: form.tutor_slug || myProfile?.slug || '',
         published_at: form.status==='published' ? (editing?.published_at||new Date().toISOString()) : form.published_at,
       };
-      if (editing) return base44.entities.BlogPost.update(editing.id, payload);
-      return base44.entities.BlogPost.create(payload);
+      if (editing) return db.entities.BlogPost.update(editing.id, payload);
+      return db.entities.BlogPost.create(payload);
     },
     onSuccess: (savedPost) => {
       queryClient.invalidateQueries({ queryKey:['teacherBlogPosts'] });
@@ -94,7 +94,7 @@ export default function TeacherBlog() {
       const wasPublished = !editing && form.status === 'published';
       const justPublished = editing && editing.status !== 'published' && form.status === 'published';
       if (wasPublished || justPublished) {
-        base44.functions.invoke('notifyNewBlogPost', {
+        db.functions.invoke('notifyNewBlogPost', {
           event: { type: editing ? 'update' : 'create' },
           data: savedPost,
           old_data: editing || null,
@@ -105,7 +105,7 @@ export default function TeacherBlog() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: id => base44.entities.BlogPost.delete(id),
+    mutationFn: id => db.entities.BlogPost.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey:['teacherBlogPosts'] });
       toast.success('Post deleted');
