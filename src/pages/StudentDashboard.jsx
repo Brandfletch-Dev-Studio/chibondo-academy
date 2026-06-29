@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import WelcomeCard from '@/components/dashboard/WelcomeCard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import SetupChecklist from '@/components/dashboard/SetupChecklist';
@@ -84,7 +84,7 @@ export default function StudentDashboard() {
     const pendingCode = localStorage.getItem("pending_referral_code");
     if (!pendingCode) return;
     localStorage.removeItem("pending_referral_code"); // clear before calling to prevent retries
-    base44.functions.invoke("trackReferral", { referralCode: pendingCode })
+    db.functions.invoke("trackReferral", { referralCode: pendingCode })
       .then(() => console.log("✅ Referral tracked:", pendingCode))
       .catch(err => console.warn("Referral tracking failed:", err));
   }, [user?.id]);
@@ -93,13 +93,13 @@ export default function StudentDashboard() {
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
-    queryFn:  () => base44.entities.Enrollment.filter({ student_id: userId }, '-last_accessed', 20),
+    queryFn:  () => db.entities.Enrollment.filter({ student_id: userId }, '-last_accessed', 20),
     enabled:  !!userId,
   });
 
   const { data: latestPosts = [] } = useQuery({
     queryKey: ['latest-blog-posts'],
-    queryFn:  () => base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 3),
+    queryFn:  () => db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 3),
     staleTime: 300_000,
   });
 
