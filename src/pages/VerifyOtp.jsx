@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/supabaseClient";
+import { db } from '@/api/supabaseClient';
 import { Loader2, Mail, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
@@ -113,12 +113,12 @@ export default function VerifyOtp() {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email: email.trim(), otpCode });
+      const result = await db.auth.verifyOtp({ email: email.trim(), otpCode });
       const token  = result?.access_token ?? result?.token ?? result?.data?.access_token;
       if (token) {
         setSuccess(true);
-        base44.auth.setToken(token);
-        try { await base44.auth.updateMe({ role: "user" }); } catch (_) {}
+        db.auth.setToken(token);
+        try { await db.auth.updateMe({ role: "user" }); } catch (_) {}
         // trackReferral is handled by the dashboard on first load
         setTimeout(() => {
           window.location.replace("/dashboard");
@@ -143,7 +143,7 @@ export default function VerifyOtp() {
     setError("");
     setCode("");
     try {
-      await base44.auth.resendOtp(email.trim());
+      await db.auth.resendOtp(email.trim());
       startCooldown(30);
       setTimeout(() => inputRef.current?.focus(), 50);
     } catch {
