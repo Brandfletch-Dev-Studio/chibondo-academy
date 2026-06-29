@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,12 +118,12 @@ function ProfilePanel({ user, profile, qc }) {
       setPreview(file_url);
 
       // Save avatar via base44Client updateMe → patches users table in Supabase
-      await base44.auth.updateMe({ avatar_url: file_url });
+      await db.auth.updateMe({ avatar_url: file_url });
 
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, { avatar_url: file_url });
+        await db.entities.StudentProfile.update(profile.id, { avatar_url: file_url });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({ user_id: user.id, avatar_url: file_url });
+        await db.entities.StudentProfile.create({ user_id: user.id, avatar_url: file_url });
       }
 
       await checkUserAuth();
@@ -142,7 +142,7 @@ function ProfilePanel({ user, profile, qc }) {
     setSaving(true);
     try {
       // Update users table via Supabase
-      await base44.auth.updateMe({ full_name: fullName.trim() });
+      await db.auth.updateMe({ full_name: fullName.trim() });
 
       // Update or create StudentProfile
       const profileData = {
@@ -151,9 +151,9 @@ function ProfilePanel({ user, profile, qc }) {
         school_name:  schoolName.trim(),
       };
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, profileData);
+        await db.entities.StudentProfile.update(profile.id, profileData);
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({ user_id: user.id, ...profileData });
+        await db.entities.StudentProfile.create({ user_id: user.id, ...profileData });
       }
 
       await checkUserAuth();
@@ -240,7 +240,7 @@ function AcademicPanel({ user, profile, qc }) {
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }),
+    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }),
     enabled: !!user?.id,
   });
 
@@ -249,9 +249,9 @@ function AcademicPanel({ user, profile, qc }) {
     setSaving(true);
     try {
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, { form: selectedForm });
+        await db.entities.StudentProfile.update(profile.id, { form: selectedForm });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({ user_id: user.id, form: selectedForm });
+        await db.entities.StudentProfile.create({ user_id: user.id, form: selectedForm });
       }
       qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Academic info saved!');
@@ -356,7 +356,7 @@ function BillingPanel({ user }) {
   const { data: subscription } = useQuery({
     queryKey: ['mySubscription', user?.id],
     queryFn: async () => {
-      const r = await base44.entities.Subscription.filter({ student_id: user.id });
+      const r = await db.entities.Subscription.filter({ student_id: user.id });
       return r[0] || null;
     },
     enabled: !!user?.id,
@@ -364,7 +364,7 @@ function BillingPanel({ user }) {
 
   const { data: payments = [] } = useQuery({
     queryKey: ['myPayments', user?.id],
-    queryFn: () => base44.entities.Payment.filter({ student_id: user.id }),
+    queryFn: () => db.entities.Payment.filter({ student_id: user.id }),
     enabled: !!user?.id,
   });
 
@@ -500,7 +500,7 @@ function SecurityPanel({ user }) {
     if (newPassword !== confirmPassword)      { toast.error('Passwords do not match'); return; }
     setSaving(true);
     try {
-      await base44.auth.changePassword({ currentPassword, newPassword });
+      await db.auth.changePassword({ currentPassword, newPassword });
       toast.success('Password changed successfully!');
       setShowPwForm(false);
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
@@ -517,7 +517,7 @@ function SecurityPanel({ user }) {
     try {
       // Soft-delete: just sign out and clear data
       // Full delete requires a Supabase Edge Function — for now, sign out and clear
-      await base44.auth.logout?.();
+      await db.auth.logout?.();
       localStorage.clear();
       setTimeout(() => { window.location.replace('/'); }, 1500);
       setDeleteStep('done');
@@ -637,7 +637,7 @@ export default function StudentSettings() {
   const { data: profile } = useQuery({
     queryKey: ['studentProfile', user?.id],
     queryFn: async () => {
-      const rows = await base44.entities.StudentProfile.filter({ user_id: user.id });
+      const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
       return rows[0] || null;
     },
     enabled: !!user?.id,
