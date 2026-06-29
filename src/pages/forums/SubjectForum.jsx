@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import {
   MessageSquare, Plus, ArrowLeft, Pin, CheckCircle,
@@ -313,7 +313,7 @@ export default function SubjectForum() {
   /* ── Subject ── */
   const { data: subjects = [] } = useQuery({
     queryKey: ['subject-by-slug', subjectSlug],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 100),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
     staleTime: 120_000,
     enabled: !state?.subject,
   });
@@ -324,7 +324,7 @@ export default function SubjectForum() {
   /* ── Threads sorted by latest activity ── */
   const { data: threads = [], isLoading } = useQuery({
     queryKey: ['forum-threads', subject?.id],
-    queryFn: () => base44.entities.Discussion.filter(
+    queryFn: () => db.entities.Discussion.filter(
       { subject_id: subject.id, status: 'active' }, '-updated_date', 200
     ),
     enabled: !!subject?.id,
@@ -335,7 +335,7 @@ export default function SubjectForum() {
   /* ── Forum membership ── */
   const { data: myMembership = [] } = useQuery({
     queryKey: ['forum-membership', subject?.id, user?.id],
-    queryFn: () => base44.entities.ForumMembership.filter({ user_id: user.id, subject_id: subject.id }),
+    queryFn: () => db.entities.ForumMembership.filter({ user_id: user.id, subject_id: subject.id }),
     enabled: !!subject?.id && !!user?.id,
     staleTime: 60_000,
   });
@@ -345,7 +345,7 @@ export default function SubjectForum() {
   /* ── Member count ── */
   const { data: allMembers = [] } = useQuery({
     queryKey: ['forum-members', subject?.id],
-    queryFn: () => base44.entities.ForumMembership.filter({ subject_id: subject.id, status: 'joined' }),
+    queryFn: () => db.entities.ForumMembership.filter({ subject_id: subject.id, status: 'joined' }),
     enabled: !!subject?.id,
     staleTime: 120_000,
   });
@@ -353,7 +353,7 @@ export default function SubjectForum() {
   /* ── Online now (ForumPresence — all users active in last 2 min) ── */
   const { data: presenceList = [] } = useQuery({
     queryKey: ['forum-presence'],
-    queryFn: () => base44.entities.ForumPresence.list('-last_seen', 200),
+    queryFn: () => db.entities.ForumPresence.list('-last_seen', 200),
     refetchInterval: 30_000,
     staleTime: 0,
   });
@@ -366,9 +366,9 @@ export default function SubjectForum() {
   const joinMut = useMutation({
     mutationFn: async () => {
       if (membership) {
-        return base44.entities.ForumMembership.update(membership.id, { status: 'joined' });
+        return db.entities.ForumMembership.update(membership.id, { status: 'joined' });
       }
-      return base44.entities.ForumMembership.create({
+      return db.entities.ForumMembership.create({
         user_id: user.id,
         subject_id: subject.id,
         subject_slug: subjectSlug,
@@ -385,7 +385,7 @@ export default function SubjectForum() {
   });
 
   const leaveMut = useMutation({
-    mutationFn: () => base44.entities.ForumMembership.update(membership.id, { status: 'left' }),
+    mutationFn: () => db.entities.ForumMembership.update(membership.id, { status: 'left' }),
     onSuccess: () => {
       toast.success('Left forum');
       qc.invalidateQueries({ queryKey: ['forum-membership', subject?.id, user?.id] });
@@ -398,7 +398,7 @@ export default function SubjectForum() {
     if (!subject?.id) return;
     setRenameSaving(true);
     try {
-      await base44.entities.Subject.update(subject.id, { forum_name: newName.trim() });
+      await db.entities.Subject.update(subject.id, { forum_name: newName.trim() });
       toast.success('Forum renamed!');
       qc.invalidateQueries({ queryKey: ['subject-by-slug', subjectSlug] });
       qc.invalidateQueries({ queryKey: ['forum-subjects'] });
@@ -409,7 +409,7 @@ export default function SubjectForum() {
 
   /* ── Delete single thread (author or admin/teacher) ── */
   const deleteThreadMut = useMutation({
-    mutationFn: (thread) => base44.entities.Discussion.update(thread.id, { status: 'deleted' }),
+    mutationFn: (thread) => db.entities.Discussion.update(thread.id, { status: 'deleted' }),
     onSuccess: () => {
       toast.success('Thread deleted');
       qc.invalidateQueries({ queryKey: ['forum-threads', subject?.id] });
@@ -428,7 +428,7 @@ export default function SubjectForum() {
     mutationFn: async () => {
       // Soft-delete all threads
       const toDelete = threads.filter(t => !t.parent_id);
-      await Promise.all(toDelete.map(t => base44.entities.Discussion.update(t.id, { status: 'deleted' })));
+      await Promise.all(toDelete.map(t => db.entities.Discussion.update(t.id, { status: 'deleted' })));
     },
     onSuccess: () => {
       toast.success('Forum cleared');
@@ -444,7 +444,7 @@ export default function SubjectForum() {
       if (!newTitle.trim() || !newContent.trim()) throw new Error('Title and content required');
       const slug = newTitle.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)
         + '-' + Date.now().toString(36);
-      return base44.entities.Discussion.create({
+      return db.entities.Discussion.create({
         title: newTitle.trim(), slug,
         content: newContent.trim(),
         subject_id: subject.id, subject_slug: subjectSlug,
