@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link, useSearchParams } from 'react-router-dom';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,7 +27,7 @@ import {
 // for sessions created after the initial page load (e.g. post-registration flow).
 function ensureSdkToken() {
   const t = window.localStorage.getItem('aca_access_token') || window.localStorage.getItem('token');
-  if (t) base44.auth.setToken(t);
+  if (t) db.auth.setToken(t);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ function PhotoUploader({ value, onChange, size = 24, label = 'Photo', hint = 'JP
     setUploading(true);
     try {
       ensureSdkToken();
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
       onChange(file_url);
       toast.success('Photo uploaded!');
     } catch {
@@ -164,7 +164,7 @@ export default function TeacherSettings() {
   /* ── Fetch existing TutorProfile ── */
   const { data: profiles = [], isLoading: profileLoading } = useQuery({
     queryKey: ['my-tutor-profile', user?.id],
-    queryFn:  () => base44.entities.TutorProfile.filter({ user_id: user.id }, 'full_name', 1),
+    queryFn:  () => db.entities.TutorProfile.filter({ user_id: user.id }, 'full_name', 1),
     enabled: !!user?.id,
     staleTime: 0,
   });
@@ -252,9 +252,9 @@ export default function TeacherSettings() {
     setAvatarPreview(URL.createObjectURL(file));
     setAvatarUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
       setAvatarPreview(file_url);
-      await base44.auth.updateMe({ avatar_url: file_url });
+      await db.auth.updateMe({ avatar_url: file_url });
       await checkUserAuth();
       queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Profile photo updated!');
@@ -268,7 +268,7 @@ export default function TeacherSettings() {
 
   const removeAvatar = async () => {
     setAvatarPreview('');
-    await base44.auth.updateMe({ avatar_url: '' });
+    await db.auth.updateMe({ avatar_url: '' });
     await checkUserAuth();
     queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
     toast.success('Profile photo removed');
@@ -279,7 +279,7 @@ export default function TeacherSettings() {
     ensureSdkToken();
     setProfileSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: fullName.trim(), phone_number: phone });
+      await db.auth.updateMe({ full_name: fullName.trim(), phone_number: phone });
       await checkUserAuth();
       queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Account saved!');
@@ -294,7 +294,7 @@ export default function TeacherSettings() {
   const savePayout = async () => {
     setPayoutSaving(true);
     try {
-      await base44.auth.updateMe({ airtel_money: airtelMoney, tnm_mpamba: tnmMpamba, bank_name: bankName, bank_account: bankAccount });
+      await db.auth.updateMe({ airtel_money: airtelMoney, tnm_mpamba: tnmMpamba, bank_name: bankName, bank_account: bankAccount });
       toast.success('Payout details saved!');
     } catch { toast.error('Could not save payout details'); }
     finally { setPayoutSaving(false); }
@@ -318,9 +318,9 @@ export default function TeacherSettings() {
         status: 'active',
       };
       if (profile?.id) {
-        await base44.entities.TutorProfile.update(profile.id, payload);
+        await db.entities.TutorProfile.update(profile.id, payload);
       } else {
-        await base44.entities.TutorProfile.create(payload);
+        await db.entities.TutorProfile.create(payload);
       }
       await queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Public profile saved!');
@@ -513,7 +513,7 @@ export default function TeacherSettings() {
                           <Input value={form.slug} onChange={e => set('slug', slugify(e.target.value))}
                             className="rounded-l-none font-mono text-sm" placeholder="your-name" />
                         </div>
-                        {form.slug && <p className="text-xs text-primary/70 mt-1">Live at: aca.base44.app/tutors/{form.slug}</p>}
+                        {form.slug && <p className="text-xs text-primary/70 mt-1">Live at: aca.db.app/tutors/{form.slug}</p>}
                       </div>
                       <div className="col-span-2">
                         <Label>Professional Title</Label>
