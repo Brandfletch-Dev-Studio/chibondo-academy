@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/api/supabaseClient';
 import { Link, useSearchParams, useOutletContext } from 'react-router-dom';
 import { BookOpen, Tag, Clock, Search, User, ChevronRight, TrendingUp, Newspaper, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
