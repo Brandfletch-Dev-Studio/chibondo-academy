@@ -63,8 +63,8 @@ export async function uploadFile(file, { onProgress, maxMB = MAX_MB_DEFAULT } = 
     xhr.timeout = 5 * 60 * 1000;
 
     // Use the Base44 upload endpoint directly
-    const appId = appParams.appId || import.meta.env.VITE_BASE44_APP_ID;
-    const token = appParams.token || localStorage.getItem('base44_access_token') || '';
+    const appId = appParams.appId || import.meta.env.VITE_SUPABASE_URL;
+    const token = appParams.token || localStorage.getItem('aca_access_token') || '';
 
     xhr.open('POST', `/api/apps/${appId}/integrations/core/upload-file`);
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
