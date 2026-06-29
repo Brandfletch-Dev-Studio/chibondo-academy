@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -101,14 +101,14 @@ export default function TutorProfilePage() {
 
   const { data: profilesBySlug = [], isLoading: loadingSlug } = useQuery({
     queryKey: ['tutor-by-slug', slug],
-    queryFn:  () => base44.entities.TutorProfile.filter({ slug, status: 'active' }, 'full_name', 1),
+    queryFn:  () => db.entities.TutorProfile.filter({ slug, status: 'active' }, 'full_name', 1),
     staleTime: 120_000,
     enabled:  !looksLikeId,
   });
 
   const { data: profilesByUserId = [], isLoading: loadingById } = useQuery({
     queryKey: ['tutor-by-user-id', slug],
-    queryFn:  () => base44.entities.TutorProfile.filter({ user_id: slug, status: 'active' }, 'full_name', 1),
+    queryFn:  () => db.entities.TutorProfile.filter({ user_id: slug, status: 'active' }, 'full_name', 1),
     staleTime: 120_000,
     enabled:  looksLikeId,
   });
@@ -125,7 +125,7 @@ export default function TutorProfilePage() {
 
   const { data: teacherUsers = [], isLoading: loadingUser } = useQuery({
     queryKey: ['teacher-user', teacherUserId],
-    queryFn:  () => base44.entities.User.filter({ id: teacherUserId }, 'full_name', 1),
+    queryFn:  () => db.entities.User.filter({ id: teacherUserId }, 'full_name', 1),
     enabled:  !!teacherUserId,
     staleTime: 120_000,
   });
@@ -138,7 +138,7 @@ export default function TutorProfilePage() {
   ───────────────────────────────────────────────── */
   const { data: subjects = [] } = useQuery({
     queryKey: ['tutor-subjects-by-teacher', teacherUserId],
-    queryFn:  () => base44.entities.Subject.filter({ teacher_id: teacherUserId, status: 'published' }, 'name', 50),
+    queryFn:  () => db.entities.Subject.filter({ teacher_id: teacherUserId, status: 'published' }, 'name', 50),
     enabled:  !!teacherUserId,
     staleTime: 30_000,
   });
@@ -146,7 +146,7 @@ export default function TutorProfilePage() {
   /* Blog posts */
   const { data: blogPosts = [] } = useQuery({
     queryKey: ['tutor-blog', teacherUserId],
-    queryFn:  () => base44.entities.BlogPost.filter({ status: 'published' }, '-published_at', 6),
+    queryFn:  () => db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 6),
     enabled:  !!teacherUserId,
     staleTime: 120_000,
   });
@@ -221,7 +221,7 @@ export default function TutorProfilePage() {
       <SEO
         title={`${displayName} | Chibondo Academy`}
         description={`${displayName}${title ? ` — ${title}` : ''}. ${tagline || ''}`}
-        canonical={`https://aca.base44.app/tutors/${slug}`}
+        canonical={`https://aca.db.app/tutors/${slug}`}
         ogImage={coverPhoto || photo}
       />
 
