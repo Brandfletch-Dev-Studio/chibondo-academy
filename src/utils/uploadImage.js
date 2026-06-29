@@ -1,7 +1,7 @@
 /**
  * uploadFile(file, { onProgress }) → Promise<string>
  *
- * Uploads any file to Base44 storage via raw XHR (not the SDK wrapper)
+ * Uploads any file to Supabase storage via raw XHR (not the SDK wrapper)
  * so we get real upload progress events and proper error surfacing.
  *
  * @param {File} file
