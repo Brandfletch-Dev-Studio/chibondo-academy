@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,7 @@ export default function Login() {
       '[class*="google-login"]',
       '[class*="social-auth"]',
       '[class*="GoogleLogin"]',
-      '.base44-social-login',
+      '.aca-social-login',
       '[data-testid*="social"]',
       '[data-testid*="google"]',
     ];
