@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { Wallet, AlertCircle, CheckCircle2, Clock, XCircle, ArrowUpRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ export default function AffiliatePayouts() {
   const { data: referrals = [] } = useQuery({
     queryKey: ['myReferrals', user?.id],
     queryFn: async () => {
-      try { return await base44.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
+      try { return await db.entities.Referral.filter({ referrer_id: user?.id }, '-created_date', 200); }
       catch { return []; }
     },
     enabled: !!user?.id,
@@ -36,7 +36,7 @@ export default function AffiliatePayouts() {
   const { data: payouts = [], isLoading } = useQuery({
     queryKey: ['myPayouts', user?.id],
     queryFn: async () => {
-      try { return await base44.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50); }
+      try { return await db.entities.PayoutRequest.filter({ affiliate_id: user?.id }, '-created_date', 50); }
       catch { return []; }
     },
     enabled: !!user?.id,
@@ -56,7 +56,7 @@ export default function AffiliatePayouts() {
       if (amt < minPayout) throw new Error(`Minimum payout is MWK ${minPayout.toLocaleString()}`);
       if (amt > available) throw new Error(`Amount exceeds available balance of MWK ${available.toLocaleString()}`);
       if (!form.details.trim()) throw new Error('Please enter your payment details');
-      return base44.entities.PayoutRequest.create({
+      return db.entities.PayoutRequest.create({
         affiliate_id:     user.id,
         affiliate_name:   user.full_name || user.email,
         amount:           amt,
