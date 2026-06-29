@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -111,7 +111,7 @@ export default function MyClassesPage() {
 
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['my-enrollments', user?.id],
-    queryFn: () => base44.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 100),
+    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 100),
     enabled: !!user?.id,
     staleTime: 30_000,
   });
@@ -119,7 +119,7 @@ export default function MyClassesPage() {
   // Fetch subjects for cover images
   const { data: subjects = [] } = useQuery({
     queryKey: ['all-subjects-for-classes'],
-    queryFn: () => base44.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
     staleTime: 120_000,
   });
   const subjectMap = React.useMemo(() => {
