@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import EmailTemplateSettings from '@/components/admin/EmailTemplateSettings';
 import { cn } from '@/lib/utils';
@@ -128,7 +128,7 @@ function ProfilePanel({ user }) {
   const { data: profile } = useQuery({
     queryKey: ['adminProfile', user?.id],
     queryFn: async () => {
-      const r = await base44.entities.StudentProfile.filter({ user_id: user.id });
+      const r = await db.entities.StudentProfile.filter({ user_id: user.id });
       return r[0] || null;
     },
     enabled: !!user?.id,
@@ -161,8 +161,8 @@ function ProfilePanel({ user }) {
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      await base44.auth.updateMe({ avatar_url: file_url });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
+      await db.auth.updateMe({ avatar_url: file_url });
       setPreview(file_url);
       qc.invalidateQueries({ queryKey: ['currentUser'] });
       toast.success('Profile photo updated');
@@ -176,16 +176,16 @@ function ProfilePanel({ user }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name });
+      await db.auth.updateMe({ full_name: form.full_name });
       if (profile?.id) {
-        await base44.entities.StudentProfile.update(profile.id, {
+        await db.entities.StudentProfile.update(profile.id, {
           phone_number: form.phone,
           bio: form.bio,
           school_name: form.location,
           website: form.website,
         });
       } else if (user?.id) {
-        await base44.entities.StudentProfile.create({
+        await db.entities.StudentProfile.create({
           user_id: user.id,
           phone_number: form.phone,
           bio: form.bio,
@@ -300,7 +300,7 @@ function AcademyPanel() {
   // Load saved academy settings from DB
   const { data: savedSettings } = useQuery({
     queryKey: ['platformSettings', 'academy'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'academy' }),
+    queryFn: () => db.entities.PlatformSettings.filter({ key: 'academy' }),
     staleTime: 60_000,
   });
 
@@ -313,7 +313,7 @@ function AcademyPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.functions.invoke('savePlatformSettings', { planKey: 'academy', value: form });
+      await db.functions.invoke('savePlatformSettings', { planKey: 'academy', value: form });
       toast.success('Academy info saved');
     } catch (e) {
       toast.error('Save failed: ' + (e.message || ''));
@@ -403,7 +403,7 @@ function PricingPanel() {
   // Load saved pricing from DB
   const { data: savedPricing } = useQuery({
     queryKey: ['platformSettings', 'pricing'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'pricing' }),
+    queryFn: () => db.entities.PlatformSettings.filter({ key: 'pricing' }),
     staleTime: 60_000,
   });
 
@@ -422,7 +422,7 @@ function PricingPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.functions.invoke('savePlatformSettings', { planKey: 'pricing', value: form });
+      await db.functions.invoke('savePlatformSettings', { planKey: 'pricing', value: form });
       toast.success('Pricing updated');
     } catch { toast.error('Save failed'); }
     finally { setSaving(false); }
@@ -596,7 +596,7 @@ function NotificationsPanel() {
   // Load saved notification preferences from DB
   const { data: savedNotif } = useQuery({
     queryKey: ['platformSettings', 'notifications'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'notifications' }),
+    queryFn: () => db.entities.PlatformSettings.filter({ key: 'notifications' }),
     staleTime: 60_000,
   });
 
@@ -617,7 +617,7 @@ function NotificationsPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.functions.invoke('savePlatformSettings', { planKey: 'notifications', value: settings });
+      await db.functions.invoke('savePlatformSettings', { planKey: 'notifications', value: settings });
       toast.success('Notification preferences saved');
     } catch { toast.error('Save failed'); }
     finally { setSaving(false); }
@@ -669,7 +669,7 @@ function SecurityPanel() {
     if (pwdForm.new.length < 8) { toast.error('Password must be at least 8 characters'); return; }
     setSavingPwd(true);
     try {
-      await base44.auth.changePassword({ current_password: pwdForm.current, new_password: pwdForm.new });
+      await db.auth.changePassword({ current_password: pwdForm.current, new_password: pwdForm.new });
       toast.success('Password changed successfully');
       setPwdForm({ current: '', new: '', confirm: '' });
     } catch (e) {
@@ -680,7 +680,7 @@ function SecurityPanel() {
   // Load saved security settings
   const { data: savedSecurity } = useQuery({
     queryKey: ['platformSettings', 'security'],
-    queryFn: () => base44.entities.PlatformSettings.filter({ key: 'security' }),
+    queryFn: () => db.entities.PlatformSettings.filter({ key: 'security' }),
     staleTime: 60_000,
   });
 
@@ -694,7 +694,7 @@ function SecurityPanel() {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      await base44.functions.invoke('savePlatformSettings', { planKey: 'security', value: settings });
+      await db.functions.invoke('savePlatformSettings', { planKey: 'security', value: settings });
       toast.success('Security settings saved');
     } catch (e) {
       toast.error('Save failed: ' + (e.message || ''));
@@ -754,7 +754,7 @@ function DataPanel() {
   const [deleting, setDeleting] = useState(null);
   const deleteMutation = useMutation({
     mutationFn: async (entityKey) => {
-      const entity = base44.entities[entityKey];
+      const entity = db.entities[entityKey];
       let total = 0;
       // Paginate to handle entities with >500 records
       while (true) {
@@ -842,7 +842,7 @@ function BackfillButton() {
   const run = async () => {
     setStatus('running');
     try {
-      const res = await base44.functions.invoke('backfillStudentProfiles', {});
+      const res = await db.functions.invoke('backfillStudentProfiles', {});
       setResult(res);
       setStatus('done');
     } catch (e) {
