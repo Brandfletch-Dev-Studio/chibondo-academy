@@ -316,7 +316,8 @@ const auth = {
       id: sub,
       email: jwt?.email || '',
       full_name: jwt?.user_metadata?.full_name || jwt?.email?.split('@')[0] || '',
-      role: 'user',
+      // Prefer app_metadata role (set by admin/trigger), then user_metadata, then default
+      role: jwt?.app_metadata?.role || jwt?.user_metadata?.role || 'user',
       subscription_plan: 'free',
       total_learning_hours: 0,
       study_streak: 0,
