@@ -6,7 +6,7 @@ import {
   ClipboardList, PenTool, LogOut, LayoutDashboard, Bell, TrendingUp, Gift, UserCircle, Newspaper, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/supabaseClient';
+import { db } from '@/api/supabaseClient';
 
 const studentNav = [
   { label: 'Dashboard',    icon: Home,          path: '/dashboard' },
