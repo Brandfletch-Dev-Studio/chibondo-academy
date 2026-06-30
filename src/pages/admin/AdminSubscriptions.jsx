@@ -152,32 +152,32 @@ export default function AdminSubscriptions() {
       } else {
         const email = grantStudentEmail.trim().toLowerCase();
         if (!email) throw new Error('Enter a student email');
-        const found = allGrantableUsers.find(u => u.email.toLowerCase() === email);
-        if (!found) throw new Error('Student not found. Check the email address and try again.');
-        targets = [found];
+        // Pass email to backend — it will resolve the user
+        targets = [{ email }];
       }
 
       const planLabel = grantDurationType === 'custom' ? 'custom' : grantPlan;
-      const start = new Date();
-      const end   = new Date(Date.now() + days * 86400000);
 
-      await Promise.all(targets.map(async (u) => {
-        // Expire existing active subs for this user
-        const existing = subscriptions.filter(s => s.student_id === u.id && s.status === 'active');
-        await Promise.all(existing.map(s =>
-          db.entities.Subscription.update(s.id, { status: 'expired', updated_date: new Date().toISOString() })
-        ));
-        await db.entities.Subscription.create({
-          student_id:  u.id,
-          plan:        planLabel,
-          status:      'active',
-          amount:      0,
-          currency:    'MWK',
-          starts_at:   start.toISOString(),
-          expires_at:  end.toISOString(),
-        });
-      }));
-      return targets.length;
+      // Use the service-role-backed endpoint — bypasses RLS
+      const token = localStorage.getItem('aca_access_token');
+      const resp = await fetch('/api/admin-grant-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          targets: targets.filter(t => t.id).map(t => ({ id: t.id, email: t.email })),
+          email:   targets.length === 1 && !targets[0].id ? targets[0].email : undefined,
+          plan:    planLabel,
+          days,
+        }),
+      });
+      const result = await resp.json();
+      if (!resp.ok || !result.success) {
+        throw new Error(result.error || result.errors?.[0]?.error || 'Grant failed');
+      }
+      return result.granted;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
