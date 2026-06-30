@@ -15,8 +15,8 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
           {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
         </div>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: accent ? 'hsl(43 74% 52% / 0.12)' : 'hsl(222 47% 18% / 0.08)' }}>
-          <Icon className="w-5 h-5" style={{ color: accent ? 'hsl(43 60% 38%)' : 'hsl(222 47% 35%)' }} />
+          style={{ background: accent ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--muted) / 0.08)' }}>
+          <Icon className="w-5 h-5" style={{ color: accent ? 'hsl(var(--primary))' : 'hsl(222 47% 35%)' }} />
         </div>
       </div>
     </div>
@@ -86,9 +86,9 @@ export default function EnrollmentAnalytics() {
     <>
       <SEO title="Enrollment Analytics | Admin" />
       <div className="space-y-6">
-        <div className="rounded-2xl p-5" style={{background:'hsl(222 47% 14%)'}}>
+        <div className="rounded-2xl p-5" style={{background:'hsl(var(--card))'}}>
           <div className="flex items-center gap-2 mb-1">
-            <BarChart3 className="w-5 h-5" style={{color:'hsl(43 74% 66%)'}}/>
+            <BarChart3 className="w-5 h-5" style={{color:'hsl(var(--primary-foreground))'}}/>
             <span className="text-sm font-medium" style={{color:'hsl(43 74% 66% / 0.8)'}}>Admin</span>
           </div>
           <h1 className="text-xl font-display font-bold" style={{color:'hsl(43 20% 94%)'}}>Enrollment Analytics</h1>
