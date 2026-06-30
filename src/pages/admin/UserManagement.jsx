@@ -257,7 +257,7 @@ export default function UserManagement() {
           activeSubs.forEach(s => { if (s.student_id) activeSubByUser[s.student_id] = s; });
           const enrollCountByUser = {};
           enrollments.forEach(e => { if (e.student_id) enrollCountByUser[e.student_id] = (enrollCountByUser[e.student_id] || 0) + 1; });
-          const enriched = users.map(u => ({
+          const enriched = (users || []).map(u => ({
             ...u,
             _enrollment_count: enrollCountByUser[u.id] || 0,
             _has_active_sub: !!activeSubByUser[u.id],
