@@ -14,7 +14,7 @@ export default function WelcomeCard({ user }) {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground p-6 lg:p-8">
       {/* Decorative blobs */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-card/5 rounded-full -translate-y-1/2 translate-x-1/4" />
       <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-accent/20 rounded-full translate-y-1/2" />
 
       <div className="relative z-10">
@@ -31,7 +31,7 @@ export default function WelcomeCard({ user }) {
             </button>
           </Link>
           {(user?.study_streak || 0) > 0 && (
-            <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
+            <div className="flex items-center gap-2 bg-card/10 rounded-full px-4 py-2">
               <Flame className="w-4 h-4 text-accent" />
               <span className="text-sm font-medium text-primary-foreground">
                 {user.study_streak} day streak
