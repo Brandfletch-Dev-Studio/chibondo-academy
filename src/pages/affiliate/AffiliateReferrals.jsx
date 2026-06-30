@@ -50,7 +50,7 @@ export default function AffiliateReferrals() {
           { label: 'Total Referred',   value: referrals.length,                                                    color: 'text-foreground' },
           { label: 'Registered',       value: referrals.filter(r => r.status !== 'pending').length,               color: 'text-blue-500' },
           { label: 'Active (Paid)',    value: paidCount,                                                           color: 'text-green-500' },
-          { label: 'Conversion Rate',  value: `${convRate}%`,                                                      color: 'hsl(43 74% 52%)' },
+          { label: 'Conversion Rate',  value: `${convRate}%`,                                                      color: 'hsl(var(--primary))' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-display font-bold" style={typeof color === 'string' && color.startsWith('hsl') ? { color } : {}}
@@ -72,7 +72,7 @@ export default function AffiliateReferrals() {
           {['all', 'pending', 'registered', 'paid', 'rewarded'].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-2 rounded-xl text-xs font-medium capitalize transition-all ${statusFilter === s ? 'font-bold' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-              style={statusFilter === s ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' } : {}}>
+              style={statusFilter === s ? { background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' } : {}}>
               {s === 'all' ? 'All' : STATUS_CONFIG[s]?.label || s}
             </button>
           ))}
@@ -135,7 +135,7 @@ export default function AffiliateReferrals() {
                     </div>
                     <div className="sm:col-span-1 flex items-center justify-end">
                       {isPaid ? (
-                        <span className="text-sm font-bold" style={{ color: 'hsl(43 74% 52%)' }}>
+                        <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>
                           +MWK {(r.reward_amount || commissionAmount).toLocaleString()}
                         </span>
                       ) : (
