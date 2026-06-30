@@ -248,7 +248,7 @@ export default function TutorProfilePage() {
           {/* Back button */}
           <button
             onClick={() => navigate('/tutors')}
-            className="absolute top-4 left-4 lg:left-6 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/20 text-white hover:bg-white/10 transition-colors"
+            className="absolute top-4 left-4 lg:left-6 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/20 text-white hover:bg-card/10 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> All Tutors
           </button>
