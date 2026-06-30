@@ -84,7 +84,20 @@ export default function StudentDashboard() {
     const pendingCode = localStorage.getItem("pending_referral_code");
     if (!pendingCode) return;
     localStorage.removeItem("pending_referral_code"); // clear before calling to prevent retries
-    db.functions.invoke("trackReferral", { referralCode: pendingCode })
+    (async () => {
+          try {
+            const refRows = await db.entities.User.filter({ referral_code: pendingCode });
+            if (refRows?.length) {
+              await db.entities.Referral.create({
+                referrer_id: refRows[0].id,
+                referred_id: user?.id,
+                referral_code: pendingCode,
+                status: 'pending',
+                commission_amount: 0,
+              });
+            }
+          } catch (_) {}
+        })()
       .then(() => console.log("✅ Referral tracked:", pendingCode))
       .catch(err => console.warn("Referral tracking failed:", err));
   }, [user?.id]);
