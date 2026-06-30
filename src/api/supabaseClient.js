@@ -288,19 +288,30 @@ const auth = {
     await patch(`/users?id=eq.${encodeURIComponent(sub)}`,
       { ...updates, updated_date: new Date().toISOString() });
 
-    // Sync role to auth metadata if changing role
-    if (updates.role) {
-      const res = await fetch(`${AUTH}/user`, {
+    // Sync relevant fields to auth user_metadata so they survive token refresh
+    const metaUpdates = {};
+    if (updates.full_name)  metaUpdates.full_name  = updates.full_name;
+    if (updates.avatar_url) metaUpdates.avatar_url = updates.avatar_url;
+    if (updates.role)       metaUpdates.role        = updates.role;
+    if (Object.keys(metaUpdates).length > 0) {
+      const authBody = { data: metaUpdates };
+      if (updates.role) authBody.app_metadata = { role: updates.role };
+      await fetch(`${AUTH}/user`, {
         method: 'PUT',
         headers: { apikey: SUPABASE_ANON, 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ data: { role: updates.role } }),
-      });
-      if (!res.ok) console.warn('Could not update auth metadata role');
+        body: JSON.stringify(authBody),
+      }).catch(e => console.warn('Could not sync auth metadata:', e));
     }
     return auth.me();
   },
 
-  async changePassword(newPassword) {
+  async changePassword(newPasswordOrObj) {
+    // Accept both changePassword(newPassword) and changePassword({ currentPassword, newPassword })
+    const newPassword = (typeof newPasswordOrObj === 'object' && newPasswordOrObj !== null)
+      ? newPasswordOrObj.newPassword
+      : newPasswordOrObj;
+
+    if (!newPassword) throw new Error('New password is required');
     const token = getToken();
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(`${AUTH}/user`, {
@@ -309,7 +320,7 @@ const auth = {
       body: JSON.stringify({ password: newPassword }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data?.message || 'Password change failed');
+    if (!res.ok) throw new Error(data?.msg || data?.message || 'Password change failed');
     return data;
   },
 
