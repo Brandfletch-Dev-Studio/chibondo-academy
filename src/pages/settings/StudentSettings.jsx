@@ -17,9 +17,9 @@ import {
 } from 'lucide-react';
 
 // ── Gold accent tokens ─────────────────────────────────────────────────────
-const GOLD        = 'hsl(43 74% 52%)';
-const GOLD_BG     = 'hsl(43 74% 52% / 0.12)';
-const GOLD_BORDER = 'hsl(43 74% 52% / 0.3)';
+const GOLD        = 'hsl(var(--primary))';
+const GOLD_BG = 'hsl(var(--primary) / 0.12)';
+const GOLD_BORDER = 'hsl(var(--primary) / 0.3)';
 
 // ── Sidebar nav ───────────────────────────────────────────────────────────
 const NAV = [
@@ -61,7 +61,7 @@ function SaveBtn({ onClick, loading, label = 'Save Changes' }) {
   return (
     <div className="flex items-center justify-end pt-2">
       <Button onClick={onClick} disabled={loading} className="gap-2 px-6 font-semibold"
-        style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+        style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         {label}
       </Button>
@@ -183,7 +183,7 @@ function ProfilePanel({ user, profile, qc }) {
           </div>
           <button onClick={() => avatarRef.current?.click()} disabled={uploading}
             className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl flex items-center justify-center shadow-lg border border-border transition-all hover:scale-105"
-            style={{ background: GOLD, color: 'hsl(222 47% 8%)' }}>
+            style={{ background: GOLD, color: 'hsl(var(--background))' }}>
             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
           </button>
           <input ref={avatarRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatar} />
@@ -403,7 +403,7 @@ function BillingPanel({ user }) {
         </div>
         {!isActive && (
           <Button size="sm" className="font-semibold"
-            style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}
+            style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}
             onClick={() => window.location.href = '/subscription'}>
             Subscribe Now
           </Button>
@@ -567,7 +567,7 @@ function SecurityPanel({ user }) {
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setShowPwForm(false)}>Cancel</Button>
               <Button onClick={handleChangePassword} disabled={saving} className="gap-2 font-semibold"
-                style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+                style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Update Password
               </Button>
