@@ -38,10 +38,10 @@ function inRange(dateStr, startDate) {
 function StatCard({ label, value, sub, icon: Icon, gradient, to, loading }) {
   const content = (
     <div className={`relative overflow-hidden rounded-2xl p-5 ${gradient} group transition-all duration-200 hover:scale-[1.01] hover:shadow-xl`}>
-      <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
-      <div className="absolute -right-2 -bottom-6 w-16 h-16 rounded-full bg-white/5 pointer-events-none" />
+      <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-card/5 pointer-events-none" />
+      <div className="absolute -right-2 -bottom-6 w-16 h-16 rounded-full bg-card/5 pointer-events-none" />
       <div className="relative z-10 flex items-start justify-between">
-        <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-card/15 flex items-center justify-center flex-shrink-0">
           <Icon className="w-5 h-5 text-white" />
         </div>
         {to && <ArrowUpRight className="w-4 h-4 text-white/40 group-hover:text-white/80 transition-colors" />}
@@ -209,11 +209,11 @@ export default function AdminDashboard() {
       {/* Revenue hero */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a2a4a] via-[#1e3260] to-[#243878] p-6 text-white">
-          <div className="absolute -right-6 -top-6 w-36 h-36 rounded-full bg-white/5 pointer-events-none" />
-          <div className="absolute right-10 bottom-0 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
+          <div className="absolute -right-6 -top-6 w-36 h-36 rounded-full bg-card/5 pointer-events-none" />
+          <div className="absolute right-10 bottom-0 w-20 h-20 rounded-full bg-card/5 pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-card/15 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-white" />
               </div>
               <Link to="/admin/subscriptions" className="flex items-center gap-1 text-xs text-white/60 hover:text-white/90 transition-colors">
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
                     From {filteredPayments.filter(p => p.status === 'completed').length} completed payments
                   </p>
                   {pendingRevenue > 0 && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 text-xs bg-white/10 px-2.5 py-1 rounded-full">
+                    <div className="mt-3 inline-flex items-center gap-1.5 text-xs bg-card/10 px-2.5 py-1 rounded-full">
                       <Clock className="w-3 h-3 text-yellow-300" />
                       <span className="text-yellow-200">MWK {pendingRevenue.toLocaleString()} pending</span>
                     </div>
