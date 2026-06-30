@@ -116,7 +116,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
     >
       <div className="relative flex flex-col items-center gap-4 max-w-xs w-full" onClick={e => e.stopPropagation()}>
         <button onClick={onClose}
-          className="absolute -top-10 right-0 p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+          className="absolute -top-10 right-0 p-2 rounded-full text-white/60 hover:text-white hover:bg-card/10 transition-colors">
           <X className="w-5 h-5" />
         </button>
 
