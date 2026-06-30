@@ -176,7 +176,7 @@ function TutorForm({ initial, onSave, onClose, isSaving }) {
       <div className="flex gap-3 pt-2">
         <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSaving}>Cancel</Button>
         <Button type="submit" className="flex-1" disabled={isSaving}
-          style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+          style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
           {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : initial?.id ? 'Save Changes' : 'Create Profile'}
         </Button>
       </div>
