@@ -98,7 +98,8 @@ export default function LandingPage() {
   useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
-      const res = await db.functions.invoke('getPricing', {});
+      const rows = await db.entities.PlatformSettings.filter({ key: 'pricing' }).catch(() => []);
+      const res = rows[0]?.value || null;
       return res.data.pricing;
     },
     onSuccess: (data) => {
