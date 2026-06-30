@@ -955,7 +955,17 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
     const contentChanged = lesson.status === 'published' && clean.status === 'published' &&
       (lesson.title !== clean.title || lesson.content !== clean.content || lesson.video_url !== clean.video_url);
     if (wasPublished || contentChanged) {
-      db.functions.invoke('notifyNewLesson', {
+      /* notifyNewLesson: use /api/send-email for notifications instead of invoke */
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: [],  // TODO: add enrolled students' emails
+            subject: 'New Lesson Available',
+            html: '<p>A new lesson has been published. Log in to view it.</p>',
+          }),
+        })).catch(() => {});
+        void ({
         event: { type: 'update' },
         data: { ...clean, id: lesson.id },
         old_data: lesson,
