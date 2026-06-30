@@ -21,6 +21,17 @@ if (typeof window !== 'undefined') {
 
 function RoleHome() {
   const { user } = useOutletContext() ?? {};
+
+  // Supabase sends password-reset links to site_url (homepage).
+  // Detect the #type=recovery hash and silently forward to /reset-password.
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    if (params.get('type') === 'recovery' && params.get('access_token')) {
+      return <Navigate to={`/reset-password${window.location.hash}`} replace />;
+    }
+  }
+
   // If user is still loading (undefined), show nothing (AppLayout handles it)
   if (user === undefined) return null;
   // Guests → show the Landing Page
