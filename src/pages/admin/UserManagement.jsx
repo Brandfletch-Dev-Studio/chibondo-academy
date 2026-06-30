@@ -247,10 +247,9 @@ export default function UserManagement() {
     queryKey: ['adminUsers'],
     queryFn: async () => {
       try {
-        const result = await db.functions.invoke('getAdminUsers', {});
-        // If function returned an error object or no users array, fall back
-        if (!result || result.error || !Array.isArray(result.users)) {
-          console.warn('getAdminUsers failed, falling back to direct entity query:', result?.error);
+        // db.functions.invoke removed — always use direct entity queries
+        if (true) {
+          // Direct entity query (no backend function needed)
           const users = await db.entities.User.list('-created_date', 2000);
           const enrollments = await db.entities.Enrollment.filter({}).catch(() => []);
           const activeSubs = await db.entities.Subscription.filter({ status: 'active' }).catch(() => []);
