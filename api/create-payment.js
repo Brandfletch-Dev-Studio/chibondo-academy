@@ -48,8 +48,8 @@ export default async function handler(req, res) {
   const planCfg = { ...PLANS[plan], amount: pricing[plan] || PLANS[plan].amount };
 
   const tx_ref      = generateTxRef(user_id, plan);
-  const callback_url = `${SUPABASE_URL.replace('https://','https://').split('.')[0]}.supabase.co`; // not used for redirect — webhook only
-  const redirect_url = return_url || `${req.headers.origin || 'https://chibondoacademy.com'}/subscription?paid=1`;
+  const callback_url = redirect_url; // webhook callback = same as return URL for Paychangu
+  const redirect_url = return_url || 'https://chibondoacademy.com/subscription';
 
   try {
     const r = await fetch('https://api.paychangu.com/payment', {
