@@ -25,7 +25,7 @@ function StickyCTA({ isAuthenticated, isSubscribed, navigate }) {
       <button
         onClick={() => navigate(isAuthenticated ? '/subscription' : '/register')}
         className="w-full py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all"
-        style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}
+        style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}
       >
         Start Learning
       </button>
@@ -205,7 +205,7 @@ export default function TutorProfilePage() {
       <p className="font-bold text-lg">Tutor not found</p>
       <button onClick={() => navigate('/tutors')}
         className="px-5 py-2.5 rounded-xl text-sm font-bold"
-        style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+        style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
         ← View All Tutors
       </button>
     </div>
@@ -237,7 +237,7 @@ export default function TutorProfilePage() {
               className="w-full h-48 object-cover" />
           ) : (
             <div className="w-full h-48"
-              style={{ background: 'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 18%) 60%, hsl(43 74% 30% / 0.3) 100%)' }}>
+              style={{ background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }}>
               <div className="absolute inset-0"
                 style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(43 74% 52% / 0.15) 0%, transparent 60%)' }} />
             </div>
@@ -259,14 +259,14 @@ export default function TutorProfilePage() {
           {/* Avatar overlaps cover */}
           <div className="relative -mt-12 mb-4">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl"
-              style={{ borderColor:'hsl(222 47% 11%)', background:'hsl(222 47% 18%)' }}>
+              style={{ borderColor:'hsl(var(--foreground))', background:'hsl(var(--muted))' }}>
               {photo && !avatarErr ? (
                 <img src={photo} alt={displayName} loading="eager" decoding="async"
                   onError={() => setAvatarErr(true)}
                   className="w-full h-full object-cover object-top" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-3xl font-bold" style={{ color:'hsl(43 74% 66%)' }}>{initials}</span>
+                  <span className="text-3xl font-bold" style={{ color:'hsl(var(--primary-foreground))' }}>{initials}</span>
                 </div>
               )}
             </div>
@@ -274,7 +274,7 @@ export default function TutorProfilePage() {
 
           <h1 className="font-display font-bold text-2xl sm:text-3xl leading-tight">{displayName}</h1>
           {title && (
-            <p className="text-sm font-medium mt-0.5" style={{ color:'hsl(43 74% 52%)' }}>{title}</p>
+            <p className="text-sm font-medium mt-0.5" style={{ color:'hsl(var(--primary))' }}>{title}</p>
           )}
           {tagline && (
             <p className="text-sm text-muted-foreground italic mt-1">"{tagline}"</p>
@@ -446,8 +446,8 @@ export default function TutorProfilePage() {
             {/* CTA card */}
             {!isSubscribed && (
               <div className="hidden lg:block rounded-2xl p-5 text-center"
-                style={{ background:'linear-gradient(135deg, hsl(222 47% 14%), hsl(222 47% 18%))' }}>
-                <Zap className="w-8 h-8 mx-auto mb-3" style={{ color:'hsl(43 74% 52%)' }} />
+                style={{ background:'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }}>
+                <Zap className="w-8 h-8 mx-auto mb-3" style={{ color:'hsl(var(--primary))' }} />
                 <p className="font-display font-bold text-sm mb-1">Start Learning Today</p>
                 <p className="text-xs text-muted-foreground mb-4">
                   Get full access to all courses by {displayName.split(' ')[0]}.
@@ -455,7 +455,7 @@ export default function TutorProfilePage() {
                 <button
                   onClick={() => navigate(isAuthenticated ? '/subscription' : '/register')}
                   className="w-full py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                  style={{ background:'hsl(43 74% 52%)', color:'hsl(222 47% 11%)' }}>
+                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                   {isAuthenticated ? 'View Plans' : 'Get Started'}
                 </button>
               </div>
