@@ -168,15 +168,13 @@ export default function AdminSubscriptions() {
           db.entities.Subscription.update(s.id, { status: 'expired', updated_date: new Date().toISOString() })
         ));
         await db.entities.Subscription.create({
-          student_id:     u.id,
-          plan:           planLabel,
-          status:         'active',
-          start_date:     start.toISOString(),
-          end_date:       end.toISOString(),
-          amount_paid:    0,
-          currency:       'MWK',
-          payment_method: 'admin_grant',
-          updated_date:   new Date().toISOString(),
+          student_id:  u.id,
+          plan:        planLabel,
+          status:      'active',
+          amount:      0,
+          currency:    'MWK',
+          starts_at:   start.toISOString(),
+          expires_at:  end.toISOString(),
         });
       }));
       return targets.length;
@@ -224,7 +222,7 @@ export default function AdminSubscriptions() {
   const pendingPayments = payments.filter(p => p.status === 'pending').length;
 
   const handleExtend = (sub, days) => {
-    const newEnd = new Date((sub.end_date ? new Date(sub.end_date) : new Date()).getTime() + days * 86400000);
+    const newEnd = new Date((sub.expires_at ? new Date(sub.expires_at) : new Date()).getTime() + days * 86400000);
     updateMutation.mutate({ id: sub.id, data: { end_date: newEnd.toISOString(), status: 'active' } });
     toast.success(`Extended by ${days} days`);
   };
@@ -362,10 +360,10 @@ export default function AdminSubscriptions() {
                     <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
                   )}
                   {!isLoading && filtered.map(sub => {
-                    const isExpiringSoon = sub.status === 'active' && sub.end_date &&
-                      (new Date(sub.end_date) - new Date()) < 4 * 24 * 60 * 60 * 1000 &&
-                      (new Date(sub.end_date) - new Date()) > 0;
-                    const isOverdue = sub.status === 'active' && sub.end_date && new Date(sub.end_date) < new Date();
+                    const isExpiringSoon = sub.status === 'active' && sub.expires_at &&
+                      (new Date(sub.expires_at) - new Date()) < 4 * 24 * 60 * 60 * 1000 &&
+                      (new Date(sub.expires_at) - new Date()) > 0;
+                    const isOverdue = sub.status === 'active' && sub.expires_at && new Date(sub.expires_at) < new Date();
                     return (
                     <tr key={sub.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelectedSub(sub)}>
                       <td className="px-4 py-3">
@@ -398,10 +396,10 @@ export default function AdminSubscriptions() {
                       </td>
                       {/* End Date */}
                       <td className="px-4 py-3 hidden md:table-cell">
-                        {sub.end_date ? (
+                        {sub.expires_at ? (
                           <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-semibold' : isExpiringSoon ? 'text-amber-500 font-semibold' : 'text-muted-foreground'}`}>
                             <CalendarDays className="w-3 h-3 flex-shrink-0" />
-                            {format(new Date(sub.end_date), 'MMM d, yyyy')}
+                            {format(new Date(sub.expires_at), 'MMM d, yyyy')}
                             {isExpiringSoon && <span className="text-[9px] bg-amber-500/10 text-amber-500 px-1 rounded">Soon</span>}
                             {isOverdue && <span className="text-[9px] bg-destructive/10 text-destructive px-1 rounded">Overdue</span>}
                           </div>
@@ -459,9 +457,9 @@ export default function AdminSubscriptions() {
         {/* ── Membership Detail Drawer ────────────────────────────────────── */}
         {selectedSub && (() => {
           const s = selectedSub;
-          const daysLeft = s.end_date ? Math.ceil((new Date(s.end_date) - new Date()) / 86400000) : null;
-          const duration = s.start_date && s.end_date
-            ? Math.ceil((new Date(s.end_date) - new Date(s.start_date)) / 86400000)
+          const daysLeft = s.expires_at ? Math.ceil((new Date(s.expires_at) - new Date()) / 86400000) : null;
+          const duration = s.start_date && s.expires_at
+            ? Math.ceil((new Date(s.expires_at) - new Date(s.start_date)) / 86400000)
             : null;
           return (
             <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedSub(null)}>
@@ -515,7 +513,7 @@ export default function AdminSubscriptions() {
                       <div className="flex-1">
                         <p className="text-[10px] text-muted-foreground mb-0.5">End Date</p>
                         <p className={`text-sm font-semibold ${daysLeft !== null && daysLeft <= 0 ? 'text-destructive' : daysLeft !== null && daysLeft <= 3 ? 'text-amber-500' : ''}`}>
-                          {s.end_date ? format(new Date(s.end_date), 'dd MMM yyyy') : '—'}
+                          {s.expires_at ? format(new Date(s.expires_at), 'dd MMM yyyy') : '—'}
                         </p>
                       </div>
                     </div>
