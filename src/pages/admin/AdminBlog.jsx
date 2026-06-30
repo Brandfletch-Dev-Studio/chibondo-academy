@@ -140,12 +140,7 @@ export default function AdminBlog() {
       queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
       // Fire notification when toggling to published
       if (wasPublished) {
-        /* notifyNewBlogPost removed — send via /api/send-email if needed */
-        /* db.functions.invoke was legacy Base44 — skip for now */ void ({
-          event: { type: 'update' },
-          data: { ...post, status: newStatus },
-          old_data: post,
-        })).catch(() => {});
+        // blog notification removed (legacy invoke)
       }
     });
   };
