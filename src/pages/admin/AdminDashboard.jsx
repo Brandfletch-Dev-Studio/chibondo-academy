@@ -74,8 +74,7 @@ export default function AdminDashboard() {
     queryKey: ['dash_users'],
     queryFn: async () => {
       try {
-        const result = await db.functions.invoke('getAdminUsers', {});
-        if (result && Array.isArray(result.users) && result.users.length > 0) return result;
+        // db.functions.invoke removed — use direct entity queries below
       } catch (_) {}
       // Fallback: direct entity query (works now that User read RLS is open)
       const users = await db.entities.User.list('-created_date', 2000);
