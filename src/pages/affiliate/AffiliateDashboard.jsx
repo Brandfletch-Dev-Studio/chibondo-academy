@@ -106,7 +106,7 @@ export default function AffiliateDashboard() {
       {/* ── Hero banner — on-brand, consistent with site ── */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         {/* Gold accent bar */}
-        <div className="h-1 w-full" style={{ background: 'hsl(43 74% 52%)' }} />
+        <div className="h-1 w-full" style={{ background: 'hsl(var(--primary))' }} />
 
         <div className="p-6 flex flex-col sm:flex-row sm:items-center gap-6">
           {/* Left: earning + referral code */}
@@ -114,13 +114,13 @@ export default function AffiliateDashboard() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Your commission</p>
               <p className="text-4xl font-display font-bold text-foreground">
-                MWK <span style={{ color: 'hsl(43 74% 52%)' }}>{commissionAmount.toLocaleString()}</span>
+                MWK <span style={{ color: 'hsl(var(--primary))' }}>{commissionAmount.toLocaleString()}</span>
               </p>
               <p className="text-sm text-muted-foreground mt-1">per successful paid subscription referral</p>
               {recurringEnabled && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: 'hsl(43 74% 52% / 0.12)', color: 'hsl(43 60% 38%)', border: '1px solid hsl(43 74% 52% / 0.25)' }}>
+                    style={{ background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))', border: '1px solid hsl(43 74% 52% / 0.25)' }}>
                     <RefreshCw className="w-3 h-3" /> Recurring
                   </span>
                   <span className="text-xs text-muted-foreground">{recurringRateDisplay}</span>
@@ -145,7 +145,7 @@ export default function AffiliateDashboard() {
                     onClick={() => saveCodeMut.mutate(draftCode)}
                     disabled={!draftCode.trim() || saveCodeMut.isPending}
                     className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                    style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                     <Save className="w-3.5 h-3.5" />
                   </button>
                   <button
@@ -186,7 +186,7 @@ export default function AffiliateDashboard() {
             </div>
             <Link to="/affiliate/links"
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
               Share Your Link <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -230,7 +230,7 @@ export default function AffiliateDashboard() {
           ].map((rule, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
               <span className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold mt-0.5"
-                style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 74% 52%)' }}>
+                style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' }}>
                 {i + 1}
               </span>
               {rule}
@@ -278,7 +278,7 @@ export default function AffiliateDashboard() {
                   </div>
                   <div className="text-right">
                     {isPaid && (
-                      <p className="text-xs font-semibold" style={{ color: 'hsl(43 74% 52%)' }}>
+                      <p className="text-xs font-semibold" style={{ color: 'hsl(var(--primary))' }}>
                         +MWK {(r.reward_amount || commissionAmount).toLocaleString()}
                       </p>
                     )}
