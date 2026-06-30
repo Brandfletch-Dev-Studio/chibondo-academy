@@ -190,7 +190,7 @@ export default function AffiliateProfile() {
         onClick={() => saveMut.mutate()}
         disabled={saveMut.isPending}
         className="w-full"
-        style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+        style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}
       >
         {saveMut.isPending
           ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
