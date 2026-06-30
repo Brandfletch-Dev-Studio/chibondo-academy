@@ -627,7 +627,12 @@ function NotificationsPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await db.functions.invoke('savePlatformSettings', { planKey: 'notifications', value: settings });
+      const _existingNotif = await db.entities.PlatformSettings.filter({ key: 'notifications' }).catch(() => []);
+      if (_existingNotif?.length) {
+        await db.entities.PlatformSettings.update(_existingNotif[0].id, { value: settings });
+      } else {
+        await db.entities.PlatformSettings.create({ key: 'notifications', value: settings });
+      }
       toast.success('Notification preferences saved');
     } catch { toast.error('Save failed'); }
     finally { setSaving(false); }
@@ -704,7 +709,12 @@ function SecurityPanel() {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      await db.functions.invoke('savePlatformSettings', { planKey: 'security', value: settings });
+      const _existingSec = await db.entities.PlatformSettings.filter({ key: 'security' }).catch(() => []);
+      if (_existingSec?.length) {
+        await db.entities.PlatformSettings.update(_existingSec[0].id, { value: settings });
+      } else {
+        await db.entities.PlatformSettings.create({ key: 'security', value: settings });
+      }
       toast.success('Security settings saved');
     } catch (e) {
       toast.error('Save failed: ' + (e.message || ''));
