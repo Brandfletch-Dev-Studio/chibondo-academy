@@ -136,7 +136,7 @@ export default function ForumsHome() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search subjects…"
-              className="pl-9 bg-white text-foreground border-0 shadow-sm"
+              className="pl-9 bg-card text-foreground border-0 shadow-sm"
             />
           </div>
         </div>
