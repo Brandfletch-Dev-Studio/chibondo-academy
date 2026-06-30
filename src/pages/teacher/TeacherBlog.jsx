@@ -94,11 +94,11 @@ export default function TeacherBlog() {
       const wasPublished = !editing && form.status === 'published';
       const justPublished = editing && editing.status !== 'published' && form.status === 'published';
       if (wasPublished || justPublished) {
-        db.functions.invoke('notifyNewBlogPost', {
+        /* notifyNewBlogPost: legacy invoke removed */ void ({
           event: { type: editing ? 'update' : 'create' },
           data: savedPost,
           old_data: editing || null,
-        }).catch(() => {});
+        })).catch(() => {});
       }
     },
     onError: () => toast.error('Could not save post'),
