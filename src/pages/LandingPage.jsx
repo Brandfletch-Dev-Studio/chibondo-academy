@@ -99,8 +99,9 @@ export default function LandingPage() {
     queryKey: ['pricing'],
     queryFn: async () => {
       const rows = await db.entities.PlatformSettings.filter({ key: 'pricing' }).catch(() => []);
-      const res = rows[0]?.value || null;
-      return res.data.pricing;
+      const val = rows?.[0]?.value;
+      const res = val?.monthly_price ? val : (val?.data?.pricing || val?.pricing || null);
+      return res;
     },
     onSuccess: (data) => {
       if (data) setPricing({ monthly_price: data.monthly_price || 10000, annual_price: data.annual_price || 80000, biannual_price: data.biannual_price || 150000 });
