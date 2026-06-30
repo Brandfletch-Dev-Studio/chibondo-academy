@@ -155,7 +155,7 @@ ${referralLink}`;
           </Button>
         </div>
 
-        <div className="bg-white/10 rounded-xl p-3 text-xs leading-relaxed whitespace-pre-line opacity-80 mt-3">
+        <div className="bg-card/10 rounded-xl p-3 text-xs leading-relaxed whitespace-pre-line opacity-80 mt-3">
           {shareMessage}
         </div>
       </div>
@@ -438,7 +438,7 @@ function Leaderboard() {
           {leaderboard.map((entry, idx) => {
             const isMe = entry.referrer_id === user?.id;
             const rankColors = ['text-yellow-500', 'text-slate-400', 'text-amber-600'];
-            const rankBg = ['bg-yellow-500/10', 'bg-slate-400/10', 'bg-amber-600/10'];
+            const rankBg = ['bg-yellow-500/10', 'bg-muted/10', 'bg-amber-600/10'];
             const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
             return (
               <div key={entry.referrer_id} className={`flex items-center gap-4 px-5 py-3 transition-colors ${isMe ? 'bg-accent/5 border-l-2 border-accent' : ''}`}>
