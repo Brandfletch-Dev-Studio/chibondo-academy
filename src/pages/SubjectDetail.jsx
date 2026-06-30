@@ -346,12 +346,12 @@ export default function SubjectDetail() {
           {!user && (
             <div className="rounded-2xl p-5 text-center space-y-3"
               style={{
-                background: 'linear-gradient(135deg, hsl(222 47% 13%) 0%, hsl(222 47% 16%) 100%)',
+                background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)',
                 border: '1px solid hsl(43 74% 52% / 0.3)',
               }}>
               <Link to="/register" className="block">
                 <Button size="lg" className="w-full h-12 text-base font-semibold"
-                  style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                   Get Started
                 </Button>
               </Link>
@@ -365,7 +365,7 @@ export default function SubjectDetail() {
           {user && !hasPaidFees && (
             <Link to="/subscription">
               <Button className="w-full h-12 text-base font-semibold" size="lg"
-                style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+                style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
                 Pay Fees to Unlock Access
               </Button>
             </Link>
@@ -378,7 +378,7 @@ export default function SubjectDetail() {
               size="lg"
               disabled={enrollMutation.isPending}
               onClick={() => enrollMutation.mutate()}
-              style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}
+              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}
             >
               {enrollMutation.isPending ? (
                 <><span className="animate-spin mr-2">⏳</span>Joining…</>
@@ -394,7 +394,7 @@ export default function SubjectDetail() {
               to={`/lesson/${enrollment?.last_lesson_id || firstLesson.id}`}
             >
               <Button className="w-full h-12 text-base font-semibold" size="lg"
-                style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+                style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
                 <PlayCircle className="w-5 h-5 mr-2" />
                 {completedLessons.length > 0 ? 'Continue Learning' : 'Start Learning'}
               </Button>
