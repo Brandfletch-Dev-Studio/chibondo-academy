@@ -192,13 +192,13 @@ function GuestVideoGate({ lesson }) {
           style={{ filter: 'blur(8px)', transform: 'scale(1.05)', opacity: 0.4 }}
         />
       ) : (
-        <div className="absolute inset-0" style={{ background: 'hsl(222 47% 10%)' }} />
+        <div className="absolute inset-0" style={{ background: 'hsl(var(--background))' }} />
       )}
       {/* Overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center"
-          style={{ background: 'hsl(222 47% 18%)', border: '2px solid hsl(43 74% 52% / 0.4)' }}>
-          <Lock className="w-7 h-7" style={{ color: 'hsl(43 74% 66%)' }} />
+          style={{ background: 'hsl(var(--muted))', border: '2px solid hsl(43 74% 52% / 0.4)' }}>
+          <Lock className="w-7 h-7" style={{ color: 'hsl(var(--primary-foreground))' }} />
         </div>
         <div>
           <p className="text-white font-semibold text-base mb-1">Create an account to watch this lesson</p>
@@ -207,7 +207,7 @@ function GuestVideoGate({ lesson }) {
         <a href="/register">
           <button
             className="mt-1 h-11 px-8 rounded-full text-sm font-semibold transition-opacity hover:opacity-90 active:scale-95"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}
           >
             Start Learning
           </button>
@@ -625,14 +625,14 @@ export default function LessonPage() {
                         />
                         {/* Auth wall */}
                         <div className="mt-4 rounded-xl p-5 text-center"
-                          style={{ background: 'hsl(222 47% 13%)', border: '1px solid hsl(43 74% 52% / 0.2)' }}>
-                          <BookOpen className="w-8 h-8 mx-auto mb-2" style={{ color: 'hsl(43 74% 52%)' }} />
+                          style={{ background: 'hsl(var(--card))', border: '1px solid hsl(43 74% 52% / 0.2)' }}>
+                          <BookOpen className="w-8 h-8 mx-auto mb-2" style={{ color: 'hsl(var(--primary))' }} />
                           <p className="text-sm font-semibold text-white mb-1">Sign in to read the full notes</p>
                           <p className="text-xs mb-4" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to access all lesson notes and materials.</p>
                           <div className="flex gap-2 justify-center">
                             <a href="/register">
                               <button className="h-8 px-5 rounded-full text-xs font-semibold"
-                                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                                 Start Learning
                               </button>
                             </a>
@@ -690,7 +690,7 @@ export default function LessonPage() {
             {!user && (
               <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4"
                 style={{
-                  background: 'hsl(222 47% 13%)',
+                  background: 'hsl(var(--card))',
                   border: '1px solid hsl(43 74% 52% / 0.25)',
                 }}>
                 <div>
@@ -705,7 +705,7 @@ export default function LessonPage() {
                   </a>
                   <a href="/register">
                     <button className="h-9 px-5 rounded-full text-xs font-semibold transition-opacity hover:opacity-90"
-                      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                      style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                       Start Learning
                     </button>
                   </a>
