@@ -115,11 +115,12 @@ export default function AdminBlog() {
       const wasPublished = !editing && form.status === 'published';
       const justPublished = editing && editing.status !== 'published' && form.status === 'published';
       if (wasPublished || justPublished) {
-        db.functions.invoke('notifyNewBlogPost', {
+        /* notifyNewBlogPost removed — send via /api/send-email if needed */
+        /* db.functions.invoke was legacy Base44 — skip for now */ void ({
           event: { type: editing ? 'update' : 'create' },
           data: savedPost,
           old_data: editing || null,
-        }).catch(() => {});
+        })).catch(() => {});
       }
     },
     onError: e => toast.error('Could not save post', { description: e.message }),
@@ -144,11 +145,12 @@ export default function AdminBlog() {
       queryClient.invalidateQueries({ queryKey:['adminBlogPosts'] });
       // Fire notification when toggling to published
       if (wasPublished) {
-        db.functions.invoke('notifyNewBlogPost', {
+        /* notifyNewBlogPost removed — send via /api/send-email if needed */
+        /* db.functions.invoke was legacy Base44 — skip for now */ void ({
           event: { type: 'update' },
           data: { ...post, status: newStatus },
           old_data: post,
-        }).catch(() => {});
+        })).catch(() => {});
       }
     });
   };
