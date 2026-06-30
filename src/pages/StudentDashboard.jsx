@@ -45,9 +45,9 @@ function MiniClassCard({ enrollment }) {
       <button
         onClick={() => navigate(resumeId ? `/lesson/${resumeId}` : `/subjects/${enrollment.subject_id}`)}
         className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-        style={{ background: 'hsl(222 47% 18%)' }}
+        style={{ background: 'hsl(var(--muted))' }}
       >
-        <PlayCircle className="w-4 h-4" style={{ color: 'hsl(43 74% 66%)' }} />
+        <PlayCircle className="w-4 h-4" style={{ color: 'hsl(var(--primary-foreground))' }} />
       </button>
     </div>
   );
@@ -143,7 +143,7 @@ export default function StudentDashboard() {
       label:       'Invite Friends & Earn',
       description: 'Refer classmates and earn cash commissions through the ACA affiliate programme.',
       to:          '/affiliate',
-      accent:      'hsl(43 74% 52%)',
+      accent:      'hsl(var(--primary))',
     },
   ];
 
