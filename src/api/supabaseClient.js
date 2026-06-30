@@ -412,14 +412,49 @@ const functions = {
           return { data: { created, total: users?.length || 0 } };
         } catch (e) { return { error: e.message }; }
       }
-      case 'verifyPayChanguPayment':
-      case 'createPayChanguSession':
+      case 'createPayChanguSession': {
+        // Calls Vercel serverless route → Paychangu API
+        const token = getToken();
+        const jwt   = token ? parseJwt(token) : null;
+        const { plan, return_url } = args;
+        const res = await fetch('/api/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan,
+            return_url,
+            user_id:    jwt?.sub    || '',
+            email:      jwt?.email  || '',
+            first_name: jwt?.user_metadata?.full_name?.split(' ')[0] || 'Student',
+            last_name:  jwt?.user_metadata?.full_name?.split(' ').slice(1).join(' ') || 'User',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Payment initiation failed');
+        return { data };
+      }
+
+      case 'verifyPayChanguPayment': {
+        // Calls Vercel serverless route → Paychangu verify API → creates subscription
+        const token = getToken();
+        const jwt   = token ? parseJwt(token) : null;
+        const { tx_ref } = args;
+        const res = await fetch('/api/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tx_ref, user_id: jwt?.sub || '' }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
+        return { data };
+      }
+
       case 'cartRecoveryEmails':
       case 'notifyNewBlogPost':
       case 'notifyNewLesson':
       case 'sendWelcomeEmail':
-        // These require a backend service — stubbed safely
-        console.info(`[aca] ${name} — requires backend service (not yet configured)`);
+        // These require additional backend setup
+        console.info(`[aca] ${name} — not yet configured`);
         return { data: null };
       default:
         console.warn(`[aca] Unknown function: ${name}`);
