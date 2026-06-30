@@ -554,7 +554,7 @@ function QuizPanel({ lesson, subjectId }) {
         <div className="flex items-center gap-2">
           <SaveStatus status={saveStatus} lastSaved={null} />
           <Button size="sm" onClick={addQuestion} className="h-7 text-xs gap-1"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             <Plus className="w-3 h-3" /> Add Question
           </Button>
         </div>
@@ -1171,7 +1171,7 @@ function CurriculumTree({
         </div>
         <Button size="sm" onClick={onAddTopic}
           className="h-7 text-xs gap-1"
-          style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+          style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
           <Plus className="w-3 h-3" /> Topic
         </Button>
       </div>
@@ -1837,7 +1837,7 @@ export default function CourseBuilder() {
                 )}
                 {topics.length === 0 && (
                   <Button size="sm" onClick={() => setTopicDialog({ open: true, topic: null })}
-                    style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                    style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                     <Plus className="w-3.5 h-3.5 mr-1.5" /> Add First Topic
                   </Button>
                 )}
