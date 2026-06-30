@@ -26,7 +26,8 @@ export default function SubscriptionPage() {
   const { data: pricingData, isLoading } = useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
-      const res = await db.functions.invoke('getPricing', {});
+      const rows = await db.entities.PlatformSettings.filter({ key: 'pricing' });
+      const res = rows[0]?.value || null;
       return res.data.pricing;
     },
   });
@@ -70,7 +71,11 @@ export default function SubscriptionPage() {
 
     const poll = () => {
       attempts++;
-      db.functions.invoke('verifyPayChanguPayment', { tx_ref: txRef })
+      fetch('/api/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tx_ref: txRef, user_id: user?.id }),
+        }).then(r => r.json()).catch(() => ({}))
         .then((res) => {
           const d = res.data || {};
           if (d.success) {
@@ -149,13 +154,20 @@ export default function SubscriptionPage() {
     mutationFn: async (plan) => {
       // return_url — Paychangu appends tx_ref as query param on redirect
       const return_url = `${window.location.origin}/subscription`;
-      const res = await db.functions.invoke('createPayChanguSession', { plan, return_url });
-      if (!res?.data?.checkout_url) throw new Error('Could not get payment link');
-      return res.data;
+      const resp = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, return_url, user_id: user?.id, email: user?.email,
+          first_name: user?.full_name?.split(' ')[0] || 'Student',
+          last_name: user?.full_name?.split(' ').slice(1).join(' ') || '' }),
+      });
+      const res = await resp.json();
+      if (!res?.checkout_url) throw new Error(res?.error || 'Could not get payment link');
+      return res;
     },
     onSuccess: (data) => {
       setProcessing(false);
-      window.location.href = data.checkout_url;
+      window.location.href = data.checkout_url || data.data?.checkout_url;
     },
     onError: (error) => {
       toast.error(error.message || 'Payment failed. Please try again.');
