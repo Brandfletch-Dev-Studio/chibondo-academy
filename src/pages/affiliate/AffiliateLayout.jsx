@@ -68,8 +68,8 @@ export default function AffiliateLayout() {
       {/* Page header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'hsl(43 74% 52% / 0.15)' }}>
-          <Gift className="w-5 h-5" style={{ color: 'hsl(43 74% 52%)' }} />
+          style={{ background: 'hsl(var(--primary) / 0.15)' }}>
+          <Gift className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
         </div>
         <div>
           <h1 className="text-2xl font-display font-bold">Affiliate Program</h1>
@@ -77,7 +77,7 @@ export default function AffiliateLayout() {
             Earn <span className="font-semibold text-foreground">MWK {commissionAmount.toLocaleString()}</span> per successful paid referral
             {recurringEnabled && (
               <span className="ml-1.5 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
-                style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 38%)' }}>
+                style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' }}>
                 + recurring ♻
               </span>
             )}
@@ -101,7 +101,7 @@ export default function AffiliateLayout() {
               )}
               style={({ isActive }) =>
                 isActive
-                  ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }
+                  ? { background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }
                   : {}
               }
             >
