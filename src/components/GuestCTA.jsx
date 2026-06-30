@@ -18,9 +18,9 @@ export default function GuestCTA({ compact = false, message }) {
   if (compact) {
     return (
       <div className="rounded-xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 mt-6"
-        style={{ background: 'hsl(222 47% 13%)', border: '1px solid hsl(43 74% 52% / 0.25)' }}>
+        style={{ background: 'hsl(var(--card))', border: '1px solid hsl(43 74% 52% / 0.25)' }}>
         <p className="text-sm text-center sm:text-left" style={{ color: 'hsl(43 74% 75%)' }}>
-          <Sparkles className="inline w-4 h-4 mr-1.5" style={{ color: 'hsl(43 74% 52%)' }} />
+          <Sparkles className="inline w-4 h-4 mr-1.5" style={{ color: 'hsl(var(--primary))' }} />
           {message || 'Create a free account to unlock this and much more.'}
         </p>
         <div className="flex gap-2 shrink-0">
@@ -31,7 +31,7 @@ export default function GuestCTA({ compact = false, message }) {
           </Link>
           <Link to="/register">
             <Button size="sm" className="h-8 text-xs font-semibold"
-              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
               <UserPlus className="w-3.5 h-3.5 mr-1.5" />Sign Up Free
             </Button>
           </Link>
@@ -43,13 +43,13 @@ export default function GuestCTA({ compact = false, message }) {
   return (
     <div className="rounded-2xl p-6 sm:p-8 mt-10 text-center"
       style={{
-        background: 'linear-gradient(135deg, hsl(222 47% 13%) 0%, hsl(222 47% 16%) 100%)',
+        background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)',
         border: '1px solid hsl(43 74% 52% / 0.3)',
         boxShadow: '0 0 40px hsl(43 74% 52% / 0.08)',
       }}>
       <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
-        style={{ background: 'hsl(43 74% 52% / 0.15)' }}>
-        <Sparkles className="w-6 h-6" style={{ color: 'hsl(43 74% 52%)' }} />
+        style={{ background: 'hsl(var(--primary) / 0.15)' }}>
+        <Sparkles className="w-6 h-6" style={{ color: 'hsl(var(--primary))' }} />
       </div>
       <h3 className="text-lg font-semibold mb-2 text-white">
         {message || 'Ready to start learning?'}
@@ -61,7 +61,7 @@ export default function GuestCTA({ compact = false, message }) {
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link to="/register">
           <Button size="lg" className="w-full sm:w-auto font-semibold px-8"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             <UserPlus className="w-4 h-4 mr-2" />
             Create Free Account
           </Button>
