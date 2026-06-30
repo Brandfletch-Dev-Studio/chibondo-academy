@@ -22,8 +22,8 @@ function LessonQuote({ lessonTitle, lessonUrl }) {
   const url   = lessonUrl || (lessonUrl ? `/lesson/${lessonUrl}` : null);
   return (
     <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-xl border-l-4 text-xs"
-      style={{ borderColor: 'hsl(43 74% 52%)', background: 'hsl(43 74% 52% / 0.08)' }}>
-      <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+      style={{ borderColor: 'hsl(var(--primary))', background: 'hsl(var(--primary) / 0.08)' }}>
+      <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
       <span className="text-muted-foreground">From lesson:</span>
       {url ? (
         <Link to={url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(43 74% 45%)' }}>
@@ -134,7 +134,7 @@ export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, sub
               <p className="text-xs text-muted-foreground">You need an account to post in discussions.</p>
               <div className="flex gap-2">
                 <a href="/login"><Button variant="outline" size="sm">Login</Button></a>
-                <a href="/register"><Button size="sm" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>Join Now</Button></a>
+                <a href="/register"><Button size="sm" style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>Join Now</Button></a>
               </div>
             </div>
           ) : (
@@ -192,7 +192,7 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                 <img src={discussion.author_avatar} alt={discussion.author_name} className="w-full h-full object-cover rounded-full" />
               ) : (
                 <AvatarFallback className="text-xs font-bold"
-                  style={{ background: isTeacher ? 'hsl(222 47% 18%)' : 'hsl(43 74% 52%)', color: isTeacher ? '#fff' : '#1e293b' }}>
+                  style={{ background: isTeacher ? 'hsl(var(--muted))' : 'hsl(var(--primary))', color: isTeacher ? '#fff' : '#1e293b' }}>
                   {discussion.author_name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               )}
@@ -202,7 +202,7 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm">{discussion.author_name}</span>
                   {isTeacher && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }}>
                       Teacher
                     </span>
                   )}
@@ -212,7 +212,7 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                     </span>
                   )}
                   {discussion.is_pinned && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1" style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                       <Pin className="w-3 h-3" /> Pinned
                     </span>
                   )}
@@ -245,8 +245,8 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
               {/* Lesson quote — shown in lesson view too for context on replies */}
               {discussion.lesson_title && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-l-4 text-xs"
-                  style={{ borderColor: 'hsl(43 74% 52%)', background: 'hsl(43 74% 52% / 0.08)' }}>
-                  <BookOpen className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+                  style={{ borderColor: 'hsl(var(--primary))', background: 'hsl(var(--primary) / 0.08)' }}>
+                  <BookOpen className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
                   <span className="text-muted-foreground">From lesson:</span>
                   {discussion.lesson_url ? (
                     <a href={discussion.lesson_url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(43 74% 45%)' }}>
