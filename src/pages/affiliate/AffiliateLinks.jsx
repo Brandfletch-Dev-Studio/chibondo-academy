@@ -19,7 +19,7 @@ function CopyField({ label, value, sub }) {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
         <button onClick={copy}
           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-          style={{ background: copied ? 'hsl(43 74% 52% / 0.15)' : 'hsl(222 47% 18%)', color: copied ? 'hsl(43 74% 52%)' : 'hsl(43 74% 66%)' }}>
+          style={{ background: copied ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted))', color: copied ? 'hsl(var(--primary))' : 'hsl(var(--primary-foreground))' }}>
           {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
           {copied ? 'Copied!' : 'Copy'}
         </button>
@@ -99,7 +99,7 @@ export default function AffiliateLinks() {
       {/* Your code */}
       <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-2">
         <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Your Referral Code</p>
-        <p className="text-3xl font-display font-bold tracking-widest" style={{ color: 'hsl(43 74% 52%)' }}>{referralCode}</p>
+        <p className="text-3xl font-display font-bold tracking-widest" style={{ color: 'hsl(var(--primary))' }}>{referralCode}</p>
         <p className="text-xs text-muted-foreground">Share this code or the links below</p>
       </div>
 
