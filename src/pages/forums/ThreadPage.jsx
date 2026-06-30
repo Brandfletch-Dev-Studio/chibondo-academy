@@ -18,8 +18,8 @@ function LessonQuote({ lessonTitle, lessonUrl }) {
   if (!lessonTitle) return null;
   return (
     <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-xl border-l-4 text-xs"
-      style={{ borderColor: 'hsl(43 74% 52%)', background: 'hsl(43 74% 52% / 0.08)' }}>
-      <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+      style={{ borderColor: 'hsl(var(--primary))', background: 'hsl(var(--primary) / 0.08)' }}>
+      <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
       <span className="text-muted-foreground">From lesson:</span>
       {lessonUrl ? (
         <Link to={lessonUrl} className="font-semibold hover:underline truncate max-w-[200px]" style={{ color: 'hsl(43 74% 45%)' }}>
@@ -44,7 +44,7 @@ function Avi({ name = '?', role, avatarUrl, size = 8, onClick }) {
   const [err, setErr] = useState(false);
   const styles = {
     admin:   { background: 'hsl(0 72% 51% / 0.18)',   color: 'hsl(0 72% 36%)' },
-    teacher: { background: 'hsl(43 74% 52% / 0.2)',   color: 'hsl(38 60% 32%)' },
+    teacher: { background: 'hsl(var(--primary) / 0.2)',   color: 'hsl(38 60% 32%)' },
     student: { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
     user:    { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
   };
@@ -103,7 +103,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
   const isTeacher = role === 'teacher' || role === 'admin';
 
   const roleStyle = isTeacher
-    ? { background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
+    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
     : role === 'admin'
     ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
     : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
@@ -124,10 +124,10 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
         {avatarUrl && !imgErr ? (
           <img src={avatarUrl} alt={name} onError={() => setImgErr(true)}
             className="w-52 h-52 rounded-full object-cover border-4"
-            style={{ borderColor: isTeacher ? 'hsl(43 74% 52%)' : 'hsl(222 47% 35%)' }} />
+            style={{ borderColor: isTeacher ? 'hsl(var(--primary))' : 'hsl(222 47% 35%)' }} />
         ) : (
           <div className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
-            style={{ background: isTeacher ? 'hsl(43 74% 52%)' : 'hsl(222 47% 18%)', color: isTeacher ? 'hsl(222 47% 11%)' : 'hsl(43 74% 66%)', borderColor: isTeacher ? 'hsl(43 74% 52%)' : 'hsl(222 47% 35%)' }}>
+            style={{ background: isTeacher ? 'hsl(var(--primary))' : 'hsl(var(--muted))', color: isTeacher ? 'hsl(var(--foreground))' : 'hsl(var(--primary-foreground))', borderColor: isTeacher ? 'hsl(var(--primary))' : 'hsl(222 47% 35%)' }}>
             {initials}
           </div>
         )}
@@ -145,7 +145,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
         {tutorSlug && (
           <a href={`/tutors/${tutorSlug}`} onClick={onClose}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             View Tutor Profile →
           </a>
         )}
@@ -157,7 +157,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
 function RoleBadge({ role, isTutor }) {
   if (isTutor || role === 'teacher')
     return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border"
-      style={{ background:'hsl(43 74% 52% / 0.12)', color:'hsl(38 60% 32%)', borderColor:'hsl(43 74% 52% / 0.3)' }}>Teacher</span>;
+      style={{ background:'hsl(var(--primary) / 0.12)', color:'hsl(38 60% 32%)', borderColor:'hsl(var(--primary) / 0.3)' }}>Teacher</span>;
   if (role === 'admin')
     return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 border border-red-200">Admin</span>;
   return null; // students don't need a badge — they're the majority
@@ -266,8 +266,8 @@ function ReplyBubble({
               : 'bg-muted/50'
           }`}
             style={reply.is_tutor_reply ? {
-              background: 'hsl(43 74% 52% / 0.06)',
-              borderColor: 'hsl(43 74% 52% / 0.2)',
+              background: 'hsl(var(--primary) / 0.06)',
+              borderColor: 'hsl(var(--primary) / 0.2)',
             } : {}}
           >
             {reply.content && <p>{reply.content}</p>}
@@ -497,7 +497,7 @@ export default function ThreadPage() {
         <p className="font-semibold">Thread not found</p>
         <button onClick={() => navigate(`/forums/${subjectSlug}`)}
           className="px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+          style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
           ← Back to Forum
         </button>
       </div>
@@ -585,13 +585,13 @@ export default function ThreadPage() {
           <div className="flex items-center gap-2 flex-wrap mb-3">
             {thread.is_pinned && (
               <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background:'hsl(43 74% 52% / 0.12)', color:'hsl(43 60% 38%)', border:'1px solid hsl(43 74% 52% / 0.25)' }}>
+                style={{ background:'hsl(var(--primary) / 0.12)', color:'hsl(var(--primary))', border:'1px solid hsl(43 74% 52% / 0.25)' }}>
                 <Pin className="w-2.5 h-2.5" /> Pinned
               </span>
             )}
             {thread.is_announcement && (
               <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background:'hsl(222 47% 18% / 0.12)', color:'hsl(222 47% 45%)', border:'1px solid hsl(222 47% 18% / 0.2)' }}>
+                style={{ background:'hsl(var(--muted) / 0.12)', color:'hsl(222 47% 45%)', border:'1px solid hsl(222 47% 18% / 0.2)' }}>
                 <Megaphone className="w-2.5 h-2.5" /> Announcement
               </span>
             )}
@@ -746,7 +746,7 @@ export default function ThreadPage() {
               </a>
               <a href="/register">
                 <button className="h-8 px-4 text-sm font-semibold rounded-full transition-colors"
-                  style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                   Join Now
                 </button>
               </a>
@@ -773,11 +773,11 @@ export default function ThreadPage() {
               onClick={() => postMut.mutate()}
               disabled={postMut.isPending || !text.trim()}
               className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
-              style={{ background: 'hsl(222 47% 18%)' }}
+              style={{ background: 'hsl(var(--muted))' }}
             >
               {postMut.isPending
                 ? <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                : <Send className="w-4 h-4" style={{ color: 'hsl(43 74% 66%)' }} />
+                : <Send className="w-4 h-4" style={{ color: 'hsl(var(--primary-foreground))' }} />
               }
             </button>
           </div>
