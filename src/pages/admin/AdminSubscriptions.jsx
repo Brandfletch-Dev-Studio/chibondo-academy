@@ -183,7 +183,7 @@ export default function AdminSubscriptions() {
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
-      toast.success(`Access granted to ${count} student${count > 1 ? 's' : ''} ✓`);
+      toast.success('Access granted to ' + count + (count > 1 ? ' students' : ' student') + ' ✓');
       setGrantOpen(false);
       setGrantStudentEmail('');
       setSelectedUserIds([]);
@@ -808,8 +808,10 @@ export default function AdminSubscriptions() {
             )}
             {/* Summary */}
             <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs text-primary font-medium">
-              {computeGrantDays()} day{computeGrantDays() !== 1 ? 's' : ''} access
-              {grantMode === 'bulk' && selectedUserIds.length > 0 ? ` → ${selectedUserIds.length} student${selectedUserIds.length > 1 ? 's' : ''}` : ''}
+              {computeGrantDays()}{computeGrantDays() !== 1 ? ' days' : ' day'}{' access'}
+              {grantMode === 'bulk' && selectedUserIds.length > 0 && (
+                <span>{' → '}{selectedUserIds.length}{selectedUserIds.length > 1 ? ' students' : ' student'}</span>
+              )}
             </div>
           </div>
 
