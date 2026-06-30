@@ -2,7 +2,7 @@ import React from "react";
 
 export default function AuthLayout({ title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-background">
       <div className="w-full max-w-md">
         {/* Brand header */}
         <div className="text-center mb-8">
@@ -17,7 +17,7 @@ export default function AuthLayout({ title, subtitle, footer, children }) {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-card rounded-2xl shadow-sm border border-gray-200 p-8">
           {children}
         </div>
 
