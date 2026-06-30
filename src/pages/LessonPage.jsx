@@ -232,7 +232,7 @@ function SidebarLesson({ lesson, currentLessonId, completed, locked }) {
         'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs transition-all group',
         isActive ? 'bg-primary text-primary-foreground' : locked
           ? 'opacity-40 cursor-not-allowed'
-          : 'hover:bg-white/5 text-sidebar-foreground/80 hover:text-sidebar-foreground'
+          : 'hover:bg-card/5 text-sidebar-foreground/80 hover:text-sidebar-foreground'
       )}
     >
       <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
@@ -484,7 +484,7 @@ export default function LessonPage() {
               <div key={topic.id} className="mb-1">
                 <button
                   onClick={() => toggleTopic(topic.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-card/5 transition-colors text-left"
                 >
                   <span className="w-5 h-5 rounded-full bg-sidebar-primary/20 text-sidebar-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                     {tIdx + 1}
