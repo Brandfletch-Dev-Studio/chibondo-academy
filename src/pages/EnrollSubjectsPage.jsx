@@ -189,7 +189,7 @@ export default function EnrollSubjectsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search subjects…"
-              className="pl-9 bg-white/95 text-gray-900 placeholder:text-gray-400 border-0" />
+              className="pl-9 bg-card/95 text-gray-900 placeholder:text-gray-400 border-0" />
           </div>
         </div>
 
