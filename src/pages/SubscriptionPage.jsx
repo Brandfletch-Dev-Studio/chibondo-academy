@@ -212,12 +212,12 @@ export default function SubscriptionPage() {
       )}
 
       {/* ── Branded Hero ── */}
-      <div className="rounded-2xl overflow-hidden relative" style={{ background:'hsl(222 47% 14%)' }}>
+      <div className="rounded-2xl overflow-hidden relative" style={{ background:'hsl(var(--card))' }}>
         <div className="absolute inset-0 pointer-events-none"
           style={{ backgroundImage:'radial-gradient(ellipse at 10% 50%, hsl(43 74% 52% / 0.18) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
         <div className="relative px-6 pt-8 pb-7 text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-1"
-            style={{ background:'hsl(43 74% 52% / 0.15)', color:'hsl(43 74% 66%)' }}>
+            style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary-foreground))' }}>
             <GraduationCap className="w-3.5 h-3.5" /> Chibondo Academy
           </div>
           <h1 className="text-2xl sm:text-3xl font-display font-bold" style={{ color:'hsl(43 20% 94%)' }}>School Fees</h1>
@@ -227,7 +227,7 @@ export default function SubscriptionPage() {
           <div className="flex flex-wrap justify-center gap-5 pt-2">
             {[{ icon: BookOpen, text: 'All Subjects' },{ icon: Users, text: '259+ Lessons' },{ icon: Award, text: 'Past Papers' }].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-xs" style={{ color:'hsl(43 20% 70%)' }}>
-                <Icon className="w-3.5 h-3.5" style={{ color:'hsl(43 74% 52%)' }} />{text}
+                <Icon className="w-3.5 h-3.5" style={{ color:'hsl(var(--primary))' }} />{text}
               </div>
             ))}
           </div>
