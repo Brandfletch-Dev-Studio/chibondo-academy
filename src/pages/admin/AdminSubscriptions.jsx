@@ -666,52 +666,31 @@ export default function AdminSubscriptions() {
       </Tabs>
 
       {/* Grant Access Dialog */}
-      <Dialog open={grantOpen} onOpenChange={(v) => { setGrantOpen(v); if (!v) { setSelectedUserIds([]); setGrantSearch(''); setGrantMode('single'); setGrantDurationType('preset'); setCustomDays(''); } }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Grant Free Access</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Manually grant a student subscription access without payment.</p>
-          <div className="space-y-4 pt-2">
-            <div>
-              <Label>Student Email</Label>
-              <Input className="mt-1" value={grantStudentEmail} onChange={e => setGrantStudentEmail(e.target.value)} placeholder="student@example.com" type="email" />
-              <p className="text-[11px] text-muted-foreground mt-1">Enter the student's registered email address</p>
-            </div>
-            <div>
-              <Label>Plan</Label>
-              <Select value={grantPlan} onValueChange={setGrantPlan}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annual">Annual</SelectItem>
-                  <SelectItem value="biannual">Biannual (2 Years)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => setGrantOpen(false)}>Cancel</Button>
-              <Button className="flex-1" onClick={() => grantMutation.mutate()} disabled={!grantStudentEmail || grantMutation.isPending}>
-                {grantMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                Grant Access
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-<DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+      <Dialog open={grantOpen} onOpenChange={(v) => {
+        setGrantOpen(v);
+        if (!v) {
+          setSelectedUserIds([]);
+          setGrantSearch('');
+          setGrantMode('single');
+          setGrantDurationType('preset');
+          setCustomDays('');
+        }
+      }}>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>Grant Free Access</DialogTitle>
           </DialogHeader>
 
           {/* Mode toggle */}
           <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
-            {[['single','Single Student'],['bulk','Bulk / All Students']].map(([m,label]) => (
-              <button key={m} onClick={() => setGrantMode(m)}
-                className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all ${grantMode === m ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}>
-                {label}
-              </button>
-            ))}
+            <button onClick={() => setGrantMode('single')}
+              className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantMode === 'single' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
+              Single Student
+            </button>
+            <button onClick={() => setGrantMode('bulk')}
+              className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantMode === 'bulk' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
+              Bulk / All Students
+            </button>
           </div>
 
           {/* Single mode */}
@@ -725,22 +704,22 @@ export default function AdminSubscriptions() {
 
           {/* Bulk mode */}
           {grantMode === 'bulk' && (
-            <div className="space-y-2 flex-1 min-h-0 flex flex-col">
+            <div className="space-y-2 flex flex-col" style={{ minHeight: 0 }}>
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Select Students</Label>
                 <div className="flex gap-2">
                   <button onClick={() => setSelectedUserIds(filteredGrantUsers.map(u => u.id))}
-                    className="text-xs text-primary underline-offset-2 hover:underline">All</button>
+                    className="text-xs text-primary hover:underline">All</button>
                   <button onClick={() => setSelectedUserIds([])}
-                    className="text-xs text-muted-foreground underline-offset-2 hover:underline">None</button>
+                    className="text-xs text-muted-foreground hover:underline">None</button>
                 </div>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input placeholder="Search name or email…" value={grantSearch}
+                <Input placeholder="Search name or email" value={grantSearch}
                   onChange={e => setGrantSearch(e.target.value)} className="pl-8 h-8 text-xs" />
               </div>
-              <div className="border border-border rounded-xl overflow-y-auto max-h-48 divide-y divide-border/50">
+              <div className="border border-border rounded-xl overflow-y-auto divide-y divide-border/50" style={{ maxHeight: '180px' }}>
                 {filteredGrantUsers.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-6">No students found</p>
                 )}
@@ -757,7 +736,9 @@ export default function AdminSubscriptions() {
                 ))}
               </div>
               {selectedUserIds.length > 0 && (
-                <p className="text-xs text-primary font-medium">{selectedUserIds.length} student{selectedUserIds.length > 1 ? 's' : ''} selected</p>
+                <p className="text-xs text-primary font-medium">
+                  {selectedUserIds.length}{selectedUserIds.length > 1 ? ' students' : ' student'} selected
+                </p>
               )}
             </div>
           )}
@@ -766,12 +747,14 @@ export default function AdminSubscriptions() {
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Duration</Label>
             <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
-              {[['preset','Preset Plan'],['custom','Custom Days']].map(([t,label]) => (
-                <button key={t} onClick={() => setGrantDurationType(t)}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all ${grantDurationType === t ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}>
-                  {label}
-                </button>
-              ))}
+              <button onClick={() => setGrantDurationType('preset')}
+                className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantDurationType === 'preset' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
+                Preset Plan
+              </button>
+              <button onClick={() => setGrantDurationType('custom')}
+                className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantDurationType === 'custom' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
+                Custom Days
+              </button>
             </div>
             {grantDurationType === 'preset' ? (
               <div className="grid grid-cols-2 gap-2">
@@ -799,26 +782,25 @@ export default function AdminSubscriptions() {
                 <Input type="number" min={1} max={3650} value={customDays}
                   onChange={e => setCustomDays(e.target.value)} placeholder="e.g. 30"
                   className="mt-1 h-9" />
-                {customDays && parseInt(customDays) > 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Access until {new Date(Date.now() + parseInt(customDays) * 86400000).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
-                  </p>
-                )}
               </div>
             )}
-            {/* Summary */}
             <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs text-primary font-medium">
               {computeGrantDays()}{computeGrantDays() !== 1 ? ' days' : ' day'}{' access'}
               {grantMode === 'bulk' && selectedUserIds.length > 0 && (
-                <span>{' → '}{selectedUserIds.length}{selectedUserIds.length > 1 ? ' students' : ' student'}</span>
+                <span>{' for '}{selectedUserIds.length}{selectedUserIds.length > 1 ? ' students' : ' student'}</span>
               )}
             </div>
           </div>
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setGrantOpen(false)}>Cancel</Button>
             <Button className="flex-1" onClick={() => grantMutation.mutate()}
-              disabled={grantMutation.isPending || (grantMode === 'single' && !grantStudentEmail) || (grantMode === 'bulk' && selectedUserIds.length === 0) || (grantDurationType === 'custom' && (!customDays || parseInt(customDays) < 1))}>
+              disabled={
+                grantMutation.isPending ||
+                (grantMode === 'single' && !grantStudentEmail) ||
+                (grantMode === 'bulk' && selectedUserIds.length === 0) ||
+                (grantDurationType === 'custom' && (!customDays || parseInt(customDays) < 1))
+              }>
               {grantMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
               Grant Access
             </Button>
