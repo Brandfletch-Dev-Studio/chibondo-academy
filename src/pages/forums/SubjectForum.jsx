@@ -76,7 +76,7 @@ function Avi({ name = '?', role, avatarUrl, size = 7, onClick }) {
   const [err, setErr] = React.useState(false);
   const styles = {
     admin:   { background: 'hsl(0 72% 51% / 0.18)',   color: 'hsl(0 72% 36%)' },
-    teacher: { background: 'hsl(43 74% 52% / 0.2)',   color: 'hsl(38 60% 32%)' },
+    teacher: { background: 'hsl(var(--primary) / 0.2)',   color: 'hsl(38 60% 32%)' },
     student: { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
     user:    { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
   };
@@ -118,7 +118,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
     : (name?.[0] || '?').toUpperCase();
   const roleLabel = role === 'teacher' ? 'Tutor' : role === 'admin' ? 'Admin' : 'Student';
   const roleStyle = role === 'teacher'
-    ? { background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
+    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
     : role === 'admin'
     ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
     : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
@@ -145,10 +145,10 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
         {avatarUrl ? (
           <img src={avatarUrl} alt={name}
             className="w-52 h-52 rounded-full object-cover border-4"
-            style={{ borderColor: 'hsl(43 74% 52%)' }} />
+            style={{ borderColor: 'hsl(var(--primary))' }} />
         ) : (
           <div className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}>
             {initials}
           </div>
         )}
@@ -163,7 +163,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
         {tutorSlug && (
           <a href={`/tutors/${tutorSlug}`} onClick={onClose}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             View Tutor Profile →
           </a>
         )}
@@ -280,7 +280,7 @@ function RenameModal({ subject, onClose, onSave, saving }) {
         <div className="flex gap-2">
           <button onClick={() => onSave(name)} disabled={saving || !name.trim()}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-            style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+            style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm border border-border">Cancel</button>
@@ -519,7 +519,7 @@ export default function SubjectForum() {
       <div className="space-y-4">
 
         {/* ── Header ── */}
-        <div className="rounded-2xl p-5" style={{ background: 'hsl(222 47% 14%)' }}>
+        <div className="rounded-2xl p-5" style={{ background: 'hsl(var(--card))' }}>
           <button onClick={() => navigate('/forums')}
             className="flex items-center gap-1.5 text-xs font-medium mb-3 transition-colors"
             style={{ color: 'hsl(43 74% 66% / 0.7)' }}>
@@ -573,7 +573,7 @@ export default function SubjectForum() {
               {/* Ask button */}
               <button onClick={() => setShowNew(v => !v)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold flex-shrink-0 active:scale-95 transition-transform"
-                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                 <Plus className="w-4 h-4" /> Ask
               </button>
             </div>
@@ -595,7 +595,7 @@ export default function SubjectForum() {
             </span>
             {unreadCount > 0 && (
               <span className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-full"
-                style={{ background:'hsl(43 74% 52% / 0.15)', color:'hsl(43 74% 66%)' }}>
+                style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary-foreground))' }}>
                 {unreadCount} new
               </span>
             )}
@@ -611,7 +611,7 @@ export default function SubjectForum() {
             ) : (
               <button onClick={() => joinMut.mutate()} disabled={joinMut.isPending}
                 className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
-                style={{ background:'hsl(43 74% 52% / 0.2)', color:'hsl(43 74% 66%)', border:'1px solid hsl(43 74% 52% / 0.3)' }}>
+                style={{ background:'hsl(var(--primary) / 0.2)', color:'hsl(var(--primary-foreground))', border:'1px solid hsl(43 74% 52% / 0.3)' }}>
                 <LogIn className="w-3 h-3" /> {joinMut.isPending ? 'Joining…' : 'Join Forum'}
               </button>
             )}
@@ -630,7 +630,7 @@ export default function SubjectForum() {
             <div className="flex gap-2">
               <button onClick={() => createMut.mutate()} disabled={createMut.isPending}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60 active:scale-95 transition-all"
-                style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+                style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
                 {createMut.isPending ? 'Posting…' : 'Post Question'}
               </button>
               <button onClick={() => { setShowNew(false); setNewTitle(''); setNewContent(''); }}
@@ -676,7 +676,7 @@ export default function SubjectForum() {
             <p className="text-sm text-muted-foreground/60">Be the first to ask a question!</p>
             <button onClick={() => setShowNew(true)}
               className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+              style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
               Ask a Question
             </button>
           </div>
