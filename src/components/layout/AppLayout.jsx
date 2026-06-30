@@ -214,22 +214,22 @@ export default function AppLayout() {
             {sAvatar ? (
               <img src={sAvatar} alt={enrichedUser?.full_name}
                 className="w-52 h-52 rounded-full object-cover border-4"
-                style={{ borderColor: 'hsl(43 74% 52%)' }} />
+                style={{ borderColor: 'hsl(var(--primary))' }} />
             ) : (
               <div
                 className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
-                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52%)' }}
+                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}
               >
                 {sInitial}
               </div>
             )}
             <div className="text-center">
               <p className="text-white text-xl font-bold">{enrichedUser?.full_name || 'User'}</p>
-              <p className="text-sm mt-0.5" style={{ color: 'hsl(43 74% 66%)' }}>{sRoleLabel}</p>
+              <p className="text-sm mt-0.5" style={{ color: 'hsl(var(--primary-foreground))' }}>{sRoleLabel}</p>
             </div>
             <a href={sSettingsPath} onClick={() => setSidebarPhotoOpen(false)}>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer"
-                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                 <Camera className="w-3.5 h-3.5" /> Change Photo
               </div>
             </a>
