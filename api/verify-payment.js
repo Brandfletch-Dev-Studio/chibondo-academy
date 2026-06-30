@@ -6,6 +6,11 @@ const PAYCHANGU_SECRET = process.env.PAYCHANGU_SECRET_KEY;
 const SUPABASE_URL     = process.env.SUPABASE_URL;
 const SUPABASE_SRK     = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// subscriptions table has: id, student_id, plan, status, amount, currency,
+//                          starts_at, expires_at, created_date, updated_date, created_by
+// users table has: id, email, full_name, role, avatar_url, referral_code, created_date, updated_date
+// payments table has: id, student_id, amount, currency, method, reference, status, description
+
 const PLAN_MONTHS = { monthly: 1, annual: 12, biannual: 24 };
 
 async function supabasePost(path, body) {
@@ -34,13 +39,6 @@ async function supabasePatch(path, body) {
   });
 }
 
-async function supabaseGet(path) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
-    headers: { apikey: SUPABASE_SRK, Authorization: `Bearer ${SUPABASE_SRK}` },
-  });
-  return r.json();
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -56,54 +54,53 @@ export default async function handler(req, res) {
       },
     });
     const pcData = await pcRes.json();
+    console.log('[verify-payment] Paychangu response:', JSON.stringify(pcData).slice(0, 300));
 
-    // Paychangu returns status: 'success' and data.status: 'success' when paid
-    const txStatus = pcData?.data?.status || pcData?.status;
-    const isPaid   = pcData.status === 'success' && txStatus === 'success';
-    const isFailed = txStatus === 'failed' || txStatus === 'cancelled';
+    // Paychangu status logic:
+    // PAID:    pcData.status='success' AND pcData.data.status='success'
+    // PENDING: pcData.data.status='pending' (top-level may be 'failed' — ignore it)
+    // FAILED:  pcData.data.status='failed' OR pcData.data.status='cancelled'
+    const dataStatus = pcData?.data?.status;
+    const isPaid     = pcData.status === 'success' && dataStatus === 'success';
+    const isFailed   = (dataStatus === 'failed' || dataStatus === 'cancelled');
+    const isPending  = !isPaid && !isFailed; // covers 'pending' and unknown states
 
-    if (!isPaid && !isFailed) {
-      // Still pending
-      return res.status(200).json({ pending: true, status: txStatus });
+    if (isPending) {
+      return res.status(200).json({ pending: true, status: dataStatus || 'pending' });
     }
 
     if (isFailed) {
-      // Update payment record to failed
-      if (tx_ref) {
-        await supabasePatch(`/payments?reference=eq.${encodeURIComponent(tx_ref)}`, {
-          status: 'failed',
-          updated_date: new Date().toISOString(),
-        });
-      }
+      await supabasePatch(
+        `/payments?reference=eq.${encodeURIComponent(tx_ref)}`,
+        { status: 'failed', updated_date: new Date().toISOString() }
+      );
       return res.status(200).json({ failed: true });
     }
 
     // ── Payment confirmed ─────────────────────────────────────────────────
-    const meta    = pcData?.data?.meta || {};
-    // tx_ref format: ACA-{PLAN_PREFIX}-{UID}-{TS}
-    // plan prefix is first 3 chars of plan name: MON=monthly, ANN=annual, BIA=biannual
+    const meta       = pcData?.data?.meta || {};
     const planPrefix = tx_ref.split('-')[1]?.toUpperCase();
     const prefixMap  = { MON: 'monthly', ANN: 'annual', BIA: 'biannual' };
-    const plan    = meta.plan || prefixMap[planPrefix] || 'monthly';
-    const months  = PLAN_MONTHS[plan] || 1;
-    const amount  = pcData?.data?.amount || 0;
-    const uid     = user_id || meta.user_id;
+    const plan       = meta.plan || prefixMap[planPrefix] || 'monthly';
+    const months     = PLAN_MONTHS[plan] || 1;
+    const amount     = pcData?.data?.amount || 0;
+    const uid        = user_id || meta.user_id;
 
     // Dates
     const now      = new Date();
     const startsAt = now.toISOString();
-    const endsAt   = new Date(now.setMonth(now.getMonth() + months)).toISOString();
+    const endsAt   = new Date(new Date().setMonth(new Date().getMonth() + months)).toISOString();
 
     if (uid) {
-      // 2. Deactivate any existing active subscriptions
+      // 2. Deactivate existing active subscriptions
       await supabasePatch(
         `/subscriptions?student_id=eq.${encodeURIComponent(uid)}&status=eq.active`,
         { status: 'expired', updated_date: new Date().toISOString() }
       );
 
-      // 3. Create new subscription
+      // 3. Create new subscription — only use confirmed existing columns
       const subId = `sub-${tx_ref}`;
-      await supabasePost('/subscriptions', {
+      const subRes = await supabasePost('/subscriptions', {
         id:           subId,
         student_id:   uid,
         plan,
@@ -111,29 +108,29 @@ export default async function handler(req, res) {
         amount,
         currency:     'MWK',
         starts_at:    startsAt,
-        end_date:     endsAt,
-        tx_ref,
+        expires_at:   endsAt,      // ✅ correct column name
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString(),
       });
+      if (!subRes.ok) {
+        const err = await subRes.text();
+        console.error('[verify] subscription insert error:', err);
+      }
 
       // 4. Update payment record to completed
-      await supabasePatch(`/payments?reference=eq.${encodeURIComponent(tx_ref)}`, {
-        status:       'completed',
-        updated_date: new Date().toISOString(),
-      });
+      await supabasePatch(
+        `/payments?reference=eq.${encodeURIComponent(tx_ref)}`,
+        { status: 'completed', updated_date: new Date().toISOString() }
+      );
 
-      // 5. Update user's subscription_plan field
-      await supabasePatch(`/users?id=eq.${encodeURIComponent(uid)}`, {
-        subscription_plan: plan,
-        updated_date:      new Date().toISOString(),
-      });
+      // NOTE: users table has no subscription_plan column — subscription status
+      // is derived at runtime from the subscriptions table. No user patch needed.
     }
 
     return res.status(200).json({
-      success:  true,
+      success: true,
       plan,
-      ends_at:  endsAt,
+      ends_at: endsAt,
       amount,
     });
   } catch (err) {
