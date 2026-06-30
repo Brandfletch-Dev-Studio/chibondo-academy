@@ -244,7 +244,7 @@ export default function SubscriptionPage() {
             <p className="font-semibold text-success">Fees Paid ✓</p>
             <p className="text-sm text-muted-foreground">
               You have an active <span className="font-medium capitalize">{subscription.plan}</span> plan.
-              {subscription.end_date && ` Valid until ${new Date(subscription.end_date).toLocaleDateString('en-MW', { day: 'numeric', month: 'long', year: 'numeric' })}.`}
+              {subscription.expires_at && ` Valid until ${new Date(subscription.expires_at).toLocaleDateString('en-MW', { day: 'numeric', month: 'long', year: 'numeric' })}.`}
             </p>
           </div>
           <div className="ml-auto">
