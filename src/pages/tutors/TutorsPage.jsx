@@ -40,19 +40,19 @@ function TutorCard({ profile, courseCount, studentCount }) {
             <img src={photo} alt="" loading="eager" decoding="async" onError={() => setAvatarErr(true)}
               className="w-full h-full object-cover scale-150 blur-2xl opacity-50 saturate-150" />
             <div className="absolute inset-0"
-              style={{ background: 'linear-gradient(135deg, hsl(222 47% 14% / 0.75), hsl(43 74% 40% / 0.25))' }} />
+              style={{ background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }} />
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(222 47% 20%) 60%, hsl(43 74% 30% / 0.4) 100%)' }}>
-            <span className="text-5xl font-display font-bold opacity-15 select-none" style={{ color:'hsl(43 74% 66%)' }}>{initials}</span>
+            style={{ background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }}>
+            <span className="text-5xl font-display font-bold opacity-15 select-none" style={{ color:'hsl(var(--primary-foreground))' }}>{initials}</span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
         {years > 0 && (
           <div className="absolute top-2.5 right-2.5">
             <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background:'hsl(43 74% 52% / 0.15)', color:'hsl(43 60% 38%)', border:'1px solid hsl(43 74% 52% / 0.3)', backdropFilter:'blur(4px)' }}>
+              style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary))', border:'1px solid hsl(43 74% 52% / 0.3)', backdropFilter:'blur(4px)' }}>
               <Clock className="w-2.5 h-2.5" />{years}yr
             </span>
           </div>
@@ -62,13 +62,13 @@ function TutorCard({ profile, courseCount, studentCount }) {
       {/* Avatar */}
       <div className="relative px-4 -mt-8 pb-1 flex items-end gap-3">
         <div className="w-16 h-16 rounded-full overflow-hidden border-4 shadow-lg flex-shrink-0"
-          style={{ borderColor:'hsl(var(--card))', background:'hsl(222 47% 18%)' }}>
+          style={{ borderColor:'hsl(var(--card))', background:'hsl(var(--muted))' }}>
           {photo && !avatarErr ? (
             <img src={photo} alt={name} loading="eager" decoding="async" onError={() => setAvatarErr(true)}
               className="w-full h-full object-cover object-top" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-xl font-bold select-none" style={{ color:'hsl(43 74% 66%)' }}>{initials}</span>
+              <span className="text-xl font-bold select-none" style={{ color:'hsl(var(--primary-foreground))' }}>{initials}</span>
             </div>
           )}
         </div>
@@ -80,7 +80,7 @@ function TutorCard({ profile, courseCount, studentCount }) {
           {name}
         </p>
         {title && (
-          <p className="text-xs mt-0.5 font-medium" style={{ color:'hsl(43 74% 52%)' }}>{title}</p>
+          <p className="text-xs mt-0.5 font-medium" style={{ color:'hsl(var(--primary))' }}>{title}</p>
         )}
         {tagline && (
           <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">"{tagline}"</p>
@@ -173,9 +173,9 @@ export default function TutorsPage() {
       <div className="space-y-5">
 
         {/* Hero header */}
-        <div className="rounded-2xl p-6" style={{ background:'hsl(222 47% 14%)' }}>
+        <div className="rounded-2xl p-6" style={{ background:'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color:'hsl(43 74% 66%)' }} />
+            <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
             <span className="text-sm font-medium" style={{ color:'hsl(43 74% 66% / 0.8)' }}>Chibondo Academy</span>
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Our Tutors</h1>
