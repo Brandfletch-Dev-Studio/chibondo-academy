@@ -38,15 +38,21 @@ async function getPricingFromSupabase() {
 }
 
 export default async function handler(req, res) {
+  console.log('[create-payment] START method:', req.method);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { plan, user_id, email, first_name = 'Student', last_name = 'User', return_url } = req.body ?? {};
+  let body = req.body ?? {};
+  console.log('[create-payment] body:', JSON.stringify(body));
+  const { plan, user_id, email, first_name = 'Student', last_name = 'User', return_url } = body;
 
   if (!plan || !PLANS[plan]) return res.status(400).json({ error: `Invalid plan. Must be one of: ${Object.keys(PLANS).join(', ')}` });
   if (!email)                 return res.status(400).json({ error: 'email is required' });
 
+  console.log('[create-payment] plan:', plan, 'email:', email);
   // Use dynamic pricing if available
-  const pricing = await getPricingFromSupabase();
+  console.log('[create-payment] calling getPricingFromSupabase...');
+  const pricing = await getPricingFromSupabase().catch(e => { console.error('[pricing error]', e.message); return { monthly: 10000, annual: 80000, biannual: 150000 }; });
+  console.log('[create-payment] pricing:', JSON.stringify(pricing));
   const planCfg = { ...PLANS[plan], amount: pricing[plan] || PLANS[plan].amount };
 
   const tx_ref      = generateTxRef(user_id, plan);
@@ -54,6 +60,7 @@ export default async function handler(req, res) {
   const redirect_url = return_url || 'https://chibondoacademy.com/subscription';
 
   try {
+    console.log('[create-payment] calling paychangu api...');
     const r = await fetch('https://api.paychangu.com/payment', {
       method: 'POST',
       headers: {
@@ -83,6 +90,7 @@ export default async function handler(req, res) {
     });
 
     const data = await r.json();
+    console.log('[create-payment] paychangu response:', r.status, JSON.stringify(data).slice(0,200));
     if (!r.ok || data.status !== 'success') {
       console.error('Paychangu create error:', data);
       return res.status(502).json({ error: data.message || 'Paychangu error' });
