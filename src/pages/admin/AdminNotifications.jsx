@@ -122,13 +122,26 @@ function EmailCampaignTab({ forms, subjects, students }) {
 
       if (recipients.length === 0) { toast.error('No valid recipients found'); setSending(false); return; }
 
-      // Send via Base44 email
-      await db.integrations.Core.SendEmail({
-        to: recipients.map(r => r.email),
-        subject: subject_.trim(),
-        body: body.trim(),
-        from_name: 'Chibondo Academy',
+      // Send via Resend through Vercel serverless API
+      const emailRes = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to:        recipients.map(r => r.email),
+          subject:   subject_.trim(),
+          html:      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+                        <h2 style="color:#1a1a1a;margin-bottom:8px;">${subject_.trim()}</h2>
+                        <div style="color:#333;line-height:1.6;white-space:pre-wrap;">${body.trim()}</div>
+                        <hr style="border:none;border-top:1px solid #eee;margin:28px 0;" />
+                        <p style="color:#aaa;font-size:12px;margin:0;">
+                          Chibondo Academy &mdash; <a href="https://chibondoacademy.com" style="color:#aaa;">chibondoacademy.com</a>
+                        </p>
+                      </div>`,
+          from_name: 'Chibondo Academy',
+        }),
       });
+      const emailData = await emailRes.json().catch(() => ({}));
+      if (!emailRes.ok) throw new Error(emailData.error || 'Failed to send email');
 
       setHistory(h => [{ subject: subject_, audience, count: recipients.length, sent_at: new Date().toISOString() }, ...h.slice(0,9)]);
       toast.success(`Email sent to ${recipients.length} recipient${recipients.length !== 1 ? 's' : ''}!`);
