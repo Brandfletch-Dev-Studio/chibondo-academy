@@ -16,7 +16,7 @@ const TYPE_CONFIG = {
   exam_tips:  { label: 'Exam Tips',  icon: Lightbulb, color: 'bg-accent/15 text-accent-foreground border-accent/20', iconBg: 'bg-accent/15 text-accent-foreground' },
 };
 
-const GOLD = 'hsl(43 74% 52%)';
+const GOLD = 'hsl(var(--primary))';
 
 export default function LibraryPage() {
   const ctx = useOutletContext() ?? {};
@@ -174,7 +174,7 @@ export default function LibraryPage() {
                 {/* Category Header */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ background: 'hsl(43 74% 52% / 0.12)' }}>
+                    style={{ background: 'hsl(var(--primary) / 0.12)' }}>
                     {typeName === 'Book'       && <Book      className="w-4 h-4 text-blue-600" />}
                     {typeName === 'Past Paper' && <FileText  className="w-4 h-4 text-primary" />}
                     {typeName === 'Exam Tips'  && <Lightbulb className="w-4 h-4 text-yellow-600" />}
