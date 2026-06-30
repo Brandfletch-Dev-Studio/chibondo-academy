@@ -183,7 +183,7 @@ export default function AdminSubscriptions() {
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
-      toast.success(\`Access granted to \${count} student\${count > 1 ? 's' : ''} ✓\`);
+      toast.success(`Access granted to ${count} student${count > 1 ? 's' : ''} ✓`);
       setGrantOpen(false);
       setGrantStudentEmail('');
       setSelectedUserIds([]);
@@ -708,7 +708,7 @@ export default function AdminSubscriptions() {
           <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
             {[['single','Single Student'],['bulk','Bulk / All Students']].map(([m,label]) => (
               <button key={m} onClick={() => setGrantMode(m)}
-                className={\`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all \${grantMode === m ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}\`}>
+                className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all ${grantMode === m ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}>
                 {label}
               </button>
             ))}
@@ -768,7 +768,7 @@ export default function AdminSubscriptions() {
             <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
               {[['preset','Preset Plan'],['custom','Custom Days']].map(([t,label]) => (
                 <button key={t} onClick={() => setGrantDurationType(t)}
-                  className={\`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all \${grantDurationType === t ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}\`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-all ${grantDurationType === t ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}>
                   {label}
                 </button>
               ))}
@@ -809,7 +809,7 @@ export default function AdminSubscriptions() {
             {/* Summary */}
             <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs text-primary font-medium">
               {computeGrantDays()} day{computeGrantDays() !== 1 ? 's' : ''} access
-              {grantMode === 'bulk' && selectedUserIds.length > 0 ? \` → \${selectedUserIds.length} student\${selectedUserIds.length > 1 ? 's' : ''}\` : ''}
+              {grantMode === 'bulk' && selectedUserIds.length > 0 ? ` → ${selectedUserIds.length} student${selectedUserIds.length > 1 ? 's' : ''}` : ''}
             </div>
           </div>
 
@@ -1007,7 +1007,7 @@ export default function AdminSubscriptions() {
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
-      toast.success(\`Access granted to \${count} student\${count > 1 ? 's' : ''} ✓\`);
+      toast.success(`Access granted to ${count} student${count > 1 ? 's' : ''} ✓`);
       setGrantOpen(false);
       setGrantStudentEmail('');
       setSelectedUserIds([]);
