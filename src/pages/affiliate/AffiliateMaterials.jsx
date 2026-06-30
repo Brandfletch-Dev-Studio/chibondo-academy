@@ -143,15 +143,15 @@ export default function AffiliateMaterials() {
         <div className="flex gap-1.5 flex-wrap">
           <button onClick={() => setTypeFilter('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${typeFilter === 'all' ? 'text-[hsl(222_47%_11%)] font-bold' : 'bg-muted/50 text-muted-foreground'}`}
-            style={typeFilter === 'all' ? { background: 'hsl(43 74% 52%)' } : {}}>All</button>
+            style={typeFilter === 'all' ? { background: 'hsl(var(--primary))' } : {}}>All</button>
           {Object.entries(TYPE_CONFIG).map(([k, v]) => (
             <button key={k} onClick={() => setTypeFilter(k)}
               className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${typeFilter === k ? 'text-[hsl(222_47%_11%)] font-bold' : 'bg-muted/50 text-muted-foreground'}`}
-              style={typeFilter === k ? { background: 'hsl(43 74% 52%)' } : {}}>{v.label}</button>
+              style={typeFilter === k ? { background: 'hsl(var(--primary))' } : {}}>{v.label}</button>
           ))}
         </div>
         {isAdmin && (
-          <Button onClick={openNew} size="sm" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+          <Button onClick={openNew} size="sm" style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             <Plus className="w-4 h-4 mr-1.5" /> Add Material
           </Button>
         )}
@@ -226,7 +226,7 @@ export default function AffiliateMaterials() {
               </>
             )}
             <Button className="w-full" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}
-              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
               {saveMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : editing ? 'Update' : 'Add Material'}
             </Button>
           </div>
