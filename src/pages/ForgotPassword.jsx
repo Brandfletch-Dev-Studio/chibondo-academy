@@ -16,7 +16,8 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await db.auth.resetPasswordRequest(email);
+      const redirectTo = `${window.location.origin}/reset-password`;
+      await db.auth.resetPasswordRequest(email, redirectTo);
     } catch {
       // Always show success regardless
     } finally {
