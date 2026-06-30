@@ -172,7 +172,7 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
               <p className="text-xs text-muted-foreground">{form.is_premium ? 'Requires active subscription' : 'Available to all students'}</p>
             </div>
             <div className={`ml-auto w-10 h-5 rounded-full transition-colors flex-shrink-0 ${form.is_premium ? 'bg-accent' : 'bg-muted'}`}>
-              <div className={`w-4 h-4 rounded-full bg-white shadow mt-0.5 transition-transform ${form.is_premium ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <div className={`w-4 h-4 rounded-full bg-card shadow mt-0.5 transition-transform ${form.is_premium ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </div>
           </button>
         </div>
