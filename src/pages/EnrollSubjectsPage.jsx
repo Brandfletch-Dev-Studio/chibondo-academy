@@ -169,9 +169,9 @@ export default function EnrollSubjectsPage() {
       <div className="space-y-5 pb-32">
 
         {/* Header */}
-        <div className="rounded-2xl p-6" style={{ background: 'hsl(222 47% 14%)' }}>
+        <div className="rounded-2xl p-6" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color: 'hsl(43 74% 66%)' }} />
+            <GraduationCap className="w-5 h-5" style={{ color: 'hsl(var(--primary-foreground))' }} />
             <span className="text-sm" style={{ color: 'hsl(43 74% 66% / 0.8)' }}>
               {studentForm ? `Your subjects — ${studentForm}` : 'Choose your subjects'}
             </span>
@@ -180,7 +180,7 @@ export default function EnrollSubjectsPage() {
           <p className="text-sm text-white/70 mb-4">
             Tick all subjects you want to study. You'll be enrolled automatically.
             {studentForm === 'Form 4' && (
-              <span className="block mt-1 text-xs" style={{ color: 'hsl(43 74% 52%)' }}>
+              <span className="block mt-1 text-xs" style={{ color: 'hsl(var(--primary))' }}>
                 As a Form 4 student, you can enrol in both Form 3 and Form 4 subjects.
               </span>
             )}
@@ -284,7 +284,7 @@ export default function EnrollSubjectsPage() {
             </p>
             <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
-              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
               {saving ? 'Enrolling…' : 'Enrol Now'}
             </button>
