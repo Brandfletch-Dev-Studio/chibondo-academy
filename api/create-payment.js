@@ -56,8 +56,8 @@ export default async function handler(req, res) {
   const planCfg = { ...PLANS[plan], amount: pricing[plan] || PLANS[plan].amount };
 
   const tx_ref      = generateTxRef(user_id, plan);
-  const callback_url = redirect_url; // webhook callback = same as return URL for Paychangu
   const redirect_url = return_url || 'https://chibondoacademy.com/subscription';
+  const callback_url = redirect_url; // webhook callback = same as return URL for Paychangu
 
   try {
     console.log('[create-payment] calling paychangu api...');
