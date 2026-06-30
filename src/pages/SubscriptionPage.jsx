@@ -26,9 +26,13 @@ export default function SubscriptionPage() {
   const { data: pricingData, isLoading } = useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
-      const rows = await db.entities.PlatformSettings.filter({ key: 'pricing' });
-      const res = rows[0]?.value || null;
-      return res.data.pricing;
+      const rows = await db.entities.PlatformSettings.filter({ key: 'pricing' }).catch(() => []);
+      const val = rows?.[0]?.value;
+      // val may be the pricing object itself, or nested under .data.pricing
+      if (val?.monthly_price) return val;
+      if (val?.data?.pricing) return val.data.pricing;
+      if (val?.pricing)       return val.pricing;
+      return null; // use default prices from state
     },
   });
 
@@ -77,15 +81,15 @@ export default function SubscriptionPage() {
           body: JSON.stringify({ tx_ref: txRef, user_id: user?.id }),
         }).then(r => r.json()).catch(() => ({}))
         .then((res) => {
-          const d = res.data || {};
-          if (d.success) {
+          // API returns flat: { success, plan, ends_at } or { pending, status } or { failed }
+          if (res.success) {
             setVerifying(false);
             toast.success('🎉 Payment confirmed! You now have full access.');
             refetchSubscription();
-          } else if (d.failed) {
+          } else if (res.failed) {
             setVerifying(false);
             toast.error('Payment was not completed. Please try again.');
-          } else if (d.pending && attempts < maxAttempts) {
+          } else if (res.pending && attempts < maxAttempts) {
             // Still waiting for webhook — retry after 3s
             setTimeout(poll, 3000);
           } else {
