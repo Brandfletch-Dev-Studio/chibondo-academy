@@ -115,12 +115,7 @@ export default function AdminBlog() {
       const wasPublished = !editing && form.status === 'published';
       const justPublished = editing && editing.status !== 'published' && form.status === 'published';
       if (wasPublished || justPublished) {
-        /* notifyNewBlogPost removed — send via /api/send-email if needed */
-        /* db.functions.invoke was legacy Base44 — skip for now */ void ({
-          event: { type: editing ? 'update' : 'create' },
-          data: savedPost,
-          old_data: editing || null,
-        })).catch(() => {});
+        // blog publish notification removed
       }
     },
     onError: e => toast.error('Could not save post', { description: e.message }),
