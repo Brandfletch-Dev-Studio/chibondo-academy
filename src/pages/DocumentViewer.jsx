@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-const GOLD        = 'hsl(43 74% 52%)';
-const GOLD_BG     = 'hsl(43 74% 52% / 0.12)';
-const GOLD_BORDER = 'hsl(43 74% 52% / 0.3)';
+const GOLD        = 'hsl(var(--primary))';
+const GOLD_BG = 'hsl(var(--primary) / 0.12)';
+const GOLD_BORDER = 'hsl(var(--primary) / 0.3)';
 
 const TYPE_CONFIG = {
   past_paper:     { label: 'Past Paper',     color: 'bg-primary/10 text-primary border-primary/20' },
@@ -119,7 +119,7 @@ export default function DocumentViewer() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <Button onClick={() => navigate('/subscription')}
-            style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+            style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
             Upgrade to Premium
           </Button>
         </div>
@@ -201,7 +201,7 @@ export default function DocumentViewer() {
           {/* Download */}
           <a href={fileUrl} download target="_blank" rel="noopener noreferrer">
             <Button size="sm" className="gap-1.5 hidden sm:flex"
-              style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+              style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
               <Download className="w-3.5 h-3.5" />
               <span className="text-xs font-semibold">Download</span>
             </Button>
@@ -237,7 +237,7 @@ export default function DocumentViewer() {
               </a>
               <a href={fileUrl} download target="_blank" rel="noopener noreferrer">
                 <Button className="gap-2 w-full sm:w-auto"
-                  style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+                  style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
                   <Download className="w-4 h-4" /> Download File
                 </Button>
               </a>
@@ -277,7 +277,7 @@ export default function DocumentViewer() {
       <div className="sm:hidden flex-shrink-0 flex items-center gap-2 px-3 py-2 border-t border-border bg-card">
         <a href={fileUrl} download target="_blank" rel="noopener noreferrer" className="flex-1">
           <Button size="sm" className="w-full gap-2"
-            style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+            style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
             <Download className="w-4 h-4" /> Download
           </Button>
         </a>
