@@ -228,8 +228,8 @@ function StatCard({ title, value, icon: Icon, trend }) {
             <p className="text-2xl font-bold mt-1">{value}</p>
             <p className="text-xs text-muted-foreground mt-1">{trend}</p>
           </div>
-          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'hsl(222 20% 93%)' }}>
-            <Icon className="w-6 h-6" style={{ color: 'hsl(222 47% 18%)' }} />
+          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'hsl(var(--muted))' }}>
+            <Icon className="w-6 h-6" style={{ color: 'hsl(var(--muted))' }} />
           </div>
         </div>
       </CardContent>
