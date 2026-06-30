@@ -131,7 +131,7 @@ export default function TutorsDirectory() {
         ogImage="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg"
       />
 
-      <div className="min-h-screen" style={{ background: 'hsl(222 47% 8%)' }}>
+      <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
         {/* Header */}
         <div className="bg-gradient-to-br from-primary/20 to-transparent border-b border-border/30">
           <div className="max-w-6xl mx-auto px-4 py-12 sm:py-16">
