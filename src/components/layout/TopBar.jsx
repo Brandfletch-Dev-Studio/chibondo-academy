@@ -36,12 +36,12 @@ function PhotoViewer({ user, open, onClose }) {
             src={avatar}
             alt={user?.full_name}
             className="w-52 h-52 rounded-full object-cover border-4"
-            style={{ borderColor: 'hsl(43 74% 52%)' }}
+            style={{ borderColor: 'hsl(var(--primary))' }}
           />
         ) : (
           <div
             className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52%)' }}
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}
           >
             {initial}
           </div>
@@ -50,7 +50,7 @@ function PhotoViewer({ user, open, onClose }) {
         {/* Name + role */}
         <div className="text-center">
           <p className="text-white text-xl font-bold">{user?.full_name || 'User'}</p>
-          <p className="text-sm mt-0.5" style={{ color: 'hsl(43 74% 66%)' }}>{role}</p>
+          <p className="text-sm mt-0.5" style={{ color: 'hsl(var(--primary-foreground))' }}>{role}</p>
         </div>
 
         {/* Change photo CTA */}
@@ -58,7 +58,7 @@ function PhotoViewer({ user, open, onClose }) {
           <Button
             size="sm"
             className="gap-2 font-semibold"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}
           >
             <Camera className="w-3.5 h-3.5" /> Change Photo
           </Button>
@@ -75,7 +75,7 @@ function UserAvatar({ user, size = 8, onClick }) {
   const avatarUrl       = user?.avatar_url;
 
   const cls = `w-${size} h-${size} rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all border-2`;
-  const ringStyle = { borderColor: 'hsl(43 74% 52% / 0.5)', '--tw-ring-color': 'hsl(43 74% 52%)' };
+  const ringStyle = { borderColor: 'hsl(var(--primary) / 0.5)', '--tw-ring-color': 'hsl(var(--primary))' };
 
   return avatarUrl && !err ? (
     <img
@@ -89,7 +89,7 @@ function UserAvatar({ user, size = 8, onClick }) {
   ) : (
     <div
       className={`w-${size} h-${size} rounded-full flex items-center justify-center text-xs font-bold cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all border-2`}
-      style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)', borderColor: 'hsl(43 74% 52% / 0.5)' }}
+      style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary) / 0.5)' }}
       onClick={onClick}
     >
       {initial}
@@ -105,7 +105,7 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
     <>
       <header
         className="h-14 border-b flex items-center px-4 lg:px-6 sticky top-0 z-30"
-        style={{ background: 'hsl(222 47% 11%)', borderColor: 'hsl(222 40% 20%)' }}
+        style={{ background: 'hsl(var(--foreground))', borderColor: 'hsl(var(--muted))' }}
       >
         {isGuest ? (
           /* ── GUEST LAYOUT: Logo left · Login + Join Now right ── */
@@ -125,7 +125,7 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm" className="h-8 px-4 text-sm font-semibold" style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                <Button size="sm" className="h-8 px-4 text-sm font-semibold" style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                   Join Now
                 </Button>
               </Link>
