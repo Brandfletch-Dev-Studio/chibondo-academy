@@ -80,7 +80,11 @@ export default async function handler(req, res) {
 
     // ── Payment confirmed ─────────────────────────────────────────────────
     const meta    = pcData?.data?.meta || {};
-    const plan    = meta.plan || tx_ref.split('-')[1]?.toLowerCase() || 'monthly';
+    // tx_ref format: ACA-{PLAN_PREFIX}-{UID}-{TS}
+    // plan prefix is first 3 chars of plan name: MON=monthly, ANN=annual, BIA=biannual
+    const planPrefix = tx_ref.split('-')[1]?.toUpperCase();
+    const prefixMap  = { MON: 'monthly', ANN: 'annual', BIA: 'biannual' };
+    const plan    = meta.plan || prefixMap[planPrefix] || 'monthly';
     const months  = PLAN_MONTHS[plan] || 1;
     const amount  = pcData?.data?.amount || 0;
     const uid     = user_id || meta.user_id;
