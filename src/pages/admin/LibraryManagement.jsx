@@ -181,7 +181,7 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
       <div className="flex gap-3 pt-1">
         <Button variant="outline" onClick={onCancel} className="flex-1" disabled={isSaving}>Cancel</Button>
         <Button onClick={handleSubmit} disabled={isSaving || uploading} className="flex-1"
-          style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+          style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
           {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : resource ? 'Save Changes' : 'Add Resource'}
         </Button>
       </div>
@@ -198,7 +198,7 @@ function ResourceRow({ resource, onEdit, onDelete }) {
     <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group border-b border-border/50 last:border-b-0">
       {/* Icon */}
       <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0"
-        style={{ background:'hsl(222 47% 18% / 0.08)' }}>
+        style={{ background:'hsl(var(--muted) / 0.08)' }}>
         <FileText className="w-4 h-4 text-primary" />
       </div>
 
@@ -317,16 +317,16 @@ export default function LibraryManagement() {
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
-      <div className="rounded-2xl p-5" style={{ background:'hsl(222 47% 14%)' }}>
+      <div className="rounded-2xl p-5" style={{ background:'hsl(var(--card))' }}>
         <div className="flex items-center gap-2 mb-2">
-          <Library className="w-5 h-5" style={{ color:'hsl(43 74% 66%)' }} />
+          <Library className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
           <span className="text-sm font-medium" style={{ color:'hsl(43 74% 66% / 0.8)' }}>Admin</span>
         </div>
         <h1 className="text-xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Library Management</h1>
         <div className="flex gap-5">
           {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
             <div key={label}>
-              <p className="font-bold text-lg" style={{ color:'hsl(43 74% 66%)' }}>{val}</p>
+              <p className="font-bold text-lg" style={{ color:'hsl(var(--primary-foreground))' }}>{val}</p>
               <p className="text-[11px]" style={{ color:'hsl(43 20% 65%)' }}>{label} resources</p>
             </div>
           ))}
@@ -349,7 +349,7 @@ export default function LibraryManagement() {
           <Upload className="w-4 h-4" /> Bulk Upload
         </Button>
         <Button onClick={() => { setEdit(null); setShowForm(true); }} className="gap-2"
-          style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+          style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
           <Plus className="w-4 h-4" /> Add Resource
         </Button>
       </div>
@@ -374,7 +374,7 @@ export default function LibraryManagement() {
               activeTab === tab
                 ? 'text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'
             }`}
-            style={activeTab === tab ? { background:'hsl(222 47% 18%)' } : {}}>
+            style={activeTab === tab ? { background:'hsl(var(--muted))' } : {}}>
             {tab === 'all' ? `All (${resources.length})` : `${TYPE_META[tab].label} (${resources.filter(r=>r.type===tab).length})`}
           </button>
         ))}
