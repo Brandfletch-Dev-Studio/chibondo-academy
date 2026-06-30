@@ -313,8 +313,10 @@ const auth = {
     return data;
   },
 
-  async resetPasswordRequest(email) {
-    return authFetch('/recover', { email });
+  async resetPasswordRequest(email, redirectTo) {
+    const body = { email };
+    if (redirectTo) body.redirect_to = redirectTo;
+    return authFetch('/recover', body);
   },
 
   async resetPassword(newPasswordOrObj, accessToken) {
