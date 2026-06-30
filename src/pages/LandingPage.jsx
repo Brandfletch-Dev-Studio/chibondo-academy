@@ -208,7 +208,7 @@ export default function LandingPage() {
       <div className="space-y-10">
 
         {/* ── 1. HERO ───────────────────────────────────────────────────────── */}
-        <div className="relative rounded-2xl overflow-hidden" style={{ background: 'hsl(222 47% 14%)' }}>
+        <div className="relative rounded-2xl overflow-hidden" style={{ background: 'hsl(var(--card))' }}>
           {/* Subtle radial glow — same as SubscriptionPage hero */}
           <div className="absolute inset-0 pointer-events-none"
             style={{ backgroundImage: 'radial-gradient(ellipse at 10% 50%, hsl(43 74% 52% / 0.18) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
@@ -216,13 +216,13 @@ export default function LandingPage() {
           <div className="relative px-6 py-10 sm:px-10 sm:py-14">
             <div className="max-w-xl">
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-5"
-                style={{ background: 'hsl(43 74% 52% / 0.15)', color: 'hsl(43 74% 66%)' }}>
+                style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary-foreground))' }}>
                 <Zap className="w-3 h-3" /> Malawi's Online MSCE Platform
               </span>
 
               <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-tight text-white mb-4">
                 Study smarter.<br />
-                <span style={{ color: 'hsl(43 74% 66%)' }}>Pass your MSCE.</span>
+                <span style={{ color: 'hsl(var(--primary-foreground))' }}>Pass your MSCE.</span>
               </h1>
 
               <p className="text-white/65 text-sm leading-relaxed mb-8 max-w-md">
@@ -234,7 +234,7 @@ export default function LandingPage() {
                 <button
                   onClick={() => navigate('/register')}
                   className="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:brightness-110"
-                  style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                   Create Free Account
                 </button>
                 <button
@@ -251,7 +251,7 @@ export default function LandingPage() {
         <div>
           <h2 className="font-display font-bold text-base mb-1">About Chibondo Academy</h2>
           <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-4"
-            style={{ color: 'hsl(43 74% 52%)' }}>Discover ACA</p>
+            style={{ color: 'hsl(var(--primary))' }}>Discover ACA</p>
 
           <div className="bg-card rounded-2xl border border-border p-5 sm:p-6 space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -267,8 +267,8 @@ export default function LandingPage() {
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'hsl(43 74% 52% / 0.12)' }}>
-                    <Icon className="w-3.5 h-3.5" style={{ color: 'hsl(43 74% 52%)' }} />
+                    style={{ background: 'hsl(var(--primary) / 0.12)' }}>
+                    <Icon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
                   </div>
                   <span className="text-sm text-foreground/80">{text}</span>
                 </div>
@@ -283,7 +283,7 @@ export default function LandingPage() {
             <h2 className="font-display font-bold text-base">Learn Through Online Video</h2>
             <Link to="/subjects"
               className="flex items-center gap-1 text-xs font-semibold hover:text-accent transition-colors"
-              style={{ color: 'hsl(43 74% 52%)' }}>
+              style={{ color: 'hsl(var(--primary))' }}>
               All subjects <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -325,7 +325,7 @@ export default function LandingPage() {
             <h2 className="font-display font-bold text-base">Interact With Fellow Students</h2>
             <Link to="/forums"
               className="flex items-center gap-1 text-xs font-semibold hover:text-accent transition-colors"
-              style={{ color: 'hsl(43 74% 52%)' }}>
+              style={{ color: 'hsl(var(--primary))' }}>
               All forums <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -348,7 +348,7 @@ export default function LandingPage() {
             <button
               onClick={() => navigate('/register')}
               className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 hover:brightness-110 mt-1"
-              style={{ background: 'hsl(222 47% 18%)', color: 'hsl(43 74% 66%)' }}>
+              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
               Join the conversation
             </button>
           </div>
@@ -360,7 +360,7 @@ export default function LandingPage() {
             <h2 className="font-display font-bold text-base">Read and Learn More</h2>
             <Link to="/blog"
               className="flex items-center gap-1 text-xs font-semibold hover:text-accent transition-colors"
-              style={{ color: 'hsl(43 74% 52%)' }}>
+              style={{ color: 'hsl(var(--primary))' }}>
               All posts <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -384,7 +384,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   {post.category && (
-                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'hsl(43 74% 52%)' }}>{post.category}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'hsl(var(--primary))' }}>{post.category}</p>
                   )}
                   <p className={`font-semibold group-hover:text-accent transition-colors leading-snug ${i === 0 ? 'text-sm' : 'text-xs'} line-clamp-2`}>{post.title}</p>
                   <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
@@ -423,26 +423,26 @@ export default function LandingPage() {
               <p className="font-semibold text-sm">Free Trial</p>
               <p className="text-xs text-muted-foreground">Sample lessons, forum read access, blog articles</p>
             </div>
-            <span className="text-sm font-bold" style={{ color: 'hsl(43 74% 52%)' }}>Free</span>
+            <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>Free</span>
           </div>
 
           <div className="space-y-3">
             {plans.map(({ id, name, icon: Icon, price, period, popular, features }) => (
               <div key={id}
                 className={`rounded-xl border p-4 transition-all ${popular ? 'border-accent/50' : 'border-border bg-card'}`}
-                style={popular ? { background: 'hsl(43 74% 52% / 0.05)', borderColor: 'hsl(43 74% 52% / 0.5)' } : {}}>
+                style={popular ? { background: 'hsl(var(--primary) / 0.05)', borderColor: 'hsl(var(--primary) / 0.5)' } : {}}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: popular ? 'hsl(43 74% 52% / 0.15)' : 'hsl(var(--muted))' }}>
-                      <Icon className="w-4 h-4" style={{ color: popular ? 'hsl(43 74% 52%)' : 'hsl(var(--muted-foreground))' }} />
+                      style={{ background: popular ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted))' }}>
+                      <Icon className="w-4 h-4" style={{ color: popular ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-sm">{name}</p>
                         {popular && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>Popular</span>
+                            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>Popular</span>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">{period}</p>
@@ -450,7 +450,7 @@ export default function LandingPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-extrabold text-base font-display"
-                      style={popular ? { color: 'hsl(43 74% 66%)' } : {}}>
+                      style={popular ? { color: 'hsl(var(--primary-foreground))' } : {}}>
                       MWK {fmt(price)}
                     </p>
                   </div>
@@ -458,7 +458,7 @@ export default function LandingPage() {
                 <ul className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
                   {features.slice(0, 3).map(f => (
                     <li key={f} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(43 74% 52%)' }} />
+                      <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
                       {f}
                     </li>
                   ))}
@@ -473,11 +473,11 @@ export default function LandingPage() {
         </div>
 
         {/* ── 7. FINAL CTA ─────────────────────────────────────────────────── */}
-        <div className="rounded-2xl overflow-hidden relative" style={{ background: 'hsl(222 47% 14%)' }}>
+        <div className="rounded-2xl overflow-hidden relative" style={{ background: 'hsl(var(--card))' }}>
           <div className="absolute inset-0 pointer-events-none"
             style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(43 74% 52% / 0.15) 0%, transparent 60%)' }} />
           <div className="relative p-6 sm:p-8 text-center space-y-4">
-            <GraduationCap className="w-10 h-10 mx-auto" style={{ color: 'hsl(43 74% 52%)' }} />
+            <GraduationCap className="w-10 h-10 mx-auto" style={{ color: 'hsl(var(--primary))' }} />
             <h2 className="font-display font-extrabold text-xl text-white leading-snug">
               Your MSCE journey starts here.
             </h2>
@@ -488,7 +488,7 @@ export default function LandingPage() {
               <button
                 onClick={() => navigate('/register')}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:brightness-110"
-                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                 Create Free Account <ArrowRight className="inline w-4 h-4 ml-1" />
               </button>
               <button
