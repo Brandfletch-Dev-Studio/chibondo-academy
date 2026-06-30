@@ -195,7 +195,7 @@ export default function AdminSubscriptions() {
   });
 
   // Build lookup: prefer User record (has email), fall back to StudentProfile (has full_name)
-  const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+  const userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
   const profileMap = Object.fromEntries(studentProfiles.map(p => [p.user_id, p]));
   const enriched = subscriptions.map(s => {
     const userRec = userMap[s.student_id];
