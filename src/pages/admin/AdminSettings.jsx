@@ -313,7 +313,12 @@ function AcademyPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await db.functions.invoke('savePlatformSettings', { planKey: 'academy', value: form });
+      const _existingSettings_academy = await db.entities.PlatformSettings.filter({ key: 'academy' }).catch(() => []);
+      if (_existingSettings_academy?.length) {
+        await db.entities.PlatformSettings.update(_existingSettings_academy[0].id, { value: form });
+      } else {
+        await db.entities.PlatformSettings.create({ key: 'academy', value: form });
+      }
       toast.success('Academy info saved');
     } catch (e) {
       toast.error('Save failed: ' + (e.message || ''));
@@ -422,7 +427,12 @@ function PricingPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await db.functions.invoke('savePlatformSettings', { planKey: 'pricing', value: form });
+      const _existingSettings_pricing = await db.entities.PlatformSettings.filter({ key: 'pricing' }).catch(() => []);
+      if (_existingSettings_pricing?.length) {
+        await db.entities.PlatformSettings.update(_existingSettings_pricing[0].id, { value: form });
+      } else {
+        await db.entities.PlatformSettings.create({ key: 'pricing', value: form });
+      }
       toast.success('Pricing updated');
     } catch { toast.error('Save failed'); }
     finally { setSaving(false); }
@@ -842,7 +852,15 @@ function BackfillButton() {
   const run = async () => {
     setStatus('running');
     try {
-      const res = await db.functions.invoke('backfillStudentProfiles', {});
+      // Backfill: create StudentProfile for any user without one
+      const allUsers = await db.entities.User.list('-created_date', 2000);
+      const existingProfiles = await db.entities.StudentProfile.list('-created_date', 2000);
+      const profileUserIds = new Set(existingProfiles.map(p => p.user_id));
+      const missing = allUsers.filter(u => !profileUserIds.has(u.id) && u.role === 'user');
+      await Promise.all(missing.map(u => db.entities.StudentProfile.create({
+        user_id: u.id, bio: '', education_level: '', subjects_of_interest: [], avatar_url: '',
+      }).catch(() => {})));
+      const res = { created: missing.length, message: missing.length + ' profiles created' };
       setResult(res);
       setStatus('done');
     } catch (e) {
