@@ -136,7 +136,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute -top-10 right-0 p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute -top-10 right-0 p-2 rounded-full text-white/60 hover:text-white hover:bg-card/10 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -539,7 +539,7 @@ export default function SubjectForum() {
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Share forum */}
               <button onClick={() => handleShare()}
-                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-card/10 transition-colors">
                 <Share2 className="w-3.5 h-3.5" />
               </button>
 
@@ -547,7 +547,7 @@ export default function SubjectForum() {
               {isTeacherOrAdmin && (
                 <div className="relative">
                   <button onClick={() => setShowManageMenu(v => !v)}
-                    className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                    className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-card/10 transition-colors">
                     <Settings className="w-3.5 h-3.5" />
                   </button>
                   {showManageMenu && (
@@ -605,7 +605,7 @@ export default function SubjectForum() {
           <div className="mt-3">
             {hasJoined ? (
               <button onClick={() => leaveMut.mutate()} disabled={leaveMut.isPending}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 text-white/70 hover:bg-white/10 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 text-white/70 hover:bg-card/10 transition-colors">
                 <LogOut className="w-3 h-3" /> Leave Forum
               </button>
             ) : (
