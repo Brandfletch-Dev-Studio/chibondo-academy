@@ -45,7 +45,7 @@ function PostCard({ post, featured = false }) {
         <div className="aspect-[16/7] w-full overflow-hidden bg-muted">
           {post.cover_image
             ? <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-            : <div className="w-full h-full flex items-center justify-center" style={{background:'linear-gradient(135deg,hsl(222 47% 14%) 0%,hsl(43 74% 30%/0.4) 100%)'}}><Newspaper className="w-16 h-16 opacity-10" /></div>
+            : <div className="w-full h-full flex items-center justify-center" style={{background:'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)'}}><Newspaper className="w-16 h-16 opacity-10" /></div>
           }
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         </div>
@@ -76,7 +76,7 @@ function PostCard({ post, featured = false }) {
       <div className="aspect-video overflow-hidden bg-muted flex-shrink-0">
         {post.cover_image
           ? <img src={post.cover_image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-          : <div className="w-full h-full flex items-center justify-center" style={{background:'linear-gradient(135deg,hsl(222 47% 14%) 0%,hsl(43 74% 30%/0.3) 100%)'}}><Newspaper className="w-10 h-10 opacity-10" /></div>
+          : <div className="w-full h-full flex items-center justify-center" style={{background:'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)'}}><Newspaper className="w-10 h-10 opacity-10" /></div>
         }
       </div>
       <div className="p-4 flex flex-col flex-1">
@@ -251,7 +251,7 @@ export default function BlogPage() {
                   </>
                 ) : (
                   <>
-                    <Link to="/register"><Button style={{background:'hsl(43 74% 52%)',color:'hsl(222 47% 11%)'}}>Create Free Account</Button></Link>
+                    <Link to="/register"><Button style={{background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))'}}>Create Free Account</Button></Link>
                     <Link to="/login"><Button variant="outline">Log In</Button></Link>
                     <Link to="/subjects"><Button variant="ghost">Browse Courses</Button></Link>
                   </>
