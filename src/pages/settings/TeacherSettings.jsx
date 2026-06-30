@@ -388,7 +388,7 @@ export default function TeacherSettings() {
                           className="w-20 h-20 rounded-full object-cover border-2 border-border" />
                       ) : (
                         <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-border"
-                          style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                          style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                           {initial}
                         </div>
                       )}
