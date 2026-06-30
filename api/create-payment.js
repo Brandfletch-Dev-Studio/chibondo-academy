@@ -25,7 +25,9 @@ async function getPricingFromSupabase() {
       { headers: { apikey: SUPABASE_SRK, Authorization: `Bearer ${SUPABASE_SRK}` } }
     );
     const rows = await r.json();
-    const cfg  = rows?.[0]?.pricing_config || rows?.[0]?.pricing || null;
+    // pricing row has: { key: 'pricing', value: { monthly_price, annual_price, biannual_price } }
+    const pricingRow = rows?.find(r => r.key === 'pricing');
+    const cfg = pricingRow?.value;
     if (cfg?.monthly_price) return {
       monthly:  cfg.monthly_price  || 10000,
       annual:   cfg.annual_price   || 80000,
@@ -104,7 +106,7 @@ export default async function handler(req, res) {
           method:       'paychangu',
           reference:    tx_ref,
           status:       'pending',
-          plan,
+          description:  plan,  // store plan name in description (no 'plan' column)
           created_date: new Date().toISOString(),
           updated_date: new Date().toISOString(),
         }),
