@@ -95,7 +95,7 @@ export default function AdminSubscriptions() {
   // Also try getAdminUsers for email/role data (best-effort, may fail)
   const { data: adminUsersResult = {} } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: () => db.functions.invoke('getAdminUsers', {}).catch(() => ({ users: [] })),
+    queryFn: () => db.entities.User.list('-created_date', 2000).then(users => ({ users })).catch(() => ({ users: [] })),
     staleTime: 60_000,
   });
   const users = adminUsersResult.users || [];
