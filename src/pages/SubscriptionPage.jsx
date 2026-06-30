@@ -147,19 +147,15 @@ export default function SubscriptionPage() {
 
   const initiatePayment = useMutation({
     mutationFn: async (plan) => {
-      // Pass the exact return_url from the browser — the backend function MUST NOT
-      // use req.headers.get('origin') as Base44 proxies through api.db.com
-      const return_url = `${window.location.origin}/subscription?paid=1`;
+      // return_url — Paychangu appends tx_ref as query param on redirect
+      const return_url = `${window.location.origin}/subscription`;
       const res = await db.functions.invoke('createPayChanguSession', { plan, return_url });
+      if (!res?.data?.checkout_url) throw new Error('Could not get payment link');
       return res.data;
     },
     onSuccess: (data) => {
       setProcessing(false);
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
-        toast.error('Could not get payment link. Please try again.');
-      }
+      window.location.href = data.checkout_url;
     },
     onError: (error) => {
       toast.error(error.message || 'Payment failed. Please try again.');
@@ -168,6 +164,11 @@ export default function SubscriptionPage() {
   });
 
   const handlePlanSelect = (planId) => {
+    if (!user) {
+      toast.error('Please log in to subscribe');
+      navigate('/login');
+      return;
+    }
     setProcessing(true);
     initiatePayment.mutate(planId);
   };
