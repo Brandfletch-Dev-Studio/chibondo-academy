@@ -81,7 +81,7 @@ export default function AffiliatePayouts() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-2xl p-5 sm:col-span-1">
           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Available Balance</p>
-          <p className="text-3xl font-display font-bold" style={{ color: 'hsl(43 74% 52%)' }}>
+          <p className="text-3xl font-display font-bold" style={{ color: 'hsl(var(--primary))' }}>
             MWK {available.toLocaleString()}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
@@ -90,7 +90,7 @@ export default function AffiliatePayouts() {
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Total Earned</p>
-          <p className="text-xl font-bold" style={{ color: 'hsl(43 74% 52%)' }}>MWK {totalEarned.toLocaleString()}</p>
+          <p className="text-xl font-bold" style={{ color: 'hsl(var(--primary))' }}>MWK {totalEarned.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">{paidReferrals.length} paid referral{paidReferrals.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
@@ -123,7 +123,7 @@ export default function AffiliatePayouts() {
       ) : (
         <Button onClick={() => setDialog(true)} size="lg"
           className="w-full sm:w-auto"
-          style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+          style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
           <Wallet className="w-4 h-4 mr-2" />
           Request Withdrawal — MWK {available.toLocaleString()}
         </Button>
@@ -199,7 +199,7 @@ export default function AffiliatePayouts() {
               />
             </div>
             <Button className="w-full" onClick={() => requestMut.mutate()} disabled={requestMut.isPending}
-              style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
               {requestMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting…</> : 'Submit Request'}
             </Button>
           </div>
