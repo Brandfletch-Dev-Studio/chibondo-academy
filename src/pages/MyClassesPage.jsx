@@ -87,7 +87,7 @@ function ClassCard({ enrollment, subject }) {
               {resumeId && (
                 <Link to={`/lesson/${resumeId}`} className="flex-1">
                   <button className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-                    style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+                    style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
                     <PlayCircle className="w-3.5 h-3.5" />
                     {pct > 0 ? 'Continue' : 'Start'}
                   </button>
@@ -150,9 +150,9 @@ export default function MyClassesPage() {
       <div className="space-y-6">
 
         {/* Header */}
-        <div className="rounded-2xl p-5" style={{ background:'hsl(222 47% 14%)' }}>
+        <div className="rounded-2xl p-5" style={{ background:'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color:'hsl(43 74% 66%)' }} />
+            <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
             <span className="text-sm font-medium" style={{ color:'hsl(43 74% 66% / 0.8)' }}>Learning</span>
           </div>
           <h1 className="text-xl font-display font-bold" style={{ color:'hsl(43 20% 94%)' }}>My Classes</h1>
@@ -163,7 +163,7 @@ export default function MyClassesPage() {
               { label:'Completed', val: completed.length },
             ].map(({ label, val }) => (
               <div key={label}>
-                <p className="font-bold text-lg" style={{ color:'hsl(43 74% 66%)' }}>{val}</p>
+                <p className="font-bold text-lg" style={{ color:'hsl(var(--primary-foreground))' }}>{val}</p>
                 <p className="text-[11px]" style={{ color:'hsl(43 20% 65%)' }}>{label}</p>
               </div>
             ))}
@@ -177,7 +177,7 @@ export default function MyClassesPage() {
             <p className="text-sm text-muted-foreground/60">Browse subjects and click "Join Class" to get started</p>
             <Link to="/subjects">
               <button className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-                style={{ background:'hsl(222 47% 18%)', color:'hsl(43 74% 66%)' }}>
+                style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
                 Browse Subjects
               </button>
             </Link>
