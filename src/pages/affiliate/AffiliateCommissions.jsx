@@ -65,7 +65,7 @@ export default function AffiliateCommissions() {
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-xl font-display font-bold" style={{ color: 'hsl(43 74% 52%)' }}>MWK {totals.total.toLocaleString()}</p>
+          <p className="text-xl font-display font-bold" style={{ color: 'hsl(var(--primary))' }}>MWK {totals.total.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">Total Earned</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
@@ -84,7 +84,7 @@ export default function AffiliateCommissions() {
           {['all', 'pending', 'approved', 'paid', 'rejected'].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-all ${statusFilter === s ? 'font-bold' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-              style={statusFilter === s ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' } : {}}>
+              style={statusFilter === s ? { background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' } : {}}>
               {s === 'all' ? 'All' : STATUS_CONFIG[s]?.label || s}
             </button>
           ))}
@@ -129,7 +129,7 @@ export default function AffiliateCommissions() {
                   </div>
                   <p className="sm:col-span-3 text-xs text-muted-foreground self-center">{c.plan_name}</p>
                   <div className="sm:col-span-2 flex items-center justify-end">
-                    <span className="text-sm font-bold" style={{ color: 'hsl(43 74% 52%)' }}>
+                    <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>
                       {c.status === 'pending' ? '—' : `+MWK ${c.amount.toLocaleString()}`}
                     </span>
                   </div>
