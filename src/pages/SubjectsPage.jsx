@@ -99,7 +99,7 @@ export default function SubjectsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search subjects..."
-            className="pl-9 h-10 bg-white text-foreground border-0 shadow-sm"
+            className="pl-9 h-10 bg-card text-foreground border-0 shadow-sm"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -209,7 +209,7 @@ export default function SubjectsPage() {
 
                           {/* Bottom: play icon if enrolled */}
                           {isEnrolled && (
-                            <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                            <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-card/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-card/30 transition-colors">
                               <PlayCircle className="w-5 h-5 text-white" />
                             </div>
                           )}
