@@ -23,9 +23,9 @@ import { cn } from '@/lib/utils';
 import { appParams } from '@/lib/app-params';
 
 // ─── Gold accent helpers ──────────────────────────────────────────────────────
-const GOLD = 'hsl(43 74% 52%)';
-const GOLD_BG = 'hsl(43 74% 52% / 0.12)';
-const GOLD_BORDER = 'hsl(43 74% 52% / 0.3)';
+const GOLD = 'hsl(var(--primary))';
+const GOLD_BG = 'hsl(var(--primary) / 0.12)';
+const GOLD_BORDER = 'hsl(var(--primary) / 0.3)';
 
 // ─── Sidebar nav items ────────────────────────────────────────────────────────
 const NAV = [
@@ -72,7 +72,7 @@ function SaveButton({ onClick, loading, label = 'Save Changes' }) {
     <div className="flex justify-end pt-2">
       <Button onClick={onClick} disabled={loading}
         className="gap-2 px-6 font-semibold"
-        style={{ background: GOLD, color: 'hsl(222 47% 8%)', border: 'none' }}>
+        style={{ background: GOLD, color: 'hsl(var(--background))', border: 'none' }}>
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         {label}
       </Button>
@@ -221,7 +221,7 @@ function ProfilePanel({ user }) {
           <button onClick={() => avatarRef.current?.click()}
             disabled={uploading}
             className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl flex items-center justify-center shadow-lg border border-border transition-all hover:scale-105"
-            style={{ background: GOLD, color: 'hsl(222 47% 8%)' }}>
+            style={{ background: GOLD, color: 'hsl(var(--background))' }}>
             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
           </button>
           <input ref={avatarRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatar} />
@@ -580,7 +580,7 @@ function AffiliatePanel() {
           <button
             onClick={() => navigate('/admin/affiliates')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 8%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             <ExternalLink className="w-4 h-4" />
             Go to Affiliate Management
           </button>
@@ -947,7 +947,7 @@ export default function AdminSettings() {
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             {/* Mini profile in sidebar */}
             <div className="p-4 border-b border-border flex items-center gap-3"
-              style={{ background: 'hsl(222 47% 11%)' }}>
+              style={{ background: 'hsl(var(--foreground))' }}>
               <div className="w-9 h-9 rounded-xl overflow-hidden border border-[hsl(43_74%_52%_/_0.3)] flex-shrink-0">
                 {user?.avatar_url
                   ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
