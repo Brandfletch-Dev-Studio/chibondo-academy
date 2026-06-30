@@ -525,7 +525,7 @@ function MaterialsTab({ user }) {
             return (
               <button key={k} onClick={() => setTypeFilter(k)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${active ? 'font-bold' : 'bg-muted/50 text-muted-foreground'}`}
-                style={active ? { background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' } : {}}>
+                style={active ? { background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' } : {}}>
                 {label}
               </button>
             );
@@ -533,7 +533,7 @@ function MaterialsTab({ user }) {
         </div>
         {isAdmin && (
           <Button onClick={() => { setEditing(null); setForm({ title: '', description: '', type: 'banner', file_url: '', thumbnail_url: '', content: '' }); setDialog(true); }} size="sm"
-            style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
             <Plus className="w-4 h-4 mr-1.5" /> Add Material
           </Button>
         )}
@@ -650,7 +650,7 @@ function MaterialsTab({ user }) {
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialog(false)} className="flex-1">Cancel</Button>
               <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="flex-1"
-                style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
                 {saveMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : 'Save'}
               </Button>
             </div>
@@ -748,7 +748,7 @@ function ProfileTab({ user }) {
       </SectionBox>
 
       <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="w-full"
-        style={{ background: 'hsl(43 74% 52%)', color: 'hsl(222 47% 11%)' }}>
+        style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
         {saveMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : <><Save className="w-4 h-4 mr-2" />Save Profile</>}
       </Button>
     </div>
