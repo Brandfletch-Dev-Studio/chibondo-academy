@@ -67,8 +67,8 @@ function TutorCard({ profile, courseCount, studentCount }) {
             <img src={photo} alt={name} loading="eager" decoding="async" onError={() => setAvatarErr(true)}
               className="w-full h-full object-cover object-top" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-xl font-bold select-none" style={{ color:'hsl(var(--primary-foreground))' }}>{initials}</span>
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-accent">
+              <span className="text-xl font-bold text-primary-foreground select-none">{initials}</span>
             </div>
           )}
         </div>
@@ -175,7 +175,7 @@ export default function TutorsPage() {
         {/* Hero header */}
         <div className="rounded-2xl p-6" style={{ background:'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
+            <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary))' }} />
             <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Chibondo Academy</span>
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'hsl(var(--foreground))' }}>Our Tutors</h1>
