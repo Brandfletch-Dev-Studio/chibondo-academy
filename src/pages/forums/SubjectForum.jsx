@@ -118,7 +118,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
     : (name?.[0] || '?').toUpperCase();
   const roleLabel = role === 'teacher' ? 'Tutor' : role === 'admin' ? 'Admin' : 'Student';
   const roleStyle = role === 'teacher'
-    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
+    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(var(--primary))' }
     : role === 'admin'
     ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
     : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
@@ -148,7 +148,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
             style={{ borderColor: 'hsl(var(--primary))' }} />
         ) : (
           <div className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
-            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}>
+            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}>
             {initials}
           </div>
         )}
@@ -163,7 +163,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, tutorSlug }) {
         {tutorSlug && (
           <a href={`/tutors/${tutorSlug}`} onClick={onClose}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
             View Tutor Profile →
           </a>
         )}
@@ -573,7 +573,7 @@ export default function SubjectForum() {
               {/* Ask button */}
               <button onClick={() => setShowNew(v => !v)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold flex-shrink-0 active:scale-95 transition-transform"
-                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                 <Plus className="w-4 h-4" /> Ask
               </button>
             </div>
@@ -611,7 +611,7 @@ export default function SubjectForum() {
             ) : (
               <button onClick={() => joinMut.mutate()} disabled={joinMut.isPending}
                 className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
-                style={{ background:'hsl(var(--primary) / 0.2)', color:'hsl(var(--primary-foreground))', border:'1px solid hsl(43 74% 52% / 0.3)' }}>
+                style={{ background:'hsl(var(--primary) / 0.2)', color:'hsl(var(--primary-foreground))', border:'1px solid hsl(var(--primary))' }}>
                 <LogIn className="w-3 h-3" /> {joinMut.isPending ? 'Joining…' : 'Join Forum'}
               </button>
             )}
