@@ -251,7 +251,7 @@ export default function BlogPage() {
                   </>
                 ) : (
                   <>
-                    <Link to="/register"><Button style={{background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))'}}>Create Free Account</Button></Link>
+                    <Link to="/register"><Button style={{background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))'}}>Create Free Account</Button></Link>
                     <Link to="/login"><Button variant="outline">Log In</Button></Link>
                     <Link to="/subjects"><Button variant="ghost">Browse Courses</Button></Link>
                   </>
