@@ -522,7 +522,7 @@ export default function SubjectForum() {
         <div className="rounded-2xl p-5" style={{ background: 'hsl(var(--card))' }}>
           <button onClick={() => navigate('/forums')}
             className="flex items-center gap-1.5 text-xs font-medium mb-3 transition-colors"
-            style={{ color: 'hsl(43 74% 66% / 0.7)' }}>
+            style={{ color: 'hsl(var(--primary) / 0.7)' }}>
             <ArrowLeft className="w-3.5 h-3.5" /> Forums
           </button>
 
