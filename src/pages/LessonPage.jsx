@@ -192,7 +192,7 @@ function GuestVideoGate({ lesson }) {
           style={{ filter: 'blur(8px)', transform: 'scale(1.05)', opacity: 0.4 }}
         />
       ) : (
-        <div className="absolute inset-0" style={{ background: 'hsl(var(--background))' }} />
+        <div className="absolute inset-0" style={{ background: 'hsl(var(--sidebar-background))' }} />
       )}
       {/* Overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
@@ -627,7 +627,7 @@ export default function LessonPage() {
                         <div className="mt-4 rounded-xl p-5 text-center"
                           style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--primary))' }}>
                           <BookOpen className="w-8 h-8 mx-auto mb-2" style={{ color: 'hsl(var(--primary))' }} />
-                          <p className="text-sm font-semibold text-white mb-1">Sign in to read the full notes</p>
+                          <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Sign in to read the full notes</p>
                           <p className="text-xs mb-4" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to access all lesson notes and materials.</p>
                           <div className="flex gap-2 justify-center">
                             <a href="/register">
@@ -694,7 +694,7 @@ export default function LessonPage() {
                   border: '1px solid hsl(var(--primary))',
                 }}>
                 <div>
-                  <p className="font-semibold text-white text-sm">Ready to start learning?</p>
+                  <p className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Ready to start learning?</p>
                   <p className="text-xs mt-0.5" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to enrol and track your progress.</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
