@@ -16,7 +16,7 @@ const BRAND = {
   surface:  'hsl(222 47% 11%)',
   card:     'hsl(222 40% 14%)',
   border:   'hsl(222 40% 20%)',
-  gold:     'hsl(43 74% 52%)',
+  gold:     'hsl(var(--primary))',
   goldText: 'hsl(222 47% 11%)',
   text:     'hsl(210 40% 96%)',
   muted:    'hsl(210 20% 55%)',
@@ -245,7 +245,7 @@ function LibraryIllustration() {
       <rect x="26" y="90" width="10" height="34" rx="2" fill="#E53E3E" />
       <rect x="38" y="93" width="8" height="31" rx="2" fill="#3182CE" />
       <rect x="48" y="88" width="12" height="36" rx="2" fill="#38A169" />
-      <rect x="62" y="94" width="8" height="30" rx="2" fill="hsl(43 74% 52%)" />
+      <rect x="62" y="94" width="8" height="30" rx="2" fill="hsl(var(--primary))" />
       {/* Books middle shelf */}
       <rect x="26" y="136" width="8" height="32" rx="2" fill="#805AD5" />
       <rect x="36" y="133" width="12" height="35" rx="2" fill="#DD6B20" />
@@ -261,13 +261,13 @@ function LibraryIllustration() {
       <rect x="252" y="126" width="66" height="2" fill="hsl(222 40% 22%)" />
       <rect x="252" y="172" width="66" height="2" fill="hsl(222 40% 22%)" />
       <rect x="256" y="90" width="10" height="34" rx="2" fill="#38A169" />
-      <rect x="268" y="94" width="8" height="30" rx="2" fill="hsl(43 74% 52%)" />
+      <rect x="268" y="94" width="8" height="30" rx="2" fill="hsl(var(--primary))" />
       <rect x="278" y="88" width="12" height="36" rx="2" fill="#E53E3E" />
       <rect x="292" y="93" width="10" height="31" rx="2" fill="#3182CE" />
       <rect x="256" y="136" width="12" height="32" rx="2" fill="#DD6B20" />
       <rect x="270" y="133" width="8" height="35" rx="2" fill="#805AD5" />
       <rect x="280" y="138" width="10" height="30" rx="2" fill="#319795" />
-      <rect x="292" y="135" width="10" height="33" rx="2" fill="hsl(43 74% 52%)" />
+      <rect x="292" y="135" width="10" height="33" rx="2" fill="hsl(var(--primary))" />
       <rect x="256" y="182" width="8" height="32" rx="2" fill="#38A169" />
       <rect x="266" y="180" width="14" height="34" rx="2" fill="#3182CE" />
       <rect x="282" y="185" width="10" height="29" rx="2" fill="#E53E3E" />
@@ -280,7 +280,7 @@ function LibraryIllustration() {
       <ellipse cx="159" cy="221" rx="9" ry="5" fill="hsl(222 47% 14%)" />
       <ellipse cx="175" cy="221" rx="9" ry="5" fill="hsl(222 47% 14%)" />
       {/* Torso */}
-      <rect x="148" y="135" width="38" height="52" rx="10" fill="hsl(43 74% 52%)" />
+      <rect x="148" y="135" width="38" height="52" rx="10" fill="hsl(var(--primary))" />
       {/* Books in arm */}
       <rect x="183" y="152" width="32" height="22" rx="4" fill="#E53E3E" />
       <rect x="183" y="148" width="32" height="6" rx="3" fill="#C53030" />
@@ -305,7 +305,7 @@ function LibraryIllustration() {
       <rect x="216" y="104" width="80" height="22" rx="4" fill="#3182CE" />
       <text x="256" y="119" textAnchor="middle" fill="white" fontSize="10" fontFamily="sans-serif" fontWeight="600">Courses →</text>
       {/* Sign 2 — Tutors */}
-      <rect x="130" y="130" width="80" height="22" rx="4" fill="hsl(43 74% 52%)" />
+      <rect x="130" y="130" width="80" height="22" rx="4" fill="hsl(var(--primary))" />
       <text x="170" y="145" textAnchor="middle" fill="hsl(222 47% 11%)" fontSize="10" fontFamily="sans-serif" fontWeight="600">← Tutors</text>
       {/* Sign 3 — Library */}
       <rect x="216" y="156" width="80" height="22" rx="4" fill="#38A169" />
@@ -315,8 +315,8 @@ function LibraryIllustration() {
       <text x="170" y="197" textAnchor="middle" fill="white" fontSize="10" fontFamily="sans-serif" fontWeight="600">← Blog</text>
 
       {/* 404 floating badge */}
-      <rect x="110" y="28" width="120" height="42" rx="12" fill="hsl(222 40% 16%)" stroke="hsl(43 74% 52%)" strokeWidth="1.5" />
-      <text x="170" y="55" textAnchor="middle" fill="hsl(43 74% 52%)" fontSize="22" fontFamily="sans-serif" fontWeight="800" letterSpacing="-1">404</text>
+      <rect x="110" y="28" width="120" height="42" rx="12" fill="hsl(222 40% 16%)" stroke="hsl(var(--primary))" strokeWidth="1.5" />
+      <text x="170" y="55" textAnchor="middle" fill="hsl(var(--primary))" fontSize="22" fontFamily="sans-serif" fontWeight="800" letterSpacing="-1">404</text>
     </svg>
   );
 }
