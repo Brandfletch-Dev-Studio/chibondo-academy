@@ -198,7 +198,7 @@ function GuestVideoGate({ lesson }) {
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center"
           style={{ background: 'hsl(var(--muted))', border: '2px solid hsl(var(--primary))' }}>
-          <Lock className="w-7 h-7" style={{ color: 'hsl(var(--primary-foreground))' }} />
+          <Lock className="w-7 h-7" style={{ color: 'hsl(var(--primary))' }} />
         </div>
         <div>
           <p className="text-white font-semibold text-base mb-1">Create an account to watch this lesson</p>
