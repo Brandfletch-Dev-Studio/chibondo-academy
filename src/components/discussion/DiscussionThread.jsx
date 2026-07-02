@@ -26,7 +26,7 @@ function LessonQuote({ lessonTitle, lessonUrl }) {
       <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
       <span className="text-muted-foreground">From lesson:</span>
       {url ? (
-        <Link to={url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(43 74% 45%)' }}>
+        <Link to={url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(var(--primary))' }}>
           {title}
         </Link>
       ) : (
@@ -249,7 +249,7 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                   <BookOpen className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
                   <span className="text-muted-foreground">From lesson:</span>
                   {discussion.lesson_url ? (
-                    <a href={discussion.lesson_url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(43 74% 45%)' }}>
+                    <a href={discussion.lesson_url} className="font-semibold hover:underline truncate" style={{ color: 'hsl(var(--primary))' }}>
                       {discussion.lesson_title}
                     </a>
                   ) : (
