@@ -87,7 +87,7 @@ function ClassCard({ enrollment, subject }) {
               {resumeId && (
                 <Link to={`/lesson/${resumeId}`} className="flex-1">
                   <button className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-                    style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+                    style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                     <PlayCircle className="w-3.5 h-3.5" />
                     {pct > 0 ? 'Continue' : 'Start'}
                   </button>
@@ -163,7 +163,7 @@ export default function MyClassesPage() {
               { label:'Completed', val: completed.length },
             ].map(({ label, val }) => (
               <div key={label}>
-                <p className="font-bold text-lg" style={{ color:'hsl(var(--primary-foreground))' }}>{val}</p>
+                <p className="font-bold text-lg" style={{ color:'hsl(var(--foreground))' }}>{val}</p>
                 <p className="text-[11px]" style={{ color:'hsl(var(--muted-foreground))' }}>{label}</p>
               </div>
             ))}
@@ -177,7 +177,7 @@ export default function MyClassesPage() {
             <p className="text-sm text-muted-foreground/60">Browse subjects and click "Join Class" to get started</p>
             <Link to="/subjects">
               <button className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-                style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+                style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                 Browse Subjects
               </button>
             </Link>
