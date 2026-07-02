@@ -347,11 +347,11 @@ export default function SubjectDetail() {
             <div className="rounded-2xl p-5 text-center space-y-3"
               style={{
                 background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)',
-                border: '1px solid hsl(43 74% 52% / 0.3)',
+                border: '1px solid hsl(var(--primary))',
               }}>
               <Link to="/register" className="block">
                 <Button size="lg" className="w-full h-12 text-base font-semibold"
-                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                  style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                   Get Started
                 </Button>
               </Link>
