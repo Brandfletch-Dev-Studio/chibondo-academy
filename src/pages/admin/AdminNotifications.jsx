@@ -235,7 +235,7 @@ function EmailCampaignTab({ forms, subjects, students }) {
             </div>
 
             <Button onClick={handleSend} disabled={sending || !subject_.trim() || !body.trim()} className="w-full h-11 font-semibold"
-              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
               {sending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : <><Mail className="w-4 h-4 mr-2" />Send Email Campaign</>}
             </Button>
           </div>
@@ -550,7 +550,7 @@ export default function AdminNotifications() {
                     onClick={() => sendMutation.mutate()}
                     disabled={sendMutation.isPending || !title.trim() || !message.trim()}
                     className="w-full h-11 font-semibold"
-                    style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}
+                    style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
                   >
                     {sendMutation.isPending
                       ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
