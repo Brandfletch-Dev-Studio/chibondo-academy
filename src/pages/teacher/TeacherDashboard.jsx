@@ -48,32 +48,38 @@ export default function TeacherDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Welcome, {user?.full_name?.split(' ')[0]} 👋</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your subjects and track student progress</p>
+      {/* Hero header — matches the site-wide gradient hero style */}
+      <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <GraduationCap className="w-5 h-5" />
+              <span className="text-sm font-medium text-primary-foreground/80">Tutor Dashboard</span>
+            </div>
+            <h1 className="text-2xl font-display font-bold mb-1">Welcome, {user?.full_name?.split(' ')[0]} 👋</h1>
+            <p className="text-primary-foreground/70 text-sm">Manage your subjects and track student progress</p>
+          </div>
+          <Link to="/teacher/courses">
+            <Button size="sm" className="bg-card text-foreground hover:bg-card/90 shadow-sm">
+              <Plus className="w-4 h-4 mr-1" /> Manage Content
+            </Button>
+          </Link>
         </div>
-        <Link to="/teacher/courses">
-          <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Manage Content</Button>
-        </Link>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map(stat => (
-          <Card key={stat.label}>
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${stat.color}`}>
+        {/* Stats inline in the hero, same pattern as Forums/Subjects */}
+        <div className="flex gap-6 mt-5 flex-wrap">
+          {stats.map(stat => (
+            <div key={stat.label} className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-card/15 flex-shrink-0">
                 <stat.icon className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-xl font-bold font-display leading-none">{stat.value}</p>
+                <p className="text-[11px] text-primary-foreground/70 mt-1">{stat.label}</p>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
