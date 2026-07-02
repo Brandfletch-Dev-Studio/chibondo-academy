@@ -365,7 +365,7 @@ export default function SubjectDetail() {
           {user && !hasPaidFees && (
             <Link to="/subscription">
               <Button className="w-full h-12 text-base font-semibold" size="lg"
-                style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
                 Pay Fees to Unlock Access
               </Button>
             </Link>
@@ -378,7 +378,7 @@ export default function SubjectDetail() {
               size="lg"
               disabled={enrollMutation.isPending}
               onClick={() => enrollMutation.mutate()}
-              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
             >
               {enrollMutation.isPending ? (
                 <><span className="animate-spin mr-2">⏳</span>Joining…</>
@@ -394,7 +394,7 @@ export default function SubjectDetail() {
               to={`/lesson/${enrollment?.last_lesson_id || firstLesson.id}`}
             >
               <Button className="w-full h-12 text-base font-semibold" size="lg"
-                style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
                 <PlayCircle className="w-5 h-5 mr-2" />
                 {completedLessons.length > 0 ? 'Continue Learning' : 'Start Learning'}
               </Button>
