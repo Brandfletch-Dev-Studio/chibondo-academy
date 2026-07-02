@@ -107,27 +107,27 @@ export default function ForumsHome() {
             <MessageSquare className="w-5 h-5" style={{ color: 'hsl(var(--primary-foreground))' }} />
             <span className="text-sm font-medium" style={{ color: 'hsl(var(--primary) / 0.8)' }}>Academic Forums</span>
           </div>
-          <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'hsl(43 20% 94%)' }}>
+          <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
             Discussion Forums
           </h1>
-          <p className="text-sm mb-4" style={{ color: 'hsl(43 20% 70%)' }}>
+          <p className="text-sm mb-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Ask questions, get tutor answers, and help others — organised by subject
           </p>
           <div className="flex gap-4 mb-4 flex-wrap">
             <div className="text-center">
               <p className="font-bold text-lg" style={{ color: 'hsl(var(--primary-foreground))' }}>{subjects.length}</p>
-              <p className="text-[11px]" style={{ color: 'hsl(43 20% 65%)' }}>Subjects</p>
+              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Subjects</p>
             </div>
             <div className="text-center">
               <p className="font-bold text-lg" style={{ color: 'hsl(var(--primary-foreground))' }}>{totalThreads}</p>
-              <p className="text-[11px]" style={{ color: 'hsl(43 20% 65%)' }}>Discussions</p>
+              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Discussions</p>
             </div>
             <div className="text-center flex flex-col items-center gap-0.5">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 <p className="font-bold text-lg leading-none" style={{ color: 'hsl(var(--primary-foreground))' }}>{onlineCount}</p>
               </div>
-              <p className="text-[11px]" style={{ color: 'hsl(43 20% 65%)' }}>Online now</p>
+              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Online now</p>
             </div>
           </div>
           <div className="relative">
