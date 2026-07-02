@@ -211,7 +211,7 @@ export default function LandingPage() {
         <div className="relative rounded-2xl overflow-hidden" style={{ background: 'hsl(var(--card))' }}>
           {/* Subtle radial glow — same as SubscriptionPage hero */}
           <div className="absolute inset-0 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(ellipse at 10% 50%, hsl(43 74% 52% / 0.18) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
+            style={{ backgroundImage: 'radial-gradient(ellipse at 10% 50%, hsl(var(--primary)) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
 
           <div className="relative px-6 py-10 sm:px-10 sm:py-14">
             <div className="max-w-xl">
@@ -234,7 +234,7 @@ export default function LandingPage() {
                 <button
                   onClick={() => navigate('/register')}
                   className="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:brightness-110"
-                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                  style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                   Create Free Account
                 </button>
                 <button
@@ -442,7 +442,7 @@ export default function LandingPage() {
                         <p className="font-semibold text-sm">{name}</p>
                         {popular && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>Popular</span>
+                            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>Popular</span>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">{period}</p>
@@ -475,7 +475,7 @@ export default function LandingPage() {
         {/* ── 7. FINAL CTA ─────────────────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden relative" style={{ background: 'hsl(var(--card))' }}>
           <div className="absolute inset-0 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(43 74% 52% / 0.15) 0%, transparent 60%)' }} />
+            style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(var(--primary)) 0%, transparent 60%)' }} />
           <div className="relative p-6 sm:p-8 text-center space-y-4">
             <GraduationCap className="w-10 h-10 mx-auto" style={{ color: 'hsl(var(--primary))' }} />
             <h2 className="font-display font-extrabold text-xl text-white leading-snug">
@@ -488,7 +488,7 @@ export default function LandingPage() {
               <button
                 onClick={() => navigate('/register')}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 hover:brightness-110"
-                style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                 Create Free Account <ArrowRight className="inline w-4 h-4 ml-1" />
               </button>
               <button
