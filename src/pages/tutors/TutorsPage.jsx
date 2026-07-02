@@ -172,23 +172,23 @@ export default function TutorsPage() {
       <SEO title="Our Tutors | Chibondo Academy" description="Meet the expert tutors at Chibondo Academy" />
       <div className="space-y-5">
 
-        {/* Hero header */}
-        <div className="rounded-2xl p-6" style={{ background:'hsl(var(--card))' }}>
+        {/* Hero header — matches Subjects page style */}
+        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary))' }} />
-            <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Chibondo Academy</span>
+            <GraduationCap className="w-5 h-5" />
+            <span className="text-sm font-medium text-primary-foreground/80">Chibondo Academy</span>
           </div>
-          <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'hsl(var(--foreground))' }}>Our Tutors</h1>
-          <p className="text-sm mb-4" style={{ color:'hsl(var(--muted-foreground))' }}>
+          <h1 className="text-2xl font-display font-bold mb-1">Our Tutors</h1>
+          <p className="text-primary-foreground/70 text-sm mb-4">
             {visibleTeachers.length} expert {visibleTeachers.length === 1 ? 'tutor' : 'tutors'} ready to help you excel
           </p>
-          <div className="relative">
+          <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search tutors or subjects…"
-              className="pl-9 bg-card text-foreground border-0 shadow-sm"
+              className="pl-9 h-10 bg-card text-foreground border-0 shadow-sm"
             />
           </div>
         </div>
