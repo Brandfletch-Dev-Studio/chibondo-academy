@@ -89,7 +89,7 @@ export default function EnrollmentAnalytics() {
         <div className="rounded-2xl p-5" style={{background:'hsl(var(--card))'}}>
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 className="w-5 h-5" style={{color:'hsl(var(--primary-foreground))'}}/>
-            <span className="text-sm font-medium" style={{color:'hsl(43 74% 66% / 0.8)'}}>Admin</span>
+            <span className="text-sm font-medium" style={{color:'hsl(var(--primary) / 0.8)'}}>Admin</span>
           </div>
           <h1 className="text-xl font-display font-bold" style={{color:'hsl(43 20% 94%)'}}>Enrollment Analytics</h1>
           <p className="text-sm mt-1" style={{color:'hsl(43 20% 65%)'}}>Live — {enrollments.length} records · {subjects.length} courses</p>
