@@ -181,7 +181,7 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
       <div className="flex gap-3 pt-1">
         <Button variant="outline" onClick={onCancel} className="flex-1" disabled={isSaving}>Cancel</Button>
         <Button onClick={handleSubmit} disabled={isSaving || uploading} className="flex-1"
-          style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+          style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
           {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : resource ? 'Save Changes' : 'Add Resource'}
         </Button>
       </div>
@@ -326,7 +326,7 @@ export default function LibraryManagement() {
         <div className="flex gap-5">
           {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
             <div key={label}>
-              <p className="font-bold text-lg" style={{ color:'hsl(var(--primary-foreground))' }}>{val}</p>
+              <p className="font-bold text-lg" style={{ color:'hsl(var(--foreground))' }}>{val}</p>
               <p className="text-[11px]" style={{ color:'hsl(var(--muted-foreground))' }}>{label} resources</p>
             </div>
           ))}
@@ -349,7 +349,7 @@ export default function LibraryManagement() {
           <Upload className="w-4 h-4" /> Bulk Upload
         </Button>
         <Button onClick={() => { setEdit(null); setShowForm(true); }} className="gap-2"
-          style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+          style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
           <Plus className="w-4 h-4" /> Add Resource
         </Button>
       </div>
