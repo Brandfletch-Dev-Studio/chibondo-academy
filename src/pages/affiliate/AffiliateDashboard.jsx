@@ -120,7 +120,7 @@ export default function AffiliateDashboard() {
               {recurringEnabled && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))', border: '1px solid hsl(43 74% 52% / 0.25)' }}>
+                    style={{ background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary))' }}>
                     <RefreshCw className="w-3 h-3" /> Recurring
                   </span>
                   <span className="text-xs text-muted-foreground">{recurringRateDisplay}</span>
@@ -145,7 +145,7 @@ export default function AffiliateDashboard() {
                     onClick={() => saveCodeMut.mutate(draftCode)}
                     disabled={!draftCode.trim() || saveCodeMut.isPending}
                     className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                    style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                     <Save className="w-3.5 h-3.5" />
                   </button>
                   <button
@@ -186,7 +186,7 @@ export default function AffiliateDashboard() {
             </div>
             <Link to="/affiliate/links"
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+              style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
               Share Your Link <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
