@@ -76,7 +76,7 @@ function CourseCard({ subject }) {
         ) : (
           <div
             className="w-full h-32 flex items-center justify-center"
-            style={{ background: `${BRAND.gold}15` }}
+            style={{ background: `hsl(var(--primary))15` }}
           >
             <BookOpen className="w-10 h-10" style={{ color: BRAND.gold }} />
           </div>
@@ -119,7 +119,7 @@ function TutorCard({ tutor }) {
             src={tutor.profile_photo}
             alt={tutor.full_name}
             className="w-14 h-14 rounded-full object-cover flex-shrink-0 border-2"
-            style={{ borderColor: `${BRAND.gold}40` }}
+            style={{ borderColor: `hsl(var(--primary))40` }}
           />
         ) : (
           <div
@@ -140,7 +140,7 @@ function TutorCard({ tutor }) {
                 <span
                   key={i}
                   className="text-[10px] px-1.5 py-0.5 rounded-md"
-                  style={{ background: `${BRAND.gold}20`, color: BRAND.gold }}
+                  style={{ background: `hsl(var(--primary))20`, color: BRAND.gold }}
                 >
                   {s}
                 </span>
@@ -167,9 +167,9 @@ function BlogCard({ post }) {
         ) : (
           <div
             className="w-full h-28 flex items-center justify-center"
-            style={{ background: `${BRAND.gold}10` }}
+            style={{ background: `hsl(var(--primary))10` }}
           >
-            <Newspaper className="w-8 h-8" style={{ color: `${BRAND.gold}60` }} />
+            <Newspaper className="w-8 h-8" style={{ color: `hsl(var(--primary))60` }} />
           </div>
         )}
         <div className="p-3">
@@ -449,7 +449,7 @@ export default function PageNotFound() {
                 <span
                   className="text-[100px] sm:text-[140px] font-black leading-none tracking-tighter select-none"
                   style={{
-                    background: `linear-gradient(135deg, ${BRAND.gold} 0%, hsl(43 74% 70%) 100%)`,
+                    background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%)`,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
@@ -473,14 +473,14 @@ export default function PageNotFound() {
               {keywords.length > 0 && (
                 <div
                   className="inline-flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-xl border mb-6 text-sm"
-                  style={{ background: `${BRAND.gold}10`, borderColor: `${BRAND.gold}30`, color: BRAND.gold }}
+                  style={{ background: `hsl(var(--primary))10`, borderColor: `hsl(var(--primary))30`, color: BRAND.gold }}
                 >
                   <span className="font-medium">Looks like you were searching for:</span>
                   {keywords.map((kw, i) => (
                     <Badge
                       key={i}
                       className="text-[11px] cursor-pointer"
-                      style={{ background: `${BRAND.gold}25`, color: BRAND.gold, border: 'none' }}
+                      style={{ background: `hsl(var(--primary))25`, color: BRAND.gold, border: 'none' }}
                       onClick={() => setSearch(kw)}
                     >
                       {kw}
