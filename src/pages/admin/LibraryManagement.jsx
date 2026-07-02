@@ -320,7 +320,7 @@ export default function LibraryManagement() {
       <div className="rounded-2xl p-5" style={{ background:'hsl(var(--card))' }}>
         <div className="flex items-center gap-2 mb-2">
           <Library className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
-          <span className="text-sm font-medium" style={{ color:'hsl(43 74% 66% / 0.8)' }}>Admin</span>
+          <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Admin</span>
         </div>
         <h1 className="text-xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Library Management</h1>
         <div className="flex gap-5">
