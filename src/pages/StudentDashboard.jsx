@@ -47,7 +47,7 @@ function MiniClassCard({ enrollment }) {
         className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
         style={{ background: 'hsl(var(--muted))' }}
       >
-        <PlayCircle className="w-4 h-4" style={{ color: 'hsl(var(--primary-foreground))' }} />
+        <PlayCircle className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
       </button>
     </div>
   );
