@@ -208,7 +208,7 @@ export default function LandingPage() {
       <div className="space-y-10">
 
         {/* ── 1. HERO ───────────────────────────────────────────────────────── */}
-        <div className="relative rounded-2xl overflow-hidden" style={{ background: 'hsl(var(--card))' }}>
+        <div className="relative rounded-2xl overflow-hidden" style={{ background: 'hsl(var(--sidebar-background))' }}>
           {/* Subtle radial glow — same as SubscriptionPage hero */}
           <div className="absolute inset-0 pointer-events-none"
             style={{ backgroundImage: 'radial-gradient(ellipse at 10% 50%, hsl(var(--primary)) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
@@ -473,7 +473,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── 7. FINAL CTA ─────────────────────────────────────────────────── */}
-        <div className="rounded-2xl overflow-hidden relative" style={{ background: 'hsl(var(--card))' }}>
+        <div className="rounded-2xl overflow-hidden relative" style={{ background: 'hsl(var(--sidebar-background))' }}>
           <div className="absolute inset-0 pointer-events-none"
             style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(var(--primary)) 0%, transparent 60%)' }} />
           <div className="relative p-6 sm:p-8 text-center space-y-4">
