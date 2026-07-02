@@ -214,7 +214,7 @@ export default function SubscriptionPage() {
       {/* ── Branded Hero ── */}
       <div className="rounded-2xl overflow-hidden relative" style={{ background:'hsl(var(--card))' }}>
         <div className="absolute inset-0 pointer-events-none"
-          style={{ backgroundImage:'radial-gradient(ellipse at 10% 50%, hsl(var(--primary)) 0%, transparent 55%), radial-gradient(ellipse at 90% 10%, hsl(222 47% 55% / 0.15) 0%, transparent 50%)' }} />
+          style={{ backgroundImage:'radial-gradient(ellipse at 10% 20%, hsl(var(--primary) / 0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, hsl(222 47% 55% / 0.10) 0%, transparent 50%)' }} />
         <div className="relative px-6 pt-8 pb-7 text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-1"
             style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary))' }}>
