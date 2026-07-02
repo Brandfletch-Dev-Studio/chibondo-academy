@@ -348,7 +348,7 @@ export default function LandingPage() {
             <button
               onClick={() => navigate('/register')}
               className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 hover:brightness-110 mt-1"
-              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--primary-foreground))' }}>
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
               Join the conversation
             </button>
           </div>
