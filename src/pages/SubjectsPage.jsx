@@ -36,22 +36,15 @@ export default function SubjectsPage() {
     queryFn: () => db.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000),
   });
 
-  // Fetch all enrollments to count students per subject
-  const { data: allEnrollments = [] } = useQuery({
-    queryKey: ['allEnrollmentsCounts'],
-    queryFn: () => db.entities.Enrollment.list('created_date', 2000),
-  });
-
   // Build maps
   const lessonCountBySubject = {};
   allLessons.forEach(l => {
     lessonCountBySubject[l.subject_id] = (lessonCountBySubject[l.subject_id] || 0) + 1;
   });
 
-  const studentCountBySubject = {};
-  allEnrollments.forEach(e => {
-    studentCountBySubject[e.subject_id] = (studentCountBySubject[e.subject_id] || 0) + 1;
-  });
+  // Student counts come straight from the public subjects.enrollment_count column
+  // (bulk-reading the enrollments table is RLS-restricted to each user's own rows,
+  // which was silently showing 0 students for guests and other students).
 
   const enrollmentMap = {};
   enrollments.forEach(e => { enrollmentMap[e.subject_id] = e; });
@@ -165,7 +158,7 @@ export default function SubjectsPage() {
                     const isPremium = subject.is_premium;
                     const isEnrolled = !!enrollment;
                     const lessonCount = lessonCountBySubject[subject.id] || 0;
-                    const studentCount = studentCountBySubject[subject.id] || 0;
+                    const studentCount = subject.enrollment_count || 0;
                     const progressPct = enrollment?.progress_percentage || 0;
 
                     return (
