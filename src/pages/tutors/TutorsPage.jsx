@@ -52,7 +52,7 @@ function TutorCard({ profile, courseCount, studentCount }) {
         {years > 0 && (
           <div className="absolute top-2.5 right-2.5">
             <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary))', border:'1px solid hsl(43 74% 52% / 0.3)', backdropFilter:'blur(4px)' }}>
+              style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary))', border:'1px solid hsl(var(--primary))', backdropFilter:'blur(4px)' }}>
               <Clock className="w-2.5 h-2.5" />{years}yr
             </span>
           </div>
