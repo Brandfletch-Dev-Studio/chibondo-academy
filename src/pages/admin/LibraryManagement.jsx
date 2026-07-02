@@ -322,12 +322,12 @@ export default function LibraryManagement() {
           <Library className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
           <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Admin</span>
         </div>
-        <h1 className="text-xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Library Management</h1>
+        <h1 className="text-xl font-display font-bold mb-1" style={{ color:'hsl(var(--foreground))' }}>Library Management</h1>
         <div className="flex gap-5">
           {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
             <div key={label}>
               <p className="font-bold text-lg" style={{ color:'hsl(var(--primary-foreground))' }}>{val}</p>
-              <p className="text-[11px]" style={{ color:'hsl(43 20% 65%)' }}>{label} resources</p>
+              <p className="text-[11px]" style={{ color:'hsl(var(--muted-foreground))' }}>{label} resources</p>
             </div>
           ))}
         </div>
