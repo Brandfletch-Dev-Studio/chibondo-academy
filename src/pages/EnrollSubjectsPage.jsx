@@ -171,7 +171,7 @@ export default function EnrollSubjectsPage() {
         {/* Header */}
         <div className="rounded-2xl p-6" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color: 'hsl(var(--primary-foreground))' }} />
+            <GraduationCap className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
             <span className="text-sm" style={{ color: 'hsl(var(--primary) / 0.8)' }}>
               {studentForm ? `Your subjects — ${studentForm}` : 'Choose your subjects'}
             </span>
