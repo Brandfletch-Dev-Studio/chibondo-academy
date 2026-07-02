@@ -178,8 +178,8 @@ export default function TutorsPage() {
             <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
             <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Chibondo Academy</span>
           </div>
-          <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'hsl(43 20% 94%)' }}>Our Tutors</h1>
-          <p className="text-sm mb-4" style={{ color:'hsl(43 20% 65%)' }}>
+          <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'hsl(var(--foreground))' }}>Our Tutors</h1>
+          <p className="text-sm mb-4" style={{ color:'hsl(var(--muted-foreground))' }}>
             {visibleTeachers.length} expert {visibleTeachers.length === 1 ? 'tutor' : 'tutors'} ready to help you excel
           </p>
           <div className="relative">
