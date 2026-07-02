@@ -153,7 +153,7 @@ export default function MyClassesPage() {
         <div className="rounded-2xl p-5" style={{ background:'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
             <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
-            <span className="text-sm font-medium" style={{ color:'hsl(43 74% 66% / 0.8)' }}>Learning</span>
+            <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Learning</span>
           </div>
           <h1 className="text-xl font-display font-bold" style={{ color:'hsl(43 20% 94%)' }}>My Classes</h1>
           <div className="flex gap-5 mt-3">
