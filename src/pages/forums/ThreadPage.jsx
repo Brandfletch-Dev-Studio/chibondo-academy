@@ -22,7 +22,7 @@ function LessonQuote({ lessonTitle, lessonUrl }) {
       <BookOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(var(--primary))' }} />
       <span className="text-muted-foreground">From lesson:</span>
       {lessonUrl ? (
-        <Link to={lessonUrl} className="font-semibold hover:underline truncate max-w-[200px]" style={{ color: 'hsl(43 74% 45%)' }}>
+        <Link to={lessonUrl} className="font-semibold hover:underline truncate max-w-[200px]" style={{ color: 'hsl(var(--primary))' }}>
           {lessonTitle}
         </Link>
       ) : (
