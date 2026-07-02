@@ -19,7 +19,7 @@ export default function GuestCTA({ compact = false, message }) {
     return (
       <div className="rounded-xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 mt-6"
         style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--primary))' }}>
-        <p className="text-sm text-center sm:text-left" style={{ color: 'hsl(43 74% 75%)' }}>
+        <p className="text-sm text-center sm:text-left" style={{ color: 'hsl(var(--primary))' }}>
           <Sparkles className="inline w-4 h-4 mr-1.5" style={{ color: 'hsl(var(--primary))' }} />
           {message || 'Create a free account to unlock this and much more.'}
         </p>
