@@ -103,7 +103,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
   const isTeacher = role === 'teacher' || role === 'admin';
 
   const roleStyle = isTeacher
-    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(43 74% 52% / 0.3)' }
+    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(var(--primary))' }
     : role === 'admin'
     ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
     : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
@@ -145,7 +145,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
         {tutorSlug && (
           <a href={`/tutors/${tutorSlug}`} onClick={onClose}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
             View Tutor Profile →
           </a>
         )}
@@ -585,7 +585,7 @@ export default function ThreadPage() {
           <div className="flex items-center gap-2 flex-wrap mb-3">
             {thread.is_pinned && (
               <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background:'hsl(var(--primary) / 0.12)', color:'hsl(var(--primary))', border:'1px solid hsl(43 74% 52% / 0.25)' }}>
+                style={{ background:'hsl(var(--primary) / 0.12)', color:'hsl(var(--primary))', border:'1px solid hsl(var(--primary))' }}>
                 <Pin className="w-2.5 h-2.5" /> Pinned
               </span>
             )}
@@ -746,7 +746,7 @@ export default function ThreadPage() {
               </a>
               <a href="/register">
                 <button className="h-8 px-4 text-sm font-semibold rounded-full transition-colors"
-                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                  style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                   Join Now
                 </button>
               </a>
