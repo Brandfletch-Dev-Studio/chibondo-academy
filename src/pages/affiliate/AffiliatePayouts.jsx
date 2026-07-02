@@ -123,7 +123,7 @@ export default function AffiliatePayouts() {
       ) : (
         <Button onClick={() => setDialog(true)} size="lg"
           className="w-full sm:w-auto"
-          style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+          style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
           <Wallet className="w-4 h-4 mr-2" />
           Request Withdrawal — MWK {available.toLocaleString()}
         </Button>
@@ -199,7 +199,7 @@ export default function AffiliatePayouts() {
               />
             </div>
             <Button className="w-full" onClick={() => requestMut.mutate()} disabled={requestMut.isPending}
-              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+              style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
               {requestMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting…</> : 'Submit Request'}
             </Button>
           </div>
