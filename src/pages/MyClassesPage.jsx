@@ -155,7 +155,7 @@ export default function MyClassesPage() {
             <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary-foreground))' }} />
             <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Learning</span>
           </div>
-          <h1 className="text-xl font-display font-bold" style={{ color:'hsl(43 20% 94%)' }}>My Classes</h1>
+          <h1 className="text-xl font-display font-bold" style={{ color:'hsl(var(--foreground))' }}>My Classes</h1>
           <div className="flex gap-5 mt-3">
             {[
               { label:'Enrolled', val: enrollments.length },
@@ -164,7 +164,7 @@ export default function MyClassesPage() {
             ].map(({ label, val }) => (
               <div key={label}>
                 <p className="font-bold text-lg" style={{ color:'hsl(var(--primary-foreground))' }}>{val}</p>
-                <p className="text-[11px]" style={{ color:'hsl(43 20% 65%)' }}>{label}</p>
+                <p className="text-[11px]" style={{ color:'hsl(var(--muted-foreground))' }}>{label}</p>
               </div>
             ))}
           </div>
