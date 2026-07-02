@@ -44,7 +44,7 @@ function Avi({ name = '?', role, avatarUrl, size = 8, onClick }) {
   const [err, setErr] = useState(false);
   const styles = {
     admin:   { background: 'hsl(0 72% 51% / 0.18)',   color: 'hsl(0 72% 36%)' },
-    teacher: { background: 'hsl(var(--primary) / 0.2)',   color: 'hsl(38 60% 32%)' },
+    teacher: { background: 'hsl(var(--primary) / 0.2)',   color: 'hsl(var(--primary))' },
     student: { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
     user:    { background: 'hsl(222 47% 55% / 0.18)', color: 'hsl(222 47% 30%)' },
   };
@@ -103,7 +103,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
   const isTeacher = role === 'teacher' || role === 'admin';
 
   const roleStyle = isTeacher
-    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(var(--primary))' }
+    ? { background: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary))' }
     : role === 'admin'
     ? { background: 'hsl(0 72% 51% / 0.12)', color: 'hsl(0 72% 40%)', border: '1px solid hsl(0 72% 51% / 0.25)' }
     : { background: 'hsl(222 47% 55% / 0.12)', color: 'hsl(222 47% 65%)', border: '1px solid hsl(222 47% 55% / 0.25)' };
@@ -157,7 +157,7 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
 function RoleBadge({ role, isTutor }) {
   if (isTutor || role === 'teacher')
     return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border"
-      style={{ background:'hsl(var(--primary) / 0.12)', color:'hsl(38 60% 32%)', borderColor:'hsl(var(--primary) / 0.3)' }}>Teacher</span>;
+      style={{ background:'hsl(var(--primary) / 0.12)', color:'hsl(var(--primary))', borderColor:'hsl(var(--primary) / 0.3)' }}>Teacher</span>;
   if (role === 'admin')
     return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 border border-red-200">Admin</span>;
   return null; // students don't need a badge — they're the majority
