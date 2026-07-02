@@ -105,7 +105,7 @@ export default function ForumsHome() {
         <div className="rounded-2xl p-6 text-primary-foreground" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="w-5 h-5" style={{ color: 'hsl(var(--primary-foreground))' }} />
-            <span className="text-sm font-medium" style={{ color: 'hsl(43 74% 66% / 0.8)' }}>Academic Forums</span>
+            <span className="text-sm font-medium" style={{ color: 'hsl(var(--primary) / 0.8)' }}>Academic Forums</span>
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'hsl(43 20% 94%)' }}>
             Discussion Forums
