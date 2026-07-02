@@ -497,7 +497,7 @@ export default function ThreadPage() {
         <p className="font-semibold">Thread not found</p>
         <button onClick={() => navigate(`/forums/${subjectSlug}`)}
           className="px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+          style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
           ← Back to Forum
         </button>
       </div>
@@ -777,7 +777,7 @@ export default function ThreadPage() {
             >
               {postMut.isPending
                 ? <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                : <Send className="w-4 h-4" style={{ color: 'hsl(var(--primary-foreground))' }} />
+                : <Send className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
               }
             </button>
           </div>
