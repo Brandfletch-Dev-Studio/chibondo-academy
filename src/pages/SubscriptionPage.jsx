@@ -211,26 +211,21 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {/* ── Branded Hero ── */}
-      <div className="rounded-2xl overflow-hidden relative" style={{ background:'hsl(var(--card))' }}>
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ backgroundImage:'radial-gradient(ellipse at 10% 20%, hsl(var(--primary) / 0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, hsl(222 47% 55% / 0.10) 0%, transparent 50%)' }} />
-        <div className="relative px-6 pt-8 pb-7 text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-1"
-            style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary))' }}>
-            <GraduationCap className="w-3.5 h-3.5" /> Chibondo Academy
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold" style={{ color:'hsl(var(--foreground))' }}>School Fees</h1>
-          <p className="text-sm max-w-md mx-auto" style={{ color:'hsl(var(--muted-foreground))' }}>
-            Unlock full access to every lesson, quiz, past paper, and learning resource across all your subjects
-          </p>
-          <div className="flex flex-wrap justify-center gap-5 pt-2">
-            {[{ icon: BookOpen, text: 'All Subjects' },{ icon: Users, text: '259+ Lessons' },{ icon: Award, text: 'Past Papers' }].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-1.5 text-xs" style={{ color:'hsl(var(--muted-foreground))' }}>
-                <Icon className="w-3.5 h-3.5" style={{ color:'hsl(var(--primary))' }} />{text}
-              </div>
-            ))}
-          </div>
+      {/* ── Branded Hero — matches Subjects page style ── */}
+      <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-center text-primary-foreground">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-3 bg-primary-foreground/15">
+          <GraduationCap className="w-3.5 h-3.5" /> Chibondo Academy
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold mb-1">School Fees</h1>
+        <p className="text-primary-foreground/70 text-sm max-w-md mx-auto">
+          Unlock full access to every lesson, quiz, past paper, and learning resource across all your subjects
+        </p>
+        <div className="flex flex-wrap justify-center gap-5 pt-4">
+          {[{ icon: BookOpen, text: 'All Subjects' },{ icon: Users, text: '259+ Lessons' },{ icon: Award, text: 'Past Papers' }].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-1.5 text-xs text-primary-foreground/80">
+              <Icon className="w-3.5 h-3.5" />{text}
+            </div>
+          ))}
         </div>
       </div>
 
