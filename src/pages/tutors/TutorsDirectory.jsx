@@ -17,24 +17,26 @@ function TutorCard({ tutor, subjectCount }) {
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-200 group flex flex-col">
       {/* Photo */}
-      <div className="relative h-48 w-full bg-gradient-to-br from-primary/20 to-accent/10 flex-shrink-0">
+      <div className="relative h-48 w-full flex-shrink-0 overflow-hidden">
         {tutor.profile_photo ? (
-          <img
-            src={tutor.profile_photo}
-            alt={tutor.full_name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          <>
+            <img
+              src={tutor.profile_photo}
+              alt={tutor.full_name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary">{tutor.full_name?.[0]}</span>
-            </div>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-accent">
+            <span className="text-5xl font-display font-bold text-primary-foreground/90">
+              {tutor.full_name?.[0]?.toUpperCase()}
+            </span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         {tutor.years_teaching > 0 && (
           <div className="absolute top-3 right-3">
-            <span className="text-[10px] text-white/90 font-medium bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-white font-medium bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full">
               {tutor.years_teaching}+ yrs exp
             </span>
           </div>
