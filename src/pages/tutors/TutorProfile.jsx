@@ -239,7 +239,7 @@ export default function TutorProfilePage() {
             <div className="w-full h-48"
               style={{ background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }}>
               <div className="absolute inset-0"
-                style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(43 74% 52% / 0.15) 0%, transparent 60%)' }} />
+                style={{ backgroundImage: 'radial-gradient(ellipse at 80% 50%, hsl(var(--primary)) 0%, transparent 60%)' }} />
             </div>
           )}
           {/* Dark overlay at bottom for readability */}
@@ -455,7 +455,7 @@ export default function TutorProfilePage() {
                 <button
                   onClick={() => navigate(isAuthenticated ? '/subscription' : '/register')}
                   className="w-full py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                  style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                  style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                   {isAuthenticated ? 'View Plans' : 'Get Started'}
                 </button>
               </div>
