@@ -25,7 +25,7 @@ function StickyCTA({ isAuthenticated, isSubscribed, navigate }) {
       <button
         onClick={() => navigate(isAuthenticated ? '/subscription' : '/register')}
         className="w-full py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all"
-        style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}
+        style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}
       >
         Start Learning
       </button>
@@ -205,7 +205,7 @@ export default function TutorProfilePage() {
       <p className="font-bold text-lg">Tutor not found</p>
       <button onClick={() => navigate('/tutors')}
         className="px-5 py-2.5 rounded-xl text-sm font-bold"
-        style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+        style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
         ← View All Tutors
       </button>
     </div>
