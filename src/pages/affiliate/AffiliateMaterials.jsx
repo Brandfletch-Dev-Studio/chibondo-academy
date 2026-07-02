@@ -151,7 +151,7 @@ export default function AffiliateMaterials() {
           ))}
         </div>
         {isAdmin && (
-          <Button onClick={openNew} size="sm" style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+          <Button onClick={openNew} size="sm" style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
             <Plus className="w-4 h-4 mr-1.5" /> Add Material
           </Button>
         )}
@@ -226,7 +226,7 @@ export default function AffiliateMaterials() {
               </>
             )}
             <Button className="w-full" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}
-              style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+              style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
               {saveMut.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : editing ? 'Update' : 'Add Material'}
             </Button>
           </div>
