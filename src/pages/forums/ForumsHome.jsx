@@ -101,42 +101,42 @@ export default function ForumsHome() {
       <SEO title="Forums | Chibondo Academy" description="Subject-based academic discussion forums for MSCE students" />
       <div className="space-y-5">
 
-        {/* Hero */}
-        <div className="rounded-2xl p-6" style={{ background: 'hsl(var(--card))' }}>
+        {/* Hero — matches Subjects page style */}
+        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
           <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
-            <span className="text-sm font-medium" style={{ color: 'hsl(var(--primary) / 0.8)' }}>Academic Forums</span>
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-sm font-medium text-primary-foreground/80">Academic Forums</span>
           </div>
-          <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
+          <h1 className="text-2xl font-display font-bold mb-1">
             Discussion Forums
           </h1>
-          <p className="text-sm mb-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          <p className="text-primary-foreground/70 text-sm mb-4">
             Ask questions, get tutor answers, and help others — organised by subject
           </p>
           <div className="flex gap-4 mb-4 flex-wrap">
             <div className="text-center">
-              <p className="font-bold text-lg" style={{ color: 'hsl(var(--foreground))' }}>{subjects.length}</p>
-              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Subjects</p>
+              <p className="font-bold text-lg">{subjects.length}</p>
+              <p className="text-[11px] text-primary-foreground/70">Subjects</p>
             </div>
             <div className="text-center">
-              <p className="font-bold text-lg" style={{ color: 'hsl(var(--foreground))' }}>{totalThreads}</p>
-              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Discussions</p>
+              <p className="font-bold text-lg">{totalThreads}</p>
+              <p className="text-[11px] text-primary-foreground/70">Discussions</p>
             </div>
             <div className="text-center flex flex-col items-center gap-0.5">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <p className="font-bold text-lg leading-none" style={{ color: 'hsl(var(--foreground))' }}>{onlineCount}</p>
+                <p className="font-bold text-lg leading-none">{onlineCount}</p>
               </div>
-              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Online now</p>
+              <p className="text-[11px] text-primary-foreground/70">Online now</p>
             </div>
           </div>
-          <div className="relative">
+          <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search subjects…"
-              className="pl-9 bg-card text-foreground border-0 shadow-sm"
+              className="pl-9 h-10 bg-card text-foreground border-0 shadow-sm"
             />
           </div>
         </div>
