@@ -101,7 +101,7 @@ export default function AffiliateLayout() {
               )}
               style={({ isActive }) =>
                 isActive
-                  ? { background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }
+                  ? { background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }
                   : {}
               }
             >
