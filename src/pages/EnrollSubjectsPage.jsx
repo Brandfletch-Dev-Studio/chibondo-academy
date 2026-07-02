@@ -176,8 +176,8 @@ export default function EnrollSubjectsPage() {
               {studentForm ? `Your subjects — ${studentForm}` : 'Choose your subjects'}
             </span>
           </div>
-          <h1 className="text-xl font-display font-bold mb-1 text-white">Enrol in Subjects</h1>
-          <p className="text-sm text-white/70 mb-4">
+          <h1 className="text-xl font-display font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>Enrol in Subjects</h1>
+          <p className="text-sm mb-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Tick all subjects you want to study. You'll be enrolled automatically.
             {studentForm === 'Form 4' && (
               <span className="block mt-1 text-xs" style={{ color: 'hsl(var(--primary))' }}>
