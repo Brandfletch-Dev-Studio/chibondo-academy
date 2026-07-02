@@ -23,67 +23,55 @@ function TutorCard({ profile, courseCount, studentCount }) {
   const slug      = profile.slug                 || profile.id;
 
   const initials  = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const hasCover  = coverPhoto && !coverErr;
 
   return (
     <Link
       to={`/tutors/${slug}`}
-      className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-200 group flex flex-col"
+      className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200 group flex flex-col"
     >
-      {/* Cover banner */}
-      <div className="relative h-28 w-full flex-shrink-0 overflow-hidden">
-        {coverPhoto && !coverErr ? (
+      {/* Cover banner — only rendered when a real cover photo exists, so cards without one don't waste space */}
+      {hasCover && (
+        <div className="relative h-24 w-full flex-shrink-0 overflow-hidden">
           <img src={coverPhoto} alt="Cover" loading="eager" decoding="async"
             onError={() => setCoverErr(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : photo && !avatarErr ? (
-          <div className="relative w-full h-full overflow-hidden">
-            <img src={photo} alt="" loading="eager" decoding="async" onError={() => setAvatarErr(true)}
-              className="w-full h-full object-cover scale-150 blur-2xl opacity-50 saturate-150" />
-            <div className="absolute inset-0"
-              style={{ background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }} />
-          </div>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)' }}>
-            <span className="text-5xl font-display font-bold opacity-15 select-none" style={{ color:'hsl(var(--primary-foreground))' }}>{initials}</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-        {years > 0 && (
-          <div className="absolute top-2.5 right-2.5">
-            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background:'hsl(var(--primary) / 0.15)', color:'hsl(var(--primary))', border:'1px solid hsl(var(--primary))', backdropFilter:'blur(4px)' }}>
-              <Clock className="w-2.5 h-2.5" />{years}yr
-            </span>
-          </div>
-        )}
-      </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+        </div>
+      )}
 
-      {/* Avatar */}
-      <div className="relative px-4 -mt-8 pb-1 flex items-end gap-3">
-        <div className="w-16 h-16 rounded-full overflow-hidden border-4 shadow-lg flex-shrink-0"
+      {/* Header row: avatar + name/title side by side */}
+      <div className={`px-4 flex items-center gap-3 ${hasCover ? '-mt-7 pb-1' : 'pt-4'}`}>
+        <div className="w-14 h-14 rounded-full overflow-hidden border-4 shadow-sm flex-shrink-0"
           style={{ borderColor:'hsl(var(--card))', background:'hsl(var(--muted))' }}>
           {photo && !avatarErr ? (
             <img src={photo} alt={name} loading="eager" decoding="async" onError={() => setAvatarErr(true)}
               className="w-full h-full object-cover object-top" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-accent">
-              <span className="text-xl font-bold text-primary-foreground select-none">{initials}</span>
+              <span className="text-lg font-bold text-primary-foreground select-none">{initials}</span>
             </div>
           )}
         </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-1">
+            {name}
+          </p>
+          {title && (
+            <p className="text-xs font-medium text-primary line-clamp-1">{title}</p>
+          )}
+        </div>
+        {years > 0 && (
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-primary/10 text-primary flex-shrink-0">
+            <Clock className="w-2.5 h-2.5" />{years}yr
+          </span>
+        )}
       </div>
 
-      {/* Identity */}
-      <div className="px-4 pb-4 flex flex-col flex-1">
-        <p className="font-display font-bold text-sm leading-snug group-hover:text-accent transition-colors line-clamp-1">
-          {name}
-        </p>
-        {title && (
-          <p className="text-xs mt-0.5 font-medium" style={{ color:'hsl(var(--primary))' }}>{title}</p>
-        )}
+      {/* Identity details */}
+      <div className="px-4 pb-4 pt-2 flex flex-col flex-1">
         {tagline && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">"{tagline}"</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">"{tagline}"</p>
         )}
         {subjects.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
@@ -92,7 +80,7 @@ function TutorCard({ profile, courseCount, studentCount }) {
             ))}
           </div>
         )}
-        <div className="flex items-center gap-3 mt-auto pt-3 border-t border-border/50">
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/50">
           {courseCount > 0 && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <BookOpen className="w-3 h-3" />{courseCount} {courseCount === 1 ? 'course' : 'courses'}
@@ -103,7 +91,7 @@ function TutorCard({ profile, courseCount, studentCount }) {
               <Users className="w-3 h-3" />{studentCount.toLocaleString()} {studentCount === 1 ? 'student' : 'students'}
             </span>
           )}
-          <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-accent transition-colors ml-auto" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors ml-auto" />
         </div>
       </div>
     </Link>
