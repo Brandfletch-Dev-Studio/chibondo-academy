@@ -72,7 +72,7 @@ export default function AffiliateReferrals() {
           {['all', 'pending', 'registered', 'paid', 'rewarded'].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-2 rounded-xl text-xs font-medium capitalize transition-all ${statusFilter === s ? 'font-bold' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-              style={statusFilter === s ? { background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' } : {}}>
+              style={statusFilter === s ? { background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' } : {}}>
               {s === 'all' ? 'All' : STATUS_CONFIG[s]?.label || s}
             </button>
           ))}
