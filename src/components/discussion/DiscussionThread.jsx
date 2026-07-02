@@ -202,7 +202,7 @@ function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, o
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm">{discussion.author_name}</span>
                   {isTeacher && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(43 60% 36%)', border: '1px solid hsl(var(--primary))' }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary))' }}>
                       Teacher
                     </span>
                   )}
