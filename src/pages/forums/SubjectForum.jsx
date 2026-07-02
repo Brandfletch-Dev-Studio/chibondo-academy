@@ -280,7 +280,7 @@ function RenameModal({ subject, onClose, onSave, saving }) {
         <div className="flex gap-2">
           <button onClick={() => onSave(name)} disabled={saving || !name.trim()}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-            style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm border border-border">Cancel</button>
@@ -630,7 +630,7 @@ export default function SubjectForum() {
             <div className="flex gap-2">
               <button onClick={() => createMut.mutate()} disabled={createMut.isPending}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60 active:scale-95 transition-all"
-                style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+                style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                 {createMut.isPending ? 'Posting…' : 'Post Question'}
               </button>
               <button onClick={() => { setShowNew(false); setNewTitle(''); setNewContent(''); }}
@@ -676,7 +676,7 @@ export default function SubjectForum() {
             <p className="text-sm text-muted-foreground/60">Be the first to ask a question!</p>
             <button onClick={() => setShowNew(true)}
               className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background:'hsl(var(--muted))', color:'hsl(var(--primary-foreground))' }}>
+              style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
               Ask a Question
             </button>
           </div>
