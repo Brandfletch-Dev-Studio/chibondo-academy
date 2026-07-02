@@ -259,14 +259,14 @@ export default function TutorProfilePage() {
           {/* Avatar overlaps cover */}
           <div className="relative -mt-12 mb-4">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl"
-              style={{ borderColor:'hsl(var(--foreground))', background:'hsl(var(--muted))' }}>
+              style={{ borderColor:'hsl(var(--card))', background:'hsl(var(--muted))' }}>
               {photo && !avatarErr ? (
                 <img src={photo} alt={displayName} loading="eager" decoding="async"
                   onError={() => setAvatarErr(true)}
                   className="w-full h-full object-cover object-top" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-3xl font-bold" style={{ color:'hsl(var(--primary-foreground))' }}>{initials}</span>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-accent">
+                  <span className="text-3xl font-bold text-primary-foreground">{initials}</span>
                 </div>
               )}
             </div>
