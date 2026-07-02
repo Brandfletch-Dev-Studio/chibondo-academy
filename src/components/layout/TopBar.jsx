@@ -41,7 +41,7 @@ function PhotoViewer({ user, open, onClose }) {
         ) : (
           <div
             className="w-52 h-52 rounded-full flex items-center justify-center text-7xl font-black border-4"
-            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}
+            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}
           >
             {initial}
           </div>
@@ -58,7 +58,7 @@ function PhotoViewer({ user, open, onClose }) {
           <Button
             size="sm"
             className="gap-2 font-semibold"
-            style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}
+            style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}
           >
             <Camera className="w-3.5 h-3.5" /> Change Photo
           </Button>
@@ -89,7 +89,7 @@ function UserAvatar({ user, size = 8, onClick }) {
   ) : (
     <div
       className={`w-${size} h-${size} rounded-full flex items-center justify-center text-xs font-bold cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all border-2`}
-      style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary) / 0.5)' }}
+      style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary) / 0.5)' }}
       onClick={onClick}
     >
       {initial}
@@ -125,7 +125,7 @@ export default function TopBar({ user, notificationCount = 0, onMenuClick }) {
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm" className="h-8 px-4 text-sm font-semibold" style={{ background:'hsl(var(--primary))'\1color:'hsl(var(--primary-foreground))' }}>
+                <Button size="sm" className="h-8 px-4 text-sm font-semibold" style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
                   Join Now
                 </Button>
               </Link>
