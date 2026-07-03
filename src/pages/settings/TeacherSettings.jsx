@@ -288,7 +288,7 @@ export default function TeacherSettings() {
   };
 
   /* Account autosave */
-  const { saveStatus: accountSaveStatus } = useAutosave(saveAccount, [fullName, phone, avatarUrl]);
+  const { saveStatus: accountSaveStatus } = useAutosave(saveAccount, [fullName, phone, avatarPreview]);
 
   /* ── Save payout ── */
   const savePayout = async () => {
@@ -301,7 +301,7 @@ export default function TeacherSettings() {
   };
 
   /* Payout autosave */
-  const { saveStatus: payoutSaveStatus } = useAutosave(savePayout, [payoutMethod, airtelNumber, tnmNumber, bankName, bankAccount]);
+  const { saveStatus: payoutSaveStatus } = useAutosave(savePayout, [airtelMoney, tnmMpamba, bankName, bankAccount]);
 
   /* ── Save tutor profile ── */
   const saveTutorProfile = async () => {
