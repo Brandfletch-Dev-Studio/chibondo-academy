@@ -1187,14 +1187,16 @@ function CurriculumTree({
             </button>
           </div>
         ) : (
-          sorted.map((topic, tIdx) => {
+          <div className="divide-y divide-border/50 mx-1">
+          {sorted.map((topic, tIdx) => {
             const topicLessons = lessonsByTopic[topic.id] || [];
             const expanded = expandedTopics[topic.id] !== false;
+            const topicMinutes = topicLessons.reduce((acc, l) => acc + (l.estimated_minutes || 0), 0);
 
             return (
-              <div key={topic.id} className="mb-0.5">
+              <div key={topic.id} className="py-0.5">
                 {/* Topic row */}
-                <div className="flex items-center gap-1 px-3 py-2 group rounded-lg mx-1 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center gap-1.5 px-2 py-2.5 group rounded-lg hover:bg-muted/40 transition-colors">
                   <button
                     className="text-muted-foreground/50 flex-shrink-0 p-0.5 hover:text-foreground"
                     onClick={() => toggleTopic(topic.id)}
@@ -1207,15 +1209,13 @@ function CurriculumTree({
                   >
                     {tIdx + 1}
                   </div>
-                  <span
-                    className="flex-1 text-xs font-semibold truncate cursor-pointer select-none"
-                    onClick={() => toggleTopic(topic.id)}
-                  >
-                    {topic.title}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground flex-shrink-0 mr-1">
-                    {topicLessons.length}
-                  </span>
+                  <div className="flex-1 min-w-0 cursor-pointer select-none" onClick={() => toggleTopic(topic.id)}>
+                    <p className="text-xs font-semibold truncate">{topic.title}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                      {topicLessons.length} {topicLessons.length === 1 ? 'lesson' : 'lessons'}
+                      {topicMinutes > 0 && ` · ${topicMinutes >= 60 ? `${Math.floor(topicMinutes / 60)}h ${topicMinutes % 60}m` : `${topicMinutes}m`}`}
+                    </p>
+                  </div>
                   <div className="opacity-60 group-hover:opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     <ActionMenu items={[
                       { icon: Plus,      label: 'Add Lesson',  onClick: () => onAddLesson(topic) },
@@ -1270,7 +1270,8 @@ function CurriculumTree({
                 )}
               </div>
             );
-          })
+          })}
+          </div>
         )}
       </div>
     </div>
@@ -1336,39 +1337,44 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <div className="md:h-full md:overflow-y-auto p-5 space-y-5">
+    <div className="md:h-full md:overflow-y-auto p-5 space-y-4 max-w-2xl">
 
-      {/* Save status */}
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-1">
         <h2 className="text-sm font-semibold flex items-center gap-2">
           <Settings className="w-4 h-4 text-primary" /> Course Details
         </h2>
         <SaveStatus status={saveStatus} lastSaved={lastSaved} />
       </div>
 
-      {/* Course name */}
-      <div>
-        <Label className="text-xs">Course Name</Label>
-        <Input value={form.name} onChange={e => set('name', e.target.value)}
-          placeholder="e.g. MSCE Biology Book 4" className="mt-1" />
-      </div>
+      {/* ── Basic Information ── */}
+      <section className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+          <BookOpen className="w-3.5 h-3.5" /> Basic Information
+        </p>
+        <div>
+          <Label className="text-xs">Course Name</Label>
+          <Input value={form.name} onChange={e => set('name', e.target.value)}
+            placeholder="e.g. MSCE Biology Book 4" className="mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs">Description</Label>
+          <Textarea
+            className="mt-1 min-h-[100px] resize-y"
+            value={form.description || ''}
+            onChange={e => set('description', e.target.value)}
+            placeholder="Course overview — what students will learn…"
+          />
+        </div>
+      </section>
 
-      {/* Description */}
-      <div>
-        <Label className="text-xs">Description</Label>
-        <Textarea
-          className="mt-1 min-h-[100px] resize-y"
-          value={form.description || ''}
-          onChange={e => set('description', e.target.value)}
-          placeholder="Course overview — what students will learn…"
-        />
-      </div>
-
-      {/* Thumbnail */}
-      <div>
-        <Label className="text-xs">Course Thumbnail</Label>
+      {/* ── Thumbnail ── */}
+      <section className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+          <ImageIcon className="w-3.5 h-3.5" /> Thumbnail
+        </p>
         {form.cover_image && (
-          <div className="mt-2 relative rounded-xl overflow-hidden h-36 bg-muted border border-border">
+          <div className="relative rounded-xl overflow-hidden h-36 bg-muted border border-border">
             <img src={form.cover_image} alt="thumbnail" className="w-full h-full object-cover" />
             <button onClick={() => set('cover_image', '')}
               className="absolute top-2 right-2 p-1 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors">
@@ -1376,11 +1382,9 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
             </button>
           </div>
         )}
-        <div className="mt-2 space-y-2">
-          <div className="flex gap-2">
-            <Input value={form.cover_image} onChange={e => set('cover_image', e.target.value)}
-              placeholder="Paste image URL…" className="flex-1 text-sm" />
-          </div>
+        <div className="space-y-2">
+          <Input value={form.cover_image} onChange={e => set('cover_image', e.target.value)}
+            placeholder="Paste image URL…" className="text-sm" />
           <label className="block">
             <input type="file" accept="image/*,video/*" className="sr-only" onChange={handleFileUpload} disabled={uploading} />
             <div className={`flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -1390,71 +1394,78 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
           </label>
           <p className="text-[10px] text-muted-foreground">JPG, PNG, WEBP, MP4 supported</p>
         </div>
-      </div>
+      </section>
 
-      {/* Tutor assignment */}
-      <div>
-        <Label className="text-xs">Assigned Tutor</Label>
-        {isAdmin ? (
-          <Select value={form.teacher_id} onValueChange={v => {
-            const t = tutors.find(t => t.id === v);
-            set('teacher_id', v);
-            set('teacher_name', t?.full_name || '');
-          }}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select a tutor" />
-            </SelectTrigger>
-            <SelectContent>
-              {tutors.map(t => (
-                <SelectItem key={t.id} value={t.id}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary flex-shrink-0">
-                      {t.full_name?.[0]?.toUpperCase()}
+      {/* ── Access & Visibility ── */}
+      <section className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+          <Eye className="w-3.5 h-3.5" /> Access &amp; Visibility
+        </p>
+
+        {/* Tutor assignment */}
+        <div>
+          <Label className="text-xs">Assigned Tutor</Label>
+          {isAdmin ? (
+            <Select value={form.teacher_id} onValueChange={v => {
+              const t = tutors.find(t => t.id === v);
+              set('teacher_id', v);
+              set('teacher_name', t?.full_name || '');
+            }}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select a tutor" />
+              </SelectTrigger>
+              <SelectContent>
+                {tutors.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary flex-shrink-0">
+                        {t.full_name?.[0]?.toUpperCase()}
+                      </div>
+                      {t.full_name}
                     </div>
-                    {t.full_name}
-                  </div>
-                </SelectItem>
-              ))}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="mt-1 flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-xl">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
+                {user?.full_name?.[0]?.toUpperCase()}
+              </div>
+              <span className="text-sm">{user?.full_name}</span>
+              <Badge className="ml-auto text-[9px]">You</Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Premium toggle */}
+        <div className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-xl">
+          <div>
+            <p className="text-sm font-medium">Premium Course</p>
+            <p className="text-xs text-muted-foreground">Requires active subscription</p>
+          </div>
+          <Switch checked={!!form.is_premium} onCheckedChange={v => set('is_premium', v)} />
+        </div>
+
+        {/* Status */}
+        <div>
+          <Label className="text-xs">Course Status</Label>
+          <Select value={form.status} onValueChange={v => set('status', v)}>
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">
+                <div className="flex items-center gap-2"><EyeOff className="w-3.5 h-3.5" /> Draft</div>
+              </SelectItem>
+              <SelectItem value="published">
+                <div className="flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-green-500" /> Published</div>
+              </SelectItem>
             </SelectContent>
           </Select>
-        ) : (
-          <div className="mt-1 flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
-              {user?.full_name?.[0]?.toUpperCase()}
-            </div>
-            <span className="text-sm">{user?.full_name}</span>
-            <Badge className="ml-auto text-[9px]">You</Badge>
-          </div>
-        )}
-      </div>
-
-      {/* Access mode */}
-      <div className="flex items-center justify-between p-3 bg-card border border-border rounded-xl">
-        <div>
-          <p className="text-sm font-medium">Premium Course</p>
-          <p className="text-xs text-muted-foreground">Requires active subscription</p>
         </div>
-        <Switch checked={!!form.is_premium} onCheckedChange={v => set('is_premium', v)} />
-      </div>
+      </section>
 
-      {/* Status */}
-      <div>
-        <Label className="text-xs">Course Status</Label>
-        <Select value={form.status} onValueChange={v => set('status', v)}>
-          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="draft">
-              <div className="flex items-center gap-2"><EyeOff className="w-3.5 h-3.5" /> Draft</div>
-            </SelectItem>
-            <SelectItem value="published">
-              <div className="flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-green-500" /> Published</div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* ── SEO Settings ── */}
-      <div className="border-t border-border pt-4 space-y-3">
+      {/* ── SEO & Social Sharing ── */}
+      <section className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5" /> SEO & Social Sharing
@@ -1504,7 +1515,7 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
               placeholder="Defaults to course thumbnail" className="mt-1 text-sm" />
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
