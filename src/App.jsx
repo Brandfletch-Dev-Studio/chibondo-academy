@@ -122,36 +122,10 @@ import TeacherSettings from '@/pages/settings/TeacherSettings';
 // RBAC
 import RoleGuard from '@/components/RoleGuard';
 
-// ── Loading screen shared between public + auth init ──────────────────────────
-const LoadingScreen = () => (
-  <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'hsl(var(--background))' }}>
-    <div className="text-center flex flex-col items-center gap-6">
-      <img
-        src="https://nckjjfxlmmsnmnexcgzg.supabase.co/storage/v1/object/public/assets/logo_square.jpg"
-        alt="Chibondo Academy"
-        className="w-32 h-32 rounded-2xl object-cover shadow-2xl"
-        style={{ boxShadow: '0 0 60px rgba(184,144,55,0.3)' }}
-      />
-      <div>
-        <p className="text-lg font-display tracking-widest uppercase" style={{ color: 'hsl(var(--primary))' }}>The Chibondo Academy</p>
-        <div className="flex items-center justify-center gap-1.5 mt-3">
-          {[0,1,2].map(i => (
-            <div key={i} className="w-2 h-2 rounded-full" style={{ background: 'hsl(var(--primary))', animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-          ))}
-        </div>
-      </div>
-    </div>
-    <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(0);opacity:0.3} 40%{transform:scale(1);opacity:1} }`}</style>
-  </div>
-);
-
 const AppRoutes = () => {
-  const { isLoadingPublicSettings, authError } = useAuth();
+  const { authError } = useAuth();
 
-  // Only block rendering while the initial platform check runs
-  // After that, AppLayout itself handles auth state gracefully
-  if (isLoadingPublicSettings) return <LoadingScreen />;
-
+  // Public settings load in the background — never block page rendering on them.
   if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
 
   return (
