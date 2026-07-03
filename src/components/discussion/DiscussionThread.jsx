@@ -181,6 +181,7 @@ export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, sub
 function DiscussionItem({ discussion, replies, currentUserId, currentUserRole, onReply, onLike, onPin, onMarkAnswer, replyingTo, setReplyingTo, replyContent, setReplyContent }) {
   const isAuthor  = discussion.author_id === currentUserId;
   const isTeacher = discussion.author_role === 'teacher' || discussion.author_role === 'admin';
+  const isGuest   = !currentUserId;
 
   return (
     <div className={`space-y-3 ${discussion.is_pinned ? 'ring-2 ring-primary/20 rounded-lg' : ''}`}>
