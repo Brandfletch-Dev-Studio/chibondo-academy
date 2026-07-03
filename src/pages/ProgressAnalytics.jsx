@@ -20,7 +20,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const COLORS = ['hsl(222, 47%, 30%)', 'hsl(43, 74%, 52%)', 'hsl(160, 60%, 45%)', 'hsl(280, 65%, 60%)', 'hsl(340, 75%, 55%)'];
+const COLORS = ['hsl(222, 47%, 30%)', 'hsl(199, 89%, 48%)', 'hsl(160, 60%, 45%)', 'hsl(280, 65%, 60%)', 'hsl(340, 75%, 55%)'];
 
 export default function ProgressAnalytics() {
   const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => db.auth.me() });
@@ -161,7 +161,7 @@ export default function ProgressAnalytics() {
                   <YAxis domain={[0, 100]} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="score" stroke="hsl(43, 74%, 52%)" strokeWidth={2} name="Score %" />
+                  <Line type="monotone" dataKey="score" stroke="hsl(199, 89%, 48%)" strokeWidth={2} name="Score %" />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -186,7 +186,7 @@ export default function ProgressAnalytics() {
               <XAxis dataKey="day" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="minutes" fill="hsl(43, 74%, 52%)" radius={[4, 4, 0, 0]} name="Minutes" />
+              <Bar dataKey="minutes" fill="hsl(199, 89%, 48%)" radius={[4, 4, 0, 0]} name="Minutes" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
