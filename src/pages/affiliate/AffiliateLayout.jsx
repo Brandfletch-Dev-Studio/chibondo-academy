@@ -19,7 +19,7 @@ export default function AffiliateLayout() {
   const outletCtx = useOutletContext() || {};
   const { user, notifications } = outletCtx || {};
 
-  const { data: settingsData = [] } = useQuery({
+  const { data: settingsData = [], isLoading: settingsLoading } = useQuery({
     queryKey: ['affiliateSettings'],
     queryFn: async () => {
       try { return await db.entities.PlatformSettings.filter({ key: 'affiliate_commission' }); }
@@ -48,6 +48,14 @@ export default function AffiliateLayout() {
   const recurringPct       = recurringRateType === 'same'
     ? (settings.percentage_rate ?? 10)
     : (settings.recurring_percentage_rate ?? 5);
+
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 rounded-full border-2 border-muted border-t-primary animate-spin" />
+      </div>
+    );
+  }
 
   if (!programEnabled) {
     return (
@@ -114,7 +122,7 @@ export default function AffiliateLayout() {
       {/* Sub-page content */}
       <div>
         <Outlet context={{
-        user, notifications, settings, settingsData,
+        user, notifications, settings, settingsData, settingsLoading,
         commissionAmount, minPayout,
         recurringEnabled, recurringRateType, recurringCommType,
         recurringAmount, recurringPct,

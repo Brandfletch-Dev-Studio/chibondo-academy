@@ -80,7 +80,7 @@ function Field({ label, hint, children }) {
 }
 
 // ── Profile Panel ─────────────────────────────────────────────────────────
-function ProfilePanel({ user, profile, qc }) {
+function ProfilePanel({ user, profile, profileLoaded, qc }) {
   const { checkUserAuth } = useAuth();
   const avatarRef = useRef();
   const [uploading, setUploading] = useState(false);
@@ -90,17 +90,20 @@ function ProfilePanel({ user, profile, qc }) {
   const [phone,     setPhone]     = useState(profile?.phone_number || '');
   const [schoolName,setSchoolName]= useState(profile?.school_name || '');
 
-  // Re-seed when user/profile loads for the first time
+  // Re-seed when user is present AND the profile query has actually resolved
+  // (profileLoaded distinguishes "still fetching" from "fetched, no profile yet" —
+  // seeding too early, before the async profile fetch finishes, left phone/school
+  // permanently blank even though the data was saved correctly in the DB).
   const seeded = useRef(false);
   useEffect(() => {
-    if (!seeded.current && (user?.id || profile?.id)) {
+    if (!seeded.current && user?.id && profileLoaded) {
       seeded.current = true;
       setPreview(user?.avatar_url || '');
       setFullName(user?.full_name || '');
       setPhone(profile?.phone_number || '');
       setSchoolName(profile?.school_name || '');
     }
-  }, [user?.id, profile?.id]);
+  }, [user?.id, profileLoaded, profile?.id]);
 
   const handleAvatar = async (e) => {
     const file = e.target.files?.[0];
@@ -634,7 +637,7 @@ export default function StudentSettings() {
 
   const [searchParams, setSearchParams] = React.useState ? React.useState(null) : [null, null];
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileQueryLoading } = useQuery({
     queryKey: ['studentProfile', user?.id],
     queryFn: async () => {
       const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
@@ -644,7 +647,7 @@ export default function StudentSettings() {
   });
 
   const panels = {
-    profile:       <ProfilePanel user={user} profile={profile} qc={qc} />,
+    profile:       <ProfilePanel user={user} profile={profile} profileLoaded={!profileQueryLoading} qc={qc} />,
     academic:      <AcademicPanel user={user} profile={profile} qc={qc} />,
     notifications: <NotificationsPanel />,
     billing:       <BillingPanel user={user} />,
