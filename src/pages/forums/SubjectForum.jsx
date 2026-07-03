@@ -38,7 +38,7 @@ async function shareWithWatermark({ imageUrl, title, text, url }) {
       ctx.fillRect(0, bitmap.height - barH, bitmap.width, barH);
       const fs = Math.max(14, barH * 0.45);
       ctx.font = `bold ${fs}px sans-serif`;
-      ctx.fillStyle = 'hsl(43,74%,66%)';
+      ctx.fillStyle = '#3b82f6';
       ctx.textBaseline = 'middle';
       ctx.fillText('@The Chibondo Academy', 12, bitmap.height - barH / 2);
       const watermarkedBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
