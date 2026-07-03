@@ -410,30 +410,42 @@ export default function SubjectDetail() {
         </div>
       )}
 
-      {/* Share Buttons */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h3 className="font-display font-semibold mb-3">Share This Course</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Invite friends using your referral link. They'll get registered under your code automatically!
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={() => handleCopy(shareLink)} className="flex-1 min-w-[140px]">
-            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-            {copied ? 'Copied!' : 'Copy Link'}
-          </Button>
-          <Button variant="outline" onClick={handleWhatsApp} className="flex-1 min-w-[140px] bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
-            <Share2 className="w-4 h-4 mr-2" />
-            WhatsApp
-          </Button>
-          <Button variant="outline" onClick={handleShare} className="flex-1 min-w-[140px]">
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
+      {/* Share Buttons — referral links only make sense for signed-in users (guests have no code) */}
+      {user ? (
+        <div className="bg-card border border-border rounded-2xl p-5">
+          <h3 className="font-display font-semibold mb-3">Share This Course</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Invite friends using your referral link. They'll get registered under your code automatically!
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => handleCopy(shareLink)} className="flex-1 min-w-[140px]">
+              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              {copied ? 'Copied!' : 'Copy Link'}
+            </Button>
+            <Button variant="outline" onClick={handleWhatsApp} className="flex-1 min-w-[140px] bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
+              <Share2 className="w-4 h-4 mr-2" />
+              WhatsApp
+            </Button>
+            <Button variant="outline" onClick={handleShare} className="flex-1 min-w-[140px]">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+          </div>
+          <div className="mt-4 p-3 bg-muted/50 rounded-xl">
+            <p className="text-xs font-mono text-muted-foreground break-all">{shareLink}</p>
+          </div>
         </div>
-        <div className="mt-4 p-3 bg-muted/50 rounded-xl">
-          <p className="text-xs font-mono text-muted-foreground break-all">{shareLink}</p>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl p-5 text-center">
+          <h3 className="font-display font-semibold mb-1">Know someone who'd like this course?</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Create a free account to get your own referral link and share it with friends.
+          </p>
+          <Link to="/register">
+            <Button variant="outline">Create Free Account</Button>
+          </Link>
         </div>
-      </div>
+      )}
     </div>
     </>
   );
