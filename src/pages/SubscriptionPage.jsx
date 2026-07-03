@@ -36,6 +36,13 @@ export default function SubscriptionPage() {
     },
   });
 
+  // Live lesson count (published lessons only) — no more hardcoded "259+ Lessons"
+  const { data: lessonCount } = useQuery({
+    queryKey: ['lessonCount'],
+    queryFn: () => db.entities.Lesson.count({ status: 'published' }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Check active subscription
   const { data: subscription, refetch: refetchSubscription } = useQuery({
     queryKey: ['subscription', user?.id],
@@ -221,7 +228,7 @@ export default function SubscriptionPage() {
           Unlock full access to every lesson, quiz, past paper, and learning resource across all your subjects
         </p>
         <div className="flex flex-wrap justify-center gap-5 pt-4">
-          {[{ icon: BookOpen, text: 'All Subjects' },{ icon: Users, text: '259+ Lessons' },{ icon: Award, text: 'Past Papers' }].map(({ icon: Icon, text }) => (
+          {[{ icon: BookOpen, text: 'All Subjects' },{ icon: Users, text: lessonCount != null ? `${lessonCount}+ Lessons` : 'Lessons' },{ icon: Award, text: 'Past Papers' }].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-1.5 text-xs text-primary-foreground/80">
               <Icon className="w-3.5 h-3.5" />{text}
             </div>
