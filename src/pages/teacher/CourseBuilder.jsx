@@ -989,7 +989,7 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="md:h-full flex flex-col">
       {/* Editor header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -1008,8 +1008,8 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
         </div>
       </div>
 
-      {/* Scrollable editor body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+      {/* Scrollable editor body (mobile: natural page scroll; desktop: internal scroll pane) */}
+      <div className="flex-1 md:overflow-y-auto p-5 space-y-5">
 
         {/* Basic info */}
         <div className="space-y-3">
@@ -1162,7 +1162,7 @@ function CurriculumTree({
   Object.values(lessonsByTopic).forEach(arr => arr.sort((a, b) => (a.order || 0) - (b.order || 0)));
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="md:h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -1177,7 +1177,7 @@ function CurriculumTree({
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-y-auto py-2">
+      <div className="flex-1 md:overflow-y-auto py-2">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <Layers className="w-10 h-10 text-muted-foreground/20 mb-3" />
@@ -1336,7 +1336,7 @@ function CourseDetailsPanel({ subject, tutors, user, onSaved }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <div className="h-full overflow-y-auto p-5 space-y-5">
+    <div className="md:h-full md:overflow-y-auto p-5 space-y-5">
 
       {/* Save status */}
       <div className="flex items-center justify-between">
@@ -1727,46 +1727,47 @@ export default function CourseBuilder() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] -mx-4 -mb-4">
+    <div className="flex flex-col md:h-[calc(100vh-4rem)] -mx-4 -mb-4">
 
-      {/* ── Top bar ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background flex-shrink-0">
-        <Link to={user?.role === 'admin' ? '/admin/courses' : '/teacher/courses'}>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-display font-bold text-sm truncate">{subject.name}</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{subject.form_name}</span>
-            <CourseStats topics={topics} lessons={lessons} />
+      {/* ── Top bar (redesigned: stacked rows, no overlap on mobile) ── */}
+      <div className="border-b border-border bg-background flex-shrink-0">
+        {/* Row 1: back, title, status */}
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Link to={user?.role === 'admin' ? '/admin/courses' : '/teacher/courses'} className="flex-shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display font-bold text-sm truncate">{subject.name}</h1>
+            <p className="text-xs text-muted-foreground truncate">{subject.form_name}</p>
           </div>
+          <Badge className={`flex-shrink-0 gap-1 ${subject.status === 'published' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 'bg-muted text-muted-foreground'}`}>
+            {subject.status === 'published' ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+            <span className="hidden sm:inline">{subject.status}</span>
+          </Badge>
         </div>
 
-        {/* View toggle: Curriculum / Details */}
-        <div className="flex items-center bg-muted rounded-xl p-0.5 gap-0.5">
-          <button onClick={() => setActiveView('curriculum')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeView === 'curriculum' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            <Layers className="w-3.5 h-3.5 inline mr-1" />Curriculum
-          </button>
-          <button onClick={() => setActiveView('details')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeView === 'details' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            <Settings className="w-3.5 h-3.5 inline mr-1" />Details
-          </button>
+        {/* Row 2: view toggle + stats — own row so nothing overlaps the title */}
+        <div className="flex items-center justify-between gap-3 px-4 pb-3">
+          <div className="flex items-center bg-muted rounded-xl p-0.5 gap-0.5 flex-shrink-0">
+            <button onClick={() => setActiveView('curriculum')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeView === 'curriculum' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <Layers className="w-3.5 h-3.5 inline mr-1" />Curriculum
+            </button>
+            <button onClick={() => setActiveView('details')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeView === 'details' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <Settings className="w-3.5 h-3.5 inline mr-1" />Details
+            </button>
+          </div>
+          <CourseStats topics={topics} lessons={lessons} />
         </div>
-
-        {/* Status badge */}
-        <Badge className={subject.status === 'published' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 'bg-muted text-muted-foreground'}>
-          {subject.status === 'published' ? <Eye className="w-3 h-3 mr-1" /> : <EyeOff className="w-3 h-3 mr-1" />}
-          {subject.status}
-        </Badge>
       </div>
 
       {/* ── Main content ── */}
       {activeView === 'details' ? (
         /* ── DETAILS VIEW (full width) ── */
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 md:overflow-hidden">
           <CourseDetailsPanel
             subject={subject}
             tutors={tutors}
@@ -1776,11 +1777,11 @@ export default function CourseBuilder() {
         </div>
       ) : (
         /* ── CURRICULUM VIEW — stacked on mobile, split on desktop ── */
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden">
 
           {/* Curriculum Tree — full width on mobile (hidden when lesson selected), sidebar on desktop */}
           <div className={`
-            md:w-64 md:flex-shrink-0 md:border-r md:border-border bg-background overflow-hidden flex flex-col
+            md:w-64 md:flex-shrink-0 md:border-r md:border-border bg-background md:overflow-hidden flex flex-col
             ${selectedLesson ? 'hidden md:flex' : 'flex flex-1 md:flex-none'}
           `}>
             <CurriculumTree
@@ -1802,7 +1803,7 @@ export default function CourseBuilder() {
           </div>
 
           {/* Lesson Editor — full screen on mobile, flex-1 on desktop */}
-          <div className={`flex-1 overflow-hidden bg-background flex flex-col ${selectedLesson ? 'flex' : 'hidden md:flex'}`}>
+          <div className={`flex-1 md:overflow-hidden bg-background flex flex-col ${selectedLesson ? 'flex' : 'hidden md:flex'}`}>
             {selectedLesson ? (
               <>
                 {/* Mobile-only back button */}
