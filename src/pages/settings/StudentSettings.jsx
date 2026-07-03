@@ -37,13 +37,13 @@ function Section({ icon: Icon, title, subtitle, children, gold = false }) {
     <div className={cn(
       'rounded-2xl border p-6 space-y-5',
       gold
-        ? 'bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-card border-[hsl(43_74%_52%_/_0.25)]'
+        ? 'bg-gradient-to-br from-[hsl(var(--primary)_/_0.06)] to-card border-[hsl(var(--primary)_/_0.25)]'
         : 'bg-card border-border'
     )}>
       <div className="flex items-center gap-3">
         <div className={cn(
           'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
-          gold ? 'bg-[hsl(43_74%_52%_/_0.15)]' : 'bg-muted'
+          gold ? 'bg-[hsl(var(--primary)_/_0.15)]' : 'bg-muted'
         )}>
           <Icon className="w-4 h-4" style={gold ? { color: GOLD } : {}} />
         </div>
@@ -117,7 +117,7 @@ function ProfilePanel({ user, profile, qc }) {
       const file_url = await uploadImage(file);
       setPreview(file_url);
 
-      // Save avatar via base44Client updateMe → patches users table in Supabase
+      // Save avatar via db.auth.updateMe → patches users table in Supabase
       await db.auth.updateMe({ avatar_url: file_url });
 
       if (profile?.id) {
@@ -172,9 +172,9 @@ function ProfilePanel({ user, profile, qc }) {
   return (
     <div className="space-y-5">
       {/* Hero avatar card */}
-      <div className="rounded-2xl border p-6 bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-card border-[hsl(43_74%_52%_/_0.25)] flex flex-col sm:flex-row items-center gap-6">
+      <div className="rounded-2xl border p-6 bg-gradient-to-br from-[hsl(var(--primary)_/_0.06)] to-card border-[hsl(var(--primary)_/_0.25)] flex flex-col sm:flex-row items-center gap-6">
         <div className="relative flex-shrink-0">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[hsl(43_74%_52%_/_0.4)] shadow-lg">
+          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[hsl(var(--primary)_/_0.4)] shadow-lg">
             {preview
               ? <img src={preview} alt="avatar" className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center text-2xl font-bold"
@@ -274,7 +274,7 @@ function AcademicPanel({ user, profile, qc }) {
                 className={cn(
                   'flex-1 py-3 rounded-xl border text-sm font-semibold transition-all',
                   selectedForm === f
-                    ? 'border-[hsl(43_74%_52%_/_0.6)]'
+                    ? 'border-[hsl(var(--primary)_/_0.6)]'
                     : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted'
                 )}
                 style={selectedForm === f ? { background: GOLD_BG, color: GOLD } : {}}>
@@ -375,7 +375,7 @@ function BillingPanel({ user }) {
       <div className={cn(
         'rounded-2xl border p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4',
         isActive
-          ? 'bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-card border-[hsl(43_74%_52%_/_0.25)]'
+          ? 'bg-gradient-to-br from-[hsl(var(--primary)_/_0.06)] to-card border-[hsl(var(--primary)_/_0.25)]'
           : 'bg-card border-border'
       )}>
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
