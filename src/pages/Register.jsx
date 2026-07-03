@@ -53,11 +53,20 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await db.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
-      navigate("/verify-otp", {
-        replace: true,
-        state: { email: email.trim(), refCode: refCode || null },
-      });
+      const result = await db.auth.register({ email: email.trim(), password, full_name: fullName.trim() });
+      const token = result?.access_token ?? result?.token ?? result?.data?.access_token;
+      if (token) {
+        // Email confirmation is disabled — signup returns a session immediately, so log the user straight in.
+        db.auth.setToken(token);
+        // trackReferral is handled by the dashboard on first load (pending_referral_code in localStorage)
+        window.location.replace("/dashboard");
+      } else {
+        // Fallback for edge cases where a session isn't returned (e.g. confirmation re-enabled later)
+        navigate("/verify-otp", {
+          replace: true,
+          state: { email: email.trim(), refCode: refCode || null },
+        });
+      }
     } catch (err) {
       const msg = err.message || "";
       if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists") || msg.toLowerCase().includes("user already")) {
