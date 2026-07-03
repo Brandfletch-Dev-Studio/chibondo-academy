@@ -158,6 +158,26 @@ function entityAPI(entityName) {
       return rows[0];
     },
 
+    // Exact row count via PostgREST's Content-Range header (no rows fetched).
+    async count(queryObj = {}) {
+      let qs = '?select=id';
+      for (const [k, v] of Object.entries(queryObj)) {
+        if (v !== undefined && v !== null)
+          qs += `&${encodeURIComponent(COL_REMAP[k] || k)}=eq.${encodeURIComponent(v)}`;
+      }
+      const token = getToken();
+      const res = await fetch(`${API}/${table}${qs}`, {
+        method: 'HEAD',
+        headers: {
+          apikey: SUPABASE_ANON,
+          Prefer: 'count=exact',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const range = res.headers.get('content-range'); // e.g. "0-24/270"
+      return range ? parseInt(range.split('/')[1], 10) || 0 : 0;
+    },
+
     async create(data) {
       const now = new Date().toISOString();
       const token = getToken();
