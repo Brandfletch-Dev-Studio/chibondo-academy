@@ -99,7 +99,6 @@ import QuizBuilder from '@/pages/teacher/QuizBuilder';
 import AssignmentGrading from '@/pages/teacher/AssignmentGrading';
 import TeacherLibrary from '@/pages/teacher/TeacherLibrary';
 import TeacherAssignments from '@/pages/teacher/TeacherAssignments';
-import MyTutorProfile from '@/pages/teacher/MyTutorProfile';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -227,7 +226,6 @@ const AppRoutes = () => {
           <Route path="/teacher/library" element={<RoleGuard allowed={['teacher','admin']}><TeacherLibrary /></RoleGuard>} />
           <Route path="/teacher/grading" element={<RoleGuard allowed={['teacher','admin']}><AssignmentGrading /></RoleGuard>} />
           <Route path="/teacher/progress" element={<RoleGuard allowed={['teacher','admin']}><StudentProgressTracker /></RoleGuard>} />
-          <Route path="/teacher/my-profile" element={<RoleGuard allowed={['teacher','admin']}><MyTutorProfile /></RoleGuard>} />
           <Route path="/teacher/settings" element={<RoleGuard allowed={['teacher']}><TeacherSettings /></RoleGuard>} />
           <Route path="/teacher/blog" element={<RoleGuard allowed={['teacher','admin']}><TeacherBlog /></RoleGuard>} />
           <Route path="/teacher/notifications" element={<RoleGuard allowed={['teacher','admin']}><TeacherNotifications /></RoleGuard>} />
