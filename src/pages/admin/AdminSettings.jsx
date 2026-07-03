@@ -46,13 +46,13 @@ function Section({ icon: Icon, title, subtitle, children, gold = false }) {
     <div className={cn(
       'rounded-2xl border p-6 space-y-5',
       gold
-        ? 'bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-[hsl(222_47%_11%)] border-[hsl(43_74%_52%_/_0.25)]'
+        ? 'bg-gradient-to-br from-[hsl(var(--primary)_/_0.06)] to-[hsl(222_47%_11%)] border-[hsl(var(--primary)_/_0.25)]'
         : 'bg-card border-border'
     )}>
       <div className="flex items-center gap-3">
         <div className={cn(
           'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
-          gold ? 'bg-[hsl(43_74%_52%_/_0.15)]' : 'bg-muted'
+          gold ? 'bg-[hsl(var(--primary)_/_0.15)]' : 'bg-muted'
         )}>
           <Icon className="w-4 h-4" style={gold ? { color: GOLD } : {}} />
         </div>
@@ -209,9 +209,9 @@ function ProfilePanel({ user }) {
   return (
     <div className="space-y-5">
       {/* Hero avatar card */}
-      <div className="rounded-2xl border p-6 bg-gradient-to-br from-[hsl(43_74%_52%_/_0.06)] to-[hsl(222_47%_11%)] border-[hsl(43_74%_52%_/_0.25)] flex flex-col sm:flex-row items-center gap-6">
+      <div className="rounded-2xl border p-6 bg-gradient-to-br from-[hsl(var(--primary)_/_0.06)] to-[hsl(222_47%_11%)] border-[hsl(var(--primary)_/_0.25)] flex flex-col sm:flex-row items-center gap-6">
         <div className="relative flex-shrink-0">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[hsl(43_74%_52%_/_0.4)] shadow-lg">
+          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[hsl(var(--primary)_/_0.4)] shadow-lg">
             {preview
               ? <img src={preview} alt="avatar" className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center text-2xl font-display font-bold"
@@ -500,7 +500,7 @@ function PricingPanel() {
 // ── Payments Panel ────────────────────────────────────────────────────────────
 function PaymentsPanel() {
   const [copied, setCopied] = useState(false);
-  const webhookUrl = `${window.location.origin}/api/payChangu-webhook`; // TODO: configure payment webhook
+  const webhookUrl = `${window.location.origin}/api/payChangu-webhook`;
 
   const copy = () => {
     navigator.clipboard.writeText(webhookUrl);
@@ -513,7 +513,7 @@ function PaymentsPanel() {
     <div className="space-y-5">
       <Section icon={CreditCard} title="PayChangu Integration" subtitle="Malawian payment gateway configuration" gold>
         {/* Status badge */}
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-[hsl(43_74%_52%_/_0.2)] bg-[hsl(43_74%_52%_/_0.05)]">
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-[hsl(var(--primary)_/_0.2)] bg-[hsl(var(--primary)_/_0.05)]">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <p className="text-sm font-medium">PayChangu webhook endpoint is active</p>
           <Badge className="ml-auto text-[10px]" style={{ background: 'hsl(142 76% 36% / 0.15)', color: 'hsl(142 76% 46%)', border: '1px solid hsl(142 76% 36% / 0.3)' }}>Live</Badge>
@@ -645,7 +645,7 @@ function NotificationsPanel() {
       <Section icon={BellRing} title="Email Notifications" subtitle="Choose which events trigger admin emails">
         <div className="space-y-2">
           {NOTIF_ITEMS.map(({ key, label, desc, icon: Icon }) => (
-            <div key={key} className="flex items-center justify-between p-3.5 rounded-xl border border-border hover:border-[hsl(43_74%_52%_/_0.2)] transition-colors bg-card">
+            <div key={key} className="flex items-center justify-between p-3.5 rounded-xl border border-border hover:border-[hsl(var(--primary)_/_0.2)] transition-colors bg-card">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground" />
@@ -948,7 +948,7 @@ export default function AdminSettings() {
             {/* Mini profile in sidebar */}
             <div className="p-4 border-b border-border flex items-center gap-3"
               style={{ background: 'hsl(var(--foreground))' }}>
-              <div className="w-9 h-9 rounded-xl overflow-hidden border border-[hsl(43_74%_52%_/_0.3)] flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl overflow-hidden border border-[hsl(var(--primary)_/_0.3)] flex-shrink-0">
                 {user?.avatar_url
                   ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                   : <div className="w-full h-full flex items-center justify-center text-sm font-bold"
