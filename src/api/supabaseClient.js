@@ -104,6 +104,31 @@ function buildSort(sortStr) {
   return `order=${col}.${desc ? 'desc' : 'asc'}&`;
 }
 
+// Remap any Base44-style field names (e.g. `order`) to their real Supabase
+// column names (e.g. `order_num`) before sending a write payload.
+function remapPayload(data) {
+  const out = {};
+  for (const [k, v] of Object.entries(data)) {
+    out[COL_REMAP[k] || k] = v;
+  }
+  return out;
+}
+
+// Reverse remap: alias real Supabase columns (e.g. `order_num`) back onto the
+// Base44-style field name (e.g. `order`) on read, so existing app code that
+// reads `.order` keeps working. Keeps the original column too.
+const REVERSE_REMAP = Object.fromEntries(Object.entries(COL_REMAP).map(([k, v]) => [v, k]));
+function remapRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  for (const [col, alias] of Object.entries(REVERSE_REMAP)) {
+    if (col in row && !(alias in row)) row[alias] = row[col];
+  }
+  return row;
+}
+function remapRows(rows) {
+  return Array.isArray(rows) ? rows.map(remapRow) : remapRow(rows);
+}
+
 // ── Entity API factory ────────────────────────────────────────────────────────
 const TABLE = {
   AcademicForm:          'academic_forms',
@@ -145,17 +170,17 @@ function entityAPI(entityName) {
         if (v !== undefined && v !== null)
           qs += `&${encodeURIComponent(COL_REMAP[k] || k)}=eq.${encodeURIComponent(v)}`;
       }
-      return get(`/${table}${qs}`);
+      return remapRows(await get(`/${table}${qs}`));
     },
 
     async list(sort = '-created_date', limit = 100) {
-      return get(`/${table}?${buildSort(sort)}limit=${limit}`);
+      return remapRows(await get(`/${table}?${buildSort(sort)}limit=${limit}`));
     },
 
     async get(id) {
       const rows = await get(`/${table}?id=eq.${encodeURIComponent(id)}&limit=1`);
       if (!rows?.length) throw Object.assign(new Error(`${entityName} not found`), { status: 404 });
-      return rows[0];
+      return remapRow(rows[0]);
     },
 
     // Exact row count via PostgREST's Content-Range header (no rows fetched).
@@ -183,21 +208,21 @@ function entityAPI(entityName) {
       const token = getToken();
       const created_by = token ? parseJwt(token)?.sub : null;
       const payload = {
-        ...data,
+        ...remapPayload(data),
         id:           data.id || generateId(),
         created_date: data.created_date || now,
         updated_date: now,
         ...(created_by && !data.created_by ? { created_by } : {}),
       };
       const rows = await post(`/${table}`, payload);
-      return Array.isArray(rows) ? rows[0] : rows;
+      return remapRow(Array.isArray(rows) ? rows[0] : rows);
     },
 
     async update(id, data) {
-      const payload = { ...data, updated_date: new Date().toISOString() };
+      const payload = { ...remapPayload(data), updated_date: new Date().toISOString() };
       delete payload.id;
       const rows = await patch(`/${table}?id=eq.${encodeURIComponent(id)}`, payload);
-      return Array.isArray(rows) ? rows[0] : rows;
+      return remapRow(Array.isArray(rows) ? rows[0] : rows);
     },
 
     async delete(id) {

@@ -1648,6 +1648,7 @@ export default function CourseBuilder() {
       setSelectedLesson(newLesson);
       toast.success('Lesson added');
     },
+    onError: (err) => toast.error(err?.message || 'Failed to add lesson'),
   });
 
   const deleteLessonMut = useMutation({
