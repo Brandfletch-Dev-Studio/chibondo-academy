@@ -38,8 +38,8 @@ const NAV = [
   { key: 'notifications', label: 'Notifications',     icon: BellRing,   badge: null },
   { key: 'security',      label: 'Security',          icon: Shield,     badge: null },
   { key: 'data',          label: 'Data Management',   icon: Database,   badge: 'Danger', badgeDanger: true },
+  { key: 'pwa',           label: 'PWA & App',        icon: Smartphone, badge: null },
 ]
-  { key: 'pwa',           label: 'PWA & App',        icon: Smartphone, badge: null },;
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 function Section({ icon: Icon, title, subtitle, children, gold = false }) {
