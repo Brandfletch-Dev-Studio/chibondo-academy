@@ -9,6 +9,7 @@ const API_CACHE = 'chibondo-api-v1';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
@@ -53,10 +54,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation requests — Network first, fallback to index.html (SPA)
+  // Navigation requests — Network first, fallback to index.html (SPA), then offline page
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
+      fetch(request)
+        .then((response) => {
+          // Cache successful navigations
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(STATIC_CACHE).then(c => c.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match('/index.html').then(cached => cached || caches.match('/offline.html'))
+        )
     );
     return;
   }
