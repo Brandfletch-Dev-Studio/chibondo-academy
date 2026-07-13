@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
-  User, School, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink,
+  User, School, Smartphone, CreditCard, Bell, Shield, Save, Loader2, Copy, ExternalLink,
   Trash2, Users, BookOpen, Layers, Gift, Mail, Camera, Lock, Globe, Phone,
   MapPin, AtSign, Check, ChevronRight, Sparkles, Settings2, Database,
   Palette, BellRing, Key, Building2, DollarSign, Zap, Star
@@ -38,7 +38,8 @@ const NAV = [
   { key: 'notifications', label: 'Notifications',     icon: BellRing,   badge: null },
   { key: 'security',      label: 'Security',          icon: Shield,     badge: null },
   { key: 'data',          label: 'Data Management',   icon: Database,   badge: 'Danger', badgeDanger: true },
-];
+]
+  { key: 'pwa',           label: 'PWA & App',        icon: Smartphone, badge: null },;
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 function Section({ icon: Icon, title, subtitle, children, gold = false }) {
@@ -907,11 +908,144 @@ function BackfillButton() {
   );
 }
 
+
+// ── PWA & App Settings Panel ──────────────────────────────────────────────────
+function PWAPanel() {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    appName: 'Chibondo Academy',
+    shortName: 'Chibondo',
+    description: 'Online secondary school in Malawi providing high-quality digital learning.',
+    themeColor: '#1e2d5c',
+    backgroundColor: '#0d1b3e',
+    installBannerEnabled: true,
+    installBannerDelay: 5,
+    pushPromptEnabled: false,
+    pushPromptDelay: 10,
+  });
+
+  const { data: savedSettings } = useQuery({
+    queryKey: ['platformSettings', 'pwa'],
+    queryFn: () => db.entities.PlatformSettings.filter({ key: 'pwa' }),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (savedSettings?.[0]?.value) {
+      setForm(f => ({ ...f, ...savedSettings[0].value }));
+    }
+  }, [savedSettings]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const existing = await db.entities.PlatformSettings.filter({ key: 'pwa' }).catch(() => []);
+      if (existing?.length) {
+        await db.entities.PlatformSettings.update(existing[0].id, { value: form });
+      } else {
+        await db.entities.PlatformSettings.create({ key: 'pwa', value: form });
+      }
+      toast.success('PWA settings saved');
+    } catch (e) {
+      toast.error('Save failed: ' + (e.message || ''));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <Section icon={Smartphone} title="PWA & App Settings" subtitle="Configure progressive web app details, banners, and offline capability" gold>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="App Name" hint="Shown in browser and install prompts">
+            <Input value={form.appName} onChange={e => setForm(f => ({ ...f, appName: e.target.value }))} />
+          </Field>
+          <Field label="Short Name" hint="Shown on user home screen under the icon">
+            <Input value={form.shortName} onChange={e => setForm(f => ({ ...f, shortName: e.target.value }))} />
+          </Field>
+          <div className="col-span-full">
+            <Field label="App Description" hint="General overview of your application">
+              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </Field>
+          </div>
+          <Field label="Theme Color" hint="Sets the color of the browser address bar">
+            <div className="flex gap-2">
+              <Input type="color" value={form.themeColor} onChange={e => setForm(f => ({ ...f, themeColor: e.target.value }))} className="w-12 h-10 p-0 border-none cursor-pointer rounded-lg bg-transparent" />
+              <Input value={form.themeColor} onChange={e => setForm(f => ({ ...f, themeColor: e.target.value }))} placeholder="#ffffff" className="font-mono flex-1" />
+            </div>
+          </Field>
+          <Field label="Background Color" hint="Sets the splash screen background color">
+            <div className="flex gap-2">
+              <Input type="color" value={form.backgroundColor} onChange={e => setForm(f => ({ ...f, backgroundColor: e.target.value }))} className="w-12 h-10 p-0 border-none cursor-pointer rounded-lg bg-transparent" />
+              <Input value={form.backgroundColor} onChange={e => setForm(f => ({ ...f, backgroundColor: e.target.value }))} placeholder="#ffffff" className="font-mono flex-1" />
+            </div>
+          </Field>
+        </div>
+      </Section>
+
+      <Section icon={Smartphone} title="Prompts & Notifications" subtitle="Manage install experience and browser banners">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Install Banner</Label>
+                <p className="text-[11px] text-muted-foreground">Show native-like install prompt</p>
+              </div>
+              <Switch checked={form.installBannerEnabled} onCheckedChange={checked => setForm(f => ({ ...f, installBannerEnabled: checked }))} />
+            </div>
+            {form.installBannerEnabled && (
+              <Field label="Prompt Delay (seconds)" hint="Time to wait before prompt triggers">
+                <Input type="number" min="0" value={form.installBannerDelay} onChange={e => setForm(f => ({ ...f, installBannerDelay: parseInt(e.target.value) || 0 }))} />
+              </Field>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Push Notifications Prompt</Label>
+                <p className="text-[11px] text-muted-foreground">Ask to enable background notifications</p>
+              </div>
+              <Switch checked={form.pushPromptEnabled} onCheckedChange={checked => setForm(f => ({ ...f, pushPromptEnabled: checked }))} />
+            </div>
+            {form.pushPromptEnabled && (
+              <Field label="Notification Delay (seconds)" hint="Time to wait before prompting">
+                <Input type="number" min="0" value={form.pushPromptDelay} onChange={e => setForm(f => ({ ...f, pushPromptDelay: parseInt(e.target.value) || 0 }))} />
+              </Field>
+            )}
+          </div>
+        </div>
+      </Section>
+
+      <Section icon={Smartphone} title="Install Banner Preview" subtitle="How your application will look when prompted to install">
+        <div className="border border-border rounded-xl p-4 bg-muted/40 flex items-center gap-4 shadow-sm max-w-md mx-auto">
+          {/* Mock App Icon */}
+          <div className="w-12 h-12 rounded-xl flex-shrink-0 bg-gradient-to-br from-[#1e2d5c] to-[#2d4a8a] flex items-center justify-center text-white text-xs font-bold shadow-md">
+            CA
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold truncate text-foreground">{form.appName || 'Chibondo Academy'}</h4>
+            <p className="text-xs text-muted-foreground truncate">{form.shortName || 'Chibondo'} · School</p>
+          </div>
+          <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-4 h-9 rounded-lg">
+            Install
+          </Button>
+        </div>
+      </Section>
+
+      <div className="flex justify-end">
+        <SaveButton onClick={handleSave} loading={saving} />
+      </div>
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { user } = useOutletContext() ?? {};
   const [active, setActive] = useState('profile');
 
   const PANELS = {
+    pwa:           <PWAPanel />,
     profile:       <ProfilePanel user={user} />,
     academy:       <AcademyPanel />,
     pricing:       <PricingPanel />,
