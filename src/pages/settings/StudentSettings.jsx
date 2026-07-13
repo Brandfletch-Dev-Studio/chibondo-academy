@@ -13,8 +13,10 @@ import { toast } from 'sonner';
 import {
   User, Bell, CreditCard, Sun, Moon, Camera, Loader2, Save,
   GraduationCap, Phone, School, BellRing, Palette, Shield,
-  Check, ExternalLink, BookOpen, Trash2, AlertTriangle, Lock, Eye, EyeOff
+  Check, ExternalLink, BookOpen, Trash2, AlertTriangle, Lock, Eye, EyeOff,
+  Smartphone, WifiOff
 } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 // ── Gold accent tokens ─────────────────────────────────────────────────────
 const GOLD        = 'hsl(var(--primary))';
@@ -324,11 +326,21 @@ function AcademicPanel({ user, profile, qc }) {
 }
 
 // ── Notifications Panel ───────────────────────────────────────────────────
-function NotificationsPanel() {
+function NotificationsPanel({ user }) {
   const [lessons,       setLessons]       = useState(true);
   const [assignments,   setAssignments]   = useState(true);
   const [quizzes,       setQuizzes]       = useState(true);
   const [announcements, setAnnouncements] = useState(true);
+
+  const {
+    isSupported: pushSupported,
+    isSubscribed,
+    permission,
+    isSubscribing,
+    subscribe,
+    unsubscribe,
+    error: pushError,
+  } = usePushNotifications(user);
 
   const rows = [
     { label: 'New Lessons',   hint: 'When a new lesson is published in your subjects', val: lessons,       set: setLessons },
@@ -340,6 +352,33 @@ function NotificationsPanel() {
   return (
     <Section icon={BellRing} title="Notification Preferences" subtitle="Choose what you want to be notified about" gold>
       <div className="space-y-3">
+        {/* Push Notifications Toggle */}
+        {pushSupported && (
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Smartphone className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Push Notifications</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {permission === 'denied'
+                    ? 'Blocked by browser — enable in browser settings'
+                    : isSubscribed
+                    ? 'Receiving push alerts on this device'
+                    : 'Get instant alerts even when the app is closed'}
+                </p>
+                {pushError && <p className="text-xs text-destructive mt-0.5">{pushError}</p>}
+              </div>
+            </div>
+            <Switch
+              checked={isSubscribed}
+              disabled={isSubscribing || permission === 'denied'}
+              onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
+            />
+          </div>
+        )}
+        {/* In-app notification toggles */}
         {rows.map(({ label, hint, val, set }) => (
           <div key={label} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
             <div>
@@ -649,7 +688,7 @@ export default function StudentSettings() {
   const panels = {
     profile:       <ProfilePanel user={user} profile={profile} profileLoaded={!profileQueryLoading} qc={qc} />,
     academic:      <AcademicPanel user={user} profile={profile} qc={qc} />,
-    notifications: <NotificationsPanel />,
+    notifications: <NotificationsPanel user={user} />,
     billing:       <BillingPanel user={user} />,
     appearance:    <AppearancePanel />,
     security:      <SecurityPanel user={user} />,
