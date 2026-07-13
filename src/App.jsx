@@ -7,6 +7,8 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import AppLayout from '@/components/layout/AppLayout';
+import RoleGuard from '@/components/RoleGuard';
 import { useOutletContext } from 'react-router-dom';
 
 // Default theme is LIGHT. Only switch to dark if the user has explicitly chosen it.
@@ -41,14 +43,6 @@ function RoleHome() {
   if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/dashboard" replace />;
 }
-
-// Auth pages — lazy
-import AppLayout from '@/components/layout/AppLayout';
-
-// Settings pages
-
-// RBAC
-import RoleGuard from '@/components/RoleGuard';
 
 // ── Lazy-loaded pages (code splitting) ─────────────────────────────────
 const Login = lazy(() => import('@/pages/Login'));
