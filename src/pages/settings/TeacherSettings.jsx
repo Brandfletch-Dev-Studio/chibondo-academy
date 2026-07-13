@@ -15,13 +15,14 @@ import { Badge } from '@/components/ui/badge';
 import SEO from '@/components/SEO';
 import { toast } from 'sonner';
 import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
-import {
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import {
   User, Bell, Sun, Moon, Briefcase, Wallet,
   Camera, Loader2, X, Upload, Plus,
   GraduationCap, Globe, ExternalLink, Eye, CheckCircle, AlertCircle,
-  Facebook, Linkedin, Youtube, Twitter, Link as LinkIcon
-} , Smartphone } from 'lucide-react';
+  Facebook, Linkedin, Youtube, Twitter, Link as LinkIcon,
+  Smartphone,
+} from 'lucide-react';
 
 // Refresh SDK axios Authorization header from the latest token in localStorage.
 // appParams.token is frozen at module-load time; this keeps uploads/saves working
