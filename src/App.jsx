@@ -118,30 +118,8 @@ const AppRoutes = () => {
 
   return (
     <Suspense fallback={
-            <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'16px',background:'#1e2d5c'}}>
-              <svg width="80" height="80" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="sg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#1e2d5c"/><stop offset="100%" stopColor="#2d4a8a"/>
-                  </linearGradient>
-                </defs>
-                <rect width="512" height="512" rx="80" fill="url(#sg)"/>
-                <polygon points="256,120 356,155 256,190 156,155" fill="#c9a84c"/>
-                <path d="M196,163 L196,190 C196,208 316,208 316,190 L316,163" fill="#a07830"/>
-                <line x1="256" y1="155" x2="340" y2="185" stroke="#a07830" strokeWidth="6" strokeLinecap="round"/>
-                <circle cx="340" cy="200" r="10" fill="#a07830"/>
-                <path d="M256,230 C218,205 152,205 100,222 L100,345 C152,328 218,328 256,355 Z" fill="#f8fafc"/>
-                <path d="M256,230 C294,205 360,205 412,222 L412,345 C360,328 294,328 256,355 Z" fill="#eef2f7"/>
-                <rect x="250" y="225" width="12" height="130" rx="6" fill="#c9a84c"/>
-              </svg>
-              <div style={{color:'#c9a84c',fontWeight:800,fontSize:'1.1rem',letterSpacing:'0.08em',fontFamily:'system-ui'}}>CHIBONDO ACADEMY</div>
-              <div style={{color:'rgba(201,168,76,0.6)',fontSize:'0.75rem',letterSpacing:'0.15em',fontFamily:'system-ui'}}>LEARN · GROW · EXCEL</div>
-              <div style={{width:'140px',height:'3px',background:'rgba(255,255,255,0.1)',borderRadius:'9999px',overflow:'hidden',marginTop:'4px'}}>
-                <div style={{height:'100%',width:'45%',background:'linear-gradient(90deg,transparent,#c9a84c,transparent)',borderRadius:'9999px',animation:'aca-shimmer 1.3s ease-in-out infinite'}}/>
-              </div>
-              <style>{"@keyframes aca-shimmer{0%{transform:translateX(-200%)}100%{transform:translateX(400%)}}"}</style>
-            </div>
-          }>
+    <div style={{position:'fixed',inset:0,background:'linear-gradient(135deg,#1e2d5c 0%,#0d1b3e 100%)',zIndex:999}} />
+  }>
     <Routes>
       {/* ── Auth pages (standalone, no layout) ── */}
       <Route path="/login" element={<Login />} />
