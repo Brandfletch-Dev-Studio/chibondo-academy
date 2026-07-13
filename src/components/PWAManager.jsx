@@ -134,7 +134,7 @@ export default function PWAManager({ user }) {
               <Download className="w-12 h-12 text-primary" />
             </div>
             
-            <h3 className="text-xl font-bold mb-2">Install Chibondo Academy</h3>
+            <h3 className="text-xl font-bold mb-2">Install The ACA App</h3>
             <p className="text-sm text-muted-foreground mb-6">
               Install our app for offline access, incredibly fast loading times, and a convenient home screen shortcut.
             </p>
