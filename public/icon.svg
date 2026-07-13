@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2d5c" />
+      <stop offset="100%" stop-color="#2d4a8a" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background with sharp rounded corners (maskable) -->
+  <rect width="512" height="512" rx="80" ry="80" fill="url(#bgGrad)" />
+
+  <!-- Logo Group centered with padding -->
+  <g transform="translate(0, -10)" filter="url(#dropShadow)">
+    <!-- Open Book -->
+    <!-- Spine Accent (Gold) -->
+    <path d="M256,215 L256,335" stroke="#c9a84c" stroke-width="12" stroke-linecap="round" />
+    
+    <!-- Left Pages (White/Cream #f8fafc) -->
+    <path d="M256,220 C220,195 160,195 110,210 L110,320 C160,305 220,305 256,330 Z" fill="#f8fafc" />
+    <!-- Left page edge lines to show thickness -->
+    <path d="M110,210 L110,214 C160,199 220,199 256,224 L256,220 Z" fill="#e2e8f0" />
+    <path d="M110,320 L110,324 C160,309 220,309 256,334 L256,330 Z" fill="#cbd5e1" />
+
+    <!-- Right Pages (White/Cream #f8fafc) -->
+    <path d="M256,220 C292,195 352,195 402,210 L402,320 C352,305 292,305 256,330 Z" fill="#f8fafc" />
+    <!-- Right page edge lines to show thickness -->
+    <path d="M402,210 L402,214 C352,199 292,199 256,224 L256,220 Z" fill="#e2e8f0" />
+    <path d="M402,320 L402,324 C352,309 292,309 256,334 L256,330 Z" fill="#cbd5e1" />
+
+    <!-- Graduation Cap (Gold #c9a84c) sitting above the book -->
+    <!-- Cap Diamond/Top -->
+    <polygon points="256,105 346,135 256,165 166,135" fill="#c9a84c" />
+    <!-- Cap Band/Skullcap -->
+    <path d="M206,143 L206,165 C206,180 306,180 306,165 L306,143" fill="#b0903b" />
+    <!-- Tassel -->
+    <path d="M256,135 L330,165 L330,195" fill="none" stroke="#b0903b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Tassel Fringe -->
+    <polygon points="325,195 335,195 330,205" fill="#b0903b" />
+  </g>
+
+  <!-- Bottom strip with text 'CA' in clean sans-serif -->
+  <text x="256" y="425" fill="#ffffff" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="4" text-anchor="middle">CA</text>
+</svg>
