@@ -130,14 +130,17 @@ export default function PWAManager({ user }) {
           </button>
           
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Download className="w-12 h-12 text-primary" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center mb-4">
+              <Download className="w-8 h-8 text-primary" />
             </div>
             
-            <h3 className="text-xl font-bold mb-2">Install The ACA App</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Install our app for offline access, incredibly fast loading times, and a convenient home screen shortcut.
-            </p>
+            <h3 className="text-xl font-bold mb-1">Install The ACA App</h3>
+            <p className="text-xs text-muted-foreground mb-4">Add to your home screen for the best experience</p>
+            <ul className="text-sm text-muted-foreground text-left space-y-2 mb-6 w-full">
+              <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Works offline — no internet needed</li>
+              <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Loads instantly from your home screen</li>
+              <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Full-screen, distraction-free learning</li>
+            </ul>
             
             <div className="flex flex-col gap-2 w-full">
               <Button 
@@ -170,14 +173,17 @@ export default function PWAManager({ user }) {
           </button>
           
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Bell className="w-12 h-12 text-primary" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center mb-4">
+              <Bell className="w-8 h-8 text-primary" />
             </div>
             
-            <h3 className="text-xl font-bold mb-2">Stay in the loop</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Get instant alerts for new lessons, quiz results and announcements — even when the app is closed.
-            </p>
+            <h3 className="text-xl font-bold mb-1">Stay in the loop</h3>
+            <p className="text-xs text-muted-foreground mb-4">Turn on notifications to never miss a thing</p>
+            <ul className="text-sm text-muted-foreground text-left space-y-2 mb-6 w-full">
+              <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> New lessons & quiz alerts</li>
+              <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Assignment deadlines & grades</li>
+              <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Works even when app is closed</li>
+            </ul>
             
             <div className="flex flex-col gap-2 w-full">
               <Button 
@@ -210,7 +216,7 @@ export default function PWAManager({ user }) {
           </button>
           
           <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-spin-slow">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-spin">
               <RefreshCw className="w-6 h-6 text-primary" />
             </div>
             
