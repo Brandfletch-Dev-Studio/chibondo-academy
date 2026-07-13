@@ -97,7 +97,7 @@ export default function PWAManager({ user }) {
     <>
       {/* Install Banner */}
       {showInstallBanner && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md">
+        <div className="fixed bottom-[76px] lg:bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-md">
           <div className="bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Download className="w-5 h-5 text-primary" />
@@ -123,7 +123,7 @@ export default function PWAManager({ user }) {
 
       {/* Push Notification Prompt */}
       {showPushPrompt && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md">
+        <div className="fixed bottom-[76px] lg:bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-md">
           <div className="bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Bell className="w-5 h-5 text-primary" />
