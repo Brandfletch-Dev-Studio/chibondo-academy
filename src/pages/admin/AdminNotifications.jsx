@@ -380,6 +380,43 @@ export default function AdminNotifications() {
           })
         ));
       }
+
+      // ── Send Push Notifications ──────────────────────────────────────────
+      try {
+        const pushQuery = await Promise.all(
+          userIds.map(uid => db.entities.User.filter({ id: uid }))
+        );
+        const usersWithPush = pushQuery
+          .flat()
+          .filter(u => u.push_enabled && u.push_subscription);
+
+        const pushSubs = usersWithPush.map(u => {
+          try { return JSON.parse(u.push_subscription); } catch { return null; }
+        }).filter(Boolean);
+
+        if (pushSubs.length > 0) {
+          await fetch('/api/send-push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-secret': import.meta.env.VITE_INTERNAL_API_SECRET || '',
+            },
+            body: JSON.stringify({
+              subscriptions: pushSubs,
+              notification: {
+                title: title.trim(),
+                body: message.trim(),
+                icon: '/icon-192.png',
+                url: '/notifications',
+                tag: type,
+              },
+            }),
+          });
+        }
+      } catch (pushErr) {
+        console.warn('[Push] Push delivery failed (non-critical):', pushErr);
+      }
+
       return userIds.length;
     },
     onSuccess: (count) => {
