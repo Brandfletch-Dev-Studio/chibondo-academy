@@ -6,14 +6,13 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Default SEO Meta Tags (overridden per-page by React SEO component) -->
+
     <title>Chibondo Academy - Quality Online Secondary Education in Malawi</title>
     <meta name="description" content="Chibondo Academy offers quality online secondary education for Form 3 and Form 4 students in Malawi. Access video lessons, quizzes, past papers, and expert tutoring. Fees from MWK 10,000/month." />
     <meta name="keywords" content="online school Malawi, MSCE courses, Form 3 lessons, Form 4 lessons, secondary education Malawi, e-learning Malawi, Chibondo Academy" />
     <meta name="author" content="Chibondo Academy" />
-    
-    <!-- Open Graph / Social Media (static fallback — React overrides these per-page) -->
+
+    <!-- Open Graph -->
     <meta property="og:title" content="Chibondo Academy - Quality Online Secondary Education in Malawi" />
     <meta property="og:description" content="Chibondo Academy offers quality MSCE lessons, quizzes, past papers, and expert tutoring for Form 3 & 4 students in Malawi. Fees from MWK 10,000/month." />
     <meta property="og:image" content="https://media.base44.com/images/public/6a212896f8e71114ad51c36f/3fd7d6af7_FB_IMG_1780187860438.jpg" />
@@ -23,7 +22,7 @@
     <meta property="og:url" content="https://app.chibondoacademy.com" />
     <meta property="og:site_name" content="Chibondo Academy" />
     <meta property="og:locale" content="en_US" />
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@ChibondoAcademy" />
@@ -33,22 +32,124 @@
 
     <!-- Canonical -->
     <link rel="canonical" href="https://app.chibondoacademy.com" />
-    
 
-    <!-- Theme color for Android status bar (mandatory for Google Play) -->
+    <!-- Theme color -->
     <meta name="theme-color" content="#1e2d5c" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f1729" media="(prefers-color-scheme: dark)" />
-    <!-- Mobile web app capable -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Apple splash screens -->
+    <link rel="apple-touch-startup-image" href="/splash.svg" />
 
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- ══ INLINE SPLASH SCREEN ══════════════════════════════════════════════
+         Shows instantly before any JS/CSS loads. Hidden once React mounts.  -->
+    <style>
+      #aca-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 18px;
+        background: linear-gradient(135deg, #1e2d5c 0%, #0d1b3e 100%);
+        font-family: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+        transition: opacity 0.4s ease;
+      }
+      #aca-splash.hidden { opacity: 0; pointer-events: none; }
+      #aca-splash .logo-ring {
+        width: 88px; height: 88px; border-radius: 22px;
+        background: linear-gradient(135deg, #1e2d5c, #2d4a8a);
+        border: 2px solid rgba(201,168,76,0.3);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 40px rgba(201,168,76,0.15);
+      }
+      #aca-splash .wordmark {
+        color: #fff; font-size: 1.15rem; font-weight: 800;
+        letter-spacing: 0.08em; text-align: center; line-height: 1.2;
+      }
+      #aca-splash .wordmark span { color: #c9a84c; }
+      #aca-splash .tagline {
+        color: rgba(201,168,76,0.7); font-size: 0.7rem;
+        letter-spacing: 0.18em; text-transform: uppercase;
+      }
+      #aca-splash .bar-track {
+        width: 150px; height: 3px; background: rgba(255,255,255,0.08);
+        border-radius: 9999px; overflow: hidden;
+      }
+      #aca-splash .bar-fill {
+        height: 100%; width: 40%;
+        background: linear-gradient(90deg, transparent, #c9a84c, transparent);
+        border-radius: 9999px;
+        animation: aca-sweep 1.4s ease-in-out infinite;
+      }
+      @keyframes aca-sweep {
+        0%   { transform: translateX(-200%); }
+        100% { transform: translateX(450%); }
+      }
+      /* Decorative rings */
+      #aca-splash .rings {
+        position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+      }
+      #aca-splash .rings circle {
+        fill: none; stroke: rgba(201,168,76,0.04); stroke-width: 1.5;
+      }
+    </style>
   </head>
   <body>
+    <!-- Branded splash — visible before React JS loads -->
+    <div id="aca-splash">
+      <div class="rings">
+        <svg width="100%" height="100%" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="195" cy="380" r="160"/>
+          <circle cx="195" cy="380" r="250"/>
+          <circle cx="195" cy="380" r="340"/>
+        </svg>
+      </div>
+      <!-- Logo mark -->
+      <div class="logo-ring">
+        <svg width="52" height="52" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="256,120 356,155 256,190 156,155" fill="#c9a84c"/>
+          <path d="M196,163 L196,190 C196,208 316,208 316,190 L316,163" fill="#a07830"/>
+          <line x1="256" y1="155" x2="340" y2="185" stroke="#a07830" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="340" cy="200" r="10" fill="#a07830"/>
+          <path d="M256,230 C218,205 152,205 100,222 L100,345 C152,328 218,328 256,355 Z" fill="#f8fafc"/>
+          <path d="M256,230 C294,205 360,205 412,222 L412,345 C360,328 294,328 256,355 Z" fill="#eef2f7"/>
+          <rect x="250" y="228" width="12" height="127" rx="6" fill="#c9a84c"/>
+        </svg>
+      </div>
+      <!-- Wordmark -->
+      <div class="wordmark">CHIBONDO<br/><span>ACADEMY</span></div>
+      <div class="tagline">Learn &middot; Grow &middot; Excel</div>
+      <!-- Progress bar -->
+      <div class="bar-track"><div class="bar-fill"></div></div>
+    </div>
+
     <div id="root"></div>
+
+    <script>
+      // Hide splash once React has mounted
+      document.addEventListener('DOMContentLoaded', function() {
+        var splash = document.getElementById('aca-splash');
+        // Watch for #root to have children (React mounted)
+        var observer = new MutationObserver(function() {
+          if (document.getElementById('root').children.length > 0) {
+            splash.classList.add('hidden');
+            setTimeout(function() { splash.remove(); }, 450);
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.getElementById('root'), { childList: true });
+        // Failsafe: remove after 8s regardless
+        setTimeout(function() {
+          splash.classList.add('hidden');
+          setTimeout(function() { if (splash.parentNode) splash.remove(); }, 450);
+        }, 8000);
+      });
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
