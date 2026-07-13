@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1125 2436" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradSplash" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2d5c" />
+      <stop offset="100%" stop-color="#0d1b3e" />
+    </linearGradient>
+    <filter id="dropShadowSplash" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1125" height="2436" fill="url(#bgGradSplash)" />
+
+  <!-- Subtle decorative elements: faint concentric circles or dots pattern in navy + 10% lighter -->
+  <circle cx="562.5" cy="1000" r="350" fill="none" stroke="#2d4a8a" stroke-width="1.5" opacity="0.15" />
+  <circle cx="562.5" cy="1000" r="500" fill="none" stroke="#2d4a8a" stroke-width="2" opacity="0.1" />
+  <circle cx="562.5" cy="1000" r="650" fill="none" stroke="#2d4a8a" stroke-width="1.5" opacity="0.05" />
+
+  <!-- Decorative grid of dots (top and bottom) -->
+  <g fill="#2d4a8a" opacity="0.15">
+    <circle cx="100" cy="200" r="4" /><circle cx="140" cy="200" r="4" /><circle cx="180" cy="200" r="4" /><circle cx="220" cy="200" r="4" />
+    <circle cx="100" cy="240" r="4" /><circle cx="140" cy="240" r="4" /><circle cx="180" cy="240" r="4" /><circle cx="220" cy="240" r="4" />
+    <circle cx="100" cy="280" r="4" /><circle cx="140" cy="280" r="4" /><circle cx="180" cy="280" r="4" /><circle cx="220" cy="280" r="4" />
+    
+    <circle cx="900" cy="2100" r="4" /><circle cx="940" cy="2100" r="4" /><circle cx="980" cy="2100" r="4" /><circle cx="1020" cy="2100" r="4" />
+    <circle cx="900" cy="2140" r="4" /><circle cx="940" cy="2140" r="4" /><circle cx="980" cy="2140" r="4" /><circle cx="1020" cy="2140" r="4" />
+    <circle cx="900" cy="2180" r="4" /><circle cx="940" cy="2180" r="4" /><circle cx="980" cy="2180" r="4" /><circle cx="1020" cy="2180" r="4" />
+  </g>
+
+  <!-- Center Group (scaled to ~200px equivalent logo) -->
+  <g transform="translate(562.5, 1000)" filter="url(#dropShadowSplash)" id="logoGroup">
+    <g transform="scale(1.8) translate(-256, -240)">
+      <!-- Open Book -->
+      <!-- Spine Accent (Gold) -->
+      <path d="M256,215 L256,335" stroke="#c9a84c" stroke-width="12" stroke-linecap="round" />
+      
+      <!-- Left Pages (White/Cream #f8fafc) -->
+      <path d="M256,220 C220,195 160,195 110,210 L110,320 C160,305 220,305 256,330 Z" fill="#f8fafc" />
+      <path d="M110,210 L110,214 C160,199 220,199 256,224 L256,220 Z" fill="#e2e8f0" />
+      <path d="M110,320 L110,324 C160,309 220,309 256,334 L256,330 Z" fill="#cbd5e1" />
+
+      <!-- Right Pages (White/Cream #f8fafc) -->
+      <path d="M256,220 C292,195 352,195 402,210 L402,320 C352,305 292,305 256,330 Z" fill="#f8fafc" />
+      <path d="M402,210 L402,214 C352,199 292,199 256,224 L256,220 Z" fill="#e2e8f0" />
+      <path d="M402,320 L402,324 C352,309 292,309 256,334 L256,330 Z" fill="#cbd5e1" />
+
+      <!-- Graduation Cap (Gold #c9a84c) sitting above the book -->
+      <!-- Cap Diamond/Top -->
+      <polygon points="256,105 346,135 256,165 166,135" fill="#c9a84c" />
+      <!-- Cap Band/Skullcap -->
+      <path d="M206,143 L206,165 C206,180 306,180 306,165 L306,143" fill="#b0903b" />
+      <!-- Tassel -->
+      <path d="M256,135 L330,165 L330,195" fill="none" stroke="#b0903b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Tassel Fringe -->
+      <polygon points="325,195 335,195 330,205" fill="#b0903b" />
+    </g>
+  </g>
+
+  <!-- Typography -->
+  <!-- App name 'Chibondo Academy' in white, bold, 52px, below logo -->
+  <text x="562.5" y="1320" fill="#ffffff" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="52" font-weight="800" letter-spacing="1.5" text-anchor="middle">Chibondo Academy</text>
+
+  <!-- Tagline 'Learn. Grow. Excel.' in gold (#c9a84c), 26px, italic -->
+  <text x="562.5" y="1375" fill="#c9a84c" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-style="italic" font-weight="500" letter-spacing="1" text-anchor="middle">Learn. Grow. Excel.</text>
+
+  <!-- Bottom: small 'Powered by quality education' in muted white, 18px -->
+  <text x="562.5" y="2250" fill="#a0aec0" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="500" letter-spacing="0.5" text-anchor="middle" opacity="0.8">Powered by quality education</text>
+</svg>
