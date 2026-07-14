@@ -321,9 +321,55 @@ export default function BlogPostDetail() {
           {/* Content */}
           <div className="bg-card border border-border rounded-2xl p-5 sm:p-7">
             {post.content
-              ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
+              ? (
+                <div
+                  className="aca-article-body"
+                  dangerouslySetInnerHTML={{ __html: post.content }}
+                  style={{
+                    fontSize: '0.9375rem',
+                    lineHeight: '1.8',
+                    color: 'hsl(var(--foreground))',
+                  }}
+                />
+              )
               : post.excerpt && <p className="text-muted-foreground leading-relaxed">{post.excerpt}</p>
             }
+            <style>{`
+              .aca-article-body h1,.aca-article-body h2,.aca-article-body h3,.aca-article-body h4 {
+                font-weight: 700; line-height: 1.3; margin: 1.5em 0 0.5em;
+                color: hsl(var(--foreground));
+              }
+              .aca-article-body h1 { font-size: 1.5rem; }
+              .aca-article-body h2 { font-size: 1.25rem; border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.3em; }
+              .aca-article-body h3 { font-size: 1.1rem; }
+              .aca-article-body p { margin: 0 0 1em; }
+              .aca-article-body a { color: hsl(var(--primary)); text-decoration: underline; }
+              .aca-article-body a:hover { opacity: 0.8; }
+              .aca-article-body ul,.aca-article-body ol { margin: 0.75em 0 1em 1.5em; }
+              .aca-article-body li { margin-bottom: 0.35em; }
+              .aca-article-body blockquote {
+                border-left: 4px solid hsl(var(--primary));
+                margin: 1.2em 0; padding: 0.75em 1em;
+                background: hsl(var(--muted)); border-radius: 0 8px 8px 0;
+                color: hsl(var(--muted-foreground)); font-style: italic;
+              }
+              .aca-article-body code {
+                background: hsl(var(--muted)); padding: 0.15em 0.4em;
+                border-radius: 4px; font-size: 0.85em; font-family: monospace;
+              }
+              .aca-article-body pre {
+                background: hsl(var(--muted)); padding: 1em; border-radius: 8px;
+                overflow-x: auto; margin: 1em 0;
+              }
+              .aca-article-body pre code { background: none; padding: 0; }
+              .aca-article-body img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+              .aca-article-body strong { font-weight: 700; }
+              .aca-article-body em { font-style: italic; }
+              .aca-article-body table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.875rem; }
+              .aca-article-body th { background: hsl(var(--muted)); font-weight: 600; }
+              .aca-article-body th,.aca-article-body td { border: 1px solid hsl(var(--border)); padding: 0.5em 0.75em; text-align: left; }
+              .aca-article-body hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 1.5em 0; }
+            `}</style>
           </div>
 
           {/* Share */}
