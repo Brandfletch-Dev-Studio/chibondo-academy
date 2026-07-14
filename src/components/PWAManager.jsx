@@ -21,6 +21,7 @@ export default function PWAManager({ user }) {
     permission,
     isSubscribed,
     isSubscribing,
+    error: pushError,
     subscribe,
   } = usePushNotifications(user);
 
@@ -41,15 +42,14 @@ export default function PWAManager({ user }) {
     return () => clearTimeout(t);
   }, [canInstall, dismissed.install]);
 
-  // Show push prompt 10s after load if install modal is not shown/dismissed, not subscribed, and permission not denied
-  // Requirement 10: "Show only ONE modal at a time (install first, then push after install dismissed)"
-  // So we only allow push modal if showInstallModal is false.
+  // Show push prompt 10s after load
   useEffect(() => {
     if (!pushSupported || isSubscribed || permission === 'denied' || dismissed.push || !user?.id) return;
-    if (showInstallModal) return; // Wait for install to be dismissed/resolved
+    if (showInstallModal) return;
+    if (isSubscribing) return; // Don't open modal if already subscribing in background
     const t = setTimeout(() => setShowPushModal(true), 10000);
     return () => clearTimeout(t);
-  }, [pushSupported, isSubscribed, permission, dismissed.push, user?.id, showInstallModal]);
+  }, [pushSupported, isSubscribed, permission, dismissed.push, user?.id, showInstallModal, isSubscribing]);
 
   // Update available modal instead of toast (Requirement 4)
   useEffect(() => {
@@ -201,6 +201,9 @@ export default function PWAManager({ user }) {
                 Maybe later
               </Button>
             </div>
+            {pushError && (
+              <p className="text-xs text-destructive mt-3 text-center leading-snug">{pushError}</p>
+            )}
           </div>
         </div>
       )}
