@@ -414,18 +414,6 @@ export default function LandingPage() {
           </div>
           <p className="text-xs text-muted-foreground mb-4">Affordable access to quality education</p>
 
-          {/* Free tier callout */}
-          <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-muted">
-              <BookOpen className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm">Free Trial</p>
-              <p className="text-xs text-muted-foreground">Sample lessons, forum read access, blog articles</p>
-            </div>
-            <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>Free</span>
-          </div>
-
           <div className="space-y-3">
             {plans.map(({ id, name, icon: Icon, price, period, popular, features }) => (
               <div key={id}
@@ -450,7 +438,7 @@ export default function LandingPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-extrabold text-base font-display"
-                      style={popular ? { color: 'hsl(var(--primary-foreground))' } : {}}>
+                      style={popular ? { color: '#ffffff' } : {}}>
                       MWK {fmt(price)}
                     </p>
                   </div>
@@ -463,6 +451,15 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="w-full py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                  style={popular
+                    ? { background: 'hsl(var(--primary))', color: '#fff' }
+                    : { background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }
+                  }>
+                  {popular ? 'Get Started' : 'Choose Plan'}
+                </button>
               </div>
             ))}
           </div>
