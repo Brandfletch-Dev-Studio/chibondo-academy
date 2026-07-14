@@ -44,16 +44,17 @@ export function usePWA() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Register service worker + update detection
+  // Listen for SW updates — registration is handled by main.jsx
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((reg) => {
+    // Use existing registration from main.jsx
+    navigator.serviceWorker.ready.then((reg) => {
       setRegistration(reg);
 
-      // Check for updates periodically
+      // Check for updates every hour
       const checkUpdate = () => reg.update().catch(() => {});
-      const interval = setInterval(checkUpdate, 60 * 60 * 1000); // every hour
+      const interval = setInterval(checkUpdate, 60 * 60 * 1000);
 
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
@@ -67,14 +68,12 @@ export function usePWA() {
       });
 
       return () => clearInterval(interval);
-    }).catch((err) => {
-      console.error('[PWA] Service worker registration failed:', err);
     });
 
     // Handle controller change (after skipWaiting)
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
-    });
+    const handleControllerChange = () => window.location.reload();
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
   }, []);
 
   // Install app
