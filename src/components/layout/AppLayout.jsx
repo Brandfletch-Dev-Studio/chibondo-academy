@@ -72,6 +72,8 @@ export default function AppLayout() {
   // ── Forum Presence Heartbeat (authenticated users only) ────────────────────
   const location = useLocation();
   const isOnForums = location.pathname.startsWith('/forums') || location.pathname.startsWith('/forum');
+  // Chat pages need a locked-height main so only messages scroll, not the page
+  const isChatPage = /^\/forums\/[^/]+\/chat/.test(location.pathname);
 
   useEffect(() => {
     if (!user?.id || !isOnForums) return;
@@ -245,7 +247,7 @@ export default function AppLayout() {
             notificationCount={notifications.length}
             onMenuClick={() => setMobileOpen(true)}
           />
-        <main key={location.pathname} className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter">
+        <main key={location.pathname} className={isChatPage ? "flex-1 overflow-hidden flex flex-col" : "flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter"}>
           <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
