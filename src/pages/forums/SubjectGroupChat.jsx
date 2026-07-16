@@ -417,153 +417,144 @@ export default function SubjectGroupChat() {
   const { subjectSlug } = useParams();
   const location = useLocation();
   const { user } = useOutletContext() ?? {};
-  const [activeGroup, setActiveGroup] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
 
-  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity === true;
+  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity;
+  const isCustomGroup = !!location.state?.group;
 
-  // Subjects list for CreateGroupModal
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects-list'],
     queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
     staleTime: 300_000,
   });
 
-  // Query for subject-based official group
-  const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({
-    queryKey: ['subject-chat-group', subjectSlug, isCommunity],
-    queryFn: async () => {
-      if (isCommunity) {
-        // Query by specific fixed group ID 'community-global'
-        try {
-          const existing = await db.entities.StudyGroup.get('community-global');
-          if (existing && existing.status === 'active') {
-            return existing;
-          }
-        } catch (e) {
-          // If 404 or fails, we will create it below
-        }
-
-        // Try query filter in case id get lookup didn't work directly
-        const list = await db.entities.StudyGroup.filter({ id: 'community-global' });
-        if (list && list.length > 0) return list[0];
-
-        // Create community-global study group if not exists
-        return await db.entities.StudyGroup.create({
-          id: 'community-global',
-          name: 'Chibondo Academy',
-          description: 'Official global community group chat',
-          icon: '🎓',
-          creator_id: 'system',
-          creator_name: 'System',
-          member_ids: user?.id ? [user.id] : [],
-          member_names: user?.id ? [user.full_name || user.email] : [],
-          member_count: user?.id ? 1 : 0,
-          is_private: false,
-          status: 'active',
-        });
-      } else {
-        const subject = location.state?.subject;
-        if (!subject) return null;
-
-        // Query by subject_id to ensure a stable key and no duplicates
-        const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' });
-        if (existingList && existingList.length > 0) {
-          return existingList[0];
-        }
-
-        // Auto-create on first visit
-        return await db.entities.StudyGroup.create({
-          name: `${subject.name} Group`,
-          description: `Official study group for ${subject.name}`,
-          icon: '📚',
-          subject_id: subject.id,
-          subject_name: subject.name,
-          creator_id: user?.id || 'system',
-          creator_name: user ? (user.full_name || user.email) : 'System',
-          member_ids: user?.id ? [user.id] : [],
-          member_names: user?.id ? [user.full_name || user.email] : [],
-          member_count: user?.id ? 1 : 0,
-          is_private: false,
-          status: 'active',
-        });
-      }
-    },
-    enabled: isCommunity || (!!subjectSlug && !!location.state?.subject),
-    staleTime: 30_000,
-  });
-
-  // Auto-join membership hook/logic when the group is active
-  useEffect(() => {
-    if (!subjectGroupResult || !user?.id) return;
-    const memberIds = subjectGroupResult.member_ids || [];
-    if (!memberIds.includes(user.id)) {
-      const updatedIds = [...memberIds, user.id];
-      const updatedNames = [...(subjectGroupResult.member_names || []), user.full_name || user.email];
-      db.entities.StudyGroup.update(subjectGroupResult.id, {
-        member_ids: updatedIds,
-        member_names: updatedNames,
-        member_count: updatedIds.length,
-      }).catch(err => {
-        console.error('Silent auto-join failed:', err);
-      });
-    }
-  }, [subjectGroupResult, user?.id]);
-
-  // Keep activeGroup state synced or initialized to subjectGroupResult
-  useEffect(() => {
-    if (subjectGroupResult) {
-      setActiveGroup(subjectGroupResult);
-    }
-  }, [subjectGroupResult]);
-
-  if (isGroupLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-gray-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
-        <p className="text-sm">Loading Forum Chat...</p>
-      </div>
-    );
-  }
-
-  // Handle case where activeGroup is determined
-  const displayedGroup = activeGroup || subjectGroupResult;
-
-  if (displayedGroup) {
+  // ── Custom group from "My Groups" — use state directly, instant ──────────────
+  if (isCustomGroup) {
+    const group = location.state.group;
     return (
       <>
-        <ChatView
-          group={displayedGroup}
-          user={user}
-          onBack={() => navigate('/forums')}
-          subjects={subjects}
-          onNewGroupClick={() => setShowCreateGroup(true)}
-        />
+        <ChatView group={group} user={user} onBack={() => navigate('/forums')}
+          subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
         {showCreateGroup && (
-          <CreateGroupModal
-            user={user}
-            subjects={subjects}
-            onClose={() => setShowCreateGroup(false)}
-            onCreate={(newGroup) => {
-              // On success, go to forums home where 'My Groups' section will display it
-              navigate('/forums');
-            }}
-          />
+          <CreateGroupModal user={user} subjects={subjects}
+            onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
         )}
       </>
     );
   }
 
+  // ── Community chat — instant, no DB lookup needed ────────────────────────────
+  if (isCommunity) {
+    const group = {
+      id: 'community-global',
+      name: 'Chibondo Academy Community',
+      icon: '🎓',
+      icon_url: null,
+      member_count: null,
+      creator_id: 'system',
+    };
+    return (
+      <>
+        <ChatView group={group} user={user} onBack={() => navigate('/forums')}
+          subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
+        {showCreateGroup && (
+          <CreateGroupModal user={user} subjects={subjects}
+            onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
+        )}
+      </>
+    );
+  }
+
+  // ── Subject chat — resolve subject then render instantly ─────────────────────
   return (
-    <div className="p-8 text-center text-gray-500">
-      <p className="text-lg font-semibold">Chat room not found</p>
-      <button
-        onClick={() => navigate('/forums')}
-        className="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium"
-        style={{ background: WA_GREEN }}
-      >
-        Go to Forums
-      </button>
-    </div>
+    <SubjectChatView
+      subjectSlug={subjectSlug}
+      locationState={location.state}
+      user={user}
+      subjects={subjects}
+      navigate={navigate}
+      showCreateGroup={showCreateGroup}
+      setShowCreateGroup={setShowCreateGroup}
+    />
   );
+}
+
+function SubjectChatView({ subjectSlug, locationState, user, subjects, navigate, showCreateGroup, setShowCreateGroup }) {
+  const subjectFromState = locationState?.subject;
+
+  const { data: subjectFromDB, isLoading } = useQuery({
+    queryKey: ['subject-by-slug', subjectSlug],
+    queryFn: async () => {
+      const all = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
+      const slug = (subjectSlug || '').toLowerCase();
+      return (
+        all.find(s => s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug) ||
+        all.find(s => slug.includes(s.name.toLowerCase().split(' ').slice(-1)[0])) ||
+        all.find(s => s.name.toLowerCase().replace(/\s+/g, '-').includes(slug.split('-')[0])) ||
+        null
+      );
+    },
+    enabled: !subjectFromState,
+    staleTime: 300_000,
+  });
+
+  const subject = subjectFromState || subjectFromDB;
+
+  if (!subject && isLoading) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100dvh - 64px)', gap:12 }}>
+        <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid #25D366', borderTopColor:'transparent', animation:'spin 0.8s linear infinite' }} />
+        <p style={{ fontSize:13, color:'#666' }}>Opening chat…</p>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  if (!subject) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100dvh - 64px)', gap:16, padding:32, textAlign:'center' }}>
+        <p style={{ fontSize:16, fontWeight:600, color:'#333' }}>Subject not found</p>
+        <button onClick={() => navigate('/forums')}
+          style={{ padding:'10px 20px', background:'#25D366', color:'white', border:'none', borderRadius:12, fontSize:14, cursor:'pointer', fontWeight:600 }}>
+          Back to Forums
+        </button>
+      </div>
+    );
+  }
+
+  const group = {
+    id: `subject-${subject.id}`,
+    name: subject.name,
+    icon: getSubjectIcon(subject.name),
+    icon_url: null,
+    member_count: null,
+    subject_name: subject.name,
+    subject_id: subject.id,
+    creator_id: 'system',
+  };
+
+  return (
+    <>
+      <ChatView group={group} user={user} onBack={() => navigate('/forums')}
+        subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
+      {showCreateGroup && (
+        <CreateGroupModal user={user} subjects={subjects}
+          onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
+      )}
+    </>
+  );
+}
+
+function getSubjectIcon(name = '') {
+  const n = name.toLowerCase();
+  if (n.includes('bio')) return '🧬';
+  if (n.includes('chem')) return '⚗️';
+  if (n.includes('phys')) return '⚡';
+  if (n.includes('math')) return '📐';
+  if (n.includes('english') || n.includes('literature')) return '📖';
+  if (n.includes('chichewa')) return '🗣️';
+  if (n.includes('agri')) return '🌱';
+  if (n.includes('geo')) return '🌍';
+  if (n.includes('hist')) return '📜';
+  return '💬';
 }
