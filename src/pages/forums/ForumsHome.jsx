@@ -1,49 +1,75 @@
+// src/pages/forums/ForumsHome.jsx
+// Polished WhatsApp-style community list — ACA navy/gold theme
+
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
-import { Search } from 'lucide-react';
+import { Search, Plus, Users, Pin } from 'lucide-react';
 
-import { Pin } from 'lucide-react';
+const NAVY = '#0d1b4b';
+const GOLD = '#D4AF37';
 
 const SUBJECT_META = {
-  biology:              { icon: '🧬' },
-  chemistry:            { icon: '⚗️' },
-  physics:              { icon: '⚡' },
-  mathematics:          { icon: '📐' },
-  'additional mathematics': { icon: '∑' },
-  english:              { icon: '📖' },
-  'english language':   { icon: '📖' },
-  'english literature': { icon: '📚' },
-  chichewa:             { icon: '🗣️' },
-  agriculture:          { icon: '🌱' },
-  geography:            { icon: '🌍' },
-  history:              { icon: '📜' },
+  biology:                  { icon: '🧬', color: '#00897B' },
+  chemistry:                { icon: '⚗️', color: '#7B1FA2' },
+  physics:                  { icon: '⚡', color: '#1565C0' },
+  mathematics:              { icon: '📐', color: '#E65100' },
+  'additional mathematics': { icon: '∑',  color: '#880E4F' },
+  english:                  { icon: '📖', color: '#2E7D32' },
+  'english language':       { icon: '📖', color: '#2E7D32' },
+  'english literature':     { icon: '📚', color: '#4527A0' },
+  chichewa:                 { icon: '🗣️', color: '#00695C' },
+  agriculture:              { icon: '🌱', color: '#558B2F' },
+  geography:                { icon: '🌍', color: '#00838F' },
+  history:                  { icon: '📜', color: '#BF360C' },
 };
 
 function getMeta(name = '') {
-  return SUBJECT_META[name.toLowerCase()] || { icon: '💬' };
+  return SUBJECT_META[name.toLowerCase()] || { icon: '💬', color: NAVY };
 }
 
+function relativeTime(iso) {
+  if (!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 60000);
+  if (diff < 1)    return 'now';
+  if (diff < 60)   return `${diff}m`;
+  if (diff < 1440) return `${Math.floor(diff / 60)}h`;
+  return `${Math.floor(diff / 1440)}d`;
+}
 
-// WhatsApp-style default group avatar
-function GroupAvatar({ src, icon, size = 48 }) {
-  if (src) return <img src={src} alt="group" className="rounded-full object-cover flex-shrink-0" style={{ width: size, height: size }} />;
-  if (icon && icon.length <= 4 && icon !== '📚') {
+// Avatar for subject/group chats
+function ChatAvatar({ src, icon, color, size = 50 }) {
+  if (src) {
     return (
-      <div className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: size, height: size, background: '#128C7E', fontSize: size * 0.45 }}>
-        {icon}
-      </div>
+      <img src={src} alt="chat" style={{
+        width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+      }} />
     );
   }
   return (
-    <div className="rounded-full flex-shrink-0 overflow-hidden" style={{ width: size, height: size, background: '#DFE5E7' }}>
-      <svg viewBox="0 0 212 212" style={{ width: '100%', height: '100%' }}>
-        <path fill="#BEC5C9" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z"/>
-        <path fill="#FFF" d="M173.561 171.615a62.767 62.767 0 0 0-2.065-2.955 67.7 67.7 0 0 0-2.608-3.299 70.112 70.112 0 0 0-3.184-3.527 71.097 71.097 0 0 0-5.924-5.47 72.458 72.458 0 0 0-10.023-7.030c-1.741-.99-3.528-1.929-5.358-2.809-.872-.41-1.750-.81-2.634-1.195a44.34 44.34 0 0 0-1.793-.762 38.713 38.713 0 0 0-2.374-.897 30.038 30.038 0 0 0-2.399-.666 25.792 25.792 0 0 0-2.427-.438 22.956 22.956 0 0 0-2.458-.21 22.2 22.2 0 0 0-2.491.042 21.86 21.86 0 0 0-2.526.317 23.28 23.28 0 0 0-2.562.597 27.29 27.29 0 0 0-2.601.893 32.63 32.63 0 0 0-2.641 1.208 38.63 38.63 0 0 0-2.682 1.543 44.92 44.92 0 0 0-2.723 1.907c-.9.682-1.78 1.389-2.636 2.124-.428.367-.85.742-1.267 1.124-.417.382-.829.772-1.234 1.170-.405.398-.804.803-1.196 1.216-.391.412-.776.832-1.153 1.258-.376.426-.746.860-1.108 1.300-.362.440-.716.888-1.062 1.342-.347.454-.685.914-1.016 1.380-.330.466-.653.937-.967 1.414-.314.477-.62.958-.918 1.445-.298.487-.587.978-.868 1.474-.281.495-.553.995-.817 1.499-.264.504-.519 1.012-.766 1.524-.247.512-.485 1.028-.715 1.548a62.79 62.79 0 0 0-.642 1.712 63.53 63.53 0 0 0-.571 1.77 60.97 60.97 0 0 0-.5 1.826H153.93a60.97 60.97 0 0 0-.5-1.826z"/>
-        <path fill="#FFF" d="M106.25 93.75c14.912 0 27-12.088 27-27s-12.088-27-27-27-27 12.088-27 27 12.088 27 27 27z"/>
-      </svg>
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: color || NAVY,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.4, boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    }}>
+      {icon || '💬'}
+    </div>
+  );
+}
+
+// Unread badge
+function Badge({ count }) {
+  if (!count) return null;
+  return (
+    <div style={{
+      minWidth: 20, height: 20, borderRadius: 10, background: GOLD, color: NAVY,
+      fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: '0 5px',
+    }}>
+      {count > 99 ? '99+' : count}
     </div>
   );
 }
@@ -59,253 +85,300 @@ export default function ForumsHome() {
     staleTime: 120_000,
   });
 
-  // Subject stats from GroupChatMessages (Discussion entity replaced)
   const { data: recentMsgs = [] } = useQuery({
     queryKey: ['forum-recent-msgs'],
-    queryFn: () => db.entities.GroupChatMessage.filter({}, 'created_date', 200),
+    queryFn: () => db.entities.GroupChatMessage.filter({}, '-created_date', 200),
     staleTime: 30_000,
   });
 
+  // Per-subject: last message + count
   const subjectStats = useMemo(() => {
     const stats = {};
     recentMsgs.forEach(m => {
-      // group_id is "subject-{subjectId}" for official subject groups
-      if (m.group_id && m.group_id.startsWith('subject-')) {
-        const subjectId = m.group_id.replace('subject-', '');
-        if (!stats[subjectId]) stats[subjectId] = { count: 0, lastMessage: null, lastDate: null };
-        stats[subjectId].count += 1;
-        const msgDate = new Date(m.created_date);
-        if (!stats[subjectId].lastDate || msgDate > stats[subjectId].lastDate) {
-          stats[subjectId].lastDate = msgDate;
-          stats[subjectId].lastMessage = m.body;
+      if (m.group_id?.startsWith('subject-')) {
+        const sid = m.group_id.replace('subject-', '');
+        if (!stats[sid]) stats[sid] = { count: 0, lastMsg: null, lastDate: null };
+        stats[sid].count += 1;
+        const d = new Date(m.created_date);
+        if (!stats[sid].lastDate || d > stats[sid].lastDate) {
+          stats[sid].lastDate = d;
+          stats[sid].lastMsg = m.body;
+          stats[sid].lastTime = m.created_date;
         }
       }
     });
     return stats;
   }, [recentMsgs]);
 
-  const filteredSubjects = useMemo(() => {
-    return subjects.filter(s =>
-      !search || s.name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [subjects, search]);
-
-  // My custom study groups
   const { data: myGroups = [] } = useQuery({
     queryKey: ['my-study-groups', user?.id],
-    queryFn: () => db.entities.StudyGroup.filter({ status: 'active' }, '-last_message_at', 100),
+    queryFn: () => db.entities.StudyGroup.filter({ status: 'active' }, '-created_date', 100),
     enabled: !!user?.id,
     staleTime: 30_000,
-    select: (groups) => groups.filter(g =>
+    select: groups => groups.filter(g =>
       g.creator_id === user?.id || (g.member_ids || []).includes(user?.id)
     ),
   });
 
-  const handleCommunityClick = () => {
-    navigate('/forums/community/chat', {
-      state: {
-        isCommunity: true,
-        subject: { id: 'community', name: 'Chibondo Academy', slug: 'community' }
-      }
-    });
-  };
+  const filteredSubjects = useMemo(() =>
+    subjects.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase())),
+    [subjects, search]
+  );
 
-  const handleSubjectClick = (subject) => {
-    const slug = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
-    navigate(`/forums/${slug}/chat`, { state: { subject } });
+  const goSubject = s => {
+    const slug = s.slug || s.name.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/forums/${slug}/chat`, { state: { subject: s } });
   };
-
-  const handleCreateGroupClick = () => {
-    navigate('/forums/community/chat', {
-      state: { createGroup: true }
-    });
-  };
+  const goCommunity = () => navigate('/forums/community/chat', {
+    state: { isCommunity: true, subject: { id: 'community', name: 'Chibondo Academy', slug: 'community' } }
+  });
+  const goGroup = g => navigate(`/forums/group-${g.id}/chat`, { state: { group: g } });
 
   return (
     <>
-      <SEO title="Community Forums | Chibondo Academy" description="Interact with peers and tutors in our active study community." />
-      
-      <div className="flex flex-col min-h-screen bg-background text-foreground pb-24">
-        {/* Header bar */}
-        <div className="flex items-center justify-between px-4 py-4 sticky top-0 z-10" style={{ backgroundColor: '#075E54' }}>
-          <h1 className="text-xl font-bold text-white">Community</h1>
-          <div className="relative flex items-center">
-            <Search className="w-5 h-5 text-white/80 mr-2" />
+      <SEO title="Chats | Chibondo Academy" description="Connect with peers and tutors." />
+
+      {/* Full-page container — sits inside AppLayout's main content area */}
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        margin: '-8px -8px 0', /* bleed to edges */
+        minHeight: 'calc(100dvh - 112px)',
+        background: '#f0f2f5',
+        fontFamily: 'inherit',
+      }}>
+
+        {/* ── Top header bar ── */}
+        <div style={{
+          background: NAVY, color: 'white', padding: '14px 16px 10px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: 0.3 }}>Community</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 11, opacity: 0.65 }}>
+              {subjects.length} subject groups · {myGroups.length} study groups
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => navigate('/forums/community/chat', { state: { createGroup: true } })}
+              style={{
+                background: `${GOLD}22`, border: `1px solid ${GOLD}55`,
+                borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+                color: GOLD, fontSize: 12, fontWeight: 700,
+              }}
+            >
+              <Plus style={{ width: 14, height: 14 }} /> New Group
+            </button>
           </div>
         </div>
 
-        {/* Search inline bar */}
-        <div className="p-3 border-b border-border bg-card">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* ── Search bar ── */}
+        <div style={{
+          background: NAVY, paddingBottom: 12, paddingLeft: 12, paddingRight: 12,
+        }}>
+          <div style={{ position: 'relative' }}>
+            <Search style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+              width: 15, height: 15, color: '#aaa',
+            }} />
             <input
               type="text"
-              placeholder="Search chats..."
+              placeholder="Search chats…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '9px 14px 9px 36px',
+                borderRadius: 24, border: 'none', background: 'white',
+                fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}
             />
           </div>
         </div>
 
-        {/* Main list container */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Global Community Chat row */}
-          <div 
-            onClick={handleCommunityClick}
-            className="flex items-center gap-3 p-4 border-b border-border hover:bg-muted/50 cursor-pointer transition-colors bg-card"
+        {/* ── List ── */}
+        <div style={{ flex: 1, overflowY: 'auto', background: 'white' }}>
+
+          {/* Pinned: Academy Community Chat */}
+          <div
+            onClick={goCommunity}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', borderBottom: '1px solid #f0f0f0',
+              cursor: 'pointer', background: `${GOLD}08`,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = `${GOLD}15`}
+            onMouseLeave={e => e.currentTarget.style.background = `${GOLD}08`}
           >
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0" style={{ backgroundColor: '#075E54' }}>
-              🎓
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground text-sm">Chibondo Academy</span>
-                <span className="text-xs text-muted-foreground">Pinned</span>
+            {/* Gold ring on pinned avatar */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: 50, height: 50, borderRadius: '50%',
+                background: `linear-gradient(135deg, ${NAVY} 0%, #1a2f7a 100%)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24, border: `2px solid ${GOLD}`,
+                boxShadow: `0 0 0 2px ${GOLD}44`,
+              }}>
+                🎓
               </div>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                Official community chat
+              <div style={{
+                position: 'absolute', bottom: -1, right: -1,
+                width: 16, height: 16, borderRadius: '50%',
+                background: GOLD, border: '2px solid white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Pin style={{ width: 8, height: 8, color: NAVY }} />
+              </div>
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: NAVY }}>Chibondo Academy</span>
+                <span style={{ fontSize: 11, color: '#aaa' }}>Pinned</span>
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888', overflow: 'hidden',
+                           whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                Official community — all students & tutors
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-600" fill="currentColor">
-                <path d="M16 12V4c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5c.24 0 .47-.04.7-.12l6 1.8c1 .3 2.1-.4 2.1-1.5V14c0-1.1-.9-2-2-2zm-3-3h-2v2H9V9H7V7h2V5h2v2h2v2z"/>
-              </svg>
-            </div>
           </div>
 
-          {/* My Groups section */}
-          {myGroups.length > 0 && (
+          {/* Section: Subject Chats */}
+          {filteredSubjects.length > 0 && (
             <>
-              <div className="px-4 py-2 bg-muted/30">
-                <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                  My Groups
+              <div style={{
+                padding: '8px 16px', background: '#f8f8f8',
+                borderBottom: '1px solid #eee', borderTop: '1px solid #eee',
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, textTransform: 'uppercase' }}>
+                  Subject Groups · {filteredSubjects.length}
                 </span>
               </div>
-              <div className="divide-y divide-border">
-                {myGroups.map(group => (
-                  <div
-                    key={group.id}
-                    onClick={() => navigate(`/forums/group-${group.id}/chat`, { state: { group } })}
-                    className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors bg-card"
-                  >
-                    <GroupAvatar src={group.icon_url} icon={group.icon} size={48} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-foreground text-sm truncate">{group.name}</span>
-                        {group.last_message_at && (
-                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            {(() => {
-                              const d = new Date(group.last_message_at);
-                              const diff = Math.floor((Date.now() - d) / 60000);
-                              if (diff < 1) return 'now';
-                              if (diff < 60) return `${diff}m`;
-                              if (diff < 1440) return `${Math.floor(diff/60)}h`;
-                              return `${Math.floor(diff/1440)}d`;
-                            })()}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {group.last_message || 'No messages yet'}
-                      </p>
+
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 16px', borderBottom: '1px solid #f5f5f5' }}>
+                    <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#eee' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 13, background: '#eee', borderRadius: 6, width: '55%', marginBottom: 8 }} />
+                      <div style={{ height: 11, background: '#f5f5f5', borderRadius: 6, width: '80%' }} />
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Section header */}
-          <div className="px-4 py-2 bg-muted/30">
-            <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-              Subject Groups
-            </span>
-          </div>
-
-          {/* Subject forum rows */}
-          <div className="divide-y divide-border">
-            {isLoading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Loading community rooms...
-              </div>
-            ) : filteredSubjects.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                No active subject groups found matching your search.
-              </div>
-            ) : (
-              filteredSubjects.map((subject) => {
-                const meta = getMeta(subject.name);
+                ))
+              ) : filteredSubjects.map(subject => {
+                const meta  = getMeta(subject.name);
                 const stats = subjectStats[subject.id] || {};
-                const lastMsg = stats.lastMessage || 'No messages yet';
-                const unreadCount = stats.count || 0;
-                
-                // Formatted date string for timestamp
-                let timeStr = '';
-                if (stats.lastDate) {
-                  const now = new Date();
-                  const diffMs = now - stats.lastDate;
-                  const diffMins = Math.floor(diffMs / 60000);
-                  const diffHours = Math.floor(diffMins / 60);
-                  const diffDays = Math.floor(diffHours / 24);
-
-                  if (diffMins < 1) {
-                    timeStr = 'Just now';
-                  } else if (diffMins < 60) {
-                    timeStr = `${diffMins}m ago`;
-                  } else if (diffHours < 24) {
-                    timeStr = `${diffHours}h ago`;
-                  } else if (diffDays < 7) {
-                    timeStr = `${diffDays}d ago`;
-                  } else {
-                    timeStr = stats.lastDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                  }
-                }
+                const slug  = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
 
                 return (
                   <div
                     key={subject.id}
-                    onClick={() => handleSubjectClick(subject)}
-                    className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors bg-card"
+                    onClick={() => goSubject(subject)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '11px 16px', borderBottom: '1px solid #f5f5f5',
+                      cursor: 'pointer', transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f7f7f7'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
                   >
-                    <GroupAvatar icon={meta.icon} size={48} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-foreground text-sm truncate pr-2">
+                    <ChatAvatar icon={meta.icon} color={meta.color} size={50} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: '#111', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                           {subject.name}
                         </span>
-                        {timeStr && (
-                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            {timeStr}
-                          </span>
-                        )}
+                        <span style={{ fontSize: 11, color: '#aaa', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {relativeTime(stats.lastTime)}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {lastMsg}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: '#888', overflow: 'hidden',
+                                     whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}>
+                          {stats.lastMsg || 'Tap to join the conversation'}
+                        </p>
+                        <Badge count={stats.count} />
+                      </div>
                     </div>
-                    {unreadCount > 0 && (
-                      <div className="flex-shrink-0 flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                        {unreadCount}
-                      </div>
-                    )}
                   </div>
                 );
-              })
-            )}
-          </div>
-        </div>
+              })}
+            </>
+          )}
 
-        {/* FAB Button */}
-        <button
-          onClick={handleCreateGroupClick}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 text-white z-20"
-          style={{ backgroundColor: '#128C7E' }}
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-        </button>
+          {/* Section: My Study Groups */}
+          {myGroups.length > 0 && (
+            <>
+              <div style={{
+                padding: '8px 16px', background: '#f8f8f8',
+                borderBottom: '1px solid #eee', borderTop: '1px solid #eee',
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, textTransform: 'uppercase' }}>
+                  My Study Groups · {myGroups.length}
+                </span>
+              </div>
+
+              {myGroups.map(group => (
+                <div
+                  key={group.id}
+                  onClick={() => goGroup(group)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '11px 16px', borderBottom: '1px solid #f5f5f5',
+                    cursor: 'pointer', transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f7f7f7'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                >
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <ChatAvatar src={group.icon_url} icon={group.icon || '💬'} color="#128C7E" size={50} />
+                    {group.is_private && (
+                      <div style={{
+                        position: 'absolute', bottom: -1, right: -1,
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: '#555', border: '2px solid white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 9,
+                      }}>🔒</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: '#111', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                        {group.name}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#aaa', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {relativeTime(group.last_message_at)}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                      <p style={{ margin: 0, fontSize: 12, color: '#888', overflow: 'hidden',
+                                   whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}>
+                        {group.last_message || group.description || 'Study group'}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <Users style={{ width: 10, height: 10, color: '#bbb' }} />
+                        <span style={{ fontSize: 10, color: '#bbb' }}>{group.member_count || 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Empty state */}
+          {!isLoading && filteredSubjects.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 24px', color: '#aaa' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+              <p style={{ fontWeight: 700, fontSize: 15, color: '#555', margin: '0 0 4px' }}>No chats found</p>
+              <p style={{ fontSize: 13, margin: 0 }}>Try a different search term</p>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
