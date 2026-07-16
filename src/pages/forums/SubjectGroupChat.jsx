@@ -97,7 +97,7 @@ function Bubble({ msg, isMine, showAvatar, isTeacher }) {
 }
 
 // ── Chat view for a single group ──────────────────────────────────────────────
-function ChatView({ group, user, onBack }) {
+function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, body, author_name }
@@ -107,7 +107,7 @@ function ChatView({ group, user, onBack }) {
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['groupChat', group.id],
     queryFn: () => db.entities.GroupChatMessage.filter({ group_id: group.id, deleted: false }, 'created_date', 200),
-    refetchInterval: 4000,
+    refetchInterval: 3000,
     staleTime: 0,
   });
 
@@ -188,6 +188,18 @@ function ChatView({ group, user, onBack }) {
             {group.subject_name ? ` · ${group.subject_name}` : ''}
           </p>
         </div>
+
+        {/* 'New Group' Button in the chat view header */}
+        {user?.id && (
+          <button
+            onClick={onNewGroupClick}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition-colors mr-1"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Group</span>
+          </button>
+        )}
+
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
       </div>
 
@@ -403,337 +415,6 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   );
 }
 
-// ── Add members modal ─────────────────────────────────────────────────────────
-function AddMembersModal({ group, user, onClose }) {
-  const qc = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState([]);
-  const [saving, setSaving] = useState(false);
-
-  const { data: students = [] } = useQuery({
-    queryKey: ['students-for-add'],
-    queryFn: () => db.entities.User.list('full_name', 200),
-    staleTime: 60_000,
-  });
-
-  const eligible = useMemo(() => students.filter(s =>
-    s.id !== user?.id &&
-    !(group.member_ids || []).includes(s.id) &&
-    (!search || (s.full_name || s.email || '').toLowerCase().includes(search.toLowerCase()))
-  ), [students, group.member_ids, search, user?.id]);
-
-  const toggle = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-
-  const handleAdd = async () => {
-    if (!selected.length) return;
-    setSaving(true);
-    try {
-      const toAdd = students.filter(s => selected.includes(s.id));
-      const newIds = [...(group.member_ids || []), ...selected];
-      const newNames = [...(group.member_names || []), ...toAdd.map(s => s.full_name || s.email)];
-      await db.entities.StudyGroup.update(group.id, {
-        member_ids: newIds,
-        member_names: newNames,
-        member_count: newIds.length,
-      });
-      qc.invalidateQueries({ queryKey: ['studyGroups'] });
-      qc.invalidateQueries({ queryKey: ['studyGroup', group.id] });
-      onClose();
-    } catch (e) {
-      console.error('Add members failed:', e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden flex flex-col max-h-[80vh]">
-        <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ background: WA_GREEN }}>
-          <button onClick={onClose}><X className="w-5 h-5 text-white" /></button>
-          <p className="font-bold text-white text-sm">Add Members</p>
-          {selected.length > 0 && (
-            <span className="ml-auto text-xs text-white/80">{selected.length} selected</span>
-          )}
-        </div>
-
-        {/* Search */}
-        <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search students…"
-              className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-sm outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Student list */}
-        <div className="flex-1 overflow-y-auto">
-          {eligible.length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-8">No students found</p>
-          )}
-          {eligible.map(s => (
-            <button key={s.id} onClick={() => toggle(s.id)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50">
-              <Avatar name={s.full_name || s.email || '?'} src={s.avatar_url} size={9} />
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{s.full_name || s.email}</p>
-                {s.full_name && <p className="text-[11px] text-gray-400 truncate">{s.email}</p>}
-              </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${selected.includes(s.id) ? 'border-green-500 bg-green-500' : 'border-gray-300'}`}>
-                {selected.includes(s.id) && <Check className="w-3 h-3 text-white" />}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Add button */}
-        <div className="px-4 py-3 border-t border-gray-100 flex-shrink-0">
-          <button
-            onClick={handleAdd}
-            disabled={!selected.length || saving}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40"
-            style={{ background: WA_GREEN }}>
-            {saving ? 'Adding…' : `Add ${selected.length || ''} Member${selected.length !== 1 ? 's' : ''}`}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Groups list ───────────────────────────────────────────────────────────────
-function GroupsList({ user, subjectSlug, onOpenChat }) {
-  const qc = useQueryClient();
-  const [showCreate, setShowCreate] = useState(false);
-  const [addMembersGroup, setAddMembersGroup] = useState(null);
-  const [search, setSearch] = useState('');
-
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects-list'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
-    staleTime: 300_000,
-  });
-
-  const { data: allGroups = [], isLoading } = useQuery({
-    queryKey: ['studyGroups'],
-    queryFn: () => db.entities.StudyGroup.filter({ status: 'active' }, '-last_message_at', 100),
-    refetchInterval: 10_000,
-    staleTime: 0,
-  });
-
-  // My groups = member + creator
-  const myGroups = useMemo(() =>
-    allGroups.filter(g =>
-      g.creator_id === user?.id || (g.member_ids || []).includes(user?.id)
-    ), [allGroups, user?.id]);
-
-  // Discover = public groups I haven't joined
-  const discoverGroups = useMemo(() =>
-    allGroups.filter(g =>
-      !g.is_private &&
-      g.creator_id !== user?.id &&
-      !(g.member_ids || []).includes(user?.id)
-    ), [allGroups, user?.id]);
-
-  const filtered = (list) => !search ? list : list.filter(g =>
-    g.name.toLowerCase().includes(search.toLowerCase()) ||
-    (g.subject_name || '').toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleJoin = async (group) => {
-    if (!user?.id) return;
-    try {
-      const newIds = [...(group.member_ids || []), user.id];
-      const newNames = [...(group.member_names || []), user.full_name || user.email];
-      await db.entities.StudyGroup.update(group.id, {
-        member_ids: newIds,
-        member_names: newNames,
-        member_count: newIds.length,
-      });
-      qc.invalidateQueries({ queryKey: ['studyGroups'] });
-    } catch (e) {
-      console.error('Join failed:', e);
-    }
-  };
-
-  const handleLeave = async (group) => {
-    if (!user?.id) return;
-    try {
-      const newIds = (group.member_ids || []).filter(id => id !== user.id);
-      const newNames = (group.member_names || []).filter((_, i) => (group.member_ids || [])[i] !== user.id);
-      await db.entities.StudyGroup.update(group.id, {
-        member_ids: newIds,
-        member_names: newNames,
-        member_count: newIds.length,
-      });
-      qc.invalidateQueries({ queryKey: ['studyGroups'] });
-    } catch (e) {
-      console.error('Leave failed:', e);
-    }
-  };
-
-  const GroupCard = ({ group }) => {
-    const isCreator = group.creator_id === user?.id;
-    const isMember = (group.member_ids || []).includes(user?.id);
-    return (
-      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-        <button
-          onClick={() => onOpenChat(group)}
-          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-        >
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-            style={{ background: '#e8f5e9' }}>
-            {group.icon || '💬'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <p className="font-semibold text-sm text-gray-900 truncate">{group.name}</p>
-              {group.is_private && <Lock className="w-3 h-3 text-gray-400 flex-shrink-0" />}
-            </div>
-            {group.subject_name && (
-              <p className="text-[11px] text-green-700 font-medium">{group.subject_name}</p>
-            )}
-            <p className="text-xs text-gray-400 mt-0.5 truncate">
-              {group.last_message || (isCreator ? 'You created this group' : 'No messages yet')}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <span className="text-[10px] text-gray-400">
-              {group.member_count || 1} member{(group.member_count || 1) !== 1 ? 's' : ''}
-            </span>
-            <ChevronRight className="w-4 h-4 text-gray-300" />
-          </div>
-        </button>
-
-        {/* Action row */}
-        <div className="flex items-center gap-2 px-4 py-2 border-t border-gray-50 bg-gray-50/50">
-          {isCreator && (
-            <button
-              onClick={() => setAddMembersGroup(group)}
-              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white"
-              style={{ background: WA_GREEN }}>
-              <UserPlus className="w-3 h-3" /> Add Members
-            </button>
-          )}
-          {!isCreator && isMember && (
-            <button
-              onClick={() => handleLeave(group)}
-              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full text-red-600 bg-red-50">
-              <LogOut className="w-3 h-3" /> Leave
-            </button>
-          )}
-          {!isMember && !group.is_private && (
-            <button
-              onClick={() => handleJoin(group)}
-              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white"
-              style={{ background: WA_SEND_BTN }}>
-              <Plus className="w-3 h-3" /> Join
-            </button>
-          )}
-          <span className="ml-auto text-[10px] text-gray-400">
-            By {group.creator_name?.split(' ')[0]}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="flex flex-col" style={{ background: '#F0F2F5', height: 'calc(100dvh - 0px)', maxHeight: '100dvh', overflow: 'hidden' }}>
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0 shadow-sm" style={{ background: WA_GREEN }}>
-        <p className="font-bold text-white text-base flex-1">Study Groups</p>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white border border-white/30 hover:bg-white/10 transition-colors">
-          <Plus className="w-3.5 h-3.5" /> New Group
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search groups…"
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-sm outline-none bg-gray-50"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto pb-[80px]">
-        {isLoading ? (
-          <div className="p-4 space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse" />)}
-          </div>
-        ) : (
-          <div className="p-4 space-y-5">
-            {/* My groups */}
-            {myGroups.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">My Groups</p>
-                <div className="space-y-3">
-                  {filtered(myGroups).map(g => <GroupCard key={g.id} group={g} />)}
-                </div>
-              </div>
-            )}
-
-            {/* Discover */}
-            {discoverGroups.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">Discover Groups</p>
-                <div className="space-y-3">
-                  {filtered(discoverGroups).map(g => <GroupCard key={g.id} group={g} />)}
-                </div>
-              </div>
-            )}
-
-            {/* Empty */}
-            {myGroups.length === 0 && discoverGroups.length === 0 && (
-              <div className="text-center py-16">
-                <div className="text-5xl mb-4">💬</div>
-                <p className="font-semibold text-gray-700 mb-1">No groups yet</p>
-                <p className="text-sm text-gray-400 mb-5">Create a study group and invite your classmates!</p>
-                <button
-                  onClick={() => setShowCreate(true)}
-                  className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm"
-                  style={{ background: WA_GREEN }}>
-                  Create First Group
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {showCreate && (
-        <CreateGroupModal
-          user={user}
-          subjects={subjects}
-          onClose={() => setShowCreate(false)}
-          onCreate={(group) => {
-            qc.invalidateQueries({ queryKey: ['studyGroups'] });
-            onOpenChat(group);
-          }}
-        />
-      )}
-      {addMembersGroup && (
-        <AddMembersModal
-          group={addMembersGroup}
-          user={user}
-          onClose={() => setAddMembersGroup(null)}
-        />
-      )}
-    </div>
-  );
-}
-
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function SubjectGroupChat() {
   const navigate = useNavigate();
@@ -741,74 +422,152 @@ export default function SubjectGroupChat() {
   const location = useLocation();
   const { user } = useOutletContext() ?? {};
   const [activeGroup, setActiveGroup] = useState(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
-  // If coming from a subject forum, auto-open/create the subject's official group
-  const { data: subjectGroups = [], isLoading: groupsLoading } = useQuery({
-    queryKey: ['studyGroups-subject', subjectSlug],
-    queryFn: async () => {
-      const subject = location.state?.subject;
-      if (!subject) return [];
-      return db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' }, '-created_date', 10);
-    },
-    enabled: !!subjectSlug && !!location.state?.subject,
-    staleTime: 30_000,
+  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity === true;
+
+  // Subjects list for CreateGroupModal
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['subjects-list'],
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
+    staleTime: 300_000,
   });
 
-  const createdGroupRef = useRef(false);
+  // Query for subject-based official group
+  const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({
+    queryKey: ['subject-chat-group', subjectSlug, isCommunity],
+    queryFn: async () => {
+      if (isCommunity) {
+        // Query by specific fixed group ID 'community-global'
+        try {
+          const existing = await db.entities.StudyGroup.get('community-global');
+          if (existing && existing.status === 'active') {
+            return existing;
+          }
+        } catch (e) {
+          // If 404 or fails, we will create it below
+        }
 
-  // If a subject is provided, create the official subject group on first load if it doesn't exist
-  useEffect(() => {
-    const subject = location.state?.subject;
-    if (!subject || !user?.id || groupsLoading) return;
-    if (subjectGroups.length > 0) {
-      // Auto-open the first official group for this subject
-      if (!activeGroup) setActiveGroup(subjectGroups[0]);
-      return;
-    }
-    if (createdGroupRef.current) return; // prevent duplicate creation
-    // Create the official group for this subject
-    const createOfficialGroup = async () => {
-      try {
-        const g = await db.entities.StudyGroup.create({
+        // Try query filter in case id get lookup didn't work directly
+        const list = await db.entities.StudyGroup.filter({ id: 'community-global' });
+        if (list && list.length > 0) return list[0];
+
+        // Create community-global study group if not exists
+        return await db.entities.StudyGroup.create({
+          id: 'community-global',
+          name: 'Chibondo Academy',
+          description: 'Official global community group chat',
+          icon: '🎓',
+          creator_id: 'system',
+          creator_name: 'System',
+          member_ids: user?.id ? [user.id] : [],
+          member_names: user?.id ? [user.full_name || user.email] : [],
+          member_count: user?.id ? 1 : 0,
+          is_private: false,
+          status: 'active',
+        });
+      } else {
+        const subject = location.state?.subject;
+        if (!subject) return null;
+
+        // Query by subject_id to ensure a stable key and no duplicates
+        const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' });
+        if (existingList && existingList.length > 0) {
+          return existingList[0];
+        }
+
+        // Auto-create on first visit
+        return await db.entities.StudyGroup.create({
           name: `${subject.name} Group`,
           description: `Official study group for ${subject.name}`,
           icon: '📚',
           subject_id: subject.id,
           subject_name: subject.name,
-          creator_id: user.id,
-          creator_name: user.full_name || user.email,
-          member_ids: [user.id],
-          member_names: [user.full_name || user.email],
-          member_count: 1,
+          creator_id: user?.id || 'system',
+          creator_name: user ? (user.full_name || user.email) : 'System',
+          member_ids: user?.id ? [user.id] : [],
+          member_names: user?.id ? [user.full_name || user.email] : [],
+          member_count: user?.id ? 1 : 0,
           is_private: false,
           status: 'active',
         });
-        setActiveGroup(g);
-      } catch (e) {
-        console.error('Create official group failed:', e);
       }
-    };
-    if (subjectGroups.length === 0) {
-      createdGroupRef.current = true;
-      createOfficialGroup();
-    }
-  }, [subjectGroups, groupsLoading, location.state?.subject, user?.id, activeGroup]);
+    },
+    enabled: isCommunity || (!!subjectSlug && !!location.state?.subject),
+    staleTime: 30_000,
+  });
 
-  if (activeGroup) {
+  // Auto-join membership hook/logic when the group is active
+  useEffect(() => {
+    if (!subjectGroupResult || !user?.id) return;
+    const memberIds = subjectGroupResult.member_ids || [];
+    if (!memberIds.includes(user.id)) {
+      const updatedIds = [...memberIds, user.id];
+      const updatedNames = [...(subjectGroupResult.member_names || []), user.full_name || user.email];
+      db.entities.StudyGroup.update(subjectGroupResult.id, {
+        member_ids: updatedIds,
+        member_names: updatedNames,
+        member_count: updatedIds.length,
+      }).catch(err => {
+        console.error('Silent auto-join failed:', err);
+      });
+    }
+  }, [subjectGroupResult, user?.id]);
+
+  // Keep activeGroup state synced or initialized to subjectGroupResult
+  useEffect(() => {
+    if (subjectGroupResult) {
+      setActiveGroup(subjectGroupResult);
+    }
+  }, [subjectGroupResult]);
+
+  if (isGroupLoading) {
     return (
-      <ChatView
-        group={activeGroup}
-        user={user}
-        onBack={() => setActiveGroup(null)}
-      />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-gray-500">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
+        <p className="text-sm">Loading Forum Chat...</p>
+      </div>
+    );
+  }
+
+  // Handle case where activeGroup is determined
+  const displayedGroup = activeGroup || subjectGroupResult;
+
+  if (displayedGroup) {
+    return (
+      <>
+        <ChatView
+          group={displayedGroup}
+          user={user}
+          onBack={() => navigate('/forums')}
+          subjects={subjects}
+          onNewGroupClick={() => setShowCreateGroup(true)}
+        />
+        {showCreateGroup && (
+          <CreateGroupModal
+            user={user}
+            subjects={subjects}
+            onClose={() => setShowCreateGroup(false)}
+            onCreate={(newGroup) => {
+              // On success, go to forums home where 'My Groups' section will display it
+              navigate('/forums');
+            }}
+          />
+        )}
+      </>
     );
   }
 
   return (
-    <GroupsList
-      user={user}
-      subjectSlug={subjectSlug}
-      onOpenChat={setActiveGroup}
-    />
+    <div className="p-8 text-center text-gray-500">
+      <p className="text-lg font-semibold">Chat room not found</p>
+      <button
+        onClick={() => navigate('/forums')}
+        className="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium"
+        style={{ background: WA_GREEN }}
+      >
+        Go to Forums
+      </button>
+    </div>
   );
 }
