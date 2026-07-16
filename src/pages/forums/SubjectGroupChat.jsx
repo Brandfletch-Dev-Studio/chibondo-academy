@@ -89,6 +89,7 @@ function ChatView({ group, user, onBack }) {
   const [replyTo, setReplyTo] = useState(null);
   const endRef = useRef(null);
   const textareaRef = useRef(null);
+  const inputBarRef = useRef(null);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['groupChat', group.id],
@@ -101,7 +102,6 @@ function ChatView({ group, user, onBack }) {
     endRef.current?.scrollIntoView({ behavior: messages.length < 5 ? 'instant' : 'smooth' });
   }, [messages.length]);
 
-  // Auto-resize textarea
   const handleTextChange = (e) => {
     setText(e.target.value);
     const el = textareaRef.current;
@@ -110,7 +110,10 @@ function ChatView({ group, user, onBack }) {
 
   const sendMutation = useMutation({
     mutationFn: (payload) => db.entities.GroupChatMessage.create(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groupChat', group.id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['groupChat', group.id] });
+      requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }));
+    },
   });
 
   const handleSend = () => {
@@ -149,86 +152,151 @@ function ChatView({ group, user, onBack }) {
   }, [messages]);
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100dvh', paddingBottom:'64px', background:WA_BG, overflow:'hidden' }}>
-      {/* ── Header ── */}
-      <div style={{ flexShrink:0, background:WA_NAVY, color:'white', display:'flex', alignItems:'center', gap:10, padding:'0 12px', height:56, zIndex:10 }}>
-        <button onClick={onBack} style={{ background:'none', border:'none', color:'white', fontSize:22, cursor:'pointer', padding:'0 4px', lineHeight:1 }}>←</button>
-        <div style={{ width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0, overflow:'hidden' }}>
-          {group.icon_url
-            ? <img src={group.icon_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
-            : <span>{group.icon || '💬'}</span>
-          }
-        </div>
-        <div style={{ flex:1, overflow:'hidden' }}>
-          <div style={{ fontWeight:700, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{group.name}</div>
-          <div style={{ fontSize:11, opacity:0.75 }}>{group.member_count ? `${group.member_count} members` : 'Group chat'}</div>
-        </div>
-        <button style={{ background:'none', border:'none', color:'white', fontSize:22, cursor:'pointer', padding:'0 4px' }}>⋮</button>
-      </div>
+    <>
+      {/*
+        LAYOUT STRATEGY:
+        - Outer div is position:fixed, covering the full screen MINUS the 64px bottom nav
+        - This means when the mobile keyboard appears, the browser shrinks the visible
+          viewport and our fixed container shrinks with it — so the input bar naturally
+          rises to sit directly above the keyboard, exactly like WhatsApp
+        - No paddingBottom tricks, no 100dvh hacks — just fixed positioning
+      */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: '64px',
+        background: WA_BG,
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 50,
+        overflow: 'hidden',
+      }}>
 
-      {/* ── Messages ── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'8px 8px 4px', WebkitOverflowScrolling:'touch' }}>
-        {isLoading && (
-          <div style={{ textAlign:'center', padding:24, color:'#999', fontSize:13 }}>Loading messages…</div>
-        )}
-        {!isLoading && messages.length === 0 && (
-          <div style={{ textAlign:'center', padding:40, color:'#999', fontSize:13 }}>
-            <div style={{ fontSize:40, marginBottom:8 }}>💬</div>
-            <p>No messages yet.<br/>Be the first to say something!</p>
+        {/* ── Header ── */}
+        <div style={{
+          flexShrink: 0,
+          height: 56,
+          background: WA_NAVY,
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '0 12px',
+          zIndex: 10,
+        }}>
+          <button onClick={onBack} style={{ background:'none', border:'none', color:'white', fontSize:24, cursor:'pointer', padding:'0 6px', lineHeight:1 }}>
+            ←
+          </button>
+          <div style={{ width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0, overflow:'hidden' }}>
+            {group.icon_url
+              ? <img src={group.icon_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+              : <span>{group.icon || '💬'}</span>
+            }
           </div>
-        )}
-        {grouped.map(item =>
-          item.type === 'date' ? (
-            <div key={item.key} style={{ textAlign:'center', margin:'8px 0' }}>
-              <span style={{ background:'rgba(255,255,255,0.85)', padding:'3px 10px', borderRadius:8, fontSize:11, color:'#666' }}>{item.label}</span>
+          <div style={{ flex:1, overflow:'hidden' }}>
+            <div style={{ fontWeight:700, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{group.name}</div>
+            <div style={{ fontSize:11, opacity:0.75 }}>{group.member_count ? `${group.member_count} members` : 'Group chat'}</div>
+          </div>
+          <button style={{ background:'none', border:'none', color:'white', fontSize:22, cursor:'pointer', padding:'0 6px' }}>⋮</button>
+        </div>
+
+        {/* ── Messages — fills all space between header and input ── */}
+        <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'8px', WebkitOverflowScrolling:'touch' }}>
+          {isLoading && (
+            <div style={{ textAlign:'center', padding:24, color:'#999', fontSize:13 }}>Loading messages…</div>
+          )}
+          {!isLoading && messages.length === 0 && (
+            <div style={{ textAlign:'center', padding:40, color:'#999', fontSize:13 }}>
+              <div style={{ fontSize:40, marginBottom:8 }}>💬</div>
+              <p style={{ margin:0 }}>No messages yet.<br/>Be the first to say something!</p>
             </div>
-          ) : (
-            <MessageBubble
-              key={item.key}
-              msg={item.msg}
-              isMine={item.msg.author_id === user?.id}
-              showAvatar={item.showAvatar}
-            />
-          )
-        )}
-        <div ref={endRef} />
-      </div>
-
-      {/* ── Reply preview ── */}
-      {replyTo && (
-        <div style={{ flexShrink:0, background:'#fff', borderTop:'2px solid '+WA_GREEN, padding:'6px 12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            <span style={{ fontSize:11, fontWeight:700, color:WA_GREEN }}>{replyTo.author_name}</span>
-            <p style={{ margin:0, fontSize:12, color:'#555', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis', maxWidth:240 }}>{replyTo.body}</p>
-          </div>
-          <button onClick={()=>setReplyTo(null)} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'#999' }}>×</button>
+          )}
+          {grouped.map(item =>
+            item.type === 'date' ? (
+              <div key={item.key} style={{ textAlign:'center', margin:'8px 0' }}>
+                <span style={{ background:'rgba(255,255,255,0.85)', padding:'3px 10px', borderRadius:8, fontSize:11, color:'#666' }}>{item.label}</span>
+              </div>
+            ) : (
+              <MessageBubble
+                key={item.key}
+                msg={item.msg}
+                isMine={item.msg.author_id === user?.id}
+                showAvatar={item.showAvatar}
+              />
+            )
+          )}
+          <div ref={endRef} style={{ height:4 }} />
         </div>
-      )}
 
-      {/* ── Input bar ── */}
-      <div style={{ flexShrink:0, background:'#F0F0F0', borderTop:'1px solid #ddd', padding:'6px 8px', display:'flex', alignItems:'flex-end', gap:8 }}>
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message…"
-          rows={1}
-          style={{ flex:1, borderRadius:20, border:'1px solid #ddd', padding:'9px 14px', fontSize:14, resize:'none', background:'white', outline:'none', lineHeight:1.4, maxHeight:120, overflowY:'auto', fontFamily:'inherit' }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!text.trim()}
-          style={{ width:42, height:42, borderRadius:'50%', background: text.trim() ? WA_GREEN : '#ccc', border:'none', cursor: text.trim() ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background 0.2s' }}
-        >
-          <span style={{ color:'white', fontSize:18, marginLeft:2 }}>➤</span>
-        </button>
+        {/* ── Reply preview ── */}
+        {replyTo && (
+          <div style={{ flexShrink:0, background:'#fff', borderTop:'2px solid ' + WA_GREEN, padding:'6px 12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={{ overflow:'hidden' }}>
+              <span style={{ fontSize:11, fontWeight:700, color:WA_GREEN }}>{replyTo.author_name}</span>
+              <p style={{ margin:0, fontSize:12, color:'#555', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis', maxWidth:240 }}>{replyTo.body}</p>
+            </div>
+            <button onClick={()=>setReplyTo(null)} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#999', flexShrink:0 }}>×</button>
+          </div>
+        )}
+
+        {/* ── Input bar — at the bottom of the fixed box; keyboard pushes the whole box up ── */}
+        <div ref={inputBarRef} style={{
+          flexShrink: 0,
+          background: '#F0F0F0',
+          borderTop: '1px solid #ddd',
+          padding: '6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 8,
+        }}>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message…"
+            rows={1}
+            style={{
+              flex: 1,
+              borderRadius: 20,
+              border: '1px solid #ddd',
+              padding: '9px 14px',
+              fontSize: 14,
+              resize: 'none',
+              background: 'white',
+              outline: 'none',
+              lineHeight: 1.4,
+              maxHeight: 120,
+              overflowY: 'auto',
+              fontFamily: 'inherit',
+              display: 'block',
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim()}
+            style={{
+              width: 42, height: 42,
+              borderRadius: '50%',
+              background: text.trim() ? WA_GREEN : '#ccc',
+              border: 'none',
+              cursor: text.trim() ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'background 0.2s',
+              marginBottom: 2,
+            }}
+          >
+            <span style={{ color:'white', fontSize:18, marginLeft:2 }}>➤</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
-// ── CreateGroupModal ─────────────────────────────────────────────────────────
 function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
