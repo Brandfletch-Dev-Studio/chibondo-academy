@@ -159,7 +159,7 @@ export default function AdminCourses() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => (async () => [])(/* AcademicForm removed */),
+    queryFn: () => db.entities.AcademicForm.list('order', 50),
   });
 
   const { data: teachers = [] } = useQuery({
@@ -170,7 +170,7 @@ export default function AdminCourses() {
   /* Live topic counts for ALL subjects */
   const { data: topics = [], isLoading: loadingTopics } = useQuery({
     queryKey: ['allTopicsAdmin'],
-    queryFn: () => (async () => [])(/* Topic removed */),
+    queryFn: () => db.entities.Topic.list('order', 1000),
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
