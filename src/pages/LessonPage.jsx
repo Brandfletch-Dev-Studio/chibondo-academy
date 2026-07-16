@@ -1,18 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Download, MessageSquare,
   BookOpen, PlayCircle, FileText, Clock, Lock, ChevronDown,
-  ChevronRight, Menu, X, Layers, Check
+  ChevronRight, Menu, X, Layers, Check, FileDown, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import LessonDiscussion from '@/components/lesson/LessonDiscussion';
+import LessonComments from '@/components/lesson/LessonComments';
 import { cn } from '@/lib/utils';
 import SEO from '@/components/SEO';
 
@@ -42,18 +42,6 @@ function VideoPlayer({ lesson }) {
   // YouTube — extract ID properly
   const ytId = getYouTubeId(video_url);
   if (ytId) {
-    // YouTube embed params:
-    //   rel=0            — no related videos at end
-    //   modestbranding=1 — hide YouTube logo in controls
-    //   iv_load_policy=3 — disable video annotations
-    //   disablekb=1      — disable keyboard shortcuts (harder to inspect)
-    //   fs=1             — allow fullscreen button
-    //   playsinline=1    — iOS inline play
-    //   vq=hd1080        — request 1080p HD quality (best-effort; YouTube may downgrade)
-    //   cc_load_policy=0 — no auto-captions
-    //   color=white      — white progress bar (no red YouTube branding)
-    //   controls=1       — keep basic play/pause/fullscreen, hides share/watch-later/logo
-    //   origin=<domain>  — locks embed to this origin (security)
     const ytParams = [
       'rel=0',
       'modestbranding=1',
@@ -178,12 +166,9 @@ function VideoPlayer({ lesson }) {
 }
 
 // ─── GUEST VIDEO GATE ────────────────────────────────────────────────────────
-// Shown instead of the video player for unauthenticated visitors.
-// Shows a blurred thumbnail (or dark placeholder) with a lock + "Start Learning" CTA.
 function GuestVideoGate({ lesson }) {
   return (
     <div className="relative w-full bg-black" style={{ aspectRatio: '16/9' }}>
-      {/* Blurred thumbnail background */}
       {lesson.thumbnail_url || lesson.cover_image ? (
         <img
           src={lesson.thumbnail_url || lesson.cover_image}
@@ -194,7 +179,6 @@ function GuestVideoGate({ lesson }) {
       ) : (
         <div className="absolute inset-0" style={{ background: 'hsl(var(--sidebar-background))' }} />
       )}
-      {/* Overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center"
           style={{ background: 'hsl(var(--muted))', border: '2px solid hsl(var(--primary))' }}>
@@ -227,34 +211,59 @@ function SidebarLesson({ lesson, currentLessonId, completed, locked }) {
 
   return (
     <Link
-      to={`/lesson/${lesson.id}`}
+      to={locked ? '#' : `/lesson/${lesson.id}`}
+      onClick={(e) => {
+        if (locked) {
+          e.preventDefault();
+          toast.error('This lesson is locked. Please pay fees to unlock.');
+        }
+      }}
       className={cn(
-        'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs transition-all group',
-        isActive ? 'bg-primary text-primary-foreground' : locked
-          ? 'opacity-40 cursor-not-allowed'
-          : 'hover:bg-card/5 text-sidebar-foreground/80 hover:text-sidebar-foreground'
+        'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs transition-all group border-l-2',
+        isActive
+          ? 'bg-primary/10 text-primary border-primary font-medium'
+          : 'border-transparent',
+        locked
+          ? 'opacity-50 cursor-not-allowed'
+          : 'hover:bg-card/40 text-sidebar-foreground/80 hover:text-sidebar-foreground'
       )}
     >
       <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
         {isDone ? (
-          <Check className={cn('w-3.5 h-3.5', isActive ? 'text-primary-foreground' : 'text-success')} />
+          <Check className="w-3.5 h-3.5 text-green-500 font-bold" />
         ) : locked ? (
-          <Lock className="w-3 h-3" />
+          <Lock className="w-3 h-3 text-muted-foreground/60" />
         ) : lesson.video_url ? (
-          <PlayCircle className={cn('w-3.5 h-3.5', isActive ? 'text-primary-foreground' : 'text-primary')} />
+          <PlayCircle className={cn('w-3.5 h-3.5', isActive ? 'text-primary' : 'text-primary/70')} />
         ) : (
-          <FileText className={cn('w-3.5 h-3.5', isActive ? 'text-primary-foreground' : 'text-muted-foreground')} />
+          <FileText className={cn('w-3.5 h-3.5', isActive ? 'text-primary' : 'text-muted-foreground')} />
         )}
       </span>
       <span className="flex-1 leading-snug truncate">{lesson.title}</span>
       {lesson.estimated_minutes > 0 && (
-        <span className={cn('flex-shrink-0 text-[10px]', isActive ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
+        <span className={cn('flex-shrink-0 text-[10px]', isActive ? 'text-primary/70' : 'text-muted-foreground')}>
           {lesson.estimated_minutes}m
         </span>
       )}
     </Link>
   );
 }
+
+// ─── PROSE/NOTES STYLES ──────────────────────────────────────────────────────
+const proseStyles = `
+  .lesson-prose h1, .lesson-prose h2, .lesson-prose h3 { font-weight: 700; margin: 1.2em 0 0.5em; color: hsl(var(--foreground)); }
+  .lesson-prose h2 { font-size: 1.2em; border-bottom: 2px solid hsl(var(--primary) / 0.3); padding-bottom: 0.3em; }
+  .lesson-prose p { margin: 0.75em 0; line-height: 1.75; }
+  .lesson-prose ul, .lesson-prose ol { margin: 0.75em 0 0.75em 1.5em; }
+  .lesson-prose li { margin: 0.4em 0; }
+  .lesson-prose strong { color: hsl(var(--primary)); }
+  .lesson-prose table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.9em; }
+  .lesson-prose th { background: hsl(var(--primary) / 0.1); padding: 0.5em 0.75em; border: 1px solid hsl(var(--border)); font-weight: 600; text-align: left; }
+  .lesson-prose td { padding: 0.5em 0.75em; border: 1px solid hsl(var(--border)); }
+  .lesson-prose code { background: hsl(var(--muted)); padding: 0.15em 0.4em; border-radius: 4px; font-family: monospace; font-size: 0.85em; }
+  .lesson-prose blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1em; margin: 1em 0; color: hsl(var(--muted-foreground)); font-style: italic; }
+  .lesson-prose img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+`;
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function LessonPage() {
@@ -265,6 +274,7 @@ export default function LessonPage() {
   const [activeTab, setActiveTab] = useState('notes');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedTopics, setExpandedTopics] = useState({});
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const { data: lesson } = useQuery({
     queryKey: ['lesson', lessonId],
@@ -279,7 +289,6 @@ export default function LessonPage() {
     queryFn: () => db.entities.Lesson.filter({ subject_id: lesson.subject_id }, 'order', 200),
     enabled: !!lesson?.subject_id,
     onSuccess: (lessons) => {
-      // Auto-expand the topic containing the current lesson
       const currentLesson = lessons.find(l => l.id === lessonId);
       if (currentLesson?.topic_id) {
         setExpandedTopics(prev => ({ ...prev, [currentLesson.topic_id]: true }));
@@ -308,7 +317,6 @@ export default function LessonPage() {
       if (!user?.id) return null;
       const results = await db.entities.Subscription.filter({ student_id: user.id, status: 'active' });
       if (!results[0]) return null;
-      // Check if subscription is actually still valid (end_date not passed)
       const sub = results[0];
       if (sub.end_date && new Date(sub.end_date) < new Date()) return null;
       return sub;
@@ -318,13 +326,10 @@ export default function LessonPage() {
 
   const hasPaidFees = !!subscription;
 
-  // Lessons are only locked for authenticated users who haven't paid fees.
-  // Guests can view all lessons freely (CTA shown in-page instead).
   const isLessonLocked = () => !!user && !hasPaidFees;
 
   const markCompleteMutation = useMutation({
     mutationFn: async () => {
-      // Auto-create enrollment if missing (safety net)
       let enr = enrollment;
       if (!enr && lesson?.subject_id) {
         enr = await db.entities.Enrollment.create({
@@ -356,7 +361,6 @@ export default function LessonPage() {
         toast.success('🎉 Course completed! Well done!', { duration: 5000 });
       } else {
         toast.success('✓ Lesson complete!');
-        // Auto-navigate to next lesson
         if (nextLesson) {
           setTimeout(() => navigate(`/lesson/${nextLesson.id}`), 800);
         }
@@ -372,7 +376,6 @@ export default function LessonPage() {
   const isCompleted = completedLessons.includes(lessonId);
   const progressPct = allLessons.length > 0 ? Math.round((completedLessons.length / allLessons.length) * 100) : 0;
 
-  // Group lessons by topic
   const lessonsByTopic = {};
   allLessons.forEach(l => {
     if (!lessonsByTopic[l.topic_id]) lessonsByTopic[l.topic_id] = [];
@@ -381,8 +384,7 @@ export default function LessonPage() {
 
   const toggleTopic = (topicId) => setExpandedTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
 
-  // Auto-expand the topic containing the current lesson
-  React.useEffect(() => {
+  useEffect(() => {
     if (lesson?.topic_id) {
       setExpandedTopics(prev => ({ ...prev, [lesson.topic_id]: true }));
     }
@@ -396,7 +398,6 @@ export default function LessonPage() {
     );
   }
 
-  // ── HARD GATE: only for authenticated users with no active subscription ──────
   const dataLoaded = subscription !== undefined || !user;
   if (user && dataLoaded && isLessonLocked()) {
     return (
@@ -422,15 +423,19 @@ export default function LessonPage() {
   }
 
   const hasVideo = !!lesson.video_url;
-  const isTextLesson = !hasVideo;
   const lessonTitle = lesson.seo_title || lesson.title;
   const lessonDesc  = lesson.seo_description
     || (lesson.content || '').replace(/<[^>]+>/g, '').slice(0, 160)
     || `Watch and study: ${lesson.title}. Part of Chibondo Academy's MSCE curriculum.`;
   const lessonUrl   = `${window.location.origin}/lesson/${lessonId}`;
 
+  const currentCountText = allLessons.length > 0 
+    ? `${completedLessons.length}/${allLessons.length}`
+    : '0/0';
+
   return (
     <>
+      <style>{proseStyles}</style>
       <SEO
         title={lessonTitle}
         description={lessonDesc}
@@ -442,315 +447,516 @@ export default function LessonPage() {
         ogDescription={lesson.og_description || lessonDesc}
         keywords={lesson.seo_keywords || `${lesson.title}, MSCE, Chibondo Academy`}
       />
-    <div className="flex flex-col lg:flex-row min-h-0 -mx-4 sm:-mx-6 lg:-mx-8 -mt-6">
-      {/* ── SIDEBAR ──────────────────────────────────────────────────── */}
-      <aside className={cn(
-        'bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-shrink-0 flex flex-col transition-all duration-300',
-        'lg:sticky lg:top-0 lg:h-screen',
-        sidebarOpen ? 'lg:w-72' : 'lg:w-0 lg:overflow-hidden',
-        'hidden lg:flex'
-      )}>
-        {/* Sidebar header */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border flex-shrink-0">
-          <Link to={`/subjects/${lesson.subject_id}`} className="flex items-center gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors min-w-0">
-            <ArrowLeft className="w-4 h-4 flex-shrink-0" />
-            <span className="text-xs font-semibold truncate">{lesson.subject_name || 'Course'}</span>
-          </Link>
-        </div>
 
-        {/* Progress — only for authenticated users */}
-        {user && (
-          <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
-            <div className="flex items-center justify-between text-xs mb-2">
-              <span className="text-sidebar-foreground/60">Course progress</span>
-              <span className="font-bold text-sidebar-primary">{progressPct}%</span>
+      <div className="flex flex-col lg:flex-row min-h-screen -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 bg-background text-foreground relative pb-24 lg:pb-0">
+        
+        {/* 1. MOBILE TOP BAR (sticky) */}
+        <div className="sticky top-0 z-40 w-full bg-card/95 backdrop-blur-md border-b border-border lg:hidden flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 h-14">
+            <Link to={`/subjects/${lesson.subject_id}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground min-w-0 max-w-[40%]">
+              <ArrowLeft className="w-5 h-5 flex-shrink-0" />
+              <span className="text-xs font-semibold truncate leading-none">{lesson.subject_name || 'Subject'}</span>
+            </Link>
+            
+            <div className="flex-1 px-2 text-center min-w-0 max-w-[35%]">
+              <p className="text-[10px] text-muted-foreground truncate leading-none mb-0.5">{lesson.topic_title || 'Topic'}</p>
+              <h2 className="text-xs font-bold truncate leading-none">{lesson.title}</h2>
             </div>
-            <Progress value={progressPct} className="h-1.5 bg-sidebar-border" />
-            <p className="text-[10px] text-sidebar-foreground/40 mt-1.5">{completedLessons.length} of {allLessons.length} lessons done</p>
-          </div>
-        )}
 
-        {/* Topic + lesson list */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2">
-          {topics.length === 0 ? (
-            allLessons.map(l => (
-              <SidebarLesson key={l.id} lesson={l} currentLessonId={lessonId} completed={completedLessons} locked={isLessonLocked(l)} />
-            ))
-          ) : topics.map((topic, tIdx) => {
-            const tLessons = lessonsByTopic[topic.id] || [];
-            const isOpen = expandedTopics[topic.id];
-            const doneCount = tLessons.filter(l => completedLessons.includes(l.id)).length;
-            return (
-              <div key={topic.id} className="mb-1">
-                <button
-                  onClick={() => toggleTopic(topic.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-card/5 transition-colors text-left"
-                >
-                  <span className="w-5 h-5 rounded-full bg-sidebar-primary/20 text-sidebar-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                    {tIdx + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-sidebar-foreground truncate">{topic.title}</p>
-                    <p className="text-[10px] text-sidebar-foreground/40">{doneCount}/{tLessons.length}</p>
-                  </div>
-                  <ChevronRight className={cn('w-3.5 h-3.5 text-sidebar-foreground/30 transition-transform flex-shrink-0', isOpen && 'rotate-90')} />
-                </button>
-                {isOpen && (
-                  <div className="ml-2 pl-3 border-l border-sidebar-border/50 py-1 space-y-0.5">
-                    {tLessons.map(l => (
-                      <SidebarLesson
-                        key={l.id}
-                        lesson={l}
-                        currentLessonId={lessonId}
-                        completed={completedLessons}
-                        locked={isLessonLocked(l)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </aside>
-
-      {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top bar */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-          <button
-            onClick={() => setSidebarOpen(v => !v)}
-            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-          <Link to={`/subjects/${lesson.subject_id}`} className="lg:hidden flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-3.5 h-3.5" /> {lesson.subject_name}
-          </Link>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">{lesson.topic_title || 'Lesson'}</p>
-            <p className="text-sm font-semibold truncate leading-tight">{lesson.title}</p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {lesson.estimated_minutes > 0 && (
-              <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" />{lesson.estimated_minutes}m
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                {currentCountText}
               </span>
-            )}
-            {user && enrollment && (
-              <Button
-                onClick={() => markCompleteMutation.mutate()}
-                variant={isCompleted ? 'secondary' : 'default'}
-                size="sm"
-                disabled={isCompleted || markCompleteMutation.isPending}
-                className="text-xs h-8"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                {isCompleted ? 'Done' : 'Mark Complete'}
-              </Button>
-            )}
+              {user && enrollment && (
+                <Button
+                  onClick={() => markCompleteMutation.mutate()}
+                  variant={isCompleted ? 'secondary' : 'default'}
+                  size="sm"
+                  disabled={isCompleted || markCompleteMutation.isPending}
+                  className="h-8 text-xs font-semibold px-3"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">{isCompleted ? 'Done' : 'Complete'}</span>
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="w-full h-1 bg-muted">
+            <div 
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
 
-        {/* Video / Content */}
-        <div className="flex-1">
-          {/* Video */}
-          {hasVideo && (
-            <div className="w-full bg-black">
-              {!user
-                ? <GuestVideoGate lesson={lesson} />
-                : <VideoPlayer lesson={lesson} />
-              }
+        {/* ── 6. DESKTOP SIDEBAR (lg:flex, hidden on mobile) ──────────────── */}
+        <aside className={cn(
+          'bg-[#0d1420] text-slate-200 border-r border-slate-800 flex-shrink-0 flex flex-col transition-all duration-300',
+          'lg:sticky lg:top-0 lg:h-screen',
+          sidebarOpen ? 'lg:w-80' : 'lg:w-0 lg:overflow-hidden',
+          'hidden lg:flex'
+        )}>
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800 flex-shrink-0">
+            <Link to={`/subjects/${lesson.subject_id}`} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors min-w-0">
+              <ArrowLeft className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-semibold truncate">{lesson.subject_name || 'Course'}</span>
+            </Link>
+          </div>
+
+          {user && (
+            <div className="px-5 py-4 border-b border-slate-800 flex-shrink-0 bg-slate-900/40">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-slate-400">Course progress</span>
+                <span className="font-bold text-primary">{progressPct}%</span>
+              </div>
+              <Progress value={progressPct} className="h-1.5 bg-slate-800" />
+              <p className="text-[10px] text-slate-500 mt-1.5">{completedLessons.length} of {allLessons.length} lessons done</p>
             </div>
           )}
 
-          {/* Lesson info beneath video */}
-          <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-            {/* Title + meta */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  {hasVideo ? (
-                    <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20 gap-1">
-                      <PlayCircle className="w-3 h-3" /> Video
-                    </Badge>
-                  ) : (
-                    <Badge className="text-[10px] bg-muted text-muted-foreground border-border gap-1">
-                      <FileText className="w-3 h-3" /> Reading
-                    </Badge>
-                  )}
-                  {lesson.estimated_minutes > 0 && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {lesson.estimated_minutes} min
-                    </span>
-                  )}
-                  {isCompleted && (
-                    <Badge className="text-[10px] bg-success/10 text-success border-success/20 gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Completed
-                    </Badge>
+          <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+            {topics.length === 0 ? (
+              allLessons.map(l => (
+                <SidebarLesson key={l.id} lesson={l} currentLessonId={lessonId} completed={completedLessons} locked={isLessonLocked(l)} />
+              ))
+            ) : topics.map((topic, tIdx) => {
+              const tLessons = lessonsByTopic[topic.id] || [];
+              const isOpen = expandedTopics[topic.id];
+              const doneCount = tLessons.filter(l => completedLessons.includes(l.id)).length;
+              return (
+                <div key={topic.id} className="mb-2">
+                  <button
+                    onClick={() => toggleTopic(topic.id)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-800/50 transition-colors text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Topic {tIdx + 1}</p>
+                      <h4 className="text-xs font-semibold text-slate-300 truncate mt-0.5">{topic.title}</h4>
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                      <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">
+                        {doneCount}/{tLessons.length}
+                      </span>
+                      {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
+                    </div>
+                  </button>
+                  {isOpen && (
+                    <div className="mt-1 pl-2 border-l border-slate-800 space-y-0.5">
+                      {tLessons.map(l => (
+                        <SidebarLesson
+                          key={l.id}
+                          lesson={l}
+                          currentLessonId={lessonId}
+                          completed={completedLessons}
+                          locked={isLessonLocked(l)}
+                        />
+                      ))}
+                    </div>
                   )}
                 </div>
-                <h1 className="text-xl lg:text-2xl font-display font-bold leading-snug">{lesson.title}</h1>
-                {lesson.description && (
-                  <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{lesson.description}</p>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* ── MAIN CONTENT AREA ────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0 flex flex-col bg-background">
+          
+          <div className="hidden lg:flex items-center justify-between px-6 py-4 border-b border-border bg-card/40 sticky top-0 z-20 backdrop-blur-md">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setSidebarOpen(v => !v)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{lesson.topic_title || 'Topic'}</p>
+                <h1 className="text-lg font-bold truncate">{lesson.title}</h1>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 flex-shrink-0">
+              {lesson.estimated_minutes > 0 && (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <Clock className="w-3.5 h-3.5 text-primary" />{lesson.estimated_minutes}m duration
+                </span>
+              )}
+              {user && enrollment && (
+                <Button
+                  onClick={() => markCompleteMutation.mutate()}
+                  variant={isCompleted ? 'secondary' : 'default'}
+                  size="default"
+                  disabled={isCompleted || markCompleteMutation.isPending}
+                  className="font-semibold text-xs h-9 px-4 gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {isCompleted ? 'Completed' : 'Mark Complete'}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* 2. VIDEO PLAYER AREA */}
+          <div className="w-full bg-black lg:sticky lg:top-[73px] z-30 shadow-md">
+            {hasVideo ? (
+              <div className="w-full">
+                {!user ? (
+                  <GuestVideoGate lesson={lesson} />
+                ) : (
+                  <VideoPlayer lesson={lesson} />
+                )}
+              </div>
+            ) : (
+              <div className="bg-slate-900 border-b border-border py-12 px-6 flex flex-col items-center justify-center text-center">
+                <FileText className="w-16 h-16 text-primary mb-4" />
+                <h3 className="text-lg font-bold text-white">Reading Lesson</h3>
+                <p className="text-sm text-slate-400 max-w-md mt-1">
+                  This lesson is structured as study notes. Access full materials, files, and discussion tabs below.
+                </p>
+              </div>
+            )}
+            
+            <div className="bg-card/40 border-b border-border px-4 py-2.5 flex items-center gap-2 flex-wrap text-xs">
+              <Badge variant="secondary" className="gap-1 font-semibold text-[11px] py-0.5">
+                {hasVideo ? <PlayCircle className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                {hasVideo ? 'Video' : 'Reading'}
+              </Badge>
+              {lesson.estimated_minutes > 0 && (
+                <Badge variant="outline" className="gap-1 text-[11px] py-0.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  {lesson.estimated_minutes} min
+                </Badge>
+              )}
+              {isCompleted ? (
+                <Badge className="bg-green-500/10 text-green-500 border-green-500/20 gap-1 text-[11px] py-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Completed
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[11px] py-0.5 text-muted-foreground">
+                  In Progress
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* MAIN PAGE BODY CONTENT */}
+          <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mr-auto w-full space-y-8">
+            
+            {/* 3. LESSON HEADER */}
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wider text-primary font-bold">
+                  {lesson.topic_title || 'Topic Content'}
+                </p>
+                <h1 className="text-2xl sm:text-3xl font-display font-extrabold leading-tight">
+                  {lesson.title}
+                </h1>
+              </div>
+              
+              {lesson.description && (
+                <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-xl border border-border/50">
+                  {lesson.description}
+                </p>
+              )}
+
+              <div className="flex items-center gap-2 flex-wrap pt-2">
+                {user && enrollment && (
+                  <Button
+                    onClick={() => markCompleteMutation.mutate()}
+                    variant={isCompleted ? 'secondary' : 'default'}
+                    disabled={isCompleted || markCompleteMutation.isPending}
+                    className="h-10 text-xs font-bold px-4"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                    {isCompleted ? 'Completed' : 'Mark Complete'}
+                  </Button>
+                )}
+                {nextLesson && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/lesson/${nextLesson.id}`)}
+                    className="h-10 text-xs font-semibold px-4"
+                  >
+                    Next Lesson <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                )}
+                {prevLesson && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(`/lesson/${prevLesson.id}`)}
+                    className="h-10 text-xs font-semibold px-3 text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Previous
+                  </Button>
                 )}
               </div>
             </div>
 
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-muted">
-                <TabsTrigger value="notes" className="gap-1.5 text-xs">
-                  <BookOpen className="w-3.5 h-3.5" /> Notes
-                </TabsTrigger>
+            {/* 4. CONTENT TABS */}
+            <div className="space-y-4">
+              <div className="flex border-b border-border overflow-x-auto scrollbar-none">
+                <button
+                  onClick={() => setActiveTab('notes')}
+                  className={cn(
+                    "flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap min-h-[44px]",
+                    activeTab === 'notes' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>📖 Notes</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('discussion')}
+                  className={cn(
+                    "flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap min-h-[44px]",
+                    activeTab === 'discussion' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>💬 Discussion</span>
+                </button>
                 {user && lesson.attachments?.length > 0 && (
-                  <TabsTrigger value="downloads" className="gap-1.5 text-xs">
-                    <Download className="w-3.5 h-3.5" /> Files ({lesson.attachments.length})
-                  </TabsTrigger>
+                  <button
+                    onClick={() => setActiveTab('downloads')}
+                    className={cn(
+                      "flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap min-h-[44px]",
+                      activeTab === 'downloads' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>📎 Files ({lesson.attachments.length})</span>
+                  </button>
                 )}
-                <TabsTrigger value="discussion" className="gap-1.5 text-xs">
-                  <MessageSquare className="w-3.5 h-3.5" /> Discussion
-                </TabsTrigger>
-              </TabsList>
+              </div>
 
-              <TabsContent value="notes" className="mt-4">
-                <div className="bg-card rounded-2xl border border-border p-6 lg:p-8">
-                  {lesson.content ? (
-                    !user ? (
-                      <div className="relative">
-                        {/* Teaser — first ~300 chars, then fades out */}
-                        <div className="prose prose-sm max-w-none pointer-events-none select-none"
-                          style={{ maxHeight: '6rem', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)' }}
-                          dangerouslySetInnerHTML={{ __html: lesson.content }}
-                        />
-                        {/* Auth wall */}
-                        <div className="mt-4 rounded-xl p-5 text-center"
-                          style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--primary))' }}>
-                          <BookOpen className="w-8 h-8 mx-auto mb-2" style={{ color: 'hsl(var(--primary))' }} />
-                          <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Sign in to read the full notes</p>
-                          <p className="text-xs mb-4" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to access all lesson notes and materials.</p>
-                          <div className="flex gap-2 justify-center">
-                            <a href="/register">
-                              <button className="h-8 px-5 rounded-full text-xs font-semibold"
-                                style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
-                                Start Learning
-                              </button>
-                            </a>
-                            <a href="/login">
-                              <button className="h-8 px-5 rounded-full text-xs border font-medium text-muted-foreground hover:text-foreground border-border">
-                                Login
-                              </button>
-                            </a>
+              <div className="pt-2">
+                {activeTab === 'notes' && (
+                  <div className="bg-card rounded-2xl border border-border p-6 lg:p-8 shadow-sm">
+                    {lesson.content ? (
+                      !user ? (
+                        <div className="relative">
+                          <div 
+                            className="lesson-prose max-w-none pointer-events-none select-none"
+                            style={{ maxHeight: '8rem', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)' }}
+                            dangerouslySetInnerHTML={{ __html: lesson.content }}
+                          />
+                          <div className="mt-4 rounded-xl p-6 text-center border border-primary bg-card shadow-lg">
+                            <BookOpen className="w-10 h-10 mx-auto mb-3 text-primary" />
+                            <p className="text-sm font-bold text-foreground">Sign in to read the full notes</p>
+                            <p className="text-xs text-muted-foreground mb-4">Create a free account to access all lesson notes, resources, and track progress.</p>
+                            <div className="flex gap-2 justify-center">
+                              <a href="/register">
+                                <Button size="sm" className="font-semibold text-xs h-9 px-5">
+                                  Start Learning
+                                </Button>
+                              </a>
+                              <a href="/login">
+                                <Button variant="outline" size="sm" className="font-semibold text-xs h-9 px-5">
+                                  Login
+                                </Button>
+                              </a>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="lesson-prose max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content }} />
+                      )
                     ) : (
-                      <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content }} />
-                    )
-                  ) : (
-                    <div className="text-center py-12">
-                      <BookOpen className="w-10 h-10 mx-auto text-muted-foreground/20 mb-3" />
-                      <p className="text-sm text-muted-foreground">No notes for this lesson yet.</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                      <div className="text-center py-16">
+                        <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm font-medium text-muted-foreground">No notes for this lesson yet.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              {user && lesson.attachments?.length > 0 && (
-                <TabsContent value="downloads" className="mt-4">
-                  <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+                {activeTab === 'discussion' && (
+                  <div className="space-y-6">
+                    <LessonComments lessonId={lessonId} user={user} />
+                    <div className="border-t border-border pt-6 mt-8">
+                      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-4">Legacy Forum</p>
+                      <LessonDiscussion lessonId={lessonId} lessonTitle={lesson.title} lessonUrl={`/lesson/${lessonId}`} user={user} subjectId={lesson.subject_id} />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'downloads' && user && (
+                  <div className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-3">
+                    <h3 className="text-sm font-bold text-foreground mb-3">Downloadable Resources</h3>
                     {lesson.attachments.map((file, idx) => (
                       <a
                         key={idx}
                         href={file.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
+                        className="flex items-center gap-3 p-3.5 rounded-xl border border-border/80 hover:bg-muted/50 transition-colors group min-h-[44px]"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Download className="w-4 h-4 text-primary" />
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <FileDown className="w-5 h-5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{file.name}</p>
-                          {file.type && <p className="text-xs text-muted-foreground uppercase">{file.type}</p>}
+                          <p className="text-xs font-bold truncate group-hover:text-primary transition-colors">{file.name}</p>
+                          {file.type && <p className="text-[10px] text-muted-foreground uppercase mt-0.5 tracking-wider font-semibold">{file.type}</p>}
                         </div>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                        <ExternalLink className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                       </a>
                     ))}
                   </div>
-                </TabsContent>
-              )}
+                )}
+              </div>
+            </div>
 
-              <TabsContent value="discussion" className="mt-4">
-                <LessonDiscussion lessonId={lessonId} lessonTitle={lesson.title} lessonUrl={`/lesson/${lessonId}`} user={user} subjectId={lesson.subject_id} />
-              </TabsContent>
-            </Tabs>
-
-            {/* Guest CTA */}
             {!user && (
-              <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4"
-                style={{
-                  background: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--primary))',
-                }}>
-                <div>
-                  <p className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Ready to start learning?</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'hsl(215 20% 60%)' }}>Create a free account to enrol and track your progress.</p>
+              <div className="rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 border border-primary bg-card/60 shadow-lg">
+                <div className="text-center sm:text-left">
+                  <p className="font-bold text-base text-foreground">Ready to start learning?</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a free account to enrol, track progress and access resources.</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <a href="/login">
-                    <button className="h-9 px-5 rounded-full text-xs border font-medium text-muted-foreground hover:text-foreground border-border transition-colors">
+                    <Button variant="outline" className="h-10 text-xs font-semibold px-5">
                       Login
-                    </button>
+                    </Button>
                   </a>
                   <a href="/register">
-                    <button className="h-9 px-5 rounded-full text-xs font-semibold transition-opacity hover:opacity-90"
-                      style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
+                    <Button className="h-10 text-xs font-bold px-5">
                       Start Learning
-                    </button>
+                    </Button>
                   </a>
                 </div>
               </div>
             )}
 
-            {/* Navigation */}
-            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
+            {/* 5. NEXT/PREV LESSON NAVIGATION CARD */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-border pb-24 sm:pb-28">
               {prevLesson ? (
                 <Link to={`/lesson/${prevLesson.id}`}>
-                  <div className="flex items-center gap-3 p-4 rounded-2xl border border-border hover:bg-muted/50 transition-colors group h-full">
-                    <ArrowLeft className="w-5 h-5 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-5 rounded-2xl border border-border hover:bg-muted/30 transition-all group h-full min-h-[44px]">
+                    <ArrowLeft className="w-5 h-5 text-muted-foreground group-hover:text-foreground flex-shrink-0 transition-transform group-hover:-translate-x-1" />
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Previous</p>
-                      <p className="text-sm font-semibold truncate leading-tight mt-0.5">{prevLesson.title}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Previous Lesson</p>
+                      <p className="text-xs font-bold truncate mt-1 text-foreground leading-snug">{prevLesson.title}</p>
                     </div>
-                  </div>
-                </Link>
-              ) : <div />}
-
-              {nextLesson ? (
-                <Link to={`/lesson/${nextLesson.id}`}>
-                  <div className="flex items-center gap-3 p-4 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors group justify-end text-right h-full">
-                    <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-wide text-primary font-medium">Next Lesson</p>
-                      <p className="text-sm font-semibold truncate leading-tight mt-0.5">{nextLesson.title}</p>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
                   </div>
                 </Link>
               ) : (
-                <div className="flex items-center gap-3 p-4 rounded-2xl border border-success/30 bg-success/5">
-                  <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-success">Course Complete!</p>
-                    <p className="text-xs text-muted-foreground">You've reached the end</p>
+                <div className="p-5 rounded-2xl border border-dashed border-border flex items-center justify-center text-muted-foreground/40 text-xs h-full">
+                  First Lesson of Subject
+                </div>
+              )}
+
+              {nextLesson ? (
+                <Link to={`/lesson/${nextLesson.id}`}>
+                  <div className="flex items-center gap-3 p-5 rounded-2xl border-2 border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary transition-all group justify-end text-right h-full min-h-[44px]">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider text-primary font-bold">Next Lesson</p>
+                      <p className="text-xs font-bold truncate mt-1 text-foreground leading-snug">{nextLesson.title}</p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-primary flex-shrink-0 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-3 p-5 rounded-2xl border border-green-500/30 bg-green-500/5 text-green-500 justify-center">
+                  <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                  <div className="text-center">
+                    <p className="text-xs font-bold">Course Completed!</p>
+                    <p className="text-[10px] opacity-80">You have completed all lessons</p>
                   </div>
                 </div>
               )}
             </div>
+
           </div>
         </div>
+
+        {/* 7. MOBILE COURSE CONTENT DRAWER FLOATING BUTTON */}
+        <div className="lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
+          <Button
+            onClick={() => setMobileDrawerOpen(true)}
+            className="w-full h-12 shadow-xl rounded-full bg-primary text-primary-foreground flex items-center justify-center gap-2 text-xs font-bold tracking-wide"
+          >
+            <Layers className="w-4 h-4 animate-pulse" />
+            <span>📚 Course Content ({allLessons.length} lessons)</span>
+          </Button>
+        </div>
+
+        {/* Floating Course Content Drawer Sheet overlay */}
+        {mobileDrawerOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center">
+            <div className="absolute inset-0" onClick={() => setMobileDrawerOpen(false)} />
+            
+            <div className="relative bg-card text-foreground rounded-t-3xl w-full max-h-[85vh] flex flex-col shadow-2xl z-10 transition-transform duration-300 ease-out">
+              <div className="mx-auto my-3 w-12 h-1.5 bg-muted rounded-full" />
+              
+              <div className="flex items-center justify-between px-5 pb-3 border-b border-border">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Course Syllabus</h3>
+                  <p className="text-[10px] text-muted-foreground">{lesson.subject_name}</p>
+                </div>
+                <button
+                  onClick={() => setMobileDrawerOpen(false)}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-16">
+                {user && (
+                  <div className="bg-muted/40 rounded-xl p-3 mb-2 flex items-center justify-between text-xs">
+                    <span className="font-medium text-muted-foreground">Your progress</span>
+                    <span className="font-extrabold text-primary">{progressPct}% ({completedLessons.length}/{allLessons.length})</span>
+                  </div>
+                )}
+
+                {topics.length === 0 ? (
+                  <div className="space-y-1">
+                    {allLessons.map(l => (
+                      <SidebarLesson 
+                        key={l.id} 
+                        lesson={l} 
+                        currentLessonId={lessonId} 
+                        completed={completedLessons} 
+                        locked={isLessonLocked(l)} 
+                      />
+                    ))}
+                  </div>
+                ) : topics.map((topic, tIdx) => {
+                  const tLessons = lessonsByTopic[topic.id] || [];
+                  const doneCount = tLessons.filter(l => completedLessons.includes(l.id)).length;
+                  return (
+                    <div key={topic.id} className="bg-card border border-border/60 rounded-xl p-2.5">
+                      <div className="flex items-center justify-between px-2 py-1">
+                        <div className="min-w-0">
+                          <p className="text-[9px] uppercase font-bold text-primary tracking-wider">Topic {tIdx + 1}</p>
+                          <h4 className="text-xs font-bold text-foreground truncate">{topic.title}</h4>
+                        </div>
+                        <span className="text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                          {doneCount}/{tLessons.length}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-1 border-t border-border/40 pt-2">
+                        {tLessons.map(l => (
+                          <div key={l.id} onClick={() => setMobileDrawerOpen(false)}>
+                            <SidebarLesson
+                              lesson={l}
+                              currentLessonId={lessonId}
+                              completed={completedLessons}
+                              locked={isLessonLocked(l)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-    </div>
     </>
   );
 }
