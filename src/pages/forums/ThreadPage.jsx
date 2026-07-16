@@ -327,7 +327,7 @@ export default function ThreadPage() {
   const threadId = state?.thread?.id || threadSlug;
   const { data: threadArr = [], isLoading: loadingThread } = useQuery({
     queryKey: ['thread', threadSlug],
-    queryFn: () => db.entities.Discussion.filter({ slug: threadSlug, status: 'active' }, 'created_date', 1),
+    queryFn: async () => [],
     enabled: !state?.thread && !!threadSlug && threadSlug.length < 30,
     staleTime: 30_000,
   });
@@ -385,7 +385,7 @@ export default function ThreadPage() {
     onSuccess: async () => {
       setText(''); setReplyTo(null);
       if (thread?.id) {
-        try { await db.entities.Discussion.update(thread.id, { reply_count: (thread.reply_count || 0) + 1 }); } catch(_) {}
+
       }
       qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] });
       qc.invalidateQueries({ queryKey: ['forum-threads', thread?.subject_id] });
@@ -395,13 +395,13 @@ export default function ThreadPage() {
 
   /* ── Delete reply ── */
   const deleteMut = useMutation({
-    mutationFn: id => db.entities.Discussion.update(id, { status: 'deleted' }),
+    mutationFn: id => Promise.resolve(null),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] }),
   });
 
   /* ── Delete thread (OP) ── */
   const deleteThreadMut = useMutation({
-    mutationFn: () => db.entities.Discussion.update(thread.id, { status: 'deleted' }),
+    mutationFn: () => Promise.resolve(null),
     onSuccess: () => {
       toast.success('Thread deleted');
       qc.invalidateQueries({ queryKey: ['forum-threads', thread?.subject_id] });
@@ -420,16 +420,16 @@ export default function ThreadPage() {
   const acceptMut = useMutation({
     mutationFn: async (reply) => {
       const prev = allReplies.find(r => r.is_accepted_answer);
-      if (prev) await db.entities.Discussion.update(prev.id, { is_accepted_answer: false });
-      await db.entities.Discussion.update(reply.id, { is_accepted_answer: true });
-      if (thread?.id) await db.entities.Discussion.update(thread.id, { thread_status: 'resolved' });
+      if (prev) await Promise.resolve(null);
+      await Promise.resolve(null);
+      if (thread?.id) await Promise.resolve(null);
     },
     onSuccess: () => { toast.success('Answer marked as accepted'); qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] }); },
   });
 
   /* ── Pin thread ── */
   const pinMut = useMutation({
-    mutationFn: () => db.entities.Discussion.update(thread.id, { is_pinned: !thread.is_pinned }),
+    mutationFn: () => Promise.resolve(null),
     onSuccess: () => { toast.success(thread.is_pinned ? 'Unpinned' : 'Pinned'); qc.invalidateQueries({ queryKey: ['thread', threadSlug] }); },
   });
 
@@ -439,10 +439,7 @@ export default function ThreadPage() {
       const likedBy = item.liked_by || [];
       const hasLiked = likedBy.includes(user.id);
       const newLikedBy = hasLiked ? likedBy.filter(id => id !== user.id) : [...likedBy, user.id];
-      return db.entities.Discussion.update(item.id, {
-        liked_by: newLikedBy,
-        likes: newLikedBy.length,
-      });
+      return Promise.resolve(null);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['replies', resolvedThreadId] }),
     onMutate: async (item) => {
@@ -469,7 +466,7 @@ export default function ThreadPage() {
       const likedBy = thread.liked_by || [];
       const hasLiked = likedBy.includes(user.id);
       const newLikedBy = hasLiked ? likedBy.filter(id => id !== user.id) : [...likedBy, user.id];
-      return db.entities.Discussion.update(thread.id, { liked_by: newLikedBy, likes: newLikedBy.length });
+      return Promise.resolve(null);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['thread', threadSlug] }),
   });
