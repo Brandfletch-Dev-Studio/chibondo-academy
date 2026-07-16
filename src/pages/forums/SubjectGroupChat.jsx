@@ -1,103 +1,4 @@
-// src/pages/forums/SubjectGroupChat.jsx
-// WhatsApp-style group chat — subject chats + student-created study groups
-
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useOutletContext } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db } from '@/api/supabaseClient';
-import {
-  ArrowLeft, Send, X, Plus, Users, Lock, Globe,
-  ChevronRight, Search, Check, UserPlus, Trash2, LogOut
-} from 'lucide-react';
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-function formatDateLabel(iso) {
-  const d = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return 'Today';
-  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-function sameDay(a, b) {
-  return new Date(a).toDateString() === new Date(b).toDateString();
-}
-const WA_BG    = '#E5DDD5';
-const WA_GREEN = '#075E54';
-const WA_SENT  = '#DCF8C6';
-const WA_SEND_BTN = '#25D366';
-
-// ── Avatar ───────────────────────────────────────────────────────────────────
-function Avatar({ name = '?', src, size = 8, textSize = 'text-xs' }) {
-  const colors = ['#25D366','#128C7E','#075E54','#34B7F1','#ECB22E','#E01E5A'];
-  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];
-  if (src) return <img src={src} alt={name} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} />;
-  return (
-    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center flex-shrink-0 ${textSize} font-bold text-white`}
-      style={{ background: bg }}>
-      {name.charAt(0).toUpperCase()}
-    </div>
-  );
-}
-
-// ── Message bubble ────────────────────────────────────────────────────────────
-function Bubble({ msg, isMine, showAvatar, isTeacher }) {
-  const nameColor = isTeacher ? '#B8860B' : '#128C7E';
-  return (
-    <div className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-      {/* Left avatar — received messages only */}
-      {!isMine && (
-        <div className="w-7 flex-shrink-0 flex items-end pb-1">
-          {showAvatar && <Avatar name={msg.author_name} src={msg.author_avatar} size={7} textSize="text-[10px]" />}
-        </div>
-      )}
-
-      <div className={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
-        {/* Reply preview */}
-        {msg.reply_to_id && (
-          <div className={`px-3 py-1.5 rounded-lg text-[11px] border-l-4 mb-0.5 max-w-full`}
-            style={{ background: isMine ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.06)', borderColor: WA_GREEN }}>
-            <p className="font-semibold" style={{ color: WA_GREEN }}>{msg.reply_author}</p>
-            <p className="text-gray-600 truncate">{msg.reply_preview}</p>
-          </div>
-        )}
-
-        {/* Bubble */}
-        <div
-          className={`px-3 py-2 shadow-sm ${
-            isMine
-              ? 'rounded-tl-2xl rounded-br-2xl rounded-bl-2xl'
-              : 'rounded-tr-2xl rounded-br-2xl rounded-bl-2xl'
-          }`}
-          style={{ background: isMine ? WA_SENT : 'white' }}
-        >
-          {/* Sender name (received only, first bubble in run) */}
-          {!isMine && showAvatar && (
-            <p className="text-[11px] font-semibold mb-0.5" style={{ color: nameColor }}>
-              {msg.author_name}
-              {isTeacher && <span className="ml-1 text-[9px] opacity-70">⭐ Tutor</span>}
-            </p>
-          )}
-
-          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{msg.body}</p>
-
-          <div className="flex items-center justify-end gap-1 mt-1">
-            <span className="text-[9px] text-gray-400">{formatTime(msg.created_date)}</span>
-            {isMine && <span className="text-[10px] text-blue-400">✓✓</span>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Chat view for a single group ──────────────────────────────────────────────
-function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
+// src/pages/forums/SubjectGroupChat.jsx\n// WhatsApp-style group chat — subject chats + student-created study groups\n\nimport React, { useState, useEffect, useRef, useMemo } from 'react';\nimport { useParams, useNavigate, useLocation } from 'react-router-dom';\nimport { useOutletContext } from 'react-router-dom';\nimport { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';\nimport { db } from '@/api/supabaseClient';\nimport {\n  ArrowLeft, Send, X, Plus, Users, Lock, Globe,\n  ChevronRight, Search, Check, UserPlus, Trash2, LogOut\n} from 'lucide-react';\n\n// ── Helpers ─────────────────────────────────────────────────────────────────\nfunction formatTime(iso) {\n  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });\n}\nfunction formatDateLabel(iso) {\n  const d = new Date(iso);\n  const today = new Date();\n  const yesterday = new Date();\n  yesterday.setDate(today.getDate() - 1);\n  if (d.toDateString() === today.toDateString()) return 'Today';\n  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';\n  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });\n}\nfunction sameDay(a, b) {\n  return new Date(a).toDateString() === new Date(b).toDateString();\n}\nconst WA_BG    = '#E5DDD5';\nconst WA_GREEN = '#075E54';\nconst WA_SENT  = '#DCF8C6';\nconst WA_SEND_BTN = '#25D366';\n\n// ── Avatar ───────────────────────────────────────────────────────────────────\nfunction Avatar({ name = '?', src, size = 8, textSize = 'text-xs' }) {\n  const colors = ['#25D366','#128C7E','#075E54','#34B7F1','#ECB22E','#E01E5A'];\n  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];\n  if (src) return <img src={src} alt={name} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} />;\n  return (\n    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center flex-shrink-0 ${textSize} font-bold text-white`}\n      style={{ background: bg }}>\n      {name.charAt(0).toUpperCase()}\n    </div>\n  );\n}\n\n// ── Message bubble ────────────────────────────────────────────────────────────\nfunction Bubble({ msg, isMine, showAvatar, isTeacher }) {\n  const nameColor = isTeacher ? '#B8860B' : '#128C7E';\n  return (\n    <div className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>\n      {/* Left avatar — received messages only */}\n      {!isMine && (\n        <div className="w-7 flex-shrink-0 flex items-end pb-1">\n          {showAvatar && <Avatar name={msg.author_name} src={msg.author_avatar} size={7} textSize="text-[10px]" />}\n        </div>\n      )}\n\n      <div className={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>\n        {/* Reply preview */}\n        {msg.reply_to_id && (\n          <div className={`px-3 py-1.5 rounded-lg text-[11px] border-l-4 mb-0.5 max-w-full`}\n            style={{ background: isMine ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.06)', borderColor: WA_GREEN }}>\n            <p className="font-semibold" style={{ color: WA_GREEN }}>{msg.reply_author}</p>\n            <p className="text-gray-600 truncate">{msg.reply_preview}</p>\n          </div>\n        )}\n\n        {/* Bubble */}\n        <div\n          className={`px-3 py-2 shadow-sm ${\n            isMine\n              ? 'rounded-tl-2xl rounded-br-2xl rounded-bl-2xl'\n              : 'rounded-tr-2xl rounded-br-2xl rounded-bl-2xl'\n          }`}\n          style={{ background: isMine ? WA_SENT : 'white' }}\n        >\n          {/* Sender name (received only, first bubble in run) */}\n          {!isMine && showAvatar && (\n            <p className="text-[11px] font-semibold mb-0.5" style={{ color: nameColor }}>\n              {msg.author_name}\n              {isTeacher && <span className="ml-1 text-[9px] opacity-70">⭐ Tutor</span>}\n            </p>\n          )}\n\n          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{msg.body}</p>\n\n          <div className="flex items-center justify-end gap-1 mt-1">\n            <span className="text-[9px] text-gray-400">{formatTime(msg.created_date)}</span>\n            {isMine && <span className="text-[10px] text-blue-400">✓✓</span>}\n          </div>\n        </div>\n      </div>\n    </div>\n  );\n}\n\n// ── Chat view for a single group ──────────────────────────────────────────────\nfunction ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, body, author_name }
@@ -171,39 +72,25 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
   const isMember = group.id === 'community-global' || group.member_ids?.includes(user?.id) || group.creator_id === user?.id;
 
   return (
-    <div className="flex flex-col" style={{ background: WA_BG, height: 'calc(100dvh - 0px)', maxHeight: '100dvh', overflow: 'hidden' }}>
-      {/* Header */}
-      <div className="flex items-center gap-3 px-3 py-3 flex-shrink-0 shadow-sm" style={{ background: WA_GREEN }}>
-        <button onClick={onBack} className="p-1 rounded-full hover:bg-white/10 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-white" />
-        </button>
-        <GroupAvatar src={group.icon_url} icon={group.icon} size={36} />
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm text-white leading-none truncate">{group.name}</p>
-          <p className="text-[11px] text-white/60 mt-0.5">
-            {group.id === 'community-global'
-              ? 'Official community · All members'
-              : `${group.member_count || 1} member${(group.member_count || 1) !== 1 ? 's' : ''}${group.subject_name ? ' · ' + group.subject_name : ''}`
-            }
-          </p>
+    <div style={{display:'flex',flexDirection:'column',height:'calc(100dvh - 64px)',background:'#E5DDD5',overflow:'hidden'}}>
+      {/* Header bar (first child, flex-shrink:0, ~56px) */}
+      <div style={{background:'#1A237E',color:'white',display:'flex',alignItems:'center',gap:10,padding:'0 12px',height:56,flexShrink:0,position:'sticky',top:0,zIndex:10}}>
+        <button onClick={onBack} style={{background:'none',border:'none',color:'white',fontSize:22,cursor:'pointer',padding:'0 6px'}}>←</button>
+        {/* Group avatar */}
+        <div style={{width:38,height:38,borderRadius:'50%',background:'#2E7D32',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,overflow:'hidden'}}>
+          {group.icon_url ? <img src={group.icon_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <span>{group.icon || '💬'}</span>}
         </div>
-
-        {/* 'New Group' Button in the chat view header */}
-        {user?.id && (
-          <button
-            onClick={onNewGroupClick}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition-colors mr-1"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Group</span>
-          </button>
-        )}
-
-        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+        {/* Title block */}
+        <div style={{flex:1,overflow:'hidden'}}>
+          <div style={{fontWeight:600,fontSize:15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{group.name}</div>
+          <div style={{fontSize:12,opacity:0.75}}>{group.member_count ? `${group.member_count} members` : 'Group chat'}</div>
+        </div>
+        {/* Menu */}
+        <button style={{background:'none',border:'none',color:'white',fontSize:22,cursor:'pointer',padding:'0 6px'}}>⋮</button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 pb-4">
+      {/* Messages area */}
+      <div style={{flex:1,overflowY:'auto',padding:'12px 8px 8px'}}>
         {isLoading && (
           <div className="text-center text-sm text-gray-500 py-8">Loading messages…</div>
         )}
@@ -233,11 +120,11 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
         <div ref={endRef} />
       </div>
 
-      {/* Input area */}
-      <div className="flex-shrink-0 px-3 pt-2 bg-white/80 backdrop-blur-sm border-t border-gray-200" style={{ paddingBottom: 'max(80px, env(safe-area-inset-bottom, 80px))' }}>
-        {/* Reply preview */}
+      {/* Input bar */}
+      <div style={{flexShrink:0,background:'#F0F0F0',padding:'8px 10px',display:'flex',alignItems:'flex-end',gap:8,borderTop:'1px solid #ddd'}}>
+        {/* Reply preview if any */}
         {replyTo && (
-          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border-l-4"
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border-l-4 w-full"
             style={{ background: '#f0f0f0', borderColor: WA_GREEN }}>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-semibold" style={{ color: WA_GREEN }}>{replyTo.author_name}</p>
@@ -250,15 +137,15 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
         )}
 
         {!user?.id ? (
-          <div className="text-center text-sm text-gray-500 py-2">
+          <div className="text-center text-sm text-gray-500 py-2 w-full">
             <a href="/login" className="font-semibold underline" style={{ color: WA_GREEN }}>Log in</a> to join the conversation
           </div>
         ) : !isMember ? (
-          <div className="text-center text-sm text-gray-500 py-2">
+          <div className="text-center text-sm text-gray-500 py-2 w-full">
             Join this group to send messages
           </div>
         ) : (
-          <div className="flex items-end gap-2">
+          <>
             <textarea
               ref={inputRef}
               value={text}
@@ -266,389 +153,31 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
               onKeyDown={handleKeyDown}
               placeholder="Type a message…"
               rows={1}
-              className="flex-1 rounded-2xl px-4 py-2.5 text-sm bg-white border border-gray-200 outline-none resize-none leading-relaxed"
-              style={{ maxHeight: 120, overflowY: 'auto' }}
+              style={{flex:1,borderRadius:20,border:'1px solid #ccc',padding:'8px 12px',fontSize:14,resize:'none',maxHeight:100,background:'white',outline:'none'}}
             />
             <button
               onClick={handleSend}
               disabled={!text.trim() || sendMutation.isPending}
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-40"
-              style={{ background: WA_SEND_BTN }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: '#25D366',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer',
+                flexShrink: 0,
+                color: 'white',
+                fontSize: 16
+              }}
             >
-              <Send className="w-4 h-4 text-white" />
+              ➤
             </button>
-          </div>
+          </>
         )}
       </div>
     </div>
   );
-}
-
-// ── Create group modal ────────────────────────────────────────────────────────
-function CreateGroupModal({ user, subjects, onClose, onCreate }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [icon, setIcon] = useState('💬');
-  const [iconUrl, setIconUrl] = useState(null);
-  const [subjectId, setSubjectId] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const ICONS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️'];
-
-  const handleCreate = async () => {
-    if (!name.trim() || !user?.id) return;
-    setSaving(true);
-    try {
-      const subject = subjects.find(s => s.id === subjectId);
-      const group = await db.entities.StudyGroup.create({
-        name: name.trim(),
-        description: description.trim(),
-        icon,
-        subject_id: subjectId || null,
-        subject_name: subject?.name || null,
-        creator_id: user.id,
-        creator_name: user.full_name || user.email,
-        member_ids: [user.id],
-        member_names: [user.full_name || user.email],
-        member_count: 1,
-        is_private: isPrivate,
-        status: 'active',
-      });
-      onCreate(group);
-      onClose();
-    } catch (e) {
-      console.error('Create group failed:', e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3" style={{ background: WA_GREEN }}>
-          <button onClick={onClose}><X className="w-5 h-5 text-white" /></button>
-          <p className="font-bold text-white text-sm">New Study Group</p>
-        </div>
-
-        <div className="p-4 space-y-4">
-          {/* Icon picker */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Group Photo</p>
-            <div className="flex items-center gap-3 mb-3">
-              <IconUploadButton
-                currentIcon={icon}
-                currentIconUrl={iconUrl}
-                onUploaded={(url) => setIconUrl(url)}
-                size={48}
-              />
-              <p className="text-xs text-gray-400">Tap to upload a group photo, or pick an emoji below</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {ICONS.map(e => (
-                <button key={e} onClick={() => { setIcon(e); setIconUrl(null); }}
-                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e && !iconUrl ? 'scale-110' : 'hover:scale-105'}`}
-                  style={icon === e && !iconUrl ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Group Name *</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. Form 4 Biology Squad"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"
-              maxLength={60}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Description (optional)</label>
-            <input
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="What's this group about?"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"
-              maxLength={120}
-            />
-          </div>
-
-          {/* Subject */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Subject (optional)</label>
-            <select
-              value={subjectId}
-              onChange={e => setSubjectId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500 bg-white"
-            >
-              <option value="">— No specific subject —</option>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-
-          {/* Privacy */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-            <div className="flex items-center gap-2">
-              {isPrivate ? <Lock className="w-4 h-4 text-gray-500" /> : <Globe className="w-4 h-4 text-gray-500" />}
-              <div>
-                <p className="text-sm font-medium text-gray-800">{isPrivate ? 'Private' : 'Public'}</p>
-                <p className="text-[11px] text-gray-400">{isPrivate ? 'Invite only' : 'Anyone can join'}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsPrivate(v => !v)}
-              className={`w-11 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-green-500' : 'bg-gray-300'}`}>
-              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
-
-          {/* Create button */}
-          <button
-            onClick={handleCreate}
-            disabled={!name.trim() || saving}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-40"
-            style={{ background: WA_GREEN }}>
-            {saving ? 'Creating…' : 'Create Group'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Avatar helper ────────────────────────────────────────────────────────────
-// Default: WhatsApp-style group icon SVG if no image set
-function GroupAvatar({ src, icon, size = 40, className = '' }) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt="group"
-        className={`rounded-full object-cover flex-shrink-0 ${className}`}
-        style={{ width: size, height: size }}
-      />
-    );
-  }
-  if (icon && icon !== '📚' && icon.length <= 4) {
-    return (
-      <div
-        className={`rounded-full flex items-center justify-center flex-shrink-0 ${className}`}
-        style={{ width: size, height: size, background: '#128C7E', fontSize: size * 0.45 }}
-      >
-        {icon}
-      </div>
-    );
-  }
-  // Default WhatsApp-style generic group SVG
-  return (
-    <div
-      className={`rounded-full flex items-center justify-center flex-shrink-0 ${className}`}
-      style={{ width: size, height: size, background: '#DFE5E7' }}
-    >
-      <svg viewBox="0 0 212 212" style={{ width: size * 0.65, height: size * 0.65 }}>
-        <path fill="#BEC5C9" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z"/>
-        <path fill="#FFF" d="M173.561 171.615a62.767 62.767 0 0 0-2.065-2.955 67.7 67.7 0 0 0-2.608-3.299 70.112 70.112 0 0 0-3.184-3.527 71.097 71.097 0 0 0-5.924-5.47 72.458 72.458 0 0 0-10.023-7.030c-1.741-.99-3.528-1.929-5.358-2.809-.872-.41-1.750-.81-2.634-1.195a44.34 44.34 0 0 0-1.793-.762 38.713 38.713 0 0 0-2.374-.897 30.038 30.038 0 0 0-2.399-.666 25.792 25.792 0 0 0-2.427-.438 22.956 22.956 0 0 0-2.458-.21 22.2 22.2 0 0 0-2.491.042 21.86 21.86 0 0 0-2.526.317 23.28 23.28 0 0 0-2.562.597 27.29 27.29 0 0 0-2.601.893 32.63 32.63 0 0 0-2.641 1.208 38.63 38.63 0 0 0-2.682 1.543 44.92 44.92 0 0 0-2.723 1.907c-.456.345-.905.699-1.350 1.064-.225.182-.447.368-.667.558-.22.19-.438.382-.655.577-.216.195-.43.393-.643.593-.43.403-.853.815-1.267 1.234-.211.21-.42.422-.627.637-.207.215-.412.433-.614.653-.202.220-.402.442-.599.666-.196.224-.390.450-.581.678-.192.230-.380.462-.566.696-.186.234-.369.470-.549.709-.180.239-.356.480-.530.724-.174.244-.344.490-.511.739-.167.249-.330.500-.490.754-.160.254-.316.510-.469.769-.153.259-.302.520-.447.784-.146.264-.287.530-.426.799-.138.269-.273.540-.404.815-.131.275-.258.552-.382.832-.124.280-.245.562-.363.847a62.79 62.79 0 0 0-.642 1.712 63.53 63.53 0 0 0-.571 1.77 60.97 60.97 0 0 0-.5 1.826 57.31 57.31 0 0 0-.43 1.882 54.47 54.47 0 0 0-.357 1.934 51.48 51.48 0 0 0-.285 1.984 48.95 48.95 0 0 0-.213 2.033 47.13 47.13 0 0 0-.14 2.080 46.01 46.01 0 0 0-.066 2.125c-.012.71-.013 1.420.0 2.130h141.922c.013-.71.012-1.420 0-2.130a46.01 46.01 0 0 0-.066-2.125 47.13 47.13 0 0 0-.140-2.080 48.95 48.95 0 0 0-.213-2.033 51.48 51.48 0 0 0-.285-1.984 54.47 54.47 0 0 0-.357-1.934 57.31 57.31 0 0 0-.43-1.882 60.97 60.97 0 0 0-.5-1.826 63.53 63.53 0 0 0-.571-1.770 62.79 62.79 0 0 0-.642-1.712c-.118-.285-.239-.567-.363-.847-.124-.280-.251-.557-.382-.832-.131-.275-.266-.546-.404-.815-.139-.269-.280-.535-.426-.799-.146-.264-.294-.525-.447-.784-.153-.259-.309-.515-.469-.769-.160-.254-.323-.505-.490-.754-.167-.249-.337-.495-.511-.739-.174-.244-.350-.485-.530-.724-.186-.234-.374-.466-.566-.696-.191-.230-.385-.456-.581-.678-.197-.224-.397-.446-.599-.666-.202-.220-.407-.438-.614-.653-.207-.215-.416-.427-.627-.637-.414-.419-.837-.831-1.267-1.234-.213-.200-.427-.398-.643-.593-.217-.195-.435-.387-.655-.577-.220-.190-.444-.376-.667-.558-.445-.365-.894-.719-1.350-1.064a44.92 44.92 0 0 0-2.723-1.907 38.63 38.63 0 0 0-2.682-1.543 32.63 32.63 0 0 0-2.641-1.208 27.29 27.29 0 0 0-2.601-.893 23.28 23.28 0 0 0-2.562-.597 21.86 21.86 0 0 0-2.526-.317 22.2 22.2 0 0 0-2.491-.042 22.956 22.956 0 0 0-2.458.210 25.792 25.792 0 0 0-2.427.438 30.038 30.038 0 0 0-2.399.666 38.713 38.713 0 0 0-2.374.897 44.34 44.34 0 0 0-1.793.762c-.884.385-1.762.785-2.634 1.195-1.830.880-3.617 1.819-5.358 2.809a72.458 72.458 0 0 0-10.023 7.030 71.097 71.097 0 0 0-5.924 5.470 70.112 70.112 0 0 0-3.184 3.527 67.7 67.7 0 0 0-2.608 3.299 62.767 62.767 0 0 0-2.065 2.955z"/>
-        <path fill="#FFF" d="M106.25 93.75c14.912 0 27-12.088 27-27s-12.088-27-27-27-27 12.088-27 27 12.088 27 27 27z"/>
-      </svg>
-    </div>
-  );
-}
-
-// ── Image upload helper ───────────────────────────────────────────────────────
-function IconUploadButton({ currentIcon, currentIconUrl, onUploaded, size = 40 }) {
-  const inputRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const uploaded = await db.storage.upload('group-icons', `${Date.now()}-${file.name}`, file);
-      const url = db.storage.getPublicUrl('group-icons', uploaded.path || uploaded.Key || uploaded.key);
-      onUploaded(url);
-    } catch (err) {
-      console.error('Upload failed', err);
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  return (
-    <div className="relative inline-block cursor-pointer" onClick={() => inputRef.current?.click()}>
-      <GroupAvatar src={currentIconUrl} icon={currentIcon} size={size} />
-      <div
-        className="absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity"
-        style={{ borderRadius: '50%' }}
-      >
-        {uploading
-          ? <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
-          : <Camera className="w-4 h-4 text-white" />
-        }
-      </div>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-    </div>
-  );
-}
-
-// ── Main export ───────────────────────────────────────────────────────────────
-// Architecture: subject chats and community chat need NO StudyGroup record.
-// group_id for subject chat = "subject-{subject.id}"
-// group_id for community    = "community-global"  
-// Only user-created custom groups have a StudyGroup record.
-export default function SubjectGroupChat() {
-  const navigate = useNavigate();
-  const { subjectSlug } = useParams();
-  const location = useLocation();
-  const { user } = useOutletContext() ?? {};
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
-
-  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity;
-  const isCustomGroup = !!location.state?.group;
-
-  // Subjects list for CreateGroupModal
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects-list'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
-    staleTime: 300_000,
-  });
-
-  // ── Resolve which group we're in ─────────────────────────────────────────────
-  // Custom group from My Groups — use directly from state
-  if (isCustomGroup) {
-    const group = location.state.group;
-    return (
-      <>
-        <ChatView group={group} user={user} onBack={() => navigate('/forums')}
-          subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
-        {showCreateGroup && (
-          <CreateGroupModal user={user} subjects={subjects}
-            onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
-        )}
-      </>
-    );
-  }
-
-  // Community or Subject chat — build a virtual group object without DB lookup
-  // This is instant — no async, no spinner
-  return (
-    <SubjectChatLoader
-      subjectSlug={subjectSlug}
-      isCommunity={isCommunity}
-      locationState={location.state}
-      user={user}
-      subjects={subjects}
-      navigate={navigate}
-      showCreateGroup={showCreateGroup}
-      setShowCreateGroup={setShowCreateGroup}
-    />
-  );
-}
-
-// ── SubjectChatLoader — resolves subject info then renders immediately ────────
-function SubjectChatLoader({ subjectSlug, isCommunity, locationState, user, subjects, navigate, showCreateGroup, setShowCreateGroup }) {
-  // If subject was passed via state, use it immediately — no DB lookup needed
-  const subjectFromState = locationState?.subject;
-
-  // Fallback: look up subject by slug when navigating directly by URL
-  const { data: subjectFromDB, isLoading: subjectLoading } = useQuery({
-    queryKey: ['subject-by-slug', subjectSlug],
-    queryFn: async () => {
-      const all = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
-      const slug = subjectSlug.toLowerCase();
-      return all.find(s =>
-        s.name.toLowerCase().replace(/\s+/g, '-') === slug ||
-        s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug ||
-        slug.includes(s.name.toLowerCase().split(' ')[1]?.toLowerCase() || '__')
-      ) || all.find(s => s.name.toLowerCase().includes(slug.split('-')[0])) || null;
-    },
-    enabled: !isCommunity && !subjectFromState,
-    staleTime: 300_000,
-  });
-
-  const subject = subjectFromState || subjectFromDB;
-
-  // Build the virtual group object (no DB write needed for system chats)
-  let group = null;
-  if (isCommunity) {
-    group = {
-      id: 'community-global',
-      name: 'Chibondo Academy',
-      icon: '🎓',
-      icon_url: null,
-      member_count: null, // shows "All members"
-      subject_name: null,
-      creator_id: 'system',
-    };
-  } else if (subject) {
-    group = {
-      id: `subject-${subject.id}`,
-      name: `${subject.name} Group`,
-      icon: getSubjectIcon(subject.name),
-      icon_url: null,
-      member_count: null,
-      subject_name: subject.name,
-      subject_id: subject.id,
-      creator_id: 'system',
-    };
-  }
-
-  // Still resolving subject from DB
-  if (!isCommunity && !subject && subjectLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="animate-spin rounded-full h-7 w-7 border-b-2" style={{ borderColor: WA_GREEN }} />
-        <p className="text-sm text-gray-400">Loading…</p>
-      </div>
-    );
-  }
-
-  // Subject not found
-  if (!group) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-8 text-center">
-        <p className="text-base font-semibold text-gray-600">Subject not found</p>
-        <button onClick={() => navigate('/forums')}
-          className="px-4 py-2 text-white rounded-xl text-sm font-semibold"
-          style={{ background: WA_GREEN }}>
-          Back to Forums
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <ChatView group={group} user={user} onBack={() => navigate('/forums')}
-        subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
-      {showCreateGroup && (
-        <CreateGroupModal user={user} subjects={subjects}
-          onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
-      )}
-    </>
-  );
-}
-
-// Helper: pick emoji for subject
-function getSubjectIcon(name = '') {
-  const n = name.toLowerCase();
-  if (n.includes('bio')) return '🧬';
-  if (n.includes('chem')) return '⚗️';
-  if (n.includes('phys')) return '⚡';
-  if (n.includes('math')) return '📐';
-  if (n.includes('english') || n.includes('literature')) return '📖';
-  if (n.includes('chichewa')) return '🗣️';
-  if (n.includes('agri')) return '🌱';
-  if (n.includes('geo')) return '🌍';
-  if (n.includes('hist')) return '📜';
-  return '💬';
-}
+}\n\n// ── Create group modal ────────────────────────────────────────────────────────\nfunction CreateGroupModal({ user, subjects, onClose, onCreate }) {\n  const [name, setName] = useState('');\n  const [description, setDescription] = useState('');\n  const [icon, setIcon] = useState('💬');\n  const [subjectId, setSubjectId] = useState('');\n  const [isPrivate, setIsPrivate] = useState(false);\n  const [saving, setSaving] = useState(false);\n\n  const ICONS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️'];\n\n  const handleCreate = async () => {\n    if (!name.trim() || !user?.id) return;\n    setSaving(true);\n    try {\n      const subject = subjects.find(s => s.id === subjectId);\n      const group = await db.entities.StudyGroup.create({\n        name: name.trim(),\n        description: description.trim(),\n        icon,\n        subject_id: subjectId || null,\n        subject_name: subject?.name || null,\n        creator_id: user.id,\n        creator_name: user.full_name || user.email,\n        member_ids: [user.id],\n        member_names: [user.full_name || user.email],\n        member_count: 1,\n        is_private: isPrivate,\n        status: 'active',\n      });\n      onCreate(group);\n      onClose();\n    } catch (e) {\n      console.error('Create group failed:', e);\n    } finally {\n      setSaving(false);\n    }\n  };\n\n  return (\n    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">\n      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">\n        {/* Header */}\n        <div className="flex items-center gap-3 px-4 py-3" style={{ background: WA_GREEN }}>\n          <button onClick={onClose}><X className="w-5 h-5 text-white" /></button>\n          <p className="font-bold text-white text-sm">New Study Group</p>\n        </div>\n\n        <div className="p-4 space-y-4">\n          {/* Icon picker */}\n          <div>\n            <p className="text-xs font-semibold text-gray-500 mb-2">Group Icon</p>\n            <div className="flex flex-wrap gap-2">\n              {ICONS.map(e => (\n                <button key={e} onClick={() => setIcon(e)}\n                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'scale-110' : 'hover:scale-105'}`}\n                  style={icon === e ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>\n                  {e}\n                </button>\n              ))}\n            </div>\n          </div>\n\n          {/* Name */}\n          <div>\n            <label className="text-xs font-semibold text-gray-500 block mb-1">Group Name *</label>\n            <input\n              value={name}\n              onChange={e => setName(e.target.value)}\n              placeholder="e.g. Form 4 Biology Squad"\n              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"\n              maxLength={60}\n            />\n          </div>\n\n          {/* Description */}\n          <div>\n            <label className="text-xs font-semibold text-gray-500 block mb-1">Description (optional)</label>\n            <input\n              value={description}\n              onChange={e => setDescription(e.target.value)}\n              placeholder="What's this group about?"\n              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"\n              maxLength={120}\n            />\n          </div>\n\n          {/* Subject */}\n          <div>\n            <label className="text-xs font-semibold text-gray-500 block mb-1">Subject (optional)</label>\n            <select\n              value={subjectId}\n              onChange={e => setSubjectId(e.target.value)}\n              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500 bg-white"\n            >\n              <option value="">— No specific subject —</option>\n              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}\n            </select>\n          </div>\n\n          {/* Privacy */}\n          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">\n            <div className="flex items-center gap-2">\n              {isPrivate ? <Lock className="w-4 h-4 text-gray-500" /> : <Globe className="w-4 h-4 text-gray-500" />}\n              <div>\n                <p className="text-sm font-medium text-gray-800">{isPrivate ? 'Private' : 'Public'}</p>\n                <p className="text-[11px] text-gray-400">{isPrivate ? 'Invite only' : 'Anyone can join'}</p>\n              </div>\n            </div>\n            <button\n              onClick={() => setIsPrivate(v => !v)}\n              className={`w-11 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-green-500' : 'bg-gray-300'}`}>\n              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-0.5'}`} />\n            </button>\n          </div>\n\n          {/* Create button */}\n          <button\n            onClick={handleCreate}\n            disabled={!name.trim() || saving}\n            className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-40"\n            style={{ background: WA_GREEN }}>\n            {saving ? 'Creating…' : 'Create Group'}\n          </button>\n        </div>\n      </div>\n    </div>\n  );\n}\n\n// ── Main export ───────────────────────────────────────────────────────────────\nexport default function SubjectGroupChat() {\n  const navigate = useNavigate();\n  const { subjectSlug } = useParams();\n  const location = useLocation();\n  const { user } = useOutletContext() ?? {};\n  const [activeGroup, setActiveGroup] = useState(null);\n  const [showCreateGroup, setShowCreateGroup] = useState(false);\n\n  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity === true;\n\n  // Subjects list for CreateGroupModal\n  const { data: subjects = [] } = useQuery({\n    queryKey: ['subjects-list'],\n    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),\n    staleTime: 300_000,\n  });\n\n  // Query for subject-based official group\n  const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({\n    queryKey: ['subject-chat-group', subjectSlug, isCommunity],\n    queryFn: async () => {\n      if (isCommunity) {\n        // Query by specific fixed group ID 'community-global'\n        try {\n          const existing = await db.entities.StudyGroup.get('community-global');\n          if (existing && existing.status === 'active') {\n            return existing;\n          }\n        } catch (e) {\n          // If 404 or fails, we will create it below\n        }\n\n        // Try query filter in case id get lookup didn't work directly\n        const list = await db.entities.StudyGroup.filter({ id: 'community-global' });\n        if (list && list.length > 0) return list[0];\n\n        // Create community-global study group if not exists\n        return await db.entities.StudyGroup.create({\n          id: 'community-global',\n          name: 'Chibondo Academy',\n          description: 'Official global community group chat',\n          icon: '🎓',\n          creator_id: 'system',\n          creator_name: 'System',\n          member_ids: user?.id ? [user.id] : [],\n          member_names: user?.id ? [user.full_name || user.email] : [],\n          member_count: user?.id ? 1 : 0,\n          is_private: false,\n          status: 'active',\n        });\n      } else {\n        const subject = location.state?.subject;\n        if (!subject) return null;\n\n        // Query by subject_id to ensure a stable key and no duplicates\n        const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' });\n        if (existingList && existingList.length > 0) {\n          return existingList[0];\n        }\n\n        // Auto-create on first visit\n        return await db.entities.StudyGroup.create({\n          name: `${subject.name} Group`,\n          description: `Official study group for ${subject.name}`,\n          icon: '📚',\n          subject_id: subject.id,\n          subject_name: subject.name,\n          creator_id: user?.id || 'system',\n          creator_name: user ? (user.full_name || user.email) : 'System',\n          member_ids: user?.id ? [user.id] : [],\n          member_names: user?.id ? [user.full_name || user.email] : [],\n          member_count: user?.id ? 1 : 0,\n          is_private: false,\n          status: 'active',\n        });\n      }\n    },\n    enabled: isCommunity || (!!subjectSlug && !!location.state?.subject),\n    staleTime: 30_000,\n  });\n\n  // Auto-join membership hook/logic when the group is active\n  useEffect(() => {\n    if (!subjectGroupResult || !user?.id) return;\n    const memberIds = subjectGroupResult.member_ids || [];\n    if (!memberIds.includes(user.id)) {\n      const updatedIds = [...memberIds, user.id];\n      const updatedNames = [...(subjectGroupResult.member_names || []), user.full_name || user.email];\n      db.entities.StudyGroup.update(subjectGroupResult.id, {\n        member_ids: updatedIds,\n        member_names: updatedNames,\n        member_count: updatedIds.length,\n      }).catch(err => {\n        console.error('Silent auto-join failed:', err);\n      });\n    }\n  }, [subjectGroupResult, user?.id]);\n\n  // Keep activeGroup state synced or initialized to subjectGroupResult\n  useEffect(() => {\n    if (subjectGroupResult) {\n      setActiveGroup(subjectGroupResult);\n    }\n  }, [subjectGroupResult]);\n\n  if (isGroupLoading) {\n    return (\n      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-gray-500">\n        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>\n        <p className="text-sm">Loading Forum Chat...</p>\n      </div>\n    );\n  }\n\n  // Handle case where activeGroup is determined\n  const displayedGroup = activeGroup || subjectGroupResult;\n\n  if (displayedGroup) {\n    return (\n      <>\n        <ChatView\n          group={displayedGroup}\n          user={user}\n          onBack={() => navigate('/forums')}\n          subjects={subjects}\n          onNewGroupClick={() => setShowCreateGroup(true)}\n        />\n        {showCreateGroup && (\n          <CreateGroupModal\n            user={user}\n            subjects={subjects}\n            onClose={() => setShowCreateGroup(false)}\n            onCreate={(newGroup) => {\n              // On success, go to forums home where 'My Groups' section will display it\n              navigate('/forums');\n            }}\n          />\n        )}\n      </>\n    );\n  }\n\n  return (\n    <div className="p-8 text-center text-gray-500">\n      <p className="text-lg font-semibold">Chat room not found</p>\n      <button\n        onClick={() => navigate('/forums')}\n        className="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium"\n        style={{ background: WA_GREEN }}\n      >\n        Go to Forums\n      </button>\n    </div>\n  );\n}
