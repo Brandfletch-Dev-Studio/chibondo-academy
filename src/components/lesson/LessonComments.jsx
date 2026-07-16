@@ -298,7 +298,7 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
   // Fetch ALL comments for this lesson only (no subject_id filter — lesson-scoped)
   const { data: allComments = [], isLoading } = useQuery({
     queryKey: ['lessonComments', lessonId],
-    queryFn: () => db.entities.Discussion.filter({ lesson_id: lessonId, status: 'active' }, 'created_date', 200),
+    queryFn: () => db.entities.LessonComment.filter({ lesson_id: lessonId, status: 'active' }, 'created_date', 200),
     enabled: !!lessonId,
     staleTime: 30_000,
   });
@@ -316,7 +316,7 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
       .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
 
   const createMutation = useMutation({
-    mutationFn: (data) => db.entities.Discussion.create(data),
+    mutationFn: (data) => db.entities.LessonComment.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lessonComments', lessonId] });
       setNewComment('');
@@ -324,12 +324,12 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => db.entities.Discussion.update(id, data),
+    mutationFn: ({ id, data }) => db.entities.LessonComment.update(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lessonComments', lessonId] }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => db.entities.Discussion.update(id, { status: 'deleted' }),
+    mutationFn: (id) => db.entities.LessonComment.update(id, { status: 'deleted' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lessonComments', lessonId] }),
   });
 
