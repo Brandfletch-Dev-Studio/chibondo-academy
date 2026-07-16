@@ -5,6 +5,8 @@ import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { Search } from 'lucide-react';
 
+import { Pin } from 'lucide-react';
+
 const SUBJECT_META = {
   biology:              { icon: '🧬' },
   chemistry:            { icon: '⚗️' },
@@ -71,6 +73,17 @@ export default function ForumsHome() {
     );
   }, [subjects, search]);
 
+  // My custom study groups
+  const { data: myGroups = [] } = useQuery({
+    queryKey: ['my-study-groups', user?.id],
+    queryFn: () => db.entities.StudyGroup.filter({ status: 'active' }, '-last_message_at', 100),
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    select: (groups) => groups.filter(g =>
+      g.creator_id === user?.id || (g.member_ids || []).includes(user?.id)
+    ),
+  });
+
   const handleCommunityClick = () => {
     navigate('/forums/community/chat', {
       state: {
@@ -81,7 +94,8 @@ export default function ForumsHome() {
   };
 
   const handleSubjectClick = (subject) => {
-    navigate(`/forums/${subject.slug}/chat`);
+    const slug = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/forums/${slug}/chat`, { state: { subject } });
   };
 
   const handleCreateGroupClick = () => {
@@ -142,6 +156,50 @@ export default function ForumsHome() {
               </svg>
             </div>
           </div>
+
+          {/* My Groups section */}
+          {myGroups.length > 0 && (
+            <>
+              <div className="px-4 py-2 bg-muted/30">
+                <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                  My Groups
+                </span>
+              </div>
+              <div className="divide-y divide-border">
+                {myGroups.map(group => (
+                  <div
+                    key={group.id}
+                    onClick={() => navigate(`/forums/group-${group.id}/chat`, { state: { group } })}
+                    className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors bg-card"
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0 bg-muted/60">
+                      {group.icon || '💬'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground text-sm truncate">{group.name}</span>
+                        {group.last_message_at && (
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            {(() => {
+                              const d = new Date(group.last_message_at);
+                              const diff = Math.floor((Date.now() - d) / 60000);
+                              if (diff < 1) return 'now';
+                              if (diff < 60) return `${diff}m`;
+                              if (diff < 1440) return `${Math.floor(diff/60)}h`;
+                              return `${Math.floor(diff/1440)}d`;
+                            })()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {group.last_message || 'No messages yet'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Section header */}
           <div className="px-4 py-2 bg-muted/30">
