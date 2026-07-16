@@ -46,14 +46,14 @@ export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, sub
   const { data: discussions = [], isLoading } = useQuery({
     queryKey: ['discussions', lessonId],
     queryFn: async () => {
-      const all = await db.entities.Discussion.filter({ lesson_id: lessonId, status: 'active' }, '-created_date', 100);
+      let all = []; try { all = await db.entities.Discussion.filter({ lesson_id: lessonId, status: 'active' }, '-created_date', 100); } catch (e) { all = []; }
       return all.sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
     },
     enabled: !!lessonId,
   });
 
   const createDiscussion = useMutation({
-    mutationFn: async (data) => db.entities.Discussion.create(data),
+    mutationFn: async (data) => { try { return await db.entities.Discussion.create(data); } catch (e) { return null; } },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] });
       setNewComment('');
@@ -61,7 +61,7 @@ export default function DiscussionThread({ lessonId, lessonTitle, lessonUrl, sub
   });
 
   const updateDiscussion = useMutation({
-    mutationFn: async ({ id, data }) => db.entities.Discussion.update(id, data),
+    mutationFn: async ({ id, data }) => { try { return await db.entities.Discussion.update(id, data); } catch (e) { return null; } },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discussions', lessonId] }),
   });
 
