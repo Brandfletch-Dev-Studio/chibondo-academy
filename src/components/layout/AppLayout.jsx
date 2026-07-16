@@ -107,35 +107,11 @@ export default function AppLayout() {
     return () => clearInterval(iv);
   }, [user?.id, isOnForums]);
 
-  // Avatar fallback from StudentProfile
-  const { data: studentProfile } = useQuery({
-    queryKey: ['studentProfile', user?.id],
-    queryFn: async () => {
-      const r = await db.entities.StudentProfile.filter({ user_id: user.id });
-      return r[0] || null;
-    },
-    enabled: !!user?.id && user?.role !== 'admin' && user?.role !== 'teacher',
-    staleTime: 60_000,
-  });
-
   // useMemo prevents a new object reference on every render.
-  // Without this, every 60s notification poll creates a new enrichedUser object,
-  // which React sees as a changed prop → remounts child panels → resets form state mid-edit.
   const enrichedUser = React.useMemo(() => {
     if (!user) return null;
-    return {
-      ...user,
-      avatar_url: user.avatar_url || studentProfile?.avatar_url || null,
-    };
-  }, [
-    user?.id,
-    user?.email,
-    user?.full_name,
-    user?.role,
-    user?.avatar_url,
-    user?.referral_code,
-    studentProfile?.avatar_url,
-  ]); // only recreate when actual identity data changes
+    return { ...user, avatar_url: user.avatar_url || null };
+  }, [user?.id, user?.email, user?.full_name, user?.role, user?.avatar_url, user?.referral_code]);
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['unreadNotifications'],
