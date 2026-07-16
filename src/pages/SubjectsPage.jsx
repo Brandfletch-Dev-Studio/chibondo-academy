@@ -14,11 +14,6 @@ export default function SubjectsPage() {
   const [selectedForm, setSelectedForm] = useState('all');
   const [search, setSearch] = useState('');
 
-  const { data: forms = [] } = useQuery({
-    queryKey: ['forms'],
-    queryFn: () => (async () => [])(/* AcademicForm removed */),
-  });
-
   const { data: subjects = [], isLoading } = useQuery({
     queryKey: ['subjects'],
     queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'order', 100),
@@ -50,8 +45,10 @@ export default function SubjectsPage() {
   enrollments.forEach(e => { enrollmentMap[e.subject_id] = e; });
 
   const filteredSubjects = subjects.filter(s => {
-    const matchForm = selectedForm === 'all' || s.form_id === selectedForm;
-    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase());
+    const subjectFormName = s.form_name || s.form || '';
+    const matchForm = selectedForm === 'all' || subjectFormName === selectedForm;
+    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.description || '').toLowerCase().includes(search.toLowerCase());
     return matchForm && matchSearch;
   });
 
@@ -148,7 +145,7 @@ export default function SubjectsPage() {
             const formSubjects = subjectsByForm[formKey] || [];
             return (
               <div key={formKey}>
-                {selectedForm === 'all' && effectiveGroups.length > 1 && (
+                {effectiveGroups.length > 1 && (
                   <div className="flex items-center gap-3 mb-4">
                     <h2 className="font-display font-bold text-lg">{formName}</h2>
                     <div className="flex-1 h-px bg-border" />
