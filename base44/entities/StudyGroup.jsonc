@@ -1,0 +1,21 @@
+{
+  "name": "StudyGroup",
+  "type": "object",
+  "properties": {
+    "name":          { "type": "string", "description": "Group display name" },
+    "description":   { "type": "string" },
+    "icon":          { "type": "string", "description": "Single emoji used as group icon" },
+    "subject_id":    { "type": "string", "description": "Optional — links group to a subject" },
+    "subject_name":  { "type": "string" },
+    "creator_id":    { "type": "string" },
+    "creator_name":  { "type": "string" },
+    "member_ids":    { "type": "array", "items": { "type": "string" }, "description": "Array of user IDs who are members" },
+    "member_names":  { "type": "array", "items": { "type": "string" } },
+    "member_count":  { "type": "number", "default": 1 },
+    "last_message":  { "type": "string", "description": "Cached preview of the last message" },
+    "last_message_at": { "type": "string", "description": "ISO timestamp of last message" },
+    "is_private":    { "type": "boolean", "default": false, "description": "Private groups require invite; public groups anyone can join" },
+    "status":        { "type": "string", "enum": ["active", "archived"], "default": "active" }
+  },
+  "required": ["name", "creator_id"]
+}
