@@ -501,15 +501,19 @@ function IconUploadButton({ currentIcon, currentIconUrl, onUploaded, size = 40 }
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
+// Architecture: subject chats and community chat need NO StudyGroup record.
+// group_id for subject chat = "subject-{subject.id}"
+// group_id for community    = "community-global"  
+// Only user-created custom groups have a StudyGroup record.
 export default function SubjectGroupChat() {
   const navigate = useNavigate();
   const { subjectSlug } = useParams();
   const location = useLocation();
   const { user } = useOutletContext() ?? {};
-  const [activeGroup, setActiveGroup] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
 
-  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity === true;
+  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity;
+  const isCustomGroup = !!location.state?.group;
 
   // Subjects list for CreateGroupModal
   const { data: subjects = [] } = useQuery({
@@ -518,148 +522,133 @@ export default function SubjectGroupChat() {
     staleTime: 300_000,
   });
 
-  // ── Step 1: Resolve the subject (from state OR from slug lookup) ─────────────
-  const { data: resolvedSubject } = useQuery({
-    queryKey: ['subject-by-slug', subjectSlug],
-    queryFn: async () => {
-      // Try state first (fast path)
-      if (location.state?.subject) return location.state.subject;
-      if (location.state?.group) return null;
-      if (isCommunity) return null;
-      // Fallback: look up subject by slug from DB
-      const allSubjects = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
-      const slug = subjectSlug.toLowerCase();
-      return allSubjects.find(s =>
-        (s.slug && s.slug === slug) ||
-        s.name.toLowerCase().replace(/\s+/g, '-') === slug
-      ) || null;
-    },
-    enabled: !isCommunity && !location.state?.group,
-    staleTime: 300_000,
-  });
-
-  // ── Step 2: Resolve/create the StudyGroup ────────────────────────────────────
-  const subjectForGroup = location.state?.subject || resolvedSubject;
-
-  const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({
-    queryKey: ['subject-chat-group', subjectSlug, isCommunity],
-    queryFn: async () => {
-      // Direct group from My Groups list
-      if (location.state?.group) return location.state.group;
-
-      if (isCommunity) {
-        try {
-          const existing = await db.entities.StudyGroup.get('community-global');
-          if (existing?.status === 'active') return existing;
-        } catch (_) {}
-        const list = await db.entities.StudyGroup.filter({ status: 'active' }, 'created_date', 5);
-        const found = list.find(g => g.id === 'community-global');
-        if (found) return found;
-        return await db.entities.StudyGroup.create({
-          id: 'community-global',
-          name: 'Chibondo Academy',
-          description: 'Official global community group chat',
-          icon: '🎓',
-          icon_url: null,
-          creator_id: 'system',
-          creator_name: 'System',
-          member_ids: user?.id ? [user.id] : [],
-          member_names: user?.id ? [user.full_name || user.email] : [],
-          member_count: user?.id ? 1 : 0,
-          is_private: false,
-          status: 'active',
-        });
-      }
-
-      // Subject chat — need subject resolved
-      const subject = subjectForGroup;
-      if (!subject) return null;
-
-      // Look up by subject_id
-      const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' }, '-created_date', 5);
-      if (existingList?.length > 0) return existingList[0];
-
-      // Auto-create
-      return await db.entities.StudyGroup.create({
-        name: `${subject.name} Group`,
-        description: `Official study group for ${subject.name}`,
-        icon: '📚',
-        icon_url: null,
-        subject_id: subject.id,
-        subject_name: subject.name,
-        creator_id: user?.id || 'system',
-        creator_name: user ? (user.full_name || user.email) : 'System',
-        member_ids: user?.id ? [user.id] : [],
-        member_names: user?.id ? [user.full_name || user.email] : [],
-        member_count: user?.id ? 1 : 0,
-        is_private: false,
-        status: 'active',
-      });
-    },
-    enabled: isCommunity || !!(location.state?.group) || !!subjectForGroup,
-    staleTime: 30_000,
-  });
-
-  // Auto-join silently
-  useEffect(() => {
-    if (!subjectGroupResult?.id || !user?.id) return;
-    const memberIds = subjectGroupResult.member_ids || [];
-    if (!memberIds.includes(user.id)) {
-      db.entities.StudyGroup.update(subjectGroupResult.id, {
-        member_ids: [...memberIds, user.id],
-        member_names: [...(subjectGroupResult.member_names || []), user.full_name || user.email],
-        member_count: memberIds.length + 1,
-      }).catch(() => {});
-    }
-  }, [subjectGroupResult?.id, user?.id]);
-
-  // Sync activeGroup
-  useEffect(() => {
-    if (subjectGroupResult) setActiveGroup(subjectGroupResult);
-  }, [subjectGroupResult]);
-
-  const displayedGroup = activeGroup || subjectGroupResult;
-
-  // Loading state — waiting for subject resolution then group
-  if (isGroupLoading || (!isCommunity && !location.state?.group && !subjectForGroup && !displayedGroup)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: WA_GREEN }} />
-        <p className="text-sm text-gray-400">Loading chat…</p>
-      </div>
-    );
-  }
-
-  if (displayedGroup) {
+  // ── Resolve which group we're in ─────────────────────────────────────────────
+  // Custom group from My Groups — use directly from state
+  if (isCustomGroup) {
+    const group = location.state.group;
     return (
       <>
-        <ChatView
-          group={displayedGroup}
-          user={user}
-          onBack={() => navigate('/forums')}
-          subjects={subjects}
-          onNewGroupClick={() => setShowCreateGroup(true)}
-        />
+        <ChatView group={group} user={user} onBack={() => navigate('/forums')}
+          subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
         {showCreateGroup && (
-          <CreateGroupModal
-            user={user}
-            subjects={subjects}
-            onClose={() => setShowCreateGroup(false)}
-            onCreate={() => navigate('/forums')}
-          />
+          <CreateGroupModal user={user} subjects={subjects}
+            onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
         )}
       </>
     );
   }
 
-  // True not-found (shouldn't normally happen)
+  // Community or Subject chat — build a virtual group object without DB lookup
+  // This is instant — no async, no spinner
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 p-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: WA_GREEN }} />
-      <p className="text-sm text-gray-400">Setting up chat room…</p>
-      <button onClick={() => navigate('/forums')} className="text-xs text-gray-400 underline mt-2">
-        Go back to forums
-      </button>
-    </div>
+    <SubjectChatLoader
+      subjectSlug={subjectSlug}
+      isCommunity={isCommunity}
+      locationState={location.state}
+      user={user}
+      subjects={subjects}
+      navigate={navigate}
+      showCreateGroup={showCreateGroup}
+      setShowCreateGroup={setShowCreateGroup}
+    />
   );
+}
+
+// ── SubjectChatLoader — resolves subject info then renders immediately ────────
+function SubjectChatLoader({ subjectSlug, isCommunity, locationState, user, subjects, navigate, showCreateGroup, setShowCreateGroup }) {
+  // If subject was passed via state, use it immediately — no DB lookup needed
+  const subjectFromState = locationState?.subject;
+
+  // Fallback: look up subject by slug when navigating directly by URL
+  const { data: subjectFromDB, isLoading: subjectLoading } = useQuery({
+    queryKey: ['subject-by-slug', subjectSlug],
+    queryFn: async () => {
+      const all = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
+      const slug = subjectSlug.toLowerCase();
+      return all.find(s =>
+        s.name.toLowerCase().replace(/\s+/g, '-') === slug ||
+        s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug ||
+        slug.includes(s.name.toLowerCase().split(' ')[1]?.toLowerCase() || '__')
+      ) || all.find(s => s.name.toLowerCase().includes(slug.split('-')[0])) || null;
+    },
+    enabled: !isCommunity && !subjectFromState,
+    staleTime: 300_000,
+  });
+
+  const subject = subjectFromState || subjectFromDB;
+
+  // Build the virtual group object (no DB write needed for system chats)
+  let group = null;
+  if (isCommunity) {
+    group = {
+      id: 'community-global',
+      name: 'Chibondo Academy',
+      icon: '🎓',
+      icon_url: null,
+      member_count: null, // shows "All members"
+      subject_name: null,
+      creator_id: 'system',
+    };
+  } else if (subject) {
+    group = {
+      id: `subject-${subject.id}`,
+      name: `${subject.name} Group`,
+      icon: getSubjectIcon(subject.name),
+      icon_url: null,
+      member_count: null,
+      subject_name: subject.name,
+      subject_id: subject.id,
+      creator_id: 'system',
+    };
+  }
+
+  // Still resolving subject from DB
+  if (!isCommunity && !subject && subjectLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="animate-spin rounded-full h-7 w-7 border-b-2" style={{ borderColor: WA_GREEN }} />
+        <p className="text-sm text-gray-400">Loading…</p>
+      </div>
+    );
+  }
+
+  // Subject not found
+  if (!group) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-8 text-center">
+        <p className="text-base font-semibold text-gray-600">Subject not found</p>
+        <button onClick={() => navigate('/forums')}
+          className="px-4 py-2 text-white rounded-xl text-sm font-semibold"
+          style={{ background: WA_GREEN }}>
+          Back to Forums
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <ChatView group={group} user={user} onBack={() => navigate('/forums')}
+        subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
+      {showCreateGroup && (
+        <CreateGroupModal user={user} subjects={subjects}
+          onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
+      )}
+    </>
+  );
+}
+
+// Helper: pick emoji for subject
+function getSubjectIcon(name = '') {
+  const n = name.toLowerCase();
+  if (n.includes('bio')) return '🧬';
+  if (n.includes('chem')) return '⚗️';
+  if (n.includes('phys')) return '⚡';
+  if (n.includes('math')) return '📐';
+  if (n.includes('english') || n.includes('literature')) return '📖';
+  if (n.includes('chichewa')) return '🗣️';
+  if (n.includes('agri')) return '🌱';
+  if (n.includes('geo')) return '🌍';
+  if (n.includes('hist')) return '📜';
+  return '💬';
 }
