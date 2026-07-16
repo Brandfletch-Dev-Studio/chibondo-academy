@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
-import { uploadImage } from '@/utils/uploadImage';
-import { useAuth } from '@/lib/AuthContext';
 import {
-  User, Camera, GraduationCap, BookOpen, CreditCard,
-  CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles, Loader2
+  GraduationCap, BookOpen, CreditCard,
+  CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,18 +35,11 @@ function useLocalDismiss(userId) {
 export default function SetupChecklist({ user }) {
   const navigate               = useNavigate();
   const qc                     = useQueryClient();
-  const { checkUserAuth }      = useAuth(); // refresh user state in context globally
   const userId                 = user?.id;
   const { isDismissed, snooze, markDone } = useLocalDismiss(userId);
 
-  const [visible,      setVisible]      = useState(false);
-  const [collapsed,    setCollapsed]    = useState(false);
-  const [uploading,    setUploading]    = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(user?.avatar_url || '');
-  const [editingName,  setEditingName]  = useState(false);
-  const [nameVal,      setNameVal]      = useState(user?.full_name || '');
-  const [savingName,   setSavingName]   = useState(false);
-  const fileRef = useRef();
+  const [visible,   setVisible]   = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   // ── Remote data ────────────────────────────────────────────────────────────
   const { data: studentProfile, refetch: refetchProfile } = useQuery({
@@ -74,19 +65,11 @@ export default function SetupChecklist({ user }) {
 
   // ── Derived checklist state ────────────────────────────────────────────────
   // hasPhoto checks the live photoPreview (optimistic) OR user?.avatar_url (from context)
-  const hasName   = !!(user?.full_name?.trim() && user.full_name.trim() !== user.email);
-  const hasPhoto  = !!(photoPreview || user?.avatar_url);
   const hasClass  = !!(studentProfile?.form);
   const hasEnroll = enrollments.length > 0;
   const hasFees   = !!(subscription);
 
-
-
-  // Profile is "complete" when BOTH name and photo are done
-  const hasProfile = hasName && hasPhoto;
-
   const items = [
-    { id: 'profile', done: hasProfile, label: 'Complete your profile',        icon: User,          action: () => navigate('/settings?tab=profile') },
     { id: 'class',   done: hasClass,   label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=academic') },
     { id: 'enroll',  done: hasEnroll,  label: 'Choose subjects to enroll in', icon: BookOpen,      action: () => navigate('/enroll-subjects') },
     { id: 'fees',    done: hasFees,    label: 'Pay fees to start learning',   icon: CreditCard,    action: () => navigate('/subscription') },
@@ -157,67 +140,10 @@ export default function SetupChecklist({ user }) {
     }
   };
 
-  // ── Name save ──────────────────────────────────────────────────────────────
-  const saveName = async () => {
-    if (!nameVal.trim()) return;
-    setSavingName(true);
-    try {
-      await db.auth.updateMe({ full_name: nameVal.trim() });
-      await checkUserAuth(); // refresh context so header name updates
-      qc.invalidateQueries({ queryKey: ['currentUser'] });
-      setEditingName(false);
-      toast.success('Name saved!');
-    } catch { toast.error('Could not save name. Please try again.'); }
-    finally  { setSavingName(false); }
-  };
-
   if (!visible || !userId) return null;
 
   return (
     <div className="rounded-2xl border border-border bg-card text-card-foreground overflow-hidden">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-accent" />
-          </div>
-          <div>
-            <p className="font-display font-bold text-sm text-foreground">Set up your account</p>
-            <p className="text-[11px] text-muted-foreground">{doneCount} of {items.length} complete</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setCollapsed(v => !v)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-            {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={() => { snooze(); setVisible(false); }}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Remind me later">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="px-5 pb-3">
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-          <div className="h-full rounded-full bg-accent transition-all duration-500"
-            style={{ width: `${pct}%` }} />
-        </div>
-      </div>
-
-      {/* Items */}
-      {!collapsed && (
-        <div className="px-3 pb-4 space-y-0.5">
-          {/*
-            Hidden file input — placed OUTSIDE ChecklistItem so the ref is always
-            in the DOM and accessible. Mobile browsers require the click to originate
-            from a user gesture on the same element, so we keep it here in the parent.
-          */}
           <input
             ref={fileRef}
             type="file"
@@ -227,18 +153,7 @@ export default function SetupChecklist({ user }) {
           />
 
           {items.map(item => (
-            <ChecklistItem
-              key={item.id}
-              item={item}
-              editingName={editingName}
-              nameVal={nameVal}
-              setNameVal={setNameVal}
-              saveName={saveName}
-              savingName={savingName}
-              setEditingName={setEditingName}
-              uploading={uploading}
-              photoPreview={photoPreview}
-            />
+            <ChecklistItem key={item.id} item={item} />
           ))}
         </div>
       )}
@@ -246,77 +161,38 @@ export default function SetupChecklist({ user }) {
   );
 }
 
-function ChecklistItem({
-  item, editingName, nameVal, setNameVal, saveName, savingName, setEditingName,
-  uploading, photoPreview,
-}) {
+function ChecklistItem({ item }) {
   const Icon = item.icon;
-  const isPhotoUploading = item.id === 'photo' && uploading;
-
   return (
-    <div className="rounded-xl overflow-hidden">
-      <div
-        className={`flex items-center gap-3 px-3 py-3 transition-colors rounded-xl ${
-          item.done
-            ? 'opacity-50 cursor-default'
-            : 'hover:bg-muted cursor-pointer active:bg-muted/70'
-        }`}
-        onClick={item.done ? undefined : item.action}
-      >
-        {/* Tick / circle */}
-        <div className="flex-shrink-0 w-5">
-          {item.done
-            ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-            : <Circle       className="w-5 h-5 text-muted-foreground/40" />}
-        </div>
-
-        {/* Icon / avatar badge */}
-        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
-          {item.id === 'photo' && photoPreview ? (
-            <img src={photoPreview} alt="profile" className="w-full h-full object-cover" />
-          ) : isPhotoUploading ? (
-            <Loader2 className="w-4 h-4 text-accent animate-spin" />
-          ) : (
-            <Icon className="w-4 h-4 text-muted-foreground" />
-          )}
-        </div>
-
-        {/* Label / inline name input */}
-        <div className="flex-1 min-w-0">
-          {item.id === 'name' && editingName && !item.done ? (
-            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-              <input
-                autoFocus
-                value={nameVal}
-                onChange={e => setNameVal(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter')  saveName();
-                  if (e.key === 'Escape') setEditingName(false);
-                }}
-                className="flex-1 text-sm bg-background border border-border rounded-lg px-2.5 py-1 outline-none focus:ring-1 focus:ring-accent text-foreground"
-                placeholder="Your full name"
-              />
-              <button
-                onClick={saveName}
-                disabled={savingName}
-                className="text-xs font-semibold px-3 py-1 rounded-lg bg-accent text-accent-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
-                {savingName ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save'}
-              </button>
-            </div>
-          ) : (
-            <p className={`text-sm font-medium truncate ${
-              item.done ? 'line-through text-muted-foreground' : 'text-foreground'
-            }`}>
-              {isPhotoUploading ? 'Uploading…' : item.label}
-            </p>
-          )}
-        </div>
-
-        {/* Arrow */}
-        {!item.done && item.id !== 'name' && !isPhotoUploading && (
-          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
-        )}
+    <div
+      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
+        item.done
+          ? 'opacity-50 cursor-default'
+          : 'hover:bg-muted cursor-pointer active:bg-muted/70'
+      }`}
+      onClick={item.done ? undefined : item.action}
+    >
+      {/* Tick / circle */}
+      <div className="flex-shrink-0 w-5">
+        {item.done
+          ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+          : <Circle       className="w-5 h-5 text-muted-foreground/40" />}
       </div>
+
+      {/* Icon badge */}
+      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+      </div>
+
+      {/* Label */}
+      <p className={`flex-1 text-sm font-medium truncate ${
+        item.done ? 'line-through text-muted-foreground' : 'text-foreground'
+      }`}>
+        {item.label}
+      </p>
+
+      {/* Arrow */}
+      {!item.done && <ArrowRight className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />}
     </div>
   );
 }
