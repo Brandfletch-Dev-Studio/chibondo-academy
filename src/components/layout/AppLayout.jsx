@@ -72,8 +72,6 @@ export default function AppLayout() {
   // ── Forum Presence Heartbeat (authenticated users only) ────────────────────
   const location = useLocation();
   const isOnForums = location.pathname.startsWith('/forums') || location.pathname.startsWith('/forum');
-  // Chat pages get their own full-screen layout (own header + input bar)
-  const isChatPage = /^\/forums\/[^/]+\/chat/.test(location.pathname);
 
   useEffect(() => {
     if (!user?.id || !isOnForums) return;
@@ -242,20 +240,17 @@ export default function AppLayout() {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {!isChatPage && (
-          <TopBar
+        <TopBar
             user={enrichedUser}
             notificationCount={notifications.length}
             onMenuClick={() => setMobileOpen(true)}
           />
-        )}
-        <main key={location.pathname} style={isChatPage ? { position:'relative', flex:1, overflow:'hidden', padding:0 } : undefined} className={isChatPage ? "flex-1" : "flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter"}>
+        <main key={location.pathname} className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter">
           <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
 
-      {/* Bottom nav — hidden on full-screen chat pages which manage their own layout */}
-      {!isChatPage && <BottomNav user={enrichedUser} notifications={notifications} />}
+      <BottomNav user={enrichedUser} notifications={notifications} />
     </div>
     </>
   );
