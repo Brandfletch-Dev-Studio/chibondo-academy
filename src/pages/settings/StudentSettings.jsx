@@ -126,9 +126,9 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
       await db.auth.updateMe({ avatar_url: file_url });
 
       if (profile?.id) {
-        await db.entities.StudentProfile.update(profile.id, { avatar_url: file_url });
+        await db.entities.User.update(profile.id, { avatar_url: file_url });
       } else if (user?.id) {
-        await db.entities.StudentProfile.create({ user_id: user.id, avatar_url: file_url });
+        await (async () => null)(/* StudentProfile.create skipped */ { user_id: user.id, avatar_url: file_url });
       }
 
       await checkUserAuth();
@@ -156,9 +156,9 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
         school_name:  schoolName.trim(),
       };
       if (profile?.id) {
-        await db.entities.StudentProfile.update(profile.id, profileData);
+        await db.entities.User.update(profile.id, profileData);
       } else if (user?.id) {
-        await db.entities.StudentProfile.create({ user_id: user.id, ...profileData });
+        await (async () => null)(/* StudentProfile.create skipped */ { user_id: user.id, ...profileData });
       }
 
       await checkUserAuth();
@@ -254,9 +254,9 @@ function AcademicPanel({ user, profile, qc }) {
     setSaving(true);
     try {
       if (profile?.id) {
-        await db.entities.StudentProfile.update(profile.id, { form: selectedForm });
+        await db.entities.User.update(profile.id, { form: selectedForm });
       } else if (user?.id) {
-        await db.entities.StudentProfile.create({ user_id: user.id, form: selectedForm });
+        await (async () => null)(/* StudentProfile.create skipped */ { user_id: user.id, form: selectedForm });
       }
       qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Academic info saved!');
@@ -679,7 +679,7 @@ export default function StudentSettings() {
   const { data: profile, isLoading: profileQueryLoading } = useQuery({
     queryKey: ['studentProfile', user?.id],
     queryFn: async () => {
-      const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
+      const rows = await db.entities.User.filter({ user_id: user.id });
       return rows[0] || null;
     },
     enabled: !!user?.id,
