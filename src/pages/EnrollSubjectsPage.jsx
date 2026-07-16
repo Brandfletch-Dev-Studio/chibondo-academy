@@ -15,18 +15,10 @@ export default function EnrollSubjectsPage() {
   const [search,   setSearch]   = useState('');
   const [saving,   setSaving]   = useState(false);
 
-  /* ── Student profile — to detect their form ── */
-  const { data: studentProfile } = useQuery({
-    queryKey: ['studentProfile', userId],
-    queryFn:  () => db.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
-    enabled:  !!userId,
-  });
+  // StudentProfile entity removed — not available in DB
 
-  /* ── Forms ── */
-  const { data: forms = [] } = useQuery({
-    queryKey: ['forms'],
-    queryFn:  () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 20),
-  });
+  // AcademicForm entity removed — not available in DB
+  const forms = [];
 
   /* ── All published subjects ── */
   const { data: subjects = [], isLoading } = useQuery({
@@ -61,7 +53,7 @@ export default function EnrollSubjectsPage() {
   const enrolledIds = useMemo(() => new Set(enrollments.map(e => e.subject_id)), [enrollments]);
 
   /* ── Determine which forms to show based on student's class ── */
-  const studentForm = studentProfile?.form || ''; // e.g. "Form 3" or "Form 4"
+  const studentForm = null?.form || ''; // e.g. "Form 3" or "Form 4"
 
   // Map form names to IDs
   const formsByName = useMemo(() => {
