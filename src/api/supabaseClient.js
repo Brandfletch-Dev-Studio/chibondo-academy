@@ -159,6 +159,7 @@ const TABLE = {
   User:                  'users',
   GroupChatMessage:      'group_chat_messages',
   StudyGroup:            'study_groups',
+  LessonComment:         'lesson_comments',
 };
 
 function entityAPI(entityName) {
