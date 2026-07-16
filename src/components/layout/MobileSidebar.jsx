@@ -18,7 +18,7 @@ const studentNav = [
   { label: 'Assignments',  icon: FileText,      path: '/my-assignments' },
   { label: 'Forums',       icon: MessageSquare, path: '/forums' },
   { label: 'Progress',     icon: BarChart3,     path: '/progress' },
-  { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
+  { label: 'School Fees',  icon: CreditCard,    path: '/fees' },
   { label: 'Blog',         icon: Newspaper,     path: '/blog' },
   { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
