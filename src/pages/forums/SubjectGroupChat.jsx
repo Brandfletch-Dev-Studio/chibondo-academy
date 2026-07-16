@@ -498,12 +498,10 @@ export default function SubjectGroupChat() {
 
       <div style={{
         display: 'flex', flexDirection: 'column',
-        height: 'calc(100dvh - 112px)', /* fills between TopBar (56px) and BottomNav (56px) */
-        borderRadius: 16,
+        flex: 1,
+        height: '100%',
+        minHeight: 0,
         overflow: 'hidden',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-        margin: '-8px -8px 0',
-        maxWidth: '100%',
         background: t.bg,
       }}>
 
