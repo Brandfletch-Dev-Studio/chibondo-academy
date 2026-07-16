@@ -16,7 +16,7 @@ export default function SubjectsPage() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 50),
+    queryFn: () => (async () => [])(/* AcademicForm removed */),
   });
 
   const { data: subjects = [], isLoading } = useQuery({
