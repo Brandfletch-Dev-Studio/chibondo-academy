@@ -26,6 +26,28 @@ function getMeta(name = '') {
   return SUBJECT_META[name.toLowerCase()] || { icon: '💬' };
 }
 
+
+// WhatsApp-style default group avatar
+function GroupAvatar({ src, icon, size = 48 }) {
+  if (src) return <img src={src} alt="group" className="rounded-full object-cover flex-shrink-0" style={{ width: size, height: size }} />;
+  if (icon && icon.length <= 4 && icon !== '📚') {
+    return (
+      <div className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: size, height: size, background: '#128C7E', fontSize: size * 0.45 }}>
+        {icon}
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-full flex-shrink-0 overflow-hidden" style={{ width: size, height: size, background: '#DFE5E7' }}>
+      <svg viewBox="0 0 212 212" style={{ width: '100%', height: '100%' }}>
+        <path fill="#BEC5C9" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z"/>
+        <path fill="#FFF" d="M173.561 171.615a62.767 62.767 0 0 0-2.065-2.955 67.7 67.7 0 0 0-2.608-3.299 70.112 70.112 0 0 0-3.184-3.527 71.097 71.097 0 0 0-5.924-5.47 72.458 72.458 0 0 0-10.023-7.030c-1.741-.99-3.528-1.929-5.358-2.809-.872-.41-1.750-.81-2.634-1.195a44.34 44.34 0 0 0-1.793-.762 38.713 38.713 0 0 0-2.374-.897 30.038 30.038 0 0 0-2.399-.666 25.792 25.792 0 0 0-2.427-.438 22.956 22.956 0 0 0-2.458-.21 22.2 22.2 0 0 0-2.491.042 21.86 21.86 0 0 0-2.526.317 23.28 23.28 0 0 0-2.562.597 27.29 27.29 0 0 0-2.601.893 32.63 32.63 0 0 0-2.641 1.208 38.63 38.63 0 0 0-2.682 1.543 44.92 44.92 0 0 0-2.723 1.907c-.9.682-1.78 1.389-2.636 2.124-.428.367-.85.742-1.267 1.124-.417.382-.829.772-1.234 1.170-.405.398-.804.803-1.196 1.216-.391.412-.776.832-1.153 1.258-.376.426-.746.860-1.108 1.300-.362.440-.716.888-1.062 1.342-.347.454-.685.914-1.016 1.380-.330.466-.653.937-.967 1.414-.314.477-.62.958-.918 1.445-.298.487-.587.978-.868 1.474-.281.495-.553.995-.817 1.499-.264.504-.519 1.012-.766 1.524-.247.512-.485 1.028-.715 1.548a62.79 62.79 0 0 0-.642 1.712 63.53 63.53 0 0 0-.571 1.77 60.97 60.97 0 0 0-.5 1.826H153.93a60.97 60.97 0 0 0-.5-1.826z"/>
+        <path fill="#FFF" d="M106.25 93.75c14.912 0 27-12.088 27-27s-12.088-27-27-27-27 12.088-27 27 12.088 27 27 27z"/>
+      </svg>
+    </div>
+  );
+}
+
 export default function ForumsHome() {
   const navigate = useNavigate();
   const { user } = useOutletContext() ?? {};
@@ -172,9 +194,7 @@ export default function ForumsHome() {
                     onClick={() => navigate(`/forums/group-${group.id}/chat`, { state: { group } })}
                     className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors bg-card"
                   >
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0 bg-muted/60">
-                      {group.icon || '💬'}
-                    </div>
+                    <GroupAvatar src={group.icon_url} icon={group.icon} size={48} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-foreground text-sm truncate">{group.name}</span>
@@ -253,9 +273,7 @@ export default function ForumsHome() {
                     onClick={() => handleSubjectClick(subject)}
                     className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors bg-card"
                   >
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0 bg-muted/60">
-                      {meta.icon}
-                    </div>
+                    <GroupAvatar icon={meta.icon} size={48} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-foreground text-sm truncate pr-2">
