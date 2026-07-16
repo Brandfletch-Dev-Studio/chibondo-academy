@@ -129,7 +129,7 @@ export default function LandingPage() {
   const { data: recentThreads = [] } = useQuery({
     queryKey: ['landing-forum-activity'],
     queryFn: async () => {
-      try { return await db.entities.Discussion.filter({ status: 'active' }, '-updated_date', 100); }
+      try { return await db.entities.GroupChatMessage.filter({}, 'created_date', 5); }
       catch { return []; }
     },
     staleTime: 2 * 60_000,
