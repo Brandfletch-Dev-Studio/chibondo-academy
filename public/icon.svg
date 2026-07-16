@@ -1,53 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#0d1420"/>
-  <!-- Logo scaled and centred: 200x240 → fit in 512x512 at scale ~1.8, centred -->
-  <g transform="translate(156, 76) scale(1.0)">
+  <g transform="translate(158, 120) scale(2.0)">
     
-  <!-- Twin offset rectangular frames (back frame slightly offset top-left) -->
-  <!-- Back frame -->
-  <rect x="30" y="18" width="110" height="148" rx="2"
-        stroke="#c9a84c" stroke-width="4" fill="none" opacity="0.7"/>
-  <!-- Front frame (offset down-right) -->
-  <rect x="44" y="30" width="110" height="148" rx="2"
-        stroke="#c9a84c" stroke-width="4" fill="none"/>
+  <!-- Back frame (offset top-left) -->
+  <rect x="28" y="15" width="108" height="145" rx="3"
+        stroke="#C9A84C" stroke-width="5.5" fill="none" opacity="0.65"/>
+  <!-- Front frame -->
+  <rect x="44" y="28" width="108" height="145" rx="3"
+        stroke="#C9A84C" stroke-width="5.5" fill="none"/>
 
-  <!-- Quill / feather pen -->
-  <!-- Quill body — large gold feather shape centred over frames -->
-  <path d="
-    M 99 42
-    C 135 38, 160 60, 155 95
-    C 150 125, 128 148, 108 165
-    C 103 170, 100 175, 99 182
-    C 98 175, 95 170, 90 165
-    C 70 148, 48 125, 43 95
-    C 38 60, 63 38, 99 42 Z
-  " fill="#c9a84c"/>
+  <!-- Quill body - large organic feather shape -->
+  <path d="M 98 38 C 140 32 168 58 162 100 C 156 136 130 160 108 178 C 103 183 100 188 98 196 C 96 188 93 183 88 178 C 66 160 40 136 34 100 C 28 58 56 32 98 38 Z"
+        fill="#C9A84C"/>
+  <!-- Feather highlight -->
+  <path d="M 98 38 C 120 34 148 54 148 88 C 148 118 128 144 108 162"
+        stroke="#E8C96A" stroke-width="2" fill="none" opacity="0.4"/>
 
-  <!-- Quill spine / rachis -->
-  <line x1="99" y1="42" x2="99" y2="210"
-        stroke="#a07830" stroke-width="3" stroke-linecap="round"/>
+  <!-- Rachis / spine -->
+  <line x1="98" y1="42" x2="98" y2="218"
+        stroke="#8B6914" stroke-width="3.5" stroke-linecap="round"/>
 
-  <!-- Feather barbs — left side -->
-  <path d="M 99 65 C 82 72, 68 80, 55 90" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 80 C 80 88, 65 97, 52 108" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 95 C 81 103, 67 112, 56 124" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 110 C 83 118, 71 128, 63 140" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 125 C 86 133, 76 143, 71 154" stroke="#a07830" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M 99 140 C 90 147, 83 156, 80 165" stroke="#a07830" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <!-- Left barbs -->
+  <path d="M98 62 C80 70 64 80 50 92" stroke="#8B6914" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M98 78 C78 87 61 99 47 112" stroke="#8B6914" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M98 95 C79 104 63 116 50 130" stroke="#8B6914" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M98 112 C82 121 68 134 58 148" stroke="#8B6914" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M98 128 C85 137 74 148 68 161" stroke="#8B6914" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M98 144 C88 152 80 162 77 172" stroke="#8B6914" stroke-width="1" fill="none" stroke-linecap="round"/>
 
-  <!-- Feather barbs — right side -->
-  <path d="M 99 65 C 116 72, 130 80, 143 90" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 80 C 118 88, 133 97, 146 108" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 95 C 117 103, 131 112, 142 124" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 110 C 115 118, 127 128, 135 140" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M 99 125 C 112 133, 122 143, 127 154" stroke="#a07830" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M 99 140 C 108 147, 115 156, 118 165" stroke="#a07830" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <!-- Right barbs -->
+  <path d="M98 62 C116 70 132 80 146 92" stroke="#8B6914" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M98 78 C118 87 135 99 149 112" stroke="#8B6914" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M98 95 C117 104 133 116 146 130" stroke="#8B6914" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M98 112 C114 121 128 134 138 148" stroke="#8B6914" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M98 128 C111 137 122 148 128 161" stroke="#8B6914" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M98 144 C108 152 116 162 119 172" stroke="#8B6914" stroke-width="1" fill="none" stroke-linecap="round"/>
 
-  <!-- Nib tip -->
-  <path d="M 99 182 L 95 210 L 99 220 L 103 210 Z" fill="#c9a84c"/>
-
-  <!-- Base / ink stand (small dark triangle) -->
-  <path d="M 88 218 L 99 236 L 110 218 Z" fill="#1e2d5c" stroke="#c9a84c" stroke-width="1.5"/>
+  <!-- Nib point -->
+  <path d="M95 196 L91 222 L98 234 L105 222 L101 196 Z" fill="#C9A84C"/>
+  <!-- Base pedestal -->
+  <path d="M84 228 Q98 244 112 228 L106 220 L90 220 Z" fill="#1a2847" stroke="#C9A84C" stroke-width="2"/>
 
   </g>
 </svg>
