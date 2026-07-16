@@ -1,19 +1,18 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import SEO from '@/components/SEO';
 import { MessageSquare, TrendingUp, Clock, ChevronRight, Search, Users } from 'lucide-react';
-import { useState } from 'react';
 import { useLiveAgo, formatAgo } from '@/hooks/useLiveAgo';
+import { Input } from '@/components/ui/input';
 
 /* Tiny component so the hook runs per-card and ticks independently */
 function LiveAgo({ isoDate, className = '' }) {
   const label = useLiveAgo(isoDate);
   return <span className={className}>{label}</span>;
 }
-import { Input } from '@/components/ui/input';
 
 const SUBJECT_META = {
   biology:              { icon: '🧬', color: 'from-green-500/20 to-emerald-500/10',  border: 'border-green-500/20'  },
