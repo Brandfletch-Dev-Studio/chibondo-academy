@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -117,6 +117,33 @@ function ForumRedirect() {
   return <Navigate to={`/forums/${subjectSlug}/chat`} replace />;
 }
 
+// Catches lazy chunk load failures and retries once (handles network blips)
+class ChunkErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, retried: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(err) {
+    if (!this.state.retried && err?.name === 'ChunkLoadError') {
+      this.setState({ hasError: false, retried: true });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100dvh',gap:16,padding:24,textAlign:'center'}}>
+          <p style={{fontWeight:600,fontSize:16,color:'#333'}}>Page failed to load</p>
+          <button onClick={()=>window.location.reload()} style={{padding:'10px 24px',background:'#1A237E',color:'white',border:'none',borderRadius:10,fontSize:14,cursor:'pointer',fontWeight:600}}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AppRoutes = () => {
   const { authError } = useAuth();
 
@@ -124,8 +151,12 @@ const AppRoutes = () => {
   if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
 
   return (
-    <Suspense fallback={
-    <div style={{position:'fixed',inset:0,background:'linear-gradient(135deg,#1e2d5c 0%,#0d1b3e 100%)',zIndex:999}} />
+    <ChunkErrorBoundary>
+  <Suspense fallback={
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#f5f5f5',zIndex:999}}>
+      <div style={{width:36,height:36,borderRadius:'50%',border:'3px solid #1A237E',borderTopColor:'transparent',animation:'aca-spin 0.7s linear infinite'}} />
+      <style>{`@keyframes aca-spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
   }>
     <Routes>
       {/* ── Auth pages (standalone, no layout) ── */}
@@ -222,6 +253,7 @@ const AppRoutes = () => {
       <Route path="*" element={<PageNotFound />} />
     </Routes>
             </Suspense>
+  </ChunkErrorBoundary>
   );
 };
 
