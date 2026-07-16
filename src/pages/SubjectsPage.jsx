@@ -55,23 +55,26 @@ export default function SubjectsPage() {
     return matchForm && matchSearch;
   });
 
-  // Group subjects by form for section headers
-  const formOrder = forms.map(f => f.id);
+  // Group subjects by form_name for section headers
+  // (AcademicForm table removed — group by form_name string on the subject itself)
+  const formNames = [...new Set(filteredSubjects.map(s => s.form_name || s.form || 'Other').filter(Boolean))].sort();
   const subjectsByForm = {};
   filteredSubjects.forEach(s => {
-    const key = s.form_id || 'other';
+    const key = s.form_name || s.form || 'Other';
     if (!subjectsByForm[key]) subjectsByForm[key] = [];
     subjectsByForm[key].push(s);
   });
 
-  const groupedForms = selectedForm === 'all'
-    ? formOrder.filter(id => subjectsByForm[id]?.length > 0)
-    : [selectedForm].filter(id => subjectsByForm[id]?.length > 0);
+  // For filtering, derive unique form names from subjects
+  const allFormNames = [...new Set(subjects.map(s => s.form_name || s.form || 'Other').filter(Boolean))].sort();
 
-  // Include subjects with no matching form
-  if (subjectsByForm['other']?.length > 0 && !groupedForms.includes('other')) {
-    groupedForms.push('other');
-  }
+  const groupedForms = selectedForm === 'all'
+    ? formNames
+    : formNames.filter(name => name === selectedForm);
+
+  // Always show something — if no groups matched, show all
+  const effectiveGroups = groupedForms.length > 0 ? groupedForms : ['All'];
+  if (!subjectsByForm['All']) subjectsByForm['All'] = filteredSubjects;
 
   return (
     <>
@@ -101,14 +104,14 @@ export default function SubjectsPage() {
 
       {/* Form filter pills */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mt-2">
-        {['all', ...forms.map(f => f.id)].map((id) => {
-          const label = id === 'all' ? 'All Forms' : forms.find(f => f.id === id)?.name;
+        {['all', ...allFormNames].map((name) => {
+          const label = name === 'all' ? 'All Forms' : name;
           return (
             <button
-              key={id}
-              onClick={() => setSelectedForm(id)}
+              key={name}
+              onClick={() => setSelectedForm(name)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                selectedForm === id
+                selectedForm === name
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
               }`}
@@ -140,12 +143,12 @@ export default function SubjectsPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {groupedForms.map(formId => {
-            const formName = formId === 'other' ? 'Other' : forms.find(f => f.id === formId)?.name || 'Subjects';
-            const formSubjects = subjectsByForm[formId] || [];
+          {effectiveGroups.map(formKey => {
+            const formName = formKey;
+            const formSubjects = subjectsByForm[formKey] || [];
             return (
-              <div key={formId}>
-                {selectedForm === 'all' && (
+              <div key={formKey}>
+                {selectedForm === 'all' && effectiveGroups.length > 1 && (
                   <div className="flex items-center gap-3 mb-4">
                     <h2 className="font-display font-bold text-lg">{formName}</h2>
                     <div className="flex-1 h-px bg-border" />
