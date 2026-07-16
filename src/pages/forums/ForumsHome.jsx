@@ -141,10 +141,9 @@ export default function ForumsHome() {
       {/* Full-page container — sits inside AppLayout's main content area */}
       <div style={{
         display: 'flex', flexDirection: 'column',
-        margin: '-8px -8px 0', /* bleed to edges */
-        minHeight: 'calc(100dvh - 112px)',
         background: '#f0f2f5',
         fontFamily: 'inherit',
+        minHeight: '100%',
       }}>
 
         {/* ── Top header bar ── */}
