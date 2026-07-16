@@ -1,4 +1,103 @@
-// src/pages/forums/SubjectGroupChat.jsx\n// WhatsApp-style group chat — subject chats + student-created study groups\n\nimport React, { useState, useEffect, useRef, useMemo } from 'react';\nimport { useParams, useNavigate, useLocation } from 'react-router-dom';\nimport { useOutletContext } from 'react-router-dom';\nimport { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';\nimport { db } from '@/api/supabaseClient';\nimport {\n  ArrowLeft, Send, X, Plus, Users, Lock, Globe,\n  ChevronRight, Search, Check, UserPlus, Trash2, LogOut\n} from 'lucide-react';\n\n// ── Helpers ─────────────────────────────────────────────────────────────────\nfunction formatTime(iso) {\n  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });\n}\nfunction formatDateLabel(iso) {\n  const d = new Date(iso);\n  const today = new Date();\n  const yesterday = new Date();\n  yesterday.setDate(today.getDate() - 1);\n  if (d.toDateString() === today.toDateString()) return 'Today';\n  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';\n  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });\n}\nfunction sameDay(a, b) {\n  return new Date(a).toDateString() === new Date(b).toDateString();\n}\nconst WA_BG    = '#E5DDD5';\nconst WA_GREEN = '#075E54';\nconst WA_SENT  = '#DCF8C6';\nconst WA_SEND_BTN = '#25D366';\n\n// ── Avatar ───────────────────────────────────────────────────────────────────\nfunction Avatar({ name = '?', src, size = 8, textSize = 'text-xs' }) {\n  const colors = ['#25D366','#128C7E','#075E54','#34B7F1','#ECB22E','#E01E5A'];\n  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];\n  if (src) return <img src={src} alt={name} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} />;\n  return (\n    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center flex-shrink-0 ${textSize} font-bold text-white`}\n      style={{ background: bg }}>\n      {name.charAt(0).toUpperCase()}\n    </div>\n  );\n}\n\n// ── Message bubble ────────────────────────────────────────────────────────────\nfunction Bubble({ msg, isMine, showAvatar, isTeacher }) {\n  const nameColor = isTeacher ? '#B8860B' : '#128C7E';\n  return (\n    <div className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>\n      {/* Left avatar — received messages only */}\n      {!isMine && (\n        <div className="w-7 flex-shrink-0 flex items-end pb-1">\n          {showAvatar && <Avatar name={msg.author_name} src={msg.author_avatar} size={7} textSize="text-[10px]" />}\n        </div>\n      )}\n\n      <div className={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>\n        {/* Reply preview */}\n        {msg.reply_to_id && (\n          <div className={`px-3 py-1.5 rounded-lg text-[11px] border-l-4 mb-0.5 max-w-full`}\n            style={{ background: isMine ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.06)', borderColor: WA_GREEN }}>\n            <p className="font-semibold" style={{ color: WA_GREEN }}>{msg.reply_author}</p>\n            <p className="text-gray-600 truncate">{msg.reply_preview}</p>\n          </div>\n        )}\n\n        {/* Bubble */}\n        <div\n          className={`px-3 py-2 shadow-sm ${\n            isMine\n              ? 'rounded-tl-2xl rounded-br-2xl rounded-bl-2xl'\n              : 'rounded-tr-2xl rounded-br-2xl rounded-bl-2xl'\n          }`}\n          style={{ background: isMine ? WA_SENT : 'white' }}\n        >\n          {/* Sender name (received only, first bubble in run) */}\n          {!isMine && showAvatar && (\n            <p className="text-[11px] font-semibold mb-0.5" style={{ color: nameColor }}>\n              {msg.author_name}\n              {isTeacher && <span className="ml-1 text-[9px] opacity-70">⭐ Tutor</span>}\n            </p>\n          )}\n\n          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{msg.body}</p>\n\n          <div className="flex items-center justify-end gap-1 mt-1">\n            <span className="text-[9px] text-gray-400">{formatTime(msg.created_date)}</span>\n            {isMine && <span className="text-[10px] text-blue-400">✓✓</span>}\n          </div>\n        </div>\n      </div>\n    </div>\n  );\n}\n\n// ── Chat view for a single group ──────────────────────────────────────────────\nfunction ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
+// src/pages/forums/SubjectGroupChat.jsx
+// WhatsApp-style group chat — subject chats + student-created study groups
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { db } from '@/api/supabaseClient';
+import {
+  ArrowLeft, Send, X, Plus, Users, Lock, Globe,
+  ChevronRight, Search, Check, UserPlus, Trash2, LogOut
+} from 'lucide-react';
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function formatDateLabel(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function sameDay(a, b) {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+const WA_BG    = '#E5DDD5';
+const WA_GREEN = '#075E54';
+const WA_SENT  = '#DCF8C6';
+const WA_SEND_BTN = '#25D366';
+
+// ── Avatar ───────────────────────────────────────────────────────────────────
+function Avatar({ name = '?', src, size = 8, textSize = 'text-xs' }) {
+  const colors = ['#25D366','#128C7E','#075E54','#34B7F1','#ECB22E','#E01E5A'];
+  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];
+  if (src) return <img src={src} alt={name} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} />;
+  return (
+    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center flex-shrink-0 ${textSize} font-bold text-white`}
+      style={{ background: bg }}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+// ── Message bubble ────────────────────────────────────────────────────────────
+function Bubble({ msg, isMine, showAvatar, isTeacher }) {
+  const nameColor = isTeacher ? '#B8860B' : '#128C7E';
+  return (
+    <div className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+      {/* Left avatar — received messages only */}
+      {!isMine && (
+        <div className="w-7 flex-shrink-0 flex items-end pb-1">
+          {showAvatar && <Avatar name={msg.author_name} src={msg.author_avatar} size={7} textSize="text-[10px]" />}
+        </div>
+      )}
+
+      <div className={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
+        {/* Reply preview */}
+        {msg.reply_to_id && (
+          <div className={`px-3 py-1.5 rounded-lg text-[11px] border-l-4 mb-0.5 max-w-full`}
+            style={{ background: isMine ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.06)', borderColor: WA_GREEN }}>
+            <p className="font-semibold" style={{ color: WA_GREEN }}>{msg.reply_author}</p>
+            <p className="text-gray-600 truncate">{msg.reply_preview}</p>
+          </div>
+        )}
+
+        {/* Bubble */}
+        <div
+          className={`px-3 py-2 shadow-sm ${
+            isMine
+              ? 'rounded-tl-2xl rounded-br-2xl rounded-bl-2xl'
+              : 'rounded-tr-2xl rounded-br-2xl rounded-bl-2xl'
+          }`}
+          style={{ background: isMine ? WA_SENT : 'white' }}
+        >
+          {/* Sender name (received only, first bubble in run) */}
+          {!isMine && showAvatar && (
+            <p className="text-[11px] font-semibold mb-0.5" style={{ color: nameColor }}>
+              {msg.author_name}
+              {isTeacher && <span className="ml-1 text-[9px] opacity-70">⭐ Tutor</span>}
+            </p>
+          )}
+
+          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{msg.body}</p>
+
+          <div className="flex items-center justify-end gap-1 mt-1">
+            <span className="text-[9px] text-gray-400">{formatTime(msg.created_date)}</span>
+            {isMine && <span className="text-[10px] text-blue-400">✓✓</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Chat view for a single group ──────────────────────────────────────────────
+function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null); // { id, body, author_name }
