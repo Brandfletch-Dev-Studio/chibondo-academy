@@ -168,7 +168,7 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
     return result;
   }, [messages]);
 
-  const isMember = group.member_ids?.includes(user?.id) || group.creator_id === user?.id;
+  const isMember = group.id === 'community-global' || group.member_ids?.includes(user?.id) || group.creator_id === user?.id;
 
   return (
     <div className="flex flex-col" style={{ background: WA_BG, height: 'calc(100dvh - 0px)', maxHeight: '100dvh', overflow: 'hidden' }}>
@@ -184,8 +184,10 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm text-white leading-none truncate">{group.name}</p>
           <p className="text-[11px] text-white/60 mt-0.5">
-            {group.member_count || 1} member{(group.member_count || 1) !== 1 ? 's' : ''}
-            {group.subject_name ? ` · ${group.subject_name}` : ''}
+            {group.id === 'community-global'
+              ? 'Official community · All members'
+              : `${group.member_count || 1} member${(group.member_count || 1) !== 1 ? 's' : ''}${group.subject_name ? ' · ' + group.subject_name : ''}`
+            }
           </p>
         </div>
 
@@ -235,7 +237,7 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 px-3 pb-[80px] pt-2 bg-white/80 backdrop-blur-sm border-t border-gray-200">
+      <div className="flex-shrink-0 px-3 pt-2 bg-white/80 backdrop-blur-sm border-t border-gray-200" style={{ paddingBottom: 'max(80px, env(safe-area-inset-bottom, 80px))' }}>
         {/* Reply preview */}
         {replyTo && (
           <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border-l-4"
@@ -437,6 +439,11 @@ export default function SubjectGroupChat() {
   const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({
     queryKey: ['subject-chat-group', subjectSlug, isCommunity],
     queryFn: async () => {
+      // Direct group from My Groups list
+      if (location.state?.group) {
+        return location.state.group;
+      }
+
       if (isCommunity) {
         // Query by specific fixed group ID 'community-global'
         try {
@@ -493,7 +500,7 @@ export default function SubjectGroupChat() {
         });
       }
     },
-    enabled: isCommunity || (!!subjectSlug && !!location.state?.subject),
+    enabled: isCommunity || !!(location.state?.group) || (!!subjectSlug && !!location.state?.subject),
     staleTime: 30_000,
   });
 
@@ -558,16 +565,19 @@ export default function SubjectGroupChat() {
     );
   }
 
+  // No subject state passed — probably navigated directly by URL
+  // Show a loading-like message and redirect to forums to pick a subject
+  useEffect(() => {
+    if (!isGroupLoading && !displayedGroup && !isCommunity) {
+      const timer = setTimeout(() => navigate('/forums'), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isGroupLoading, displayedGroup, isCommunity]);
+
   return (
-    <div className="p-8 text-center text-gray-500">
-      <p className="text-lg font-semibold">Chat room not found</p>
-      <button
-        onClick={() => navigate('/forums')}
-        className="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium"
-        style={{ background: WA_GREEN }}
-      >
-        Go to Forums
-      </button>
+    <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-gray-500 gap-3">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: WA_GREEN }} />
+      <p className="text-sm text-gray-400">Loading chat…</p>
     </div>
   );
 }
