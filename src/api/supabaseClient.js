@@ -157,6 +157,8 @@ const TABLE = {
   Topic:                 'topics',
   TutorProfile:          'tutor_profiles',
   User:                  'users',
+  GroupChatMessage:      'group_chat_messages',
+  StudyGroup:            'study_groups',
 };
 
 function entityAPI(entityName) {
