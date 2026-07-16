@@ -118,11 +118,11 @@ function ChatView({ group, user, onBack }) {
 
   const sendMutation = useMutation({
     mutationFn: (payload) => db.entities.GroupChatMessage.create(payload),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['groupChat', group.id] });
-      // Update group last_message cache
+      // Update group last_message cache using the sent body (text is already cleared)
       db.entities.StudyGroup.update(group.id, {
-        last_message: text.trim().slice(0, 60),
+        last_message: (variables.body || '').slice(0, 60),
         last_message_at: new Date().toISOString(),
       }).catch(() => {});
     },
@@ -171,7 +171,7 @@ function ChatView({ group, user, onBack }) {
   const isMember = group.member_ids?.includes(user?.id) || group.creator_id === user?.id;
 
   return (
-    <div className="flex flex-col h-screen max-h-screen" style={{ background: WA_BG }}>
+    <div className="flex flex-col" style={{ background: WA_BG, height: 'calc(100dvh - 0px)', maxHeight: '100dvh', overflow: 'hidden' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-3 py-3 flex-shrink-0 shadow-sm" style={{ background: WA_GREEN }}>
         <button onClick={onBack} className="p-1 rounded-full hover:bg-white/10 transition-colors">
@@ -328,8 +328,8 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
             <div className="flex flex-wrap gap-2">
               {ICONS.map(e => (
                 <button key={e} onClick={() => setIcon(e)}
-                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'ring-2 scale-110' : 'hover:scale-105'}`}
-                  style={icon === e ? { ringColor: WA_GREEN, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
+                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'scale-110' : 'hover:scale-105'}`}
+                  style={icon === e ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
                   {e}
                 </button>
               ))}
@@ -412,7 +412,7 @@ function AddMembersModal({ group, user, onClose }) {
 
   const { data: students = [] } = useQuery({
     queryKey: ['students-for-add'],
-    queryFn: () => db.entities.User.filter({ role: 'student' }, 'full_name', 100),
+    queryFn: () => db.entities.User.list('full_name', 200),
     staleTime: 60_000,
   });
 
@@ -643,7 +643,7 @@ function GroupsList({ user, subjectSlug, onOpenChat }) {
   };
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#F0F2F5' }}>
+    <div className="flex flex-col" style={{ background: '#F0F2F5', height: 'calc(100dvh - 0px)', maxHeight: '100dvh', overflow: 'hidden' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0 shadow-sm" style={{ background: WA_GREEN }}>
         <p className="font-bold text-white text-base flex-1">Study Groups</p>
@@ -743,7 +743,7 @@ export default function SubjectGroupChat() {
   const [activeGroup, setActiveGroup] = useState(null);
 
   // If coming from a subject forum, auto-open/create the subject's official group
-  const { data: subjectGroups = [] } = useQuery({
+  const { data: subjectGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['studyGroups-subject', subjectSlug],
     queryFn: async () => {
       const subject = location.state?.subject;
@@ -754,15 +754,18 @@ export default function SubjectGroupChat() {
     staleTime: 30_000,
   });
 
+  const createdGroupRef = useRef(false);
+
   // If a subject is provided, create the official subject group on first load if it doesn't exist
   useEffect(() => {
     const subject = location.state?.subject;
-    if (!subject || !user?.id || subjectGroups === undefined) return;
+    if (!subject || !user?.id || groupsLoading) return;
     if (subjectGroups.length > 0) {
       // Auto-open the first official group for this subject
-      setActiveGroup(subjectGroups[0]);
+      if (!activeGroup) setActiveGroup(subjectGroups[0]);
       return;
     }
+    if (createdGroupRef.current) return; // prevent duplicate creation
     // Create the official group for this subject
     const createOfficialGroup = async () => {
       try {
@@ -785,8 +788,11 @@ export default function SubjectGroupChat() {
         console.error('Create official group failed:', e);
       }
     };
-    if (subjectGroups.length === 0) createOfficialGroup();
-  }, [subjectGroups, location.state?.subject, user?.id]);
+    if (subjectGroups.length === 0) {
+      createdGroupRef.current = true;
+      createOfficialGroup();
+    }
+  }, [subjectGroups, groupsLoading, location.state?.subject, user?.id, activeGroup]);
 
   if (activeGroup) {
     return (
