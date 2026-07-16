@@ -180,4 +180,291 @@
       </div>
     </div>
   );
-}\n\n// ── Create group modal ────────────────────────────────────────────────────────\nfunction CreateGroupModal({ user, subjects, onClose, onCreate }) {\n  const [name, setName] = useState('');\n  const [description, setDescription] = useState('');\n  const [icon, setIcon] = useState('💬');\n  const [subjectId, setSubjectId] = useState('');\n  const [isPrivate, setIsPrivate] = useState(false);\n  const [saving, setSaving] = useState(false);\n\n  const ICONS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️'];\n\n  const handleCreate = async () => {\n    if (!name.trim() || !user?.id) return;\n    setSaving(true);\n    try {\n      const subject = subjects.find(s => s.id === subjectId);\n      const group = await db.entities.StudyGroup.create({\n        name: name.trim(),\n        description: description.trim(),\n        icon,\n        subject_id: subjectId || null,\n        subject_name: subject?.name || null,\n        creator_id: user.id,\n        creator_name: user.full_name || user.email,\n        member_ids: [user.id],\n        member_names: [user.full_name || user.email],\n        member_count: 1,\n        is_private: isPrivate,\n        status: 'active',\n      });\n      onCreate(group);\n      onClose();\n    } catch (e) {\n      console.error('Create group failed:', e);\n    } finally {\n      setSaving(false);\n    }\n  };\n\n  return (\n    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">\n      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">\n        {/* Header */}\n        <div className="flex items-center gap-3 px-4 py-3" style={{ background: WA_GREEN }}>\n          <button onClick={onClose}><X className="w-5 h-5 text-white" /></button>\n          <p className="font-bold text-white text-sm">New Study Group</p>\n        </div>\n\n        <div className="p-4 space-y-4">\n          {/* Icon picker */}\n          <div>\n            <p className="text-xs font-semibold text-gray-500 mb-2">Group Icon</p>\n            <div className="flex flex-wrap gap-2">\n              {ICONS.map(e => (\n                <button key={e} onClick={() => setIcon(e)}\n                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'scale-110' : 'hover:scale-105'}`}\n                  style={icon === e ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>\n                  {e}\n                </button>\n              ))}\n            </div>\n          </div>\n\n          {/* Name */}\n          <div>\n            <label className="text-xs font-semibold text-gray-500 block mb-1">Group Name *</label>\n            <input\n              value={name}\n              onChange={e => setName(e.target.value)}\n              placeholder="e.g. Form 4 Biology Squad"\n              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"\n              maxLength={60}\n            />\n          </div>\n\n          {/* Description */}\n          <div>\n            <label className="text-xs font-semibold text-gray-500 block mb-1">Description (optional)</label>\n            <input\n              value={description}\n              onChange={e => setDescription(e.target.value)}\n              placeholder="What's this group about?"\n              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"\n              maxLength={120}\n            />\n          </div>\n\n          {/* Subject */}\n          <div>\n            <label className="text-xs font-semibold text-gray-500 block mb-1">Subject (optional)</label>\n            <select\n              value={subjectId}\n              onChange={e => setSubjectId(e.target.value)}\n              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500 bg-white"\n            >\n              <option value="">— No specific subject —</option>\n              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}\n            </select>\n          </div>\n\n          {/* Privacy */}\n          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">\n            <div className="flex items-center gap-2">\n              {isPrivate ? <Lock className="w-4 h-4 text-gray-500" /> : <Globe className="w-4 h-4 text-gray-500" />}\n              <div>\n                <p className="text-sm font-medium text-gray-800">{isPrivate ? 'Private' : 'Public'}</p>\n                <p className="text-[11px] text-gray-400">{isPrivate ? 'Invite only' : 'Anyone can join'}</p>\n              </div>\n            </div>\n            <button\n              onClick={() => setIsPrivate(v => !v)}\n              className={`w-11 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-green-500' : 'bg-gray-300'}`}>\n              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-0.5'}`} />\n            </button>\n          </div>\n\n          {/* Create button */}\n          <button\n            onClick={handleCreate}\n            disabled={!name.trim() || saving}\n            className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-40"\n            style={{ background: WA_GREEN }}>\n            {saving ? 'Creating…' : 'Create Group'}\n          </button>\n        </div>\n      </div>\n    </div>\n  );\n}\n\n// ── Main export ───────────────────────────────────────────────────────────────\nexport default function SubjectGroupChat() {\n  const navigate = useNavigate();\n  const { subjectSlug } = useParams();\n  const location = useLocation();\n  const { user } = useOutletContext() ?? {};\n  const [activeGroup, setActiveGroup] = useState(null);\n  const [showCreateGroup, setShowCreateGroup] = useState(false);\n\n  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity === true;\n\n  // Subjects list for CreateGroupModal\n  const { data: subjects = [] } = useQuery({\n    queryKey: ['subjects-list'],\n    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),\n    staleTime: 300_000,\n  });\n\n  // Query for subject-based official group\n  const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({\n    queryKey: ['subject-chat-group', subjectSlug, isCommunity],\n    queryFn: async () => {\n      if (isCommunity) {\n        // Query by specific fixed group ID 'community-global'\n        try {\n          const existing = await db.entities.StudyGroup.get('community-global');\n          if (existing && existing.status === 'active') {\n            return existing;\n          }\n        } catch (e) {\n          // If 404 or fails, we will create it below\n        }\n\n        // Try query filter in case id get lookup didn't work directly\n        const list = await db.entities.StudyGroup.filter({ id: 'community-global' });\n        if (list && list.length > 0) return list[0];\n\n        // Create community-global study group if not exists\n        return await db.entities.StudyGroup.create({\n          id: 'community-global',\n          name: 'Chibondo Academy',\n          description: 'Official global community group chat',\n          icon: '🎓',\n          creator_id: 'system',\n          creator_name: 'System',\n          member_ids: user?.id ? [user.id] : [],\n          member_names: user?.id ? [user.full_name || user.email] : [],\n          member_count: user?.id ? 1 : 0,\n          is_private: false,\n          status: 'active',\n        });\n      } else {\n        const subject = location.state?.subject;\n        if (!subject) return null;\n\n        // Query by subject_id to ensure a stable key and no duplicates\n        const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' });\n        if (existingList && existingList.length > 0) {\n          return existingList[0];\n        }\n\n        // Auto-create on first visit\n        return await db.entities.StudyGroup.create({\n          name: `${subject.name} Group`,\n          description: `Official study group for ${subject.name}`,\n          icon: '📚',\n          subject_id: subject.id,\n          subject_name: subject.name,\n          creator_id: user?.id || 'system',\n          creator_name: user ? (user.full_name || user.email) : 'System',\n          member_ids: user?.id ? [user.id] : [],\n          member_names: user?.id ? [user.full_name || user.email] : [],\n          member_count: user?.id ? 1 : 0,\n          is_private: false,\n          status: 'active',\n        });\n      }\n    },\n    enabled: isCommunity || (!!subjectSlug && !!location.state?.subject),\n    staleTime: 30_000,\n  });\n\n  // Auto-join membership hook/logic when the group is active\n  useEffect(() => {\n    if (!subjectGroupResult || !user?.id) return;\n    const memberIds = subjectGroupResult.member_ids || [];\n    if (!memberIds.includes(user.id)) {\n      const updatedIds = [...memberIds, user.id];\n      const updatedNames = [...(subjectGroupResult.member_names || []), user.full_name || user.email];\n      db.entities.StudyGroup.update(subjectGroupResult.id, {\n        member_ids: updatedIds,\n        member_names: updatedNames,\n        member_count: updatedIds.length,\n      }).catch(err => {\n        console.error('Silent auto-join failed:', err);\n      });\n    }\n  }, [subjectGroupResult, user?.id]);\n\n  // Keep activeGroup state synced or initialized to subjectGroupResult\n  useEffect(() => {\n    if (subjectGroupResult) {\n      setActiveGroup(subjectGroupResult);\n    }\n  }, [subjectGroupResult]);\n\n  if (isGroupLoading) {\n    return (\n      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-gray-500">\n        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>\n        <p className="text-sm">Loading Forum Chat...</p>\n      </div>\n    );\n  }\n\n  // Handle case where activeGroup is determined\n  const displayedGroup = activeGroup || subjectGroupResult;\n\n  if (displayedGroup) {\n    return (\n      <>\n        <ChatView\n          group={displayedGroup}\n          user={user}\n          onBack={() => navigate('/forums')}\n          subjects={subjects}\n          onNewGroupClick={() => setShowCreateGroup(true)}\n        />\n        {showCreateGroup && (\n          <CreateGroupModal\n            user={user}\n            subjects={subjects}\n            onClose={() => setShowCreateGroup(false)}\n            onCreate={(newGroup) => {\n              // On success, go to forums home where 'My Groups' section will display it\n              navigate('/forums');\n            }}\n          />\n        )}\n      </>\n    );\n  }\n\n  return (\n    <div className="p-8 text-center text-gray-500">\n      <p className="text-lg font-semibold">Chat room not found</p>\n      <button\n        onClick={() => navigate('/forums')}\n        className="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium"\n        style={{ background: WA_GREEN }}\n      >\n        Go to Forums\n      </button>\n    </div>\n  );\n}
+}
+
+// ── Create group modal ────────────────────────────────────────────────────────
+function CreateGroupModal({ user, subjects, onClose, onCreate }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('💬');
+  const [subjectId, setSubjectId] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const ICONS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️'];
+
+  const handleCreate = async () => {
+    if (!name.trim() || !user?.id) return;
+    setSaving(true);
+    try {
+      const subject = subjects.find(s => s.id === subjectId);
+      const group = await db.entities.StudyGroup.create({
+        name: name.trim(),
+        description: description.trim(),
+        icon,
+        subject_id: subjectId || null,
+        subject_name: subject?.name || null,
+        creator_id: user.id,
+        creator_name: user.full_name || user.email,
+        member_ids: [user.id],
+        member_names: [user.full_name || user.email],
+        member_count: 1,
+        is_private: isPrivate,
+        status: 'active',
+      });
+      onCreate(group);
+      onClose();
+    } catch (e) {
+      console.error('Create group failed:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3" style={{ background: WA_GREEN }}>
+          <button onClick={onClose}><X className="w-5 h-5 text-white" /></button>
+          <p className="font-bold text-white text-sm">New Study Group</p>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Icon picker */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 mb-2">Group Icon</p>
+            <div className="flex flex-wrap gap-2">
+              {ICONS.map(e => (
+                <button key={e} onClick={() => setIcon(e)}
+                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'scale-110' : 'hover:scale-105'}`}
+                  style={icon === e ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Group Name *</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Form 4 Biology Squad"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              maxLength={60}
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Description (optional)</label>
+            <input
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="What's this group about?"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              maxLength={120}
+            />
+          </div>
+
+          {/* Subject */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Subject (optional)</label>
+            <select
+              value={subjectId}
+              onChange={e => setSubjectId(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500 bg-white"
+            >
+              <option value="">— No specific subject —</option>
+              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          {/* Privacy */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
+            <div className="flex items-center gap-2">
+              {isPrivate ? <Lock className="w-4 h-4 text-gray-500" /> : <Globe className="w-4 h-4 text-gray-500" />}
+              <div>
+                <p className="text-sm font-medium text-gray-800">{isPrivate ? 'Private' : 'Public'}</p>
+                <p className="text-[11px] text-gray-400">{isPrivate ? 'Invite only' : 'Anyone can join'}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsPrivate(v => !v)}
+              className={`w-11 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-green-500' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {/* Create button */}
+          <button
+            onClick={handleCreate}
+            disabled={!name.trim() || saving}
+            className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-40"
+            style={{ background: WA_GREEN }}>
+            {saving ? 'Creating…' : 'Create Group'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+export default function SubjectGroupChat() {
+  const navigate = useNavigate();
+  const { subjectSlug } = useParams();
+  const location = useLocation();
+  const { user } = useOutletContext() ?? {};
+  const [activeGroup, setActiveGroup] = useState(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+
+  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity === true;
+
+  // Subjects list for CreateGroupModal
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['subjects-list'],
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
+    staleTime: 300_000,
+  });
+
+  // Query for subject-based official group
+  const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({
+    queryKey: ['subject-chat-group', subjectSlug, isCommunity],
+    queryFn: async () => {
+      if (isCommunity) {
+        // Query by specific fixed group ID 'community-global'
+        try {
+          const existing = await db.entities.StudyGroup.get('community-global');
+          if (existing && existing.status === 'active') {
+            return existing;
+          }
+        } catch (e) {
+          // If 404 or fails, we will create it below
+        }
+
+        // Try query filter in case id get lookup didn't work directly
+        const list = await db.entities.StudyGroup.filter({ id: 'community-global' });
+        if (list && list.length > 0) return list[0];
+
+        // Create community-global study group if not exists
+        return await db.entities.StudyGroup.create({
+          id: 'community-global',
+          name: 'Chibondo Academy',
+          description: 'Official global community group chat',
+          icon: '🎓',
+          creator_id: 'system',
+          creator_name: 'System',
+          member_ids: user?.id ? [user.id] : [],
+          member_names: user?.id ? [user.full_name || user.email] : [],
+          member_count: user?.id ? 1 : 0,
+          is_private: false,
+          status: 'active',
+        });
+      } else {
+        const subject = location.state?.subject;
+        if (!subject) return null;
+
+        // Query by subject_id to ensure a stable key and no duplicates
+        const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' });
+        if (existingList && existingList.length > 0) {
+          return existingList[0];
+        }
+
+        // Auto-create on first visit
+        return await db.entities.StudyGroup.create({
+          name: `${subject.name} Group`,
+          description: `Official study group for ${subject.name}`,
+          icon: '📚',
+          subject_id: subject.id,
+          subject_name: subject.name,
+          creator_id: user?.id || 'system',
+          creator_name: user ? (user.full_name || user.email) : 'System',
+          member_ids: user?.id ? [user.id] : [],
+          member_names: user?.id ? [user.full_name || user.email] : [],
+          member_count: user?.id ? 1 : 0,
+          is_private: false,
+          status: 'active',
+        });
+      }
+    },
+    enabled: isCommunity || (!!subjectSlug && !!location.state?.subject),
+    staleTime: 30_000,
+  });
+
+  // Auto-join membership hook/logic when the group is active
+  useEffect(() => {
+    if (!subjectGroupResult || !user?.id) return;
+    const memberIds = subjectGroupResult.member_ids || [];
+    if (!memberIds.includes(user.id)) {
+      const updatedIds = [...memberIds, user.id];
+      const updatedNames = [...(subjectGroupResult.member_names || []), user.full_name || user.email];
+      db.entities.StudyGroup.update(subjectGroupResult.id, {
+        member_ids: updatedIds,
+        member_names: updatedNames,
+        member_count: updatedIds.length,
+      }).catch(err => {
+        console.error('Silent auto-join failed:', err);
+      });
+    }
+  }, [subjectGroupResult, user?.id]);
+
+  // Keep activeGroup state synced or initialized to subjectGroupResult
+  useEffect(() => {
+    if (subjectGroupResult) {
+      setActiveGroup(subjectGroupResult);
+    }
+  }, [subjectGroupResult]);
+
+  if (isGroupLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-gray-500">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
+        <p className="text-sm">Loading Forum Chat...</p>
+      </div>
+    );
+  }
+
+  // Handle case where activeGroup is determined
+  const displayedGroup = activeGroup || subjectGroupResult;
+
+  if (displayedGroup) {
+    return (
+      <>
+        <ChatView
+          group={displayedGroup}
+          user={user}
+          onBack={() => navigate('/forums')}
+          subjects={subjects}
+          onNewGroupClick={() => setShowCreateGroup(true)}
+        />
+        {showCreateGroup && (
+          <CreateGroupModal
+            user={user}
+            subjects={subjects}
+            onClose={() => setShowCreateGroup(false)}
+            onCreate={(newGroup) => {
+              // On success, go to forums home where 'My Groups' section will display it
+              navigate('/forums');
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className="p-8 text-center text-gray-500">
+      <p className="text-lg font-semibold">Chat room not found</p>
+      <button
+        onClick={() => navigate('/forums')}
+        className="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium"
+        style={{ background: WA_GREEN }}
+      >
+        Go to Forums
+      </button>
+    </div>
+  );
+}
