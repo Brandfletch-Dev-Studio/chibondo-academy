@@ -32,7 +32,7 @@ export default function TeacherDashboard() {
 
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['studentProfiles'],
-    queryFn: () => db.entities.StudentProfile.list('-created_date', 200),
+    queryFn: () => db.entities.User.list('-created_date', 200),
     enabled: allEnrollments.length > 0,
   });
 
