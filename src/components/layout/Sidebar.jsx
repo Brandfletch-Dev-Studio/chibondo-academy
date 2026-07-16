@@ -22,7 +22,7 @@ const studentNav = [
   { label: 'Progress',     icon: BarChart3,     path: '/progress' },
   { label: 'Analytics',    icon: TrendingUp,    path: '/progress/analytics' },
   { label: 'Affiliate',    icon: Gift,          path: '/affiliate' },
-  { label: 'School Fees',  icon: CreditCard,    path: '/subscription' },
+  { label: 'School Fees',  icon: CreditCard,    path: '/fees' },
   { label: 'Blog',         icon: Newspaper,     path: '/blog' },
   { label: 'Settings',     icon: Settings,      path: '/settings' },
 ];
