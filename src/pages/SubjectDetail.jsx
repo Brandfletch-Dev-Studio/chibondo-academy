@@ -258,60 +258,102 @@ export default function SubjectDetail() {
         <p className="text-sm text-muted-foreground leading-relaxed">{subject.description}</p>
       )}
 
-      {/* Simple Course Content */}
+      {/* Course Content — grouped by topic_name string field (no Topic entity needed) */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <h2 className="font-semibold text-base">Course Content</h2>
+          <span className="text-xs text-muted-foreground">{lessons.length} lesson{lessons.length !== 1 ? 's' : ''}</span>
         </div>
-        <Accordion type="multiple" defaultValue={topics.filter(t => t?.id).map(t => t.id)}>
-          {topics.filter(t => t?.id).map((topic, idx) => {
-            const topicLessons = lessonsByTopic[topic.id] || [];
+
+        {lessons.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            No lessons published yet
+          </div>
+        ) : (() => {
+          // Group by topic_name — fall back to a single "Lessons" group if no topic names set
+          const topicNames = [...new Set(lessons.map(l => l.topic_name || l.topic_title || ''))].filter(Boolean);
+          const hasTopics  = topicNames.length > 0;
+
+          if (hasTopics) {
+            // Add lessons with no topic to an "Other" bucket
+            const allTopics = [...topicNames];
+            const ungrouped = lessons.filter(l => !l.topic_name && !l.topic_title);
+            if (ungrouped.length > 0) allTopics.push('__other__');
+
             return (
-              <AccordionItem key={topic.id} value={topic.id} className="border-0 border-b border-border last:border-b-0">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline [&>svg]:text-primary">
-                  <span className="font-medium text-sm text-left">
-                    {topic.title || 'Untitled Topic'}
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="p-0">
-                  {topicLessons.map((lesson) => {
-                    const isCompleted = completedLessons.includes(lesson.id);
-                    const isLocked = !hasPaidFees;
-                    const hasVideo = !!lesson.video_url;
-
-                    // Effective lock: guest OR logged-in but unpaid
-                    const effectiveLocked = !user || isLocked;
-                    const lessonTo = !user ? '/register' : isLocked ? '/subscription' : `/lesson/${lesson.id}`;
-
-                    return (
-                      <Link
-                        key={lesson.id}
-                        to={lessonTo}
-                        onClick={() => !effectiveLocked && handleLessonClick()}
-                        className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${
-                          isCompleted ? 'bg-success/5' : effectiveLocked ? 'opacity-70' : ''
-                        }`}
-                      >
-                        <span className="flex-shrink-0 text-muted-foreground">
-                          {isCompleted ? (
-                            <CheckCircle2 className="w-4 h-4 text-success" />
-                          ) : effectiveLocked ? (
-                            <Lock className="w-4 h-4 text-muted-foreground/50" />
-                          ) : hasVideo ? (
-                            <PlayCircle className="w-4 h-4" />
-                          ) : (
-                            <FileText className="w-4 h-4" />
-                          )}
+              <Accordion type="multiple" defaultValue={allTopics}>
+                {allTopics.map((tName) => {
+                  const topicLessons = tName === '__other__'
+                    ? ungrouped
+                    : lessons.filter(l => (l.topic_name || l.topic_title || '') === tName);
+                  const displayName = tName === '__other__' ? 'Other Lessons' : tName;
+                  return (
+                    <AccordionItem key={tName} value={tName} className="border-0 border-b border-border last:border-b-0">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline [&>svg]:text-primary">
+                        <span className="font-medium text-sm text-left flex-1">
+                          {displayName}
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">({topicLessons.length})</span>
                         </span>
-                        <span className="flex-1 text-foreground/80">{lesson.title}</span>
-                      </Link>
-                    );
-                  })}
-                </AccordionContent>
-              </AccordionItem>
+                      </AccordionTrigger>
+                      <AccordionContent className="p-0">
+                        {topicLessons.map((lesson) => {
+                          const isCompleted = completedLessons.includes(lesson.id);
+                          const effectiveLocked = !user || !hasPaidFees;
+                          const lessonTo = !user ? '/register' : !hasPaidFees ? '/subscription' : `/lesson/${lesson.id}`;
+                          return (
+                            <Link key={lesson.id} to={lessonTo}
+                              onClick={() => !effectiveLocked && handleLessonClick()}
+                              className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${isCompleted ? 'bg-success/5' : effectiveLocked ? 'opacity-70' : ''}`}>
+                              <span className="flex-shrink-0">
+                                {isCompleted ? <CheckCircle2 className="w-4 h-4 text-success" />
+                                  : effectiveLocked ? <Lock className="w-4 h-4 text-muted-foreground/50" />
+                                  : lesson.video_url ? <PlayCircle className="w-4 h-4 text-primary" />
+                                  : <FileText className="w-4 h-4 text-muted-foreground" />}
+                              </span>
+                              <span className="flex-1 text-foreground/80">{lesson.title}</span>
+                              {lesson.duration_minutes && (
+                                <span className="text-[10px] text-muted-foreground flex-shrink-0">{lesson.duration_minutes}m</span>
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
             );
-          })}
-        </Accordion>
+          }
+
+          // Flat list — no topic grouping
+          return (
+            <div>
+              {lessons.map((lesson, idx) => {
+                const isCompleted = completedLessons.includes(lesson.id);
+                const effectiveLocked = !user || !hasPaidFees;
+                const lessonTo = !user ? '/register' : !hasPaidFees ? '/subscription' : `/lesson/${lesson.id}`;
+                return (
+                  <Link key={lesson.id} to={lessonTo}
+                    onClick={() => !effectiveLocked && handleLessonClick()}
+                    className={`flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-b-0 text-sm transition-colors hover:bg-muted/30 ${isCompleted ? 'bg-success/5' : effectiveLocked ? 'opacity-70' : ''}`}>
+                    <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-muted-foreground">{idx + 1}</span>
+                    <span className="flex-shrink-0">
+                      {isCompleted ? <CheckCircle2 className="w-4 h-4 text-success" />
+                        : effectiveLocked ? <Lock className="w-4 h-4 text-muted-foreground/50" />
+                        : lesson.video_url ? <PlayCircle className="w-4 h-4 text-primary" />
+                        : <FileText className="w-4 h-4 text-muted-foreground" />}
+                    </span>
+                    <span className="flex-1 text-foreground/80">{lesson.title}</span>
+                    {lesson.duration_minutes && (
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">{lesson.duration_minutes}m</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Enrollment count ── */}
