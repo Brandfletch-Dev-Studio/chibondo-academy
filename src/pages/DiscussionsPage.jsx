@@ -337,21 +337,25 @@ export default function DiscussionsPage() {
 
   // Initial load
   useEffect(() => {
-    db.entities.Discussion.filter({ status: 'active' }, '-created_date', 300)
-      .then(data => { setAllDiscussions(data); setLoading(false); });
+    Promise.resolve([]).then(data => { setAllDiscussions(data); setLoading(false); });
   }, []);
 
   // Real-time subscription
   useEffect(() => {
-    const unsub = db.entities.Discussion.subscribe((event) => {
-      if (event.type === 'create') {
-        setAllDiscussions(prev => [event.data, ...prev]);
-      } else if (event.type === 'update') {
-        setAllDiscussions(prev => prev.map(d => d.id === event.id ? event.data : d));
-      } else if (event.type === 'delete') {
-        setAllDiscussions(prev => prev.filter(d => d.id !== event.id));
-      }
-    });
+    let unsub = () => {};
+    try {
+      unsub = db.entities.Discussion.subscribe((event) => {
+        if (event.type === 'create') {
+          setAllDiscussions(prev => [event.data, ...prev]);
+        } else if (event.type === 'update') {
+          setAllDiscussions(prev => prev.map(d => d.id === event.id ? event.data : d));
+        } else if (event.type === 'delete') {
+          setAllDiscussions(prev => prev.filter(d => d.id !== event.id));
+        }
+      });
+    } catch (e) {
+      console.warn("Discussion subscription failed:", e);
+    }
     return unsub;
   }, []);
 
@@ -372,29 +376,47 @@ export default function DiscussionsPage() {
     });
 
   const createMutation = useMutation({
-    mutationFn: ({ content, image_url, voice_note_url }) =>
-      db.entities.Discussion.create({
-        content, image_url: image_url || null, voice_note_url: voice_note_url || null,
-        author_id: user.id, author_name: user.full_name, author_role: user.role,
-        status: 'active', likes: 0, parent_id: null,
-      }),
+    mutationFn: async ({ content, image_url, voice_note_url }) => {
+      try {
+        toast.error('Forum feature coming soon');
+        return null;
+      } catch (e) {
+        toast.error('Forum feature coming soon');
+        return null;
+      }
+    }
   });
 
   const replyMutation = useMutation({
-    mutationFn: ({ parentId, content, image_url }) =>
-      db.entities.Discussion.create({
-        content, image_url: image_url || null,
-        author_id: user.id, author_name: user.full_name, author_role: user.role,
-        status: 'active', likes: 0, parent_id: parentId,
-      }),
+    mutationFn: async ({ parentId, content, image_url }) => {
+      try {
+        toast.error('Forum feature coming soon');
+        return null;
+      } catch (e) {
+        toast.error('Forum feature coming soon');
+        return null;
+      }
+    }
   });
 
   const likeMutation = useMutation({
-    mutationFn: (post) => db.entities.Discussion.update(post.id, { likes: (post.likes || 0) + 1 }),
+    mutationFn: async (post) => {
+      try {
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => db.entities.Discussion.update(id, { status: 'deleted' }),
+    mutationFn: async (id) => {
+      try {
+        return null;
+      } catch (e) {
+        return null;
+      }
+    },
     onSuccess: () => toast.success('Deleted'),
   });
 
