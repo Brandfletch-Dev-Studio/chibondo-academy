@@ -218,6 +218,32 @@ export default function SubscriptionPage() {
         </div>
       )}
 
+
+      {/* ── Payment Tutorial Video — only shown before first payment ── */}
+      {!hasPaidFees && !verifying && (
+        <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 overflow-hidden">
+          <div className="px-5 py-4 flex items-center gap-3 border-b border-primary/10">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground">How to Pay School Fees</p>
+              <p className="text-xs text-muted-foreground">Watch this quick guide before you pay</p>
+            </div>
+          </div>
+          <div className="relative w-full" style={paddingBottom: '56.25%'}>
+            <iframe
+              src="https://www.youtube.com/embed/2oaEnOO4S7g?rel=0&modestbranding=1"
+              title="How to Pay School Fees — Chibondo Academy"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Branded Hero — matches Subjects page style ── */}
       <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-center text-primary-foreground">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-3 bg-primary-foreground/15">
