@@ -42,7 +42,7 @@ export default function SetupChecklist({ user }) {
   // ── Remote data ────────────────────────────────────────────────────────────
   const { data: studentProfile } = useQuery({
     queryKey: ['studentProfile', userId],
-    queryFn:  () => db.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
+    queryFn: async () => null,
     enabled:  !!userId,
     staleTime: 0,
   });
