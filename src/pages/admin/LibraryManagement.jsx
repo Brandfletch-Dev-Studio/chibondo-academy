@@ -273,7 +273,7 @@ export default function LibraryManagement() {
   });
   const { data: forms = [] } = useQuery({
     queryKey: ['academic-forms'],
-    queryFn: () => db.entities.AcademicForm.filter({}, 'name', 10),
+    queryFn: () => (async () => [])(/* AcademicForm removed */),
     staleTime: 300_000,
   });
 
