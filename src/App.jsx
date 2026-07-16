@@ -59,6 +59,7 @@ const EnrollmentAnalytics = lazy(() => import('@/pages/admin/EnrollmentAnalytics
 const ForumsHome = lazy(() => import('@/pages/forums/ForumsHome'));
 const SubjectForum = lazy(() => import('@/pages/forums/SubjectForum'));
 const ForumThread = lazy(() => import('@/pages/forums/ThreadPage'));
+const SubjectGroupChat = lazy(() => import('@/pages/forums/SubjectGroupChat'));
 const StudentDashboard = lazy(() => import('@/pages/StudentDashboard'));
 const SubjectsPage = lazy(() => import('@/pages/SubjectsPage'));
 const SubjectDetail = lazy(() => import('@/pages/SubjectDetail'));
@@ -147,6 +148,7 @@ const AppRoutes = () => {
         <Route path="/tutors" element={<TutorsPage />} />
         <Route path="/tutors/:slug" element={<TutorProfilePage />} />
         <Route path="/forums" element={<ForumsHome />} />
+        <Route path="/forums/:subjectSlug/chat" element={<SubjectGroupChat />} />
         <Route path="/forums/:subjectSlug" element={<SubjectForum />} />
         <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
         <Route path="/library" element={<LibraryPage />} />
