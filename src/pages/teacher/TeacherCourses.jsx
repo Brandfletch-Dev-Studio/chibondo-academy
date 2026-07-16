@@ -93,7 +93,7 @@ export default function TeacherCourses() {
       if (!subjectIds.length) return [];
       const all = [];
       for (const sid of subjectIds) {
-        const t = await (async () => [])(/* Topic removed */);
+        const t = await db.entities.Topic.filter({ subject_id: sid }, 'order', 200);
         all.push(...t);
       }
       return all;
@@ -122,7 +122,7 @@ export default function TeacherCourses() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => (async () => [])(/* AcademicForm removed */),
+    queryFn: () => db.entities.AcademicForm.list('order', 50),
   });
 
   const pendingCourses = subjects.filter(s => s.pending_approval && s.status === 'draft');
