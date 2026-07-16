@@ -433,11 +433,11 @@ export default function TeacherBlog() {
                 <p className="text-muted-foreground">{form.meta_description||form.excerpt||'Description…'}</p>
               </div>
               <div>
-                <Label>Meta Title <span className="text-muted-foreground text-xs">({form.meta_title.length}/60)</span></Label>
+                <Label>Meta Title <span className="text-muted-foreground text-xs">({(form.meta_title||"").length}/60)</span></Label>
                 <Input value={form.meta_title} onChange={e=>set('meta_title',e.target.value)} maxLength={70} placeholder="Defaults to title" className="mt-1" />
               </div>
               <div>
-                <Label>Meta Description <span className="text-muted-foreground text-xs">({form.meta_description.length}/160)</span></Label>
+                <Label>Meta Description <span className="text-muted-foreground text-xs">({(form.meta_description||"").length}/160)</span></Label>
                 <Input value={form.meta_description} onChange={e=>set('meta_description',e.target.value)} maxLength={180} placeholder="Defaults to excerpt" className="mt-1" />
               </div>
             </TabsContent>
