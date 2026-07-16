@@ -1,94 +1,80 @@
 // src/pages/forums/SubjectGroupChat.jsx
-// WhatsApp-style group chat — subject chats + student-created study groups
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useOutletContext } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
-import {
-  ArrowLeft, Send, X, Plus, Users, Lock, Globe,
-  ChevronRight, Search, Check, UserPlus, Trash2, LogOut
-} from 'lucide-react';
+import { X, Lock, Globe } from 'lucide-react';
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+const WA_BG = '#E5DDD5';
+const WA_SENT = '#DCF8C6';
+const WA_NAVY = '#1A237E';
+const WA_GREEN = '#25D366';
+
+// Name colors for received bubbles
+const NAME_COLORS = ['#E91E63','#9C27B0','#2196F3','#009688','#FF5722','#795548'];
+function nameColor(id='') {
+  return NAME_COLORS[id.charCodeAt(0) % NAME_COLORS.length];
+}
+
 function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 }
 function formatDateLabel(iso) {
-  const d = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return 'Today';
-  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const d = new Date(iso), today = new Date();
+  const diff = Math.floor((today - d)/86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 }
 function sameDay(a, b) {
-  return new Date(a).toDateString() === new Date(b).toDateString();
+  const da = new Date(a), db2 = new Date(b);
+  return da.getFullYear()===db2.getFullYear()&&da.getMonth()===db2.getMonth()&&da.getDate()===db2.getDate();
 }
-const WA_BG    = '#E5DDD5';
-const WA_GREEN = '#075E54';
-const WA_SENT  = '#DCF8C6';
-const WA_SEND_BTN = '#25D366';
-
-// ── Avatar ───────────────────────────────────────────────────────────────────
-function Avatar({ name = '?', src, size = 8, textSize = 'text-xs' }) {
-  const colors = ['#25D366','#128C7E','#075E54','#34B7F1','#ECB22E','#E01E5A'];
-  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];
-  if (src) return <img src={src} alt={name} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} />;
-  return (
-    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center flex-shrink-0 ${textSize} font-bold text-white`}
-      style={{ background: bg }}>
-      {name.charAt(0).toUpperCase()}
-    </div>
-  );
+function getSubjectIcon(name='') {
+  const n = name.toLowerCase();
+  if(n.includes('bio')) return '🧬';
+  if(n.includes('chem')) return '⚗️';
+  if(n.includes('phys')) return '⚡';
+  if(n.includes('math')) return '📐';
+  if(n.includes('english')||n.includes('lit')) return '📖';
+  if(n.includes('chichewa')) return '🗣️';
+  if(n.includes('agri')) return '🌱';
+  if(n.includes('geo')) return '🌍';
+  if(n.includes('hist')) return '📜';
+  return '💬';
 }
 
-// ── Message bubble ────────────────────────────────────────────────────────────
-function Bubble({ msg, isMine, showAvatar, isTeacher }) {
-  const nameColor = isTeacher ? '#B8860B' : '#128C7E';
+// ── MessageBubble ────────────────────────────────────────────────────────────
+function MessageBubble({ msg, isMine, showAvatar }) {
+  const color = nameColor(msg.author_id);
+  const isTeacher = msg.author_role === 'teacher' || msg.author_role === 'admin';
   return (
-    <div className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-      {/* Left avatar — received messages only */}
-      {!isMine && (
-        <div className="w-7 flex-shrink-0 flex items-end pb-1">
-          {showAvatar && <Avatar name={msg.author_name} src={msg.author_avatar} size={7} textSize="text-[10px]" />}
-        </div>
-      )}
-
-      <div className={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
-        {/* Reply preview */}
-        {msg.reply_to_id && (
-          <div className={`px-3 py-1.5 rounded-lg text-[11px] border-l-4 mb-0.5 max-w-full`}
-            style={{ background: isMine ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.06)', borderColor: WA_GREEN }}>
-            <p className="font-semibold" style={{ color: WA_GREEN }}>{msg.reply_author}</p>
-            <p className="text-gray-600 truncate">{msg.reply_preview}</p>
+    <div style={{ display:'flex', flexDirection: isMine ? 'row-reverse' : 'row', alignItems:'flex-end', gap:6, marginBottom:2 }}>
+      {/* Avatar placeholder for spacing */}
+      <div style={{ width:28, flexShrink:0 }}>
+        {!isMine && showAvatar && (
+          <div style={{ width:28, height:28, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, color:'white', fontWeight:700 }}>
+            {(msg.author_name||'?')[0].toUpperCase()}
           </div>
         )}
-
-        {/* Bubble */}
-        <div
-          className={`px-3 py-2 shadow-sm ${
-            isMine
-              ? 'rounded-tl-2xl rounded-br-2xl rounded-bl-2xl'
-              : 'rounded-tr-2xl rounded-br-2xl rounded-bl-2xl'
-          }`}
-          style={{ background: isMine ? WA_SENT : 'white' }}
-        >
-          {/* Sender name (received only, first bubble in run) */}
+      </div>
+      <div style={{ maxWidth:'75%' }}>
+        {/* Reply preview */}
+        {msg.reply_preview && (
+          <div style={{ background:'rgba(0,0,0,0.06)', borderLeft:`3px solid ${color}`, borderRadius:4, padding:'3px 8px', marginBottom:2, fontSize:11, color:'#555', maxWidth:'100%' }}>
+            <span style={{ fontWeight:600, color }}>{msg.reply_author}: </span>{msg.reply_preview}
+          </div>
+        )}
+        <div style={{ background: isMine ? WA_SENT : 'white', borderRadius: isMine ? '12px 0 12px 12px' : '0 12px 12px 12px', padding:'6px 10px', boxShadow:'0 1px 2px rgba(0,0,0,0.12)' }}>
           {!isMine && showAvatar && (
-            <p className="text-[11px] font-semibold mb-0.5" style={{ color: nameColor }}>
-              {msg.author_name}
-              {isTeacher && <span className="ml-1 text-[9px] opacity-70">⭐ Tutor</span>}
-            </p>
+            <div style={{ fontSize:11, fontWeight:700, color, marginBottom:2 }}>
+              {msg.author_name}{isTeacher && <span style={{ fontSize:9, opacity:0.8, marginLeft:4 }}>⭐ Tutor</span>}
+            </div>
           )}
-
-          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{msg.body}</p>
-
-          <div className="flex items-center justify-end gap-1 mt-1">
-            <span className="text-[9px] text-gray-400">{formatTime(msg.created_date)}</span>
-            {isMine && <span className="text-[10px] text-blue-400">✓✓</span>}
+          <p style={{ margin:0, fontSize:14, color:'#111', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap' }}>{msg.body}</p>
+          <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:3, marginTop:2 }}>
+            <span style={{ fontSize:10, color:'#999' }}>{formatTime(msg.created_date)}</span>
+            {isMine && <span style={{ fontSize:11, color:'#4FC3F7' }}>✓✓</span>}
           </div>
         </div>
       </div>
@@ -96,13 +82,13 @@ function Bubble({ msg, isMine, showAvatar, isTeacher }) {
   );
 }
 
-// ── Chat view for a single group ──────────────────────────────────────────────
-function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
+// ── ChatView ─────────────────────────────────────────────────────────────────
+function ChatView({ group, user, onBack }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
-  const [replyTo, setReplyTo] = useState(null); // { id, body, author_name }
+  const [replyTo, setReplyTo] = useState(null);
   const endRef = useRef(null);
-  const inputRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['groupChat', group.id],
@@ -111,21 +97,20 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
     staleTime: 0,
   });
 
-  // Scroll to bottom on new messages
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: messages.length < 3 ? 'instant' : 'smooth' });
+    endRef.current?.scrollIntoView({ behavior: messages.length < 5 ? 'instant' : 'smooth' });
   }, [messages.length]);
+
+  // Auto-resize textarea
+  const handleTextChange = (e) => {
+    setText(e.target.value);
+    const el = textareaRef.current;
+    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+  };
 
   const sendMutation = useMutation({
     mutationFn: (payload) => db.entities.GroupChatMessage.create(payload),
-    onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: ['groupChat', group.id] });
-      // Update group last_message cache using the sent body (text is already cleared)
-      db.entities.StudyGroup.update(group.id, {
-        last_message: (variables.body || '').slice(0, 60),
-        last_message_at: new Date().toISOString(),
-      }).catch(() => {});
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['groupChat', group.id] }),
   });
 
   const handleSend = () => {
@@ -135,32 +120,27 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
       group_id: group.id,
       author_id: user.id,
       author_name: user.full_name || user.email?.split('@')[0] || 'Student',
-      author_avatar: user.avatar_url || '',
       author_role: user.role || 'student',
       body: trimmed,
       deleted: false,
+      ...(replyTo ? { reply_to_id: replyTo.id, reply_preview: replyTo.body.slice(0,80), reply_author: replyTo.author_name } : {}),
     };
-    if (replyTo) {
-      payload.reply_to_id = replyTo.id;
-      payload.reply_preview = replyTo.body.slice(0, 80);
-      payload.reply_author = replyTo.author_name;
-    }
     sendMutation.mutate(payload);
     setText('');
     setReplyTo(null);
+    if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  // Build grouped messages with date separators
   const grouped = useMemo(() => {
     const result = [];
     messages.forEach((msg, i) => {
       const prev = messages[i - 1];
       if (!prev || !sameDay(prev.created_date, msg.created_date)) {
-        result.push({ type: 'date', label: formatDateLabel(msg.created_date), key: `date-${i}` });
+        result.push({ type: 'date', label: formatDateLabel(msg.created_date), key: `d-${i}` });
       }
       const showAvatar = !prev || prev.author_id !== msg.author_id || !sameDay(prev.created_date, msg.created_date);
       result.push({ type: 'msg', msg, showAvatar, key: msg.id });
@@ -168,120 +148,87 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
     return result;
   }, [messages]);
 
-  const isMember = group.id === 'community-global' || group.member_ids?.includes(user?.id) || group.creator_id === user?.id;
-
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'calc(100dvh - 64px)',background:'#E5DDD5',overflow:'hidden'}}>
-      {/* Header bar (first child, flex-shrink:0, ~56px) */}
-      <div style={{background:'#1A237E',color:'white',display:'flex',alignItems:'center',gap:10,padding:'0 12px',height:56,flexShrink:0,position:'sticky',top:0,zIndex:10}}>
-        <button onClick={onBack} style={{background:'none',border:'none',color:'white',fontSize:22,cursor:'pointer',padding:'0 6px'}}>←</button>
-        {/* Group avatar */}
-        <div style={{width:38,height:38,borderRadius:'50%',background:'#2E7D32',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,overflow:'hidden'}}>
-          {group.icon_url ? <img src={group.icon_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <span>{group.icon || '💬'}</span>}
+    <div style={{ display:'flex', flexDirection:'column', height:'100dvh', paddingBottom:'64px', background:WA_BG, overflow:'hidden' }}>
+      {/* ── Header ── */}
+      <div style={{ flexShrink:0, background:WA_NAVY, color:'white', display:'flex', alignItems:'center', gap:10, padding:'0 12px', height:56, zIndex:10 }}>
+        <button onClick={onBack} style={{ background:'none', border:'none', color:'white', fontSize:22, cursor:'pointer', padding:'0 4px', lineHeight:1 }}>←</button>
+        <div style={{ width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0, overflow:'hidden' }}>
+          {group.icon_url
+            ? <img src={group.icon_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+            : <span>{group.icon || '💬'}</span>
+          }
         </div>
-        {/* Title block */}
-        <div style={{flex:1,overflow:'hidden'}}>
-          <div style={{fontWeight:600,fontSize:15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{group.name}</div>
-          <div style={{fontSize:12,opacity:0.75}}>{group.member_count ? `${group.member_count} members` : 'Group chat'}</div>
+        <div style={{ flex:1, overflow:'hidden' }}>
+          <div style={{ fontWeight:700, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{group.name}</div>
+          <div style={{ fontSize:11, opacity:0.75 }}>{group.member_count ? `${group.member_count} members` : 'Group chat'}</div>
         </div>
-        {/* Menu */}
-        <button style={{background:'none',border:'none',color:'white',fontSize:22,cursor:'pointer',padding:'0 6px'}}>⋮</button>
+        <button style={{ background:'none', border:'none', color:'white', fontSize:22, cursor:'pointer', padding:'0 4px' }}>⋮</button>
       </div>
 
-      {/* Messages area */}
-      <div style={{flex:1,overflowY:'auto',padding:'12px 8px 8px'}}>
+      {/* ── Messages ── */}
+      <div style={{ flex:1, overflowY:'auto', padding:'8px 8px 4px', WebkitOverflowScrolling:'touch' }}>
         {isLoading && (
-          <div className="text-center text-sm text-gray-500 py-8">Loading messages…</div>
+          <div style={{ textAlign:'center', padding:24, color:'#999', fontSize:13 }}>Loading messages…</div>
         )}
         {!isLoading && messages.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">👋</div>
-            <p className="text-sm text-gray-500 font-medium">No messages yet</p>
-            <p className="text-xs text-gray-400 mt-1">Be the first to say something!</p>
+          <div style={{ textAlign:'center', padding:40, color:'#999', fontSize:13 }}>
+            <div style={{ fontSize:40, marginBottom:8 }}>💬</div>
+            <p>No messages yet.<br/>Be the first to say something!</p>
           </div>
         )}
         {grouped.map(item =>
           item.type === 'date' ? (
-            <div key={item.key} className="flex justify-center my-3">
-              <span className="text-[11px] text-gray-500 bg-white/70 px-3 py-1 rounded-full shadow-sm">{item.label}</span>
+            <div key={item.key} style={{ textAlign:'center', margin:'8px 0' }}>
+              <span style={{ background:'rgba(255,255,255,0.85)', padding:'3px 10px', borderRadius:8, fontSize:11, color:'#666' }}>{item.label}</span>
             </div>
           ) : (
-            <div key={item.key} onDoubleClick={() => { setReplyTo(item.msg); inputRef.current?.focus(); }}>
-              <Bubble
-                msg={item.msg}
-                isMine={item.msg.author_id === user?.id}
-                showAvatar={item.showAvatar}
-                isTeacher={item.msg.author_role === 'teacher' || item.msg.author_role === 'admin'}
-              />
-            </div>
+            <MessageBubble
+              key={item.key}
+              msg={item.msg}
+              isMine={item.msg.author_id === user?.id}
+              showAvatar={item.showAvatar}
+            />
           )
         )}
         <div ref={endRef} />
       </div>
 
-      {/* Input bar */}
-      <div style={{flexShrink:0,background:'#F0F0F0',padding:'8px 10px',display:'flex',alignItems:'flex-end',gap:8,borderTop:'1px solid #ddd'}}>
-        {/* Reply preview if any */}
-        {replyTo && (
-          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border-l-4 w-full"
-            style={{ background: '#f0f0f0', borderColor: WA_GREEN }}>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold" style={{ color: WA_GREEN }}>{replyTo.author_name}</p>
-              <p className="text-xs text-gray-500 truncate">{replyTo.body}</p>
-            </div>
-            <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-200">
-              <X className="w-3.5 h-3.5 text-gray-400" />
-            </button>
+      {/* ── Reply preview ── */}
+      {replyTo && (
+        <div style={{ flexShrink:0, background:'#fff', borderTop:'2px solid '+WA_GREEN, padding:'6px 12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            <span style={{ fontSize:11, fontWeight:700, color:WA_GREEN }}>{replyTo.author_name}</span>
+            <p style={{ margin:0, fontSize:12, color:'#555', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis', maxWidth:240 }}>{replyTo.body}</p>
           </div>
-        )}
+          <button onClick={()=>setReplyTo(null)} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'#999' }}>×</button>
+        </div>
+      )}
 
-        {!user?.id ? (
-          <div className="text-center text-sm text-gray-500 py-2 w-full">
-            <a href="/login" className="font-semibold underline" style={{ color: WA_GREEN }}>Log in</a> to join the conversation
-          </div>
-        ) : !isMember ? (
-          <div className="text-center text-sm text-gray-500 py-2 w-full">
-            Join this group to send messages
-          </div>
-        ) : (
-          <>
-            <textarea
-              ref={inputRef}
-              value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a message…"
-              rows={1}
-              style={{flex:1,borderRadius:20,border:'1px solid #ccc',padding:'8px 12px',fontSize:14,resize:'none',maxHeight:100,background:'white',outline:'none'}}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!text.trim() || sendMutation.isPending}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                background: '#25D366',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: 'none',
-                cursor: 'pointer',
-                flexShrink: 0,
-                color: 'white',
-                fontSize: 16
-              }}
-            >
-              ➤
-            </button>
-          </>
-        )}
+      {/* ── Input bar ── */}
+      <div style={{ flexShrink:0, background:'#F0F0F0', borderTop:'1px solid #ddd', padding:'6px 8px', display:'flex', alignItems:'flex-end', gap:8 }}>
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={handleTextChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message…"
+          rows={1}
+          style={{ flex:1, borderRadius:20, border:'1px solid #ddd', padding:'9px 14px', fontSize:14, resize:'none', background:'white', outline:'none', lineHeight:1.4, maxHeight:120, overflowY:'auto', fontFamily:'inherit' }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!text.trim()}
+          style={{ width:42, height:42, borderRadius:'50%', background: text.trim() ? WA_GREEN : '#ccc', border:'none', cursor: text.trim() ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background 0.2s' }}
+        >
+          <span style={{ color:'white', fontSize:18, marginLeft:2 }}>➤</span>
+        </button>
       </div>
     </div>
   );
 }
 
-// ── Create group modal ────────────────────────────────────────────────────────
+// ── CreateGroupModal ─────────────────────────────────────────────────────────
 function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -289,7 +236,6 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   const [subjectId, setSubjectId] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
-
   const ICONS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️'];
 
   const handleCreate = async () => {
@@ -298,111 +244,67 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
     try {
       const subject = subjects.find(s => s.id === subjectId);
       const group = await db.entities.StudyGroup.create({
-        name: name.trim(),
-        description: description.trim(),
-        icon,
-        subject_id: subjectId || null,
-        subject_name: subject?.name || null,
-        creator_id: user.id,
-        creator_name: user.full_name || user.email,
-        member_ids: [user.id],
-        member_names: [user.full_name || user.email],
-        member_count: 1,
-        is_private: isPrivate,
-        status: 'active',
+        name: name.trim(), description: description.trim(), icon,
+        subject_id: subjectId || null, subject_name: subject?.name || null,
+        creator_id: user.id, creator_name: user.full_name || user.email,
+        member_ids: [user.id], member_names: [user.full_name || user.email],
+        member_count: 1, is_private: isPrivate, status: 'active',
       });
       onCreate(group);
       onClose();
-    } catch (e) {
-      console.error('Create group failed:', e);
-    } finally {
-      setSaving(false);
-    }
+    } catch(e) { console.error('Create group failed:', e); }
+    finally { setSaving(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3" style={{ background: WA_GREEN }}>
-          <button onClick={onClose}><X className="w-5 h-5 text-white" /></button>
-          <p className="font-bold text-white text-sm">New Study Group</p>
+    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'white', borderRadius:16, width:'100%', maxWidth:400, overflow:'hidden', maxHeight:'85dvh', display:'flex', flexDirection:'column' }}>
+        <div style={{ background:WA_GREEN, color:'white', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', flexShrink:0 }}>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'white', fontSize:20, cursor:'pointer' }}>✕</button>
+          <span style={{ fontWeight:700, fontSize:15 }}>New Study Group</span>
         </div>
-
-        <div className="p-4 space-y-4">
-          {/* Icon picker */}
+        <div style={{ overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Group Icon</p>
-            <div className="flex flex-wrap gap-2">
+            <p style={{ fontSize:12, fontWeight:600, color:'#666', marginBottom:6 }}>Group Icon</p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
               {ICONS.map(e => (
-                <button key={e} onClick={() => setIcon(e)}
-                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'scale-110' : 'hover:scale-105'}`}
-                  style={icon === e ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
-                  {e}
-                </button>
+                <button key={e} onClick={()=>setIcon(e)} style={{ width:36, height:36, borderRadius:'50%', border: icon===e ? `2px solid ${WA_GREEN}` : '1px solid #eee', background: icon===e ? '#e8f5e9' : '#f5f5f5', fontSize:18, cursor:'pointer' }}>{e}</button>
               ))}
             </div>
           </div>
-
-          {/* Name */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Group Name *</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. Form 4 Biology Squad"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"
-              maxLength={60}
-            />
+            <label style={{ fontSize:12, fontWeight:600, color:'#666', display:'block', marginBottom:4 }}>Group Name *</label>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Form 4 Biology Squad" maxLength={60}
+              style={{ width:'100%', border:'1px solid #ddd', borderRadius:10, padding:'10px 12px', fontSize:14, outline:'none', boxSizing:'border-box' }} />
           </div>
-
-          {/* Description */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Description (optional)</label>
-            <input
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="What's this group about?"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500"
-              maxLength={120}
-            />
+            <label style={{ fontSize:12, fontWeight:600, color:'#666', display:'block', marginBottom:4 }}>Description (optional)</label>
+            <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="What's this group about?" maxLength={120}
+              style={{ width:'100%', border:'1px solid #ddd', borderRadius:10, padding:'10px 12px', fontSize:14, outline:'none', boxSizing:'border-box' }} />
           </div>
-
-          {/* Subject */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Subject (optional)</label>
-            <select
-              value={subjectId}
-              onChange={e => setSubjectId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500 bg-white"
-            >
+            <label style={{ fontSize:12, fontWeight:600, color:'#666', display:'block', marginBottom:4 }}>Subject (optional)</label>
+            <select value={subjectId} onChange={e=>setSubjectId(e.target.value)}
+              style={{ width:'100%', border:'1px solid #ddd', borderRadius:10, padding:'10px 12px', fontSize:14, outline:'none', background:'white', boxSizing:'border-box' }}>
               <option value="">— No specific subject —</option>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
-
-          {/* Privacy */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-            <div className="flex items-center gap-2">
-              {isPrivate ? <Lock className="w-4 h-4 text-gray-500" /> : <Globe className="w-4 h-4 text-gray-500" />}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#f9f9f9', borderRadius:10, padding:'10px 12px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span>{isPrivate ? '🔒' : '🌐'}</span>
               <div>
-                <p className="text-sm font-medium text-gray-800">{isPrivate ? 'Private' : 'Public'}</p>
-                <p className="text-[11px] text-gray-400">{isPrivate ? 'Invite only' : 'Anyone can join'}</p>
+                <p style={{ margin:0, fontWeight:600, fontSize:13 }}>{isPrivate ? 'Private' : 'Public'}</p>
+                <p style={{ margin:0, fontSize:11, color:'#888' }}>{isPrivate ? 'Invite only' : 'Anyone can join'}</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsPrivate(v => !v)}
-              className={`w-11 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-green-500' : 'bg-gray-300'}`}>
-              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            <button onClick={()=>setIsPrivate(v=>!v)}
+              style={{ width:44, height:24, borderRadius:12, background: isPrivate ? WA_GREEN : '#ccc', border:'none', cursor:'pointer', position:'relative', transition:'background 0.2s' }}>
+              <span style={{ position:'absolute', top:2, left: isPrivate ? 22 : 2, width:20, height:20, borderRadius:'50%', background:'white', transition:'left 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }} />
             </button>
           </div>
-
-          {/* Create button */}
-          <button
-            onClick={handleCreate}
-            disabled={!name.trim() || saving}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-40"
-            style={{ background: WA_GREEN }}>
+          <button onClick={handleCreate} disabled={!name.trim()||saving}
+            style={{ width:'100%', padding:12, borderRadius:12, background: name.trim()&&!saving ? WA_GREEN : '#ccc', color:'white', border:'none', fontWeight:700, fontSize:14, cursor: name.trim()&&!saving ? 'pointer' : 'default' }}>
             {saving ? 'Creating…' : 'Create Group'}
           </button>
         </div>
@@ -411,7 +313,7 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Main export — NO SPINNER for subject/community chats ─────────────────────
 export default function SubjectGroupChat() {
   const navigate = useNavigate();
   const { subjectSlug } = useParams();
@@ -428,133 +330,73 @@ export default function SubjectGroupChat() {
     staleTime: 300_000,
   });
 
-  // ── Custom group from "My Groups" — use state directly, instant ──────────────
+  // Custom group from My Groups — use state directly
   if (isCustomGroup) {
-    const group = location.state.group;
     return (
       <>
-        <ChatView group={group} user={user} onBack={() => navigate('/forums')}
-          subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
+        <ChatView group={location.state.group} user={user} onBack={() => navigate('/forums')} />
         {showCreateGroup && (
-          <CreateGroupModal user={user} subjects={subjects}
-            onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
+          <CreateGroupModal user={user} subjects={subjects} onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
         )}
       </>
     );
   }
 
-  // ── Community chat — instant, no DB lookup needed ────────────────────────────
+  // Community chat — instant virtual group
   if (isCommunity) {
-    const group = {
-      id: 'community-global',
-      name: 'Chibondo Academy Community',
-      icon: '🎓',
-      icon_url: null,
-      member_count: null,
-      creator_id: 'system',
-    };
+    const group = { id: 'community-global', name: 'ACA Community', icon: '🎓', icon_url: null, member_count: null, creator_id: 'system' };
     return (
       <>
-        <ChatView group={group} user={user} onBack={() => navigate('/forums')}
-          subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
+        <ChatView group={group} user={user} onBack={() => navigate('/forums')} />
         {showCreateGroup && (
-          <CreateGroupModal user={user} subjects={subjects}
-            onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
+          <CreateGroupModal user={user} subjects={subjects} onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
         )}
       </>
     );
   }
 
-  // ── Subject chat — resolve subject then render instantly ─────────────────────
-  return (
-    <SubjectChatView
-      subjectSlug={subjectSlug}
-      locationState={location.state}
-      user={user}
-      subjects={subjects}
-      navigate={navigate}
-      showCreateGroup={showCreateGroup}
-      setShowCreateGroup={setShowCreateGroup}
-    />
-  );
+  // Subject chat — look up subject then render instantly
+  return <SubjectChatView subjectSlug={subjectSlug} locationState={location.state} user={user} subjects={subjects} navigate={navigate} showCreateGroup={showCreateGroup} setShowCreateGroup={setShowCreateGroup} />;
 }
 
 function SubjectChatView({ subjectSlug, locationState, user, subjects, navigate, showCreateGroup, setShowCreateGroup }) {
   const subjectFromState = locationState?.subject;
-
   const { data: subjectFromDB, isLoading } = useQuery({
-    queryKey: ['subject-by-slug', subjectSlug],
+    queryKey: ['subj-slug', subjectSlug],
     queryFn: async () => {
       const all = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
       const slug = (subjectSlug || '').toLowerCase();
-      return (
-        all.find(s => s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug) ||
-        all.find(s => slug.includes(s.name.toLowerCase().split(' ').slice(-1)[0])) ||
-        all.find(s => s.name.toLowerCase().replace(/\s+/g, '-').includes(slug.split('-')[0])) ||
-        null
-      );
+      return all.find(s => s.name.toLowerCase().replace(/[^a-z0-9]+/g,'-') === slug)
+        || all.find(s => slug.includes(s.name.toLowerCase().split(' ').pop() || '__'))
+        || null;
     },
     enabled: !subjectFromState,
     staleTime: 300_000,
   });
-
   const subject = subjectFromState || subjectFromDB;
 
-  if (!subject && isLoading) {
-    return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100dvh - 64px)', gap:12 }}>
-        <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid #25D366', borderTopColor:'transparent', animation:'spin 0.8s linear infinite' }} />
-        <p style={{ fontSize:13, color:'#666' }}>Opening chat…</p>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      </div>
-    );
-  }
+  if (!subject && isLoading) return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', paddingBottom:64, gap:12 }}>
+      <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid #25D366', borderTopColor:'transparent', animation:'spin 0.8s linear infinite' }} />
+      <p style={{ color:'#666', fontSize:13 }}>Opening chat…</p>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
-  if (!subject) {
-    return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100dvh - 64px)', gap:16, padding:32, textAlign:'center' }}>
-        <p style={{ fontSize:16, fontWeight:600, color:'#333' }}>Subject not found</p>
-        <button onClick={() => navigate('/forums')}
-          style={{ padding:'10px 20px', background:'#25D366', color:'white', border:'none', borderRadius:12, fontSize:14, cursor:'pointer', fontWeight:600 }}>
-          Back to Forums
-        </button>
-      </div>
-    );
-  }
+  if (!subject) return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', paddingBottom:64, gap:16, padding:32, textAlign:'center' }}>
+      <p style={{ fontWeight:600, color:'#333' }}>Subject not found</p>
+      <button onClick={() => navigate('/forums')} style={{ padding:'10px 20px', background:WA_GREEN, color:'white', border:'none', borderRadius:12, fontSize:14, cursor:'pointer', fontWeight:600 }}>Back to Forums</button>
+    </div>
+  );
 
-  const group = {
-    id: `subject-${subject.id}`,
-    name: subject.name,
-    icon: getSubjectIcon(subject.name),
-    icon_url: null,
-    member_count: null,
-    subject_name: subject.name,
-    subject_id: subject.id,
-    creator_id: 'system',
-  };
-
+  const group = { id: `subject-${subject.id}`, name: subject.name, icon: getSubjectIcon(subject.name), icon_url: null, member_count: null, subject_name: subject.name, creator_id: 'system' };
   return (
     <>
-      <ChatView group={group} user={user} onBack={() => navigate('/forums')}
-        subjects={subjects} onNewGroupClick={() => setShowCreateGroup(true)} />
+      <ChatView group={group} user={user} onBack={() => navigate('/forums')} />
       {showCreateGroup && (
-        <CreateGroupModal user={user} subjects={subjects}
-          onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
+        <CreateGroupModal user={user} subjects={subjects} onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
       )}
     </>
   );
-}
-
-function getSubjectIcon(name = '') {
-  const n = name.toLowerCase();
-  if (n.includes('bio')) return '🧬';
-  if (n.includes('chem')) return '⚗️';
-  if (n.includes('phys')) return '⚡';
-  if (n.includes('math')) return '📐';
-  if (n.includes('english') || n.includes('literature')) return '📖';
-  if (n.includes('chichewa')) return '🗣️';
-  if (n.includes('agri')) return '🌱';
-  if (n.includes('geo')) return '🌍';
-  if (n.includes('hist')) return '📜';
-  return '💬';
 }
