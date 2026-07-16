@@ -64,7 +64,6 @@ export default function SetupChecklist({ user }) {
   });
 
   // ── Derived checklist state ────────────────────────────────────────────────
-  // hasPhoto checks the live photoPreview (optimistic) OR user?.avatar_url (from context)
   const hasClass  = !!(studentProfile?.form);
   const hasEnroll = enrollments.length > 0;
   const hasFees   = !!(subscription);
@@ -145,7 +144,6 @@ export default function SetupChecklist({ user }) {
   return (
     <div className="rounded-2xl border border-border bg-card text-card-foreground overflow-hidden">
           <input
-            ref={fileRef}
             type="file"
             accept="image/*"
             className="hidden"
