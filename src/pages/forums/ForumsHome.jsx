@@ -59,35 +59,30 @@ export default function ForumsHome() {
     staleTime: 120_000,
   });
 
-  const { data: threadCounts = [] } = useQuery({
-    queryKey: ['forum-thread-counts'],
-    queryFn: () => db.entities.Discussion.filter({ status: 'active' }, '-created_date', 500),
-    staleTime: 60_000,
+  // Subject stats from GroupChatMessages (Discussion entity replaced)
+  const { data: recentMsgs = [] } = useQuery({
+    queryKey: ['forum-recent-msgs'],
+    queryFn: () => db.entities.GroupChatMessage.filter({}, 'created_date', 200),
+    staleTime: 30_000,
   });
 
-  // Calculate unread counts or last messages if needed, using directly imported useMemo
   const subjectStats = useMemo(() => {
     const stats = {};
-    threadCounts.forEach(d => {
-      if (d.subject_id) {
-        if (!stats[d.subject_id]) {
-          stats[d.subject_id] = {
-            count: 0,
-            lastMessage: null,
-            lastDate: null
-          };
-        }
-        stats[d.subject_id].count += 1;
-        
-        const msgDate = new Date(d.created_date || d.updated_date);
-        if (!stats[d.subject_id].lastDate || msgDate > stats[d.subject_id].lastDate) {
-          stats[d.subject_id].lastDate = msgDate;
-          stats[d.subject_id].lastMessage = d.content || d.title;
+    recentMsgs.forEach(m => {
+      // group_id is "subject-{subjectId}" for official subject groups
+      if (m.group_id && m.group_id.startsWith('subject-')) {
+        const subjectId = m.group_id.replace('subject-', '');
+        if (!stats[subjectId]) stats[subjectId] = { count: 0, lastMessage: null, lastDate: null };
+        stats[subjectId].count += 1;
+        const msgDate = new Date(m.created_date);
+        if (!stats[subjectId].lastDate || msgDate > stats[subjectId].lastDate) {
+          stats[subjectId].lastDate = msgDate;
+          stats[subjectId].lastMessage = m.body;
         }
       }
     });
     return stats;
-  }, [threadCounts]);
+  }, [recentMsgs]);
 
   const filteredSubjects = useMemo(() => {
     return subjects.filter(s =>
