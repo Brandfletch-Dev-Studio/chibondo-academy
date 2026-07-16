@@ -32,7 +32,7 @@ export default function SubjectDetail() {
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', subjectId],
-    queryFn: async () => [],  // Topic entity removed — using Lesson entity directly
+    queryFn: () => db.entities.Topic.filter({ subject_id: subjectId }, 'order', 200),
   });
 
   const { data: lessons = [] } = useQuery({
