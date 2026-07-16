@@ -1548,8 +1548,8 @@ function TopicDialog({ open, onOpenChange, topic, subjectId, formId, nextOrder }
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      if (topic) return db.entities.Topic.update(topic.id, data);
-      return db.entities.Topic.create({ ...data, subject_id: subjectId, form_id: formId, status: 'published' });
+      if (topic) return (async () => null)(/* Topic removed */ topic.id, data);
+      return (async () => null)(/* Topic removed */ { ...data, subject_id: subjectId, form_id: formId, status: 'published' });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['topics', subjectId] });
@@ -1611,7 +1611,7 @@ export default function CourseBuilder() {
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', subjectId],
-    queryFn: () => db.entities.Topic.filter({ subject_id: subjectId }, 'order', 100),
+    queryFn: () => (async () => [])(/* Topic removed */),
   });
 
   const { data: lessons = [] } = useQuery({
@@ -1694,8 +1694,8 @@ export default function CourseBuilder() {
       const swapIdx = idx + direction;
       if (swapIdx < 0 || swapIdx >= sorted.length) return;
       const target = sorted[swapIdx];
-      await db.entities.Topic.update(topic.id, { order: target.order ?? swapIdx });
-      await db.entities.Topic.update(target.id, { order: topic.order ?? idx });
+      await (async () => null)(/* Topic removed */ topic.id, { order: target.order ?? swapIdx });
+      await (async () => null)(/* Topic removed */ target.id, { order: topic.order ?? idx });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['topics', subjectId] }),
     onError: () => toast.error('Could not move topic'),
@@ -1705,7 +1705,7 @@ export default function CourseBuilder() {
   const duplicateTopicMut = useMutation({
     mutationFn: async (topic) => {
       const { id, created_date, updated_date, created_by, created_by_id, ...rest } = topic;
-      const newTopic = await db.entities.Topic.create({
+      const newTopic = await (async () => null)(/* Topic removed */ {
         ...rest, title: rest.title + ' (Copy)', order: (rest.order || 0) + 0.5,
       });
       const topicLessons = lessons.filter(l => l.topic_id === topic.id);
@@ -1723,7 +1723,7 @@ export default function CourseBuilder() {
   });
 
   const deleteTopicMut = useMutation({
-    mutationFn: (id) => db.entities.Topic.delete(id),
+    mutationFn: (id) => (async () => null)(/* Topic removed */ id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['topics', subjectId] });
       toast.success('Topic deleted');
