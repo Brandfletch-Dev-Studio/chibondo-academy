@@ -33,7 +33,7 @@ export default function RevisionHub() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['forms'],
-    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 50),
+    queryFn: () => (async () => [])(/* AcademicForm removed */),
   });
 
   const filtered = resources.filter(r => {
