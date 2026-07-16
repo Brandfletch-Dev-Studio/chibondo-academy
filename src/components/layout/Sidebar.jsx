@@ -18,7 +18,7 @@ const studentNav = [
   { label: 'Revision Hub', icon: Library,       path: '/revision' },
   { label: 'My Quizzes',   icon: ClipboardList, path: '/my-quizzes' },
   { label: 'Assignments',  icon: FileText,      path: '/my-assignments' },
-  { label: 'Forums',       icon: MessageSquare, path: '/forums' },
+  { label: 'Chats',       icon: MessageSquare, path: '/forums' },
   { label: 'Progress',     icon: BarChart3,     path: '/progress' },
   { label: 'Analytics',    icon: TrendingUp,    path: '/progress/analytics' },
   { label: 'Affiliate',    icon: Gift,          path: '/affiliate' },
