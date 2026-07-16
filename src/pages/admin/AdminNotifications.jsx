@@ -288,12 +288,12 @@ export default function AdminNotifications() {
 
   const { data: students = [] } = useQuery({
     queryKey: ['allStudentProfiles'],
-    queryFn: () => db.entities.StudentProfile.filter({}, 'full_name', 300),
+    queryFn: () => db.entities.User.filter({}, 'full_name', 300),
   });
 
   const { data: forms = [] } = useQuery({
     queryKey: ['academic-forms'],
-    queryFn: () => db.entities.AcademicForm.filter({}, 'order', 10),
+    queryFn: () => (async () => [])(/* AcademicForm removed */),
   });
 
   const { data: subjects = [] } = useQuery({
