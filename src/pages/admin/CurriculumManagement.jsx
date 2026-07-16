@@ -26,16 +26,16 @@ function FormManager() {
   const empty = { name: '', description: '', order: 0, status: 'active' };
   const [form, setForm] = useState(empty);
 
-  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => db.entities.AcademicForm.list('order', 50) });
+  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => (async () => [])(/* AcademicForm removed */) });
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
 
   const saveMutation = useMutation({
-    mutationFn: () => editing ? db.entities.AcademicForm.update(editing.id, form) : db.entities.AcademicForm.create(form),
+    mutationFn: () => editing ? (async () => null)(/* AcademicForm removed */ editing.id, form) : (async () => null)(/* AcademicForm removed */ form),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['forms'] }); closeDialog(); toast.success(editing ? 'Form updated' : 'Form created'); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => db.entities.AcademicForm.delete(id),
+    mutationFn: (id) => (async () => null)(/* AcademicForm removed */ id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['forms'] }); toast.success('Form deleted'); },
   });
 
@@ -116,7 +116,7 @@ function CourseManager() {
   const empty = { name: '', description: '', form_id: '', teacher_id: '', is_premium: true, status: 'draft', order: 0 };
   const [formData, setFormData] = useState(empty);
 
-  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => db.entities.AcademicForm.list('order', 50) });
+  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => (async () => [])(/* AcademicForm removed */) });
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
   const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => db.entities.User.filter({ role: 'teacher' }) });
   const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
@@ -310,20 +310,20 @@ function TopicManager() {
   const [formData, setFormData] = useState(empty);
 
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => db.entities.Topic.list('order', 500) });
+  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => (async () => [])(/* Topic removed */) });
   const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => db.entities.Lesson.list('order', 1000) });
 
   const saveMutation = useMutation({
     mutationFn: () => {
       const sub = subjects.find(s => s.id === formData.subject_id);
       const data = { ...formData, subject_name: sub?.name || '', form_id: sub?.form_id || '' };
-      return editing ? db.entities.Topic.update(editing.id, data) : db.entities.Topic.create(data);
+      return editing ? (async () => null)(/* Topic removed */ editing.id, data) : (async () => null)(/* Topic removed */ data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allTopics'] }); closeDialog(); toast.success(editing ? 'Topic updated' : 'Topic created'); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => db.entities.Topic.delete(id),
+    mutationFn: (id) => (async () => null)(/* Topic removed */ id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allTopics'] }); toast.success('Topic deleted'); },
   });
 
@@ -552,7 +552,7 @@ function CourseEnrollments() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
   const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
-  const { data: students = [] } = useQuery({ queryKey: ['allStudents'], queryFn: () => db.entities.StudentProfile.filter({}) });
+  const { data: students = [] } = useQuery({ queryKey: ['allStudents'], queryFn: () => db.entities.User.filter({}) });
   const { data: users = [] } = useQuery({ queryKey: ['allUsers'], queryFn: () => db.entities.User.filter({ role: 'user' }) });
 
   const courseEnrollments = selectedSubject ? enrollments.filter(e => e.subject_id === selectedSubject) : [];
@@ -615,8 +615,8 @@ function CourseEnrollments() {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function CurriculumManagement() {
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => db.entities.AcademicForm.list('order', 50) });
-  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => db.entities.Topic.list('order', 500) });
+  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => (async () => [])(/* AcademicForm removed */) });
+  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => (async () => [])(/* Topic removed */) });
   const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => db.entities.User.filter({ role: 'teacher' }) });
   const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
   const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => db.entities.Lesson.filter({}) });
