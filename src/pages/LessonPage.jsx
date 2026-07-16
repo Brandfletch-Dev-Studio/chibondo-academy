@@ -704,7 +704,7 @@ export default function LessonPage() {
                   )}
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>📖 Notes</span>
+                  <span>Notes</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('discussion')}
@@ -714,7 +714,7 @@ export default function LessonPage() {
                   )}
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>💬 Discussion</span>
+                  <span>Discussion</span>
                 </button>
                 {user && lesson.attachments?.length > 0 && (
                   <button
@@ -725,7 +725,7 @@ export default function LessonPage() {
                     )}
                   >
                     <Download className="w-4 h-4" />
-                    <span>📎 Files ({lesson.attachments.length})</span>
+                    <span>Files ({lesson.attachments.length})</span>
                   </button>
                 )}
               </div>
