@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import {
   GraduationCap, BookOpen, CreditCard,
   CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 const DISMISS_KEY  = (uid) => `aca_checklist_dismissed_${uid}`;
 const SNOOZE_KEY   = (uid) => `aca_checklist_snooze_${uid}`;
@@ -34,7 +33,6 @@ function useLocalDismiss(userId) {
 
 export default function SetupChecklist({ user }) {
   const navigate               = useNavigate();
-  const qc                     = useQueryClient();
   const userId                 = user?.id;
   const { isDismissed, snooze, markDone } = useLocalDismiss(userId);
 
@@ -83,61 +81,6 @@ export default function SetupChecklist({ user }) {
     if (allDone) { markDone(); setVisible(false); return; }
     setVisible(!isDismissed());
   }, [userId, allDone, doneCount]);
-
-  // Keep local previews in sync when context user changes (e.g. after settings page saves)
-  useEffect(() => { setPhotoPreview(user?.avatar_url || ''); }, [user?.avatar_url]);
-  useEffect(() => { setNameVal(user?.full_name || ''); },      [user?.full_name]);
-
-  // ── Photo upload ───────────────────────────────────────────────────────────
-  const handlePhotoFile = async (e) => {
-    const file = e.target.files?.[0];
-    // Reset input so the same file can be re-selected if needed
-    e.target.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
-    if (file.size > 5 * 1024 * 1024)    { toast.error('Image must be under 5 MB'); return; }
-
-    // Optimistic preview
-    const localUrl = URL.createObjectURL(file);
-    setPhotoPreview(localUrl);
-    setUploading(true);
-
-    try {
-      // 1. Upload to Supabase storage
-      const url = await uploadImage(file);
-
-      // 2. Update User record (avatar_url used by navbar, forums, everywhere)
-      await db.auth.updateMe({ avatar_url: url });
-
-      // 3. Sync StudentProfile (used by teacher views, leaderboard, etc.)
-      if (studentProfile?.id) {
-        await db.entities.StudentProfile.update(studentProfile.id, { avatar_url: url });
-      } else {
-        await db.entities.StudentProfile.create({ user_id: userId, avatar_url: url });
-      }
-
-      // 4. Confirm preview with real CDN URL
-      setPhotoPreview(url);
-
-      // 5. Refresh global user context so navbar + forums + everywhere updates instantly
-      await checkUserAuth();
-
-      // 6. Invalidate all related queries so any other component re-fetches
-      qc.invalidateQueries({ queryKey: ['studentProfile', userId] });
-      qc.invalidateQueries({ queryKey: ['studentProfile'] });
-      qc.invalidateQueries({ queryKey: ['currentUser'] });
-      qc.invalidateQueries({ queryKey: ['user', userId] });
-
-      toast.success('Profile picture updated!');
-    } catch (err) {
-      console.error('Photo upload failed:', err);
-      toast.error('Upload failed. Please try again.');
-      // Revert optimistic preview
-      setPhotoPreview(user?.avatar_url || '');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   if (!visible || !userId) return null;
 
