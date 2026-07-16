@@ -40,7 +40,7 @@ export default function SetupChecklist({ user }) {
   const [collapsed, setCollapsed] = useState(false);
 
   // ── Remote data ────────────────────────────────────────────────────────────
-  const { data: studentProfile, refetch: refetchProfile } = useQuery({
+  const { data: studentProfile } = useQuery({
     queryKey: ['studentProfile', userId],
     queryFn:  () => db.entities.StudentProfile.filter({ user_id: userId }, 'created_date', 1).then(r => r[0] || null),
     enabled:  !!userId,
@@ -86,13 +86,44 @@ export default function SetupChecklist({ user }) {
 
   return (
     <div className="rounded-2xl border border-border bg-card text-card-foreground overflow-hidden">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePhotoFile}
-          />
 
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-accent" />
+          </div>
+          <div>
+            <p className="font-display font-bold text-sm text-foreground">Set up your account</p>
+            <p className="text-[11px] text-muted-foreground">{doneCount} of {items.length} complete</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCollapsed(v => !v)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={() => { snooze(); setVisible(false); }}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Remind me later">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="px-5 pb-3">
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="h-full rounded-full bg-accent transition-all duration-500"
+            style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      {/* Items */}
+      {!collapsed && (
+        <div className="px-3 pb-4 space-y-0.5">
           {items.map(item => (
             <ChecklistItem key={item.id} item={item} />
           ))}
