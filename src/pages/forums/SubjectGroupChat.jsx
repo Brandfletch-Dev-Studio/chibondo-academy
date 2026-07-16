@@ -1,80 +1,129 @@
 // src/pages/forums/SubjectGroupChat.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useLocation, useOutletContext } from 'react-router-dom';
+// WhatsApp-style group chat — lives INSIDE the normal app layout.
+// The chat fills the available vertical space between TopBar and BottomNav.
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
-import { X, Lock, Globe } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Camera, X, Users, Lock, Globe, Image as ImageIcon, Send } from 'lucide-react';
+import { toast } from 'sonner';
 
-const WA_BG = '#E5DDD5';
+const WA_BG   = '#E5DDD5';
 const WA_SENT = '#DCF8C6';
-const WA_NAVY = '#1A237E';
-const WA_GREEN = '#25D366';
+const NAVY    = '#0d1b4b';
+const GOLD    = '#D4AF37';
 
-// Name colors for received bubbles
-const NAME_COLORS = ['#E91E63','#9C27B0','#2196F3','#009688','#FF5722','#795548'];
-function nameColor(id='') {
-  return NAME_COLORS[id.charCodeAt(0) % NAME_COLORS.length];
-}
+// ── helpers ──────────────────────────────────────────────────────────────────
+const SUBJECT_ICON = n => {
+  const l = (n||'').toLowerCase();
+  if (l.includes('bio'))   return '🧬';
+  if (l.includes('chem'))  return '⚗️';
+  if (l.includes('phys'))  return '⚡';
+  if (l.includes('math'))  return '📐';
+  if (l.includes('eng') || l.includes('lit')) return '📖';
+  if (l.includes('chich')) return '🗣️';
+  if (l.includes('agri'))  return '🌱';
+  if (l.includes('geo'))   return '🌍';
+  if (l.includes('hist'))  return '📜';
+  return '💬';
+};
 
-function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-}
-function formatDateLabel(iso) {
-  const d = new Date(iso), today = new Date();
-  const diff = Math.floor((today - d)/86400000);
+const NAME_COLORS = ['#E91E63','#9C27B0','#2196F3','#009688','#FF5722','#795548','#00BCD4','#4CAF50'];
+const nameColor  = id => NAME_COLORS[(id||'a').charCodeAt(0) % NAME_COLORS.length];
+
+const fmtTime  = iso => new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+const fmtDate  = iso => {
+  const d    = new Date(iso);
+  const diff = Math.floor((Date.now() - d) / 86400000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-}
-function sameDay(a, b) {
-  const da = new Date(a), db2 = new Date(b);
-  return da.getFullYear()===db2.getFullYear()&&da.getMonth()===db2.getMonth()&&da.getDate()===db2.getDate();
-}
-function getSubjectIcon(name='') {
-  const n = name.toLowerCase();
-  if(n.includes('bio')) return '🧬';
-  if(n.includes('chem')) return '⚗️';
-  if(n.includes('phys')) return '⚡';
-  if(n.includes('math')) return '📐';
-  if(n.includes('english')||n.includes('lit')) return '📖';
-  if(n.includes('chichewa')) return '🗣️';
-  if(n.includes('agri')) return '🌱';
-  if(n.includes('geo')) return '🌍';
-  if(n.includes('hist')) return '📜';
-  return '💬';
+};
+const sameDay  = (a,b) => { const da=new Date(a),db=new Date(b); return da.toDateString()===db.toDateString(); };
+
+// ── GroupAvatar ───────────────────────────────────────────────────────────────
+function GroupAvatar({ src, icon, size=40, onClick, canEdit=false }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{ width:size, height:size, borderRadius:'50%', flexShrink:0,
+               background:'rgba(255,255,255,0.18)', overflow:'hidden',
+               display:'flex', alignItems:'center', justifyContent:'center',
+               cursor: canEdit ? 'pointer' : 'default', position:'relative' }}
+    >
+      {src
+        ? <img src={src} alt="group" style={{width:'100%',height:'100%',objectFit:'cover'}} />
+        : <span style={{fontSize:size*0.42,lineHeight:1}}>{icon||'💬'}</span>
+      }
+      {canEdit && (
+        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.35)', display:'flex',
+                      alignItems:'center', justifyContent:'center', opacity:0,
+                      transition:'opacity 0.15s' }}
+             onMouseEnter={e=>e.currentTarget.style.opacity=1}
+             onMouseLeave={e=>e.currentTarget.style.opacity=0}>
+          <Camera style={{color:'white',width:14,height:14}} />
+        </div>
+      )}
+    </div>
+  );
 }
 
-// ── MessageBubble ────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isMine, showAvatar }) {
-  const color = nameColor(msg.author_id);
+// ── MessageBubble ─────────────────────────────────────────────────────────────
+function MessageBubble({ msg, isMine, showName }) {
+  const color     = nameColor(msg.author_id);
   const isTeacher = msg.author_role === 'teacher' || msg.author_role === 'admin';
+
   return (
-    <div style={{ display:'flex', flexDirection: isMine ? 'row-reverse' : 'row', alignItems:'flex-end', gap:6, marginBottom:2 }}>
-      {/* Avatar placeholder for spacing */}
-      <div style={{ width:28, flexShrink:0 }}>
-        {!isMine && showAvatar && (
-          <div style={{ width:28, height:28, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, color:'white', fontWeight:700 }}>
+    <div style={{ display:'flex', flexDirection: isMine ? 'row-reverse' : 'row',
+                  alignItems:'flex-end', gap:6, marginBottom:3, paddingLeft:8, paddingRight:8 }}>
+      {/* Avatar */}
+      <div style={{width:28,flexShrink:0}}>
+        {!isMine && showName && (
+          <div style={{ width:28,height:28,borderRadius:'50%',background:color,
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                        fontSize:11,color:'white',fontWeight:700,flexShrink:0 }}>
             {(msg.author_name||'?')[0].toUpperCase()}
           </div>
         )}
       </div>
-      <div style={{ maxWidth:'75%' }}>
-        {/* Reply preview */}
+
+      {/* Bubble */}
+      <div style={{ maxWidth:'78%' }}>
+        {/* Reply quote */}
         {msg.reply_preview && (
-          <div style={{ background:'rgba(0,0,0,0.06)', borderLeft:`3px solid ${color}`, borderRadius:4, padding:'3px 8px', marginBottom:2, fontSize:11, color:'#555', maxWidth:'100%' }}>
-            <span style={{ fontWeight:600, color }}>{msg.reply_author}: </span>{msg.reply_preview}
+          <div style={{ background:'rgba(0,0,0,0.07)', borderLeft:`3px solid ${color}`,
+                        borderRadius:6, padding:'3px 8px', marginBottom:2, fontSize:11,
+                        color:'#444', overflow:'hidden' }}>
+            <span style={{fontWeight:700,color}}>{msg.reply_author}: </span>
+            {msg.reply_preview}
           </div>
         )}
-        <div style={{ background: isMine ? WA_SENT : 'white', borderRadius: isMine ? '12px 0 12px 12px' : '0 12px 12px 12px', padding:'6px 10px', boxShadow:'0 1px 2px rgba(0,0,0,0.12)' }}>
-          {!isMine && showAvatar && (
-            <div style={{ fontSize:11, fontWeight:700, color, marginBottom:2 }}>
-              {msg.author_name}{isTeacher && <span style={{ fontSize:9, opacity:0.8, marginLeft:4 }}>⭐ Tutor</span>}
+        <div style={{
+          background   : isMine ? WA_SENT : 'white',
+          borderRadius : isMine ? '12px 0 12px 12px' : '0 12px 12px 12px',
+          padding      : '6px 10px 5px',
+          boxShadow    : '0 1px 2px rgba(0,0,0,0.12)',
+        }}>
+          {!isMine && showName && (
+            <div style={{ fontSize:11,fontWeight:700,color,marginBottom:2,display:'flex',alignItems:'center',gap:4 }}>
+              {msg.author_name}
+              {isTeacher && (
+                <span style={{ fontSize:9, background:GOLD, color:NAVY,
+                               borderRadius:4, padding:'1px 4px', fontWeight:700 }}>
+                  TUTOR ⭐
+                </span>
+              )}
             </div>
           )}
-          <p style={{ margin:0, fontSize:14, color:'#111', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap' }}>{msg.body}</p>
-          <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:3, marginTop:2 }}>
-            <span style={{ fontSize:10, color:'#999' }}>{formatTime(msg.created_date)}</span>
-            {isMine && <span style={{ fontSize:11, color:'#4FC3F7' }}>✓✓</span>}
+          <p style={{ margin:0,fontSize:14,color:'#111',lineHeight:1.45,
+                      wordBreak:'break-word',whiteSpace:'pre-wrap' }}>
+            {msg.body}
+          </p>
+          <div style={{ display:'flex',justifyContent:'flex-end',alignItems:'center',
+                        gap:3,marginTop:3 }}>
+            <span style={{fontSize:10,color:'#aaa'}}>{fmtTime(msg.created_date)}</span>
+            {isMine && <span style={{fontSize:11,color:'#53bdeb'}}>✓✓</span>}
           </div>
         </div>
       </div>
@@ -82,389 +131,486 @@ function MessageBubble({ msg, isMine, showAvatar }) {
   );
 }
 
-// ── ChatView ─────────────────────────────────────────────────────────────────
-function ChatView({ group, user, onBack }) {
-  const qc = useQueryClient();
-  const [text, setText] = useState('');
-  const [replyTo, setReplyTo] = useState(null);
-  const endRef = useRef(null);
-  const textareaRef = useRef(null);
-  const inputBarRef = useRef(null);
+// ── EditIconModal — admin / tutor only ────────────────────────────────────────
+function EditIconModal({ group, onClose, onSaved }) {
+  const [tab, setTab]       = useState('emoji'); // 'emoji' | 'upload'
+  const [emoji, setEmoji]   = useState(group.icon || '💬');
+  const [url, setUrl]       = useState('');
+  const [saving, setSaving] = useState(false);
+  const fileRef             = useRef(null);
 
+  const EMOJIS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️','🎓','🦁','🚀','🌟','📊'];
+
+  const handleFileChange = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSaving(true);
+    try {
+      const ext  = file.name.split('.').pop();
+      const path = `group-icons/${group.id}.${ext}`;
+      const result = await db.storage.upload('public', path, file);
+      const { publicUrl } = db.storage.getPublicUrl('public', path);
+      setUrl(publicUrl || result?.path || '');
+      toast.success('Image uploaded');
+    } catch(e) {
+      toast.error('Upload failed: ' + (e.message||''));
+    } finally { setSaving(false); }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updates = tab === 'upload' && url
+        ? { icon_url: url, icon: null }
+        : { icon: emoji, icon_url: null };
+      await db.entities.StudyGroup.update(group.id, updates);
+      onSaved({ ...group, ...updates });
+      toast.success('Group icon updated');
+      onClose();
+    } catch(e) {
+      toast.error(e.message || 'Save failed');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.6)',
+                  display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}>
+      <div style={{ background:'white',borderRadius:20,width:'100%',maxWidth:380,
+                    overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
+        {/* Header */}
+        <div style={{ background:NAVY,color:'white',display:'flex',
+                      alignItems:'center',justifyContent:'space-between',padding:'14px 16px' }}>
+          <span style={{fontWeight:700,fontSize:15}}>Edit Group Icon</span>
+          <button onClick={onClose} style={{background:'none',border:'none',color:'white',cursor:'pointer'}}>
+            <X style={{width:18,height:18}} />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display:'flex',borderBottom:'1px solid #eee' }}>
+          {['emoji','upload'].map(t => (
+            <button key={t} onClick={()=>setTab(t)}
+              style={{ flex:1,padding:'10px 0',border:'none',background:'none',
+                       fontWeight:600,fontSize:13,cursor:'pointer',
+                       borderBottom: tab===t ? `2px solid ${NAVY}` : '2px solid transparent',
+                       color: tab===t ? NAVY : '#888' }}>
+              {t === 'emoji' ? '😊 Emoji' : '🖼️ Image'}
+            </button>
+          ))}
+        </div>
+
+        <div style={{padding:16}}>
+          {tab === 'emoji' ? (
+            <>
+              <p style={{fontSize:12,color:'#888',marginBottom:10}}>Pick an emoji for the group</p>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                {EMOJIS.map(e => (
+                  <button key={e} onClick={()=>setEmoji(e)}
+                    style={{ width:42,height:42,borderRadius:'50%',border: emoji===e ? `2px solid ${NAVY}` : '1px solid #ddd',
+                             background: emoji===e ? `${NAVY}15` : '#f9f9f9',fontSize:22,cursor:'pointer' }}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+              {/* Preview */}
+              <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#f5f5f5',borderRadius:10}}>
+                <div style={{width:44,height:44,borderRadius:'50%',background:NAVY,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>{emoji}</div>
+                <span style={{fontSize:13,color:'#555'}}>Preview of new group icon</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{fontSize:12,color:'#888',marginBottom:10}}>Upload a photo for the group</p>
+              <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFileChange} />
+              <button onClick={()=>fileRef.current?.click()}
+                style={{ width:'100%',border:`2px dashed ${NAVY}`,borderRadius:12,padding:'20px 16px',
+                         background:`${NAVY}08`,cursor:'pointer',display:'flex',flexDirection:'column',
+                         alignItems:'center',gap:8,marginBottom:12 }}>
+                <ImageIcon style={{width:28,height:28,color:NAVY,opacity:0.7}} />
+                <span style={{fontSize:13,color:NAVY,fontWeight:600}}>Choose Image</span>
+                <span style={{fontSize:11,color:'#999'}}>JPG, PNG or WEBP</span>
+              </button>
+              {url && (
+                <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'#f0fdf4',borderRadius:10,marginBottom:12}}>
+                  <img src={url} alt="" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover'}} />
+                  <span style={{fontSize:12,color:'#16a34a',fontWeight:600}}>✓ Image ready</span>
+                </div>
+              )}
+            </>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving || (tab==='upload' && !url)}
+            style={{ width:'100%',padding:'12px 0',borderRadius:10,border:'none',
+                     background: (saving||(tab==='upload'&&!url)) ? '#ccc' : NAVY,
+                     color:'white',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:8 }}>
+            {saving ? 'Saving…' : 'Save Icon'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+export default function SubjectGroupChat() {
+  const { subjectSlug }    = useParams();
+  const navigate           = useNavigate();
+  const { user }           = useOutletContext() ?? {};
+  const qc                 = useQueryClient();
+  const [text, setText]    = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditIcon, setShowEditIcon] = useState(false);
+  const [localGroup, setLocalGroup] = useState(null);
+  const endRef             = useRef(null);
+  const textareaRef        = useRef(null);
+  const menuRef            = useRef(null);
+
+  const isPrivileged = user?.role === 'admin' || user?.role === 'teacher';
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
+
+  // ── Load / resolve the StudyGroup for this subjectSlug ──
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['subjects-chat'],
+    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
+    staleTime: 300_000,
+  });
+
+  const subject = useMemo(() =>
+    subjects.find(s =>
+      s.name.toLowerCase().replace(/\s+/g,'-') === subjectSlug ||
+      s.id === subjectSlug
+    ), [subjects, subjectSlug]);
+
+  // Virtual group for built-in subject chats (no DB record needed)
+  const virtualGroup = useMemo(() => subject ? ({
+    id          : `subject-${subject.id}`,
+    name        : `${subject.name} Chat`,
+    icon        : SUBJECT_ICON(subject.name),
+    icon_url    : null,
+    member_count: subject.enrollment_count || null,
+    type        : 'subject',
+    subject_id  : subject.id,
+  }) : null, [subject]);
+
+  // Try to find a real StudyGroup for this subject
+  const { data: dbGroups = [] } = useQuery({
+    queryKey: ['studyGroup-subject', subject?.id],
+    queryFn: () => subject ? db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' }, 'created_date', 1) : [],
+    enabled: !!subject?.id,
+    staleTime: 60_000,
+  });
+
+  const group = useMemo(() => localGroup || dbGroups[0] || virtualGroup, [localGroup, dbGroups, virtualGroup]);
+
+  // ── Messages ──────────────────────────────────────────────────────────────
   const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['groupChat', group.id],
-    queryFn: () => db.entities.GroupChatMessage.filter({ group_id: group.id, deleted: false }, 'created_date', 200),
+    queryKey: ['groupChat', group?.id],
+    queryFn: () => group ? db.entities.GroupChatMessage.filter({ group_id: group.id }, 'created_date', 300) : [],
+    enabled: !!group?.id,
     refetchInterval: 3000,
     staleTime: 0,
   });
 
+  // Scroll to bottom on new messages
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: messages.length < 5 ? 'instant' : 'smooth' });
+    endRef.current?.scrollIntoView({ behavior: messages.length < 4 ? 'instant' : 'smooth' });
   }, [messages.length]);
 
-  const handleTextChange = (e) => {
-    setText(e.target.value);
-    const el = textareaRef.current;
-    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
-  };
-
-  const sendMutation = useMutation({
-    mutationFn: (payload) => db.entities.GroupChatMessage.create(payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['groupChat', group.id] });
-      requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }));
-    },
-  });
-
-  const handleSend = () => {
-    const trimmed = text.trim();
-    if (!trimmed || !user?.id) return;
-    const payload = {
-      group_id: group.id,
-      author_id: user.id,
-      author_name: user.full_name || user.email?.split('@')[0] || 'Student',
-      author_role: user.role || 'student',
-      body: trimmed,
-      deleted: false,
-      ...(replyTo ? { reply_to_id: replyTo.id, reply_preview: replyTo.body.slice(0,80), reply_author: replyTo.author_name } : {}),
-    };
-    sendMutation.mutate(payload);
-    setText('');
-    setReplyTo(null);
-    if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  };
-
+  // ── Group message items with date separators ──────────────────────────────
   const grouped = useMemo(() => {
     const result = [];
     messages.forEach((msg, i) => {
       const prev = messages[i - 1];
       if (!prev || !sameDay(prev.created_date, msg.created_date)) {
-        result.push({ type: 'date', label: formatDateLabel(msg.created_date), key: `d-${i}` });
+        result.push({ type:'date', label: fmtDate(msg.created_date), key:`d-${i}` });
       }
-      const showAvatar = !prev || prev.author_id !== msg.author_id || !sameDay(prev.created_date, msg.created_date);
-      result.push({ type: 'msg', msg, showAvatar, key: msg.id });
+      const showName = !prev || prev.author_id !== msg.author_id ||
+        !sameDay(prev.created_date, msg.created_date);
+      result.push({ type:'msg', msg, showName, key: msg.id });
     });
     return result;
   }, [messages]);
 
+  // ── Send ──────────────────────────────────────────────────────────────────
+  const sendMutation = useMutation({
+    mutationFn: payload => db.entities.GroupChatMessage.create(payload),
+    onMutate: async payload => {
+      // Optimistic update
+      await qc.cancelQueries({ queryKey: ['groupChat', group.id] });
+      const prev = qc.getQueryData(['groupChat', group.id]) || [];
+      qc.setQueryData(['groupChat', group.id], [
+        ...prev,
+        { ...payload, id: `tmp-${Date.now()}`, created_date: new Date().toISOString() }
+      ]);
+      return { prev };
+    },
+    onError: (_, __, ctx) => {
+      qc.setQueryData(['groupChat', group.id], ctx.prev);
+      toast.error('Message failed to send');
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['groupChat', group.id] }),
+  });
+
+  const handleSend = useCallback(() => {
+    const trimmed = text.trim();
+    if (!trimmed || !user?.id || !group) return;
+    sendMutation.mutate({
+      group_id   : group.id,
+      author_id  : user.id,
+      author_name: user.full_name || user.email?.split('@')[0] || 'Student',
+      author_role: user.role || 'student',
+      body       : trimmed,
+      deleted    : false,
+      ...(replyTo ? { reply_to_id:replyTo.id, reply_preview:replyTo.body.slice(0,80), reply_author:replyTo.author_name } : {}),
+    });
+    setText('');
+    setReplyTo(null);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  }, [text, user, group, replyTo, sendMutation]);
+
+  const handleKey = e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+  const handleTextChange = e => {
+    setText(e.target.value);
+    const el = textareaRef.current;
+    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+  };
+
+  if (!group) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center text-muted-foreground">
+          <div className="text-4xl mb-3">💬</div>
+          <p className="font-semibold">Loading group…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  // The chat fills the vertical space left by TopBar + BottomNav.
+  // We use a flex column that occupies full height of the page content area.
+  // The messages div is flex:1 and scrolls; the input bar is pinned at the bottom.
   return (
     <>
+      {showEditIcon && (
+        <EditIconModal
+          group={group}
+          onClose={() => setShowEditIcon(false)}
+          onSaved={updated => setLocalGroup(updated)}
+        />
+      )}
+
       {/*
-        LAYOUT STRATEGY:
-        - Outer div is position:fixed, covering the full screen MINUS the 64px bottom nav
-        - This means when the mobile keyboard appears, the browser shrinks the visible
-          viewport and our fixed container shrinks with it — so the input bar naturally
-          rises to sit directly above the keyboard, exactly like WhatsApp
-        - No paddingBottom tricks, no 100dvh hacks — just fixed positioning
+        Chat container: fills height of the main content area.
+        The parent <main> in AppLayout has padding, so we use negative margin to
+        bleed to the edges, then clip to create a clean inset chat look.
       */}
       <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: '64px',
-        background: WA_BG,
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: 50,
-        overflow: 'hidden',
+        display        : 'flex',
+        flexDirection  : 'column',
+        height         : 'calc(100dvh - 112px)', /* 56px TopBar + 56px BottomNav */
+        borderRadius   : 16,
+        overflow       : 'hidden',
+        border         : '1px solid rgba(0,0,0,0.08)',
+        boxShadow      : '0 2px 16px rgba(0,0,0,0.10)',
+        background     : WA_BG,
+        margin         : '-8px -8px 0', /* bleed to layout edge on mobile */
+        maxWidth       : '100%',
       }}>
 
-        {/* ── Header ── */}
+        {/* ── Chat Header (navy, WhatsApp style) ── */}
         <div style={{
-          flexShrink: 0,
-          height: 56,
-          background: WA_NAVY,
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '0 12px',
-          zIndex: 10,
+          flexShrink : 0,
+          background : NAVY,
+          color      : 'white',
+          display    : 'flex',
+          alignItems : 'center',
+          gap        : 10,
+          padding    : '0 12px',
+          height     : 56,
+          zIndex     : 10,
         }}>
-          <button onClick={onBack} style={{ background:'none', border:'none', color:'white', fontSize:24, cursor:'pointer', padding:'0 6px', lineHeight:1 }}>
-            ←
+          <button
+            onClick={() => navigate('/forums')}
+            style={{ background:'none',border:'none',color:'white',cursor:'pointer',
+                     padding:'4px 6px',borderRadius:8,display:'flex',alignItems:'center' }}
+          >
+            <ArrowLeft style={{width:20,height:20}} />
           </button>
-          <div style={{ width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0, overflow:'hidden' }}>
-            {group.icon_url
-              ? <img src={group.icon_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
-              : <span>{group.icon || '💬'}</span>
-            }
-          </div>
+
+          {/* Group avatar — clickable for admin/tutor */}
+          <GroupAvatar
+            src={group.icon_url}
+            icon={group.icon}
+            size={38}
+            canEdit={isPrivileged}
+            onClick={isPrivileged ? () => setShowEditIcon(true) : undefined}
+          />
+
           <div style={{ flex:1, overflow:'hidden' }}>
-            <div style={{ fontWeight:700, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{group.name}</div>
-            <div style={{ fontSize:11, opacity:0.75 }}>{group.member_count ? `${group.member_count} members` : 'Group chat'}</div>
+            <div style={{ fontWeight:700,fontSize:15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>
+              {group.name}
+            </div>
+            <div style={{ fontSize:11,opacity:0.72,display:'flex',alignItems:'center',gap:4 }}>
+              <Users style={{width:10,height:10}} />
+              {group.member_count ? `${group.member_count} members` : 'Group chat'}
+              {isPrivileged && (
+                <span style={{ marginLeft:6, fontSize:9, background:GOLD, color:NAVY,
+                               borderRadius:4, padding:'1px 5px', fontWeight:700 }}>
+                  TUTOR
+                </span>
+              )}
+            </div>
           </div>
-          <button style={{ background:'none', border:'none', color:'white', fontSize:22, cursor:'pointer', padding:'0 6px' }}>⋮</button>
+
+          {/* ⋮ Menu */}
+          <div style={{ position:'relative' }} ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(v => !v)}
+              style={{ background:'none',border:'none',color:'white',cursor:'pointer',
+                       padding:'6px',borderRadius:8,display:'flex',alignItems:'center' }}
+            >
+              <MoreVertical style={{width:18,height:18}} />
+            </button>
+            {showMenu && (
+              <div style={{ position:'absolute',right:0,top:'calc(100% + 4px)',background:'white',
+                            borderRadius:12,boxShadow:'0 8px 32px rgba(0,0,0,0.18)',
+                            minWidth:180,zIndex:100,overflow:'hidden' }}>
+                {isPrivileged && (
+                  <button onClick={()=>{setShowEditIcon(true);setShowMenu(false);}}
+                    style={{ width:'100%',display:'flex',alignItems:'center',gap:10,
+                             padding:'11px 16px',background:'none',border:'none',
+                             fontSize:14,cursor:'pointer',color:'#333',textAlign:'left' }}>
+                    <Camera style={{width:15,height:15,color:'#666'}} /> Edit Group Icon
+                  </button>
+                )}
+                <button onClick={()=>{navigate('/forums');setShowMenu(false);}}
+                  style={{ width:'100%',display:'flex',alignItems:'center',gap:10,
+                           padding:'11px 16px',background:'none',border:'none',
+                           fontSize:14,cursor:'pointer',color:'#333',textAlign:'left' }}>
+                  <ArrowLeft style={{width:15,height:15,color:'#666'}} /> Back to Forums
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── Messages — fills all space between header and input ── */}
-        <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'8px', WebkitOverflowScrolling:'touch' }}>
+        {/* ── Messages — scrollable middle section ── */}
+        <div style={{ flex:1, overflowY:'auto', overflowX:'hidden',
+                      padding:'8px 0', WebkitOverflowScrolling:'touch' }}>
           {isLoading && (
-            <div style={{ textAlign:'center', padding:24, color:'#999', fontSize:13 }}>Loading messages…</div>
+            <div style={{ textAlign:'center',padding:32,color:'#999',fontSize:13 }}>
+              Loading messages…
+            </div>
           )}
           {!isLoading && messages.length === 0 && (
-            <div style={{ textAlign:'center', padding:40, color:'#999', fontSize:13 }}>
-              <div style={{ fontSize:40, marginBottom:8 }}>💬</div>
-              <p style={{ margin:0 }}>No messages yet.<br/>Be the first to say something!</p>
+            <div style={{ textAlign:'center',padding:48,color:'#999' }}>
+              <div style={{fontSize:44,marginBottom:10}}>💬</div>
+              <p style={{margin:0,fontWeight:600,fontSize:14}}>No messages yet</p>
+              <p style={{margin:'4px 0 0',fontSize:12}}>Be the first to say something!</p>
             </div>
           )}
           {grouped.map(item =>
             item.type === 'date' ? (
-              <div key={item.key} style={{ textAlign:'center', margin:'8px 0' }}>
-                <span style={{ background:'rgba(255,255,255,0.85)', padding:'3px 10px', borderRadius:8, fontSize:11, color:'#666' }}>{item.label}</span>
+              <div key={item.key} style={{ textAlign:'center',margin:'10px 0' }}>
+                <span style={{ background:'rgba(255,255,255,0.85)',padding:'3px 12px',
+                               borderRadius:10,fontSize:11,color:'#666',boxShadow:'0 1px 2px rgba(0,0,0,.08)' }}>
+                  {item.label}
+                </span>
               </div>
             ) : (
               <MessageBubble
                 key={item.key}
                 msg={item.msg}
                 isMine={item.msg.author_id === user?.id}
-                showAvatar={item.showAvatar}
+                showName={item.showName}
               />
             )
           )}
-          <div ref={endRef} style={{ height:4 }} />
+          <div ref={endRef} style={{height:8}} />
         </div>
 
         {/* ── Reply preview ── */}
         {replyTo && (
-          <div style={{ flexShrink:0, background:'#fff', borderTop:'2px solid ' + WA_GREEN, padding:'6px 12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <div style={{ overflow:'hidden' }}>
-              <span style={{ fontSize:11, fontWeight:700, color:WA_GREEN }}>{replyTo.author_name}</span>
-              <p style={{ margin:0, fontSize:12, color:'#555', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis', maxWidth:240 }}>{replyTo.body}</p>
+          <div style={{ flexShrink:0,background:'#fff',
+                        borderTop:`2px solid #25D366`,padding:'6px 12px',
+                        display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+            <div style={{overflow:'hidden'}}>
+              <span style={{fontSize:11,fontWeight:700,color:'#25D366'}}>{replyTo.author_name}</span>
+              <p style={{margin:0,fontSize:12,color:'#555',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:240}}>
+                {replyTo.body}
+              </p>
             </div>
-            <button onClick={()=>setReplyTo(null)} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#999', flexShrink:0 }}>×</button>
+            <button onClick={()=>setReplyTo(null)}
+              style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#aaa',flexShrink:0}}>×</button>
           </div>
         )}
 
-        {/* ── Input bar — at the bottom of the fixed box; keyboard pushes the whole box up ── */}
-        <div ref={inputBarRef} style={{
-          flexShrink: 0,
-          background: '#F0F0F0',
-          borderTop: '1px solid #ddd',
-          padding: '6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px',
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 8,
+        {/* ── Input bar ── */}
+        <div style={{
+          flexShrink  : 0,
+          background  : '#F0F2F5',
+          borderTop   : '1px solid rgba(0,0,0,0.08)',
+          padding     : '8px 10px',
+          display     : 'flex',
+          alignItems  : 'flex-end',
+          gap         : 8,
         }}>
           <textarea
             ref={textareaRef}
             value={text}
             onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleKey}
             placeholder="Type a message…"
             rows={1}
             style={{
-              flex: 1,
-              borderRadius: 20,
-              border: '1px solid #ddd',
-              padding: '9px 14px',
-              fontSize: 14,
-              resize: 'none',
-              background: 'white',
-              outline: 'none',
-              lineHeight: 1.4,
-              maxHeight: 120,
-              overflowY: 'auto',
-              fontFamily: 'inherit',
-              display: 'block',
+              flex        : 1,
+              borderRadius: 22,
+              border      : '1px solid #ddd',
+              padding     : '9px 14px',
+              fontSize    : 14,
+              resize      : 'none',
+              background  : 'white',
+              outline     : 'none',
+              lineHeight  : 1.4,
+              maxHeight   : 120,
+              overflowY   : 'auto',
+              fontFamily  : 'inherit',
+              boxShadow   : '0 1px 3px rgba(0,0,0,0.06)',
             }}
           />
           <button
             onClick={handleSend}
             disabled={!text.trim()}
             style={{
-              width: 42, height: 42,
-              borderRadius: '50%',
-              background: text.trim() ? WA_GREEN : '#ccc',
-              border: 'none',
-              cursor: text.trim() ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              transition: 'background 0.2s',
-              marginBottom: 2,
+              width      : 44,
+              height     : 44,
+              borderRadius:'50%',
+              background  : text.trim() ? '#25D366' : '#ccc',
+              border      : 'none',
+              cursor      : text.trim() ? 'pointer' : 'default',
+              display     : 'flex',
+              alignItems  : 'center',
+              justifyContent:'center',
+              flexShrink  : 0,
+              transition  : 'background 0.15s, transform 0.1s',
+              transform   : text.trim() ? 'scale(1)' : 'scale(0.92)',
             }}
           >
-            <span style={{ color:'white', fontSize:18, marginLeft:2 }}>➤</span>
+            <Send style={{color:'white',width:18,height:18,marginLeft:2}} />
           </button>
         </div>
       </div>
-    </>
-  );
-}
-
-function CreateGroupModal({ user, subjects, onClose, onCreate }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [icon, setIcon] = useState('💬');
-  const [subjectId, setSubjectId] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const ICONS = ['💬','📚','⚡','🧬','⚗️','📐','📖','🌍','📜','🌱','🏆','🎯','🔥','💡','✏️'];
-
-  const handleCreate = async () => {
-    if (!name.trim() || !user?.id) return;
-    setSaving(true);
-    try {
-      const subject = subjects.find(s => s.id === subjectId);
-      const group = await db.entities.StudyGroup.create({
-        name: name.trim(), description: description.trim(), icon,
-        subject_id: subjectId || null, subject_name: subject?.name || null,
-        creator_id: user.id, creator_name: user.full_name || user.email,
-        member_ids: [user.id], member_names: [user.full_name || user.email],
-        member_count: 1, is_private: isPrivate, status: 'active',
-      });
-      onCreate(group);
-      onClose();
-    } catch(e) { console.error('Create group failed:', e); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div style={{ background:'white', borderRadius:16, width:'100%', maxWidth:400, overflow:'hidden', maxHeight:'85dvh', display:'flex', flexDirection:'column' }}>
-        <div style={{ background:WA_GREEN, color:'white', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', flexShrink:0 }}>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'white', fontSize:20, cursor:'pointer' }}>✕</button>
-          <span style={{ fontWeight:700, fontSize:15 }}>New Study Group</span>
-        </div>
-        <div style={{ overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
-          <div>
-            <p style={{ fontSize:12, fontWeight:600, color:'#666', marginBottom:6 }}>Group Icon</p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-              {ICONS.map(e => (
-                <button key={e} onClick={()=>setIcon(e)} style={{ width:36, height:36, borderRadius:'50%', border: icon===e ? `2px solid ${WA_GREEN}` : '1px solid #eee', background: icon===e ? '#e8f5e9' : '#f5f5f5', fontSize:18, cursor:'pointer' }}>{e}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label style={{ fontSize:12, fontWeight:600, color:'#666', display:'block', marginBottom:4 }}>Group Name *</label>
-            <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Form 4 Biology Squad" maxLength={60}
-              style={{ width:'100%', border:'1px solid #ddd', borderRadius:10, padding:'10px 12px', fontSize:14, outline:'none', boxSizing:'border-box' }} />
-          </div>
-          <div>
-            <label style={{ fontSize:12, fontWeight:600, color:'#666', display:'block', marginBottom:4 }}>Description (optional)</label>
-            <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="What's this group about?" maxLength={120}
-              style={{ width:'100%', border:'1px solid #ddd', borderRadius:10, padding:'10px 12px', fontSize:14, outline:'none', boxSizing:'border-box' }} />
-          </div>
-          <div>
-            <label style={{ fontSize:12, fontWeight:600, color:'#666', display:'block', marginBottom:4 }}>Subject (optional)</label>
-            <select value={subjectId} onChange={e=>setSubjectId(e.target.value)}
-              style={{ width:'100%', border:'1px solid #ddd', borderRadius:10, padding:'10px 12px', fontSize:14, outline:'none', background:'white', boxSizing:'border-box' }}>
-              <option value="">— No specific subject —</option>
-              {subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#f9f9f9', borderRadius:10, padding:'10px 12px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span>{isPrivate ? '🔒' : '🌐'}</span>
-              <div>
-                <p style={{ margin:0, fontWeight:600, fontSize:13 }}>{isPrivate ? 'Private' : 'Public'}</p>
-                <p style={{ margin:0, fontSize:11, color:'#888' }}>{isPrivate ? 'Invite only' : 'Anyone can join'}</p>
-              </div>
-            </div>
-            <button onClick={()=>setIsPrivate(v=>!v)}
-              style={{ width:44, height:24, borderRadius:12, background: isPrivate ? WA_GREEN : '#ccc', border:'none', cursor:'pointer', position:'relative', transition:'background 0.2s' }}>
-              <span style={{ position:'absolute', top:2, left: isPrivate ? 22 : 2, width:20, height:20, borderRadius:'50%', background:'white', transition:'left 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }} />
-            </button>
-          </div>
-          <button onClick={handleCreate} disabled={!name.trim()||saving}
-            style={{ width:'100%', padding:12, borderRadius:12, background: name.trim()&&!saving ? WA_GREEN : '#ccc', color:'white', border:'none', fontWeight:700, fontSize:14, cursor: name.trim()&&!saving ? 'pointer' : 'default' }}>
-            {saving ? 'Creating…' : 'Create Group'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Main export — NO SPINNER for subject/community chats ─────────────────────
-export default function SubjectGroupChat() {
-  const navigate = useNavigate();
-  const { subjectSlug } = useParams();
-  const location = useLocation();
-  const { user } = useOutletContext() ?? {};
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
-
-  const isCommunity = subjectSlug === 'community' || location.state?.isCommunity;
-  const isCustomGroup = !!location.state?.group;
-
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects-list'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 100),
-    staleTime: 300_000,
-  });
-
-  // Custom group from My Groups — use state directly
-  if (isCustomGroup) {
-    return (
-      <>
-        <ChatView group={location.state.group} user={user} onBack={() => navigate('/forums')} />
-        {showCreateGroup && (
-          <CreateGroupModal user={user} subjects={subjects} onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
-        )}
-      </>
-    );
-  }
-
-  // Community chat — instant virtual group
-  if (isCommunity) {
-    const group = { id: 'community-global', name: 'ACA Community', icon: '🎓', icon_url: null, member_count: null, creator_id: 'system' };
-    return (
-      <>
-        <ChatView group={group} user={user} onBack={() => navigate('/forums')} />
-        {showCreateGroup && (
-          <CreateGroupModal user={user} subjects={subjects} onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
-        )}
-      </>
-    );
-  }
-
-  // Subject chat — look up subject then render instantly
-  return <SubjectChatView subjectSlug={subjectSlug} locationState={location.state} user={user} subjects={subjects} navigate={navigate} showCreateGroup={showCreateGroup} setShowCreateGroup={setShowCreateGroup} />;
-}
-
-function SubjectChatView({ subjectSlug, locationState, user, subjects, navigate, showCreateGroup, setShowCreateGroup }) {
-  const subjectFromState = locationState?.subject;
-  const { data: subjectFromDB, isLoading } = useQuery({
-    queryKey: ['subj-slug', subjectSlug],
-    queryFn: async () => {
-      const all = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
-      const slug = (subjectSlug || '').toLowerCase();
-      return all.find(s => s.name.toLowerCase().replace(/[^a-z0-9]+/g,'-') === slug)
-        || all.find(s => slug.includes(s.name.toLowerCase().split(' ').pop() || '__'))
-        || null;
-    },
-    enabled: !subjectFromState,
-    staleTime: 300_000,
-  });
-  const subject = subjectFromState || subjectFromDB;
-
-  if (!subject && isLoading) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', paddingBottom:64, gap:12 }}>
-      <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid #25D366', borderTopColor:'transparent', animation:'spin 0.8s linear infinite' }} />
-      <p style={{ color:'#666', fontSize:13 }}>Opening chat…</p>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-
-  if (!subject) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', paddingBottom:64, gap:16, padding:32, textAlign:'center' }}>
-      <p style={{ fontWeight:600, color:'#333' }}>Subject not found</p>
-      <button onClick={() => navigate('/forums')} style={{ padding:'10px 20px', background:WA_GREEN, color:'white', border:'none', borderRadius:12, fontSize:14, cursor:'pointer', fontWeight:600 }}>Back to Forums</button>
-    </div>
-  );
-
-  const group = { id: `subject-${subject.id}`, name: subject.name, icon: getSubjectIcon(subject.name), icon_url: null, member_count: null, subject_name: subject.name, creator_id: 'system' };
-  return (
-    <>
-      <ChatView group={group} user={user} onBack={() => navigate('/forums')} />
-      {showCreateGroup && (
-        <CreateGroupModal user={user} subjects={subjects} onClose={() => setShowCreateGroup(false)} onCreate={() => navigate('/forums')} />
-      )}
     </>
   );
 }
