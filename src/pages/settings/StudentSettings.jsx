@@ -125,11 +125,8 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
       // Save avatar via db.auth.updateMe → patches users table in Supabase
       await db.auth.updateMe({ avatar_url: file_url });
 
-      if (profile?.id) {
-        await db.entities.User.update(profile.id, { avatar_url: file_url });
-      } else if (user?.id) {
-        await (async () => null)(/* StudentProfile.create skipped */ { user_id: user.id, avatar_url: file_url });
-      }
+      // Save avatar_url to user_metadata
+      await db.auth.updateMe({ data: { avatar_url: file_url } });
 
       await checkUserAuth();
       qc.invalidateQueries({ queryKey: ['studentProfile'] });
@@ -149,20 +146,16 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
       // Update users table via Supabase
       await db.auth.updateMe({ full_name: fullName.trim() });
 
-      // Update or create StudentProfile
-      const profileData = {
-        full_name:    fullName.trim(),
-        phone_number: phone.trim(),
-        school_name:  schoolName.trim(),
-      };
-      if (profile?.id) {
-        await db.entities.User.update(profile.id, profileData);
-      } else if (user?.id) {
-        await (async () => null)(/* StudentProfile.create skipped */ { user_id: user.id, ...profileData });
-      }
+      // Save extended profile fields to user_metadata
+      await db.auth.updateMe({
+        data: {
+          full_name:    fullName.trim(),
+          phone_number: phone.trim(),
+          school_name:  schoolName.trim(),
+        }
+      });
 
       await checkUserAuth();
-      qc.invalidateQueries({ queryKey: ['studentProfile'] });
       toast.success('Profile saved!');
     } catch (err) {
       toast.error(err?.message || 'Save failed — please try again');
@@ -253,13 +246,10 @@ function AcademicPanel({ user, profile, qc }) {
     if (!selectedForm) { toast.error('Please select a form first'); return; }
     setSaving(true);
     try {
-      if (profile?.id) {
-        await db.entities.User.update(profile.id, { form: selectedForm });
-      } else if (user?.id) {
-        await (async () => null)(/* StudentProfile.create skipped */ { user_id: user.id, form: selectedForm });
-      }
-      qc.invalidateQueries({ queryKey: ['studentProfile'] });
-      toast.success('Academic info saved!');
+      // Save form selection to user_metadata via Supabase auth
+      await db.auth.updateMe({ data: { form: selectedForm } });
+      await checkUserAuth();
+      toast.success('Form saved!');
     } catch (err) {
       toast.error(err?.message || 'Save failed — please try again');
     } finally {
@@ -676,14 +666,16 @@ export default function StudentSettings() {
 
   const [searchParams, setSearchParams] = React.useState ? React.useState(null) : [null, null];
 
-  const { data: profile, isLoading: profileQueryLoading } = useQuery({
-    queryKey: ['studentProfile', user?.id],
-    queryFn: async () => {
-      const rows = await db.entities.User.filter({ user_id: user.id });
-      return rows[0] || null;
-    },
-    enabled: !!user?.id,
-  });
+  // Profile data lives in Supabase user_metadata — no extra DB table needed
+  // user_metadata is loaded by AuthContext and available on the user object
+  const profile = {
+    id: user?.id,
+    phone_number: user?.user_metadata?.phone_number || user?.phone_number || '',
+    school_name:  user?.user_metadata?.school_name  || user?.school_name  || '',
+    form:         user?.user_metadata?.form         || user?.form         || '',
+    avatar_url:   user?.user_metadata?.avatar_url   || user?.avatar_url   || '',
+  };
+  const profileQueryLoading = false;
 
   const panels = {
     profile:       <ProfilePanel user={user} profile={profile} profileLoaded={!profileQueryLoading} qc={qc} />,
