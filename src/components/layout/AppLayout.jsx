@@ -273,7 +273,7 @@ export default function AppLayout() {
             onMenuClick={() => setMobileOpen(true)}
           />
         )}
-        <main key={location.pathname} className={isChatPage ? "flex-1 overflow-hidden" : "flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter"}>
+        <main key={location.pathname} style={isChatPage ? { position:'relative', flex:1, overflow:'hidden', padding:0 } : undefined} className={isChatPage ? "flex-1" : "flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter"}>
           <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
