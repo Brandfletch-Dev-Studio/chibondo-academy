@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useParams } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -111,6 +111,12 @@ const TutorManagement = lazy(() => import('@/pages/admin/TutorManagement'));
 const StudentSettings = lazy(() => import('@/pages/settings/StudentSettings'));
 const TeacherSettings = lazy(() => import('@/pages/settings/TeacherSettings'));
 
+
+function ForumRedirect() {
+  const { subjectSlug } = useParams();
+  return <Navigate to={`/forums/${subjectSlug}/chat`} replace />;
+}
+
 const AppRoutes = () => {
   const { authError } = useAuth();
 
@@ -149,7 +155,7 @@ const AppRoutes = () => {
         <Route path="/tutors/:slug" element={<TutorProfilePage />} />
         <Route path="/forums" element={<ForumsHome />} />
         <Route path="/forums/:subjectSlug/chat" element={<SubjectGroupChat />} />
-        <Route path="/forums/:subjectSlug" element={<SubjectForum />} />
+        <Route path="/forums/:subjectSlug" element={<ForumRedirect />} />
         <Route path="/forums/:subjectSlug/:threadSlug" element={<ForumThread />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/library/read/:resourceId" element={<DocumentViewer />} />
