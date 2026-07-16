@@ -53,7 +53,7 @@ export default function TeacherLibrary() {
 
   const { data: forms = [] } = useQuery({
     queryKey: ['academicForms'],
-    queryFn: () => (async () => [])(/* AcademicForm removed */),
+    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order', 100),
   });
 
   const saveMutation = useMutation({
