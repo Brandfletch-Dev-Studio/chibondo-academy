@@ -8,7 +8,7 @@ const authNavItems = [
   { label: 'Classes',   icon: BookOpen,      path: '/subjects' },
   { label: 'Referrals', icon: Gift,          path: '/affiliate' },
   { label: 'Library',   icon: Library,       path: '/library' },
-  { label: 'Forums',    icon: MessageSquare, path: '/forums' },
+  { label: 'Chats',    icon: MessageSquare, path: '/forums' },
   { label: 'Fees',      icon: CreditCard,    path: '/fees' },
 ];
 
@@ -18,7 +18,7 @@ const guestNavItems = [
   { label: 'Subjects', icon: BookOpen,      path: '/subjects' },
   { label: 'Tutors',   icon: Home,          path: '/tutors' },
   { label: 'Library',  icon: Library,       path: '/library' },
-  { label: 'Forums',   icon: MessageSquare, path: '/forums' },
+  { label: 'Chats',   icon: MessageSquare, path: '/forums' },
 ];
 
 export default function BottomNav({ user, notifications = [] }) {
