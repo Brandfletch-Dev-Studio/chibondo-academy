@@ -289,7 +289,7 @@ export default function LessonPage() {
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', lesson?.subject_id],
-    queryFn: async () => [],  // Topic entity removed
+    queryFn: () => db.entities.Topic.filter({ subject_id: lesson?.subject_id }, 'order', 200),
     enabled: !!lesson?.subject_id,
   });
 
