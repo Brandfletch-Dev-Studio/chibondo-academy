@@ -89,7 +89,7 @@ export default function AdminSubscriptions() {
   // Fetch StudentProfiles directly — has user_id + full_name, no function call needed
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['allStudentProfiles'],
-    queryFn: () => db.entities.StudentProfile.list('-created_date', 2000),
+    queryFn: () => db.entities.User.list('-created_date', 2000),
     staleTime: 60_000,
   });
   // Also try getAdminUsers for email/role data (best-effort, may fail)
