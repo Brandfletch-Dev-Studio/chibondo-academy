@@ -129,7 +129,7 @@ function ProfilePanel({ user }) {
   const { data: profile } = useQuery({
     queryKey: ['adminProfile', user?.id],
     queryFn: async () => {
-      const r = await db.entities.StudentProfile.filter({ user_id: user.id });
+      const r = await db.entities.StudentProfile.filter({ user_id: user.id }).catch(() => []);
       return r[0] || null;
     },
     enabled: !!user?.id,
@@ -865,7 +865,7 @@ function BackfillButton() {
     try {
       // Backfill: create StudentProfile for any user without one
       const allUsers = await db.entities.User.list('-created_date', 2000);
-      const existingProfiles = await db.entities.StudentProfile.list('-created_date', 2000);
+      const existingProfiles = await db.entities.StudentProfile.list('-created_date', 2000).catch(() => []);
       const profileUserIds = new Set(existingProfiles.map(p => p.user_id));
       const missing = allUsers.filter(u => !profileUserIds.has(u.id) && u.role === 'user');
       await Promise.all(missing.map(u => db.entities.StudentProfile.create({
