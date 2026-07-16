@@ -177,10 +177,7 @@ function ChatView({ group, user, onBack, subjects, onNewGroupClick }) {
         <button onClick={onBack} className="p-1 rounded-full hover:bg-white/10 transition-colors">
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-          style={{ background: '#128C7E' }}>
-          {group.icon || '💬'}
-        </div>
+        <GroupAvatar src={group.icon_url} icon={group.icon} size={36} />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm text-white leading-none truncate">{group.name}</p>
           <p className="text-[11px] text-white/60 mt-0.5">
@@ -292,6 +289,7 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('💬');
+  const [iconUrl, setIconUrl] = useState(null);
   const [subjectId, setSubjectId] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -338,12 +336,21 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
         <div className="p-4 space-y-4">
           {/* Icon picker */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Group Icon</p>
+            <p className="text-xs font-semibold text-gray-500 mb-2">Group Photo</p>
+            <div className="flex items-center gap-3 mb-3">
+              <IconUploadButton
+                currentIcon={icon}
+                currentIconUrl={iconUrl}
+                onUploaded={(url) => setIconUrl(url)}
+                size={48}
+              />
+              <p className="text-xs text-gray-400">Tap to upload a group photo, or pick an emoji below</p>
+            </div>
             <div className="flex flex-wrap gap-2">
               {ICONS.map(e => (
-                <button key={e} onClick={() => setIcon(e)}
-                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e ? 'scale-110' : 'hover:scale-105'}`}
-                  style={icon === e ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
+                <button key={e} onClick={() => { setIcon(e); setIconUrl(null); }}
+                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center transition-all ${icon === e && !iconUrl ? 'scale-110' : 'hover:scale-105'}`}
+                  style={icon === e && !iconUrl ? { boxShadow: `0 0 0 2px ${WA_GREEN}`, background: '#e8f5e9' } : { background: '#f5f5f5' }}>
                   {e}
                 </button>
               ))}
@@ -417,6 +424,82 @@ function CreateGroupModal({ user, subjects, onClose, onCreate }) {
   );
 }
 
+// ── Avatar helper ────────────────────────────────────────────────────────────
+// Default: WhatsApp-style group icon SVG if no image set
+function GroupAvatar({ src, icon, size = 40, className = '' }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt="group"
+        className={`rounded-full object-cover flex-shrink-0 ${className}`}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  if (icon && icon !== '📚' && icon.length <= 4) {
+    return (
+      <div
+        className={`rounded-full flex items-center justify-center flex-shrink-0 ${className}`}
+        style={{ width: size, height: size, background: '#128C7E', fontSize: size * 0.45 }}
+      >
+        {icon}
+      </div>
+    );
+  }
+  // Default WhatsApp-style generic group SVG
+  return (
+    <div
+      className={`rounded-full flex items-center justify-center flex-shrink-0 ${className}`}
+      style={{ width: size, height: size, background: '#DFE5E7' }}
+    >
+      <svg viewBox="0 0 212 212" style={{ width: size * 0.65, height: size * 0.65 }}>
+        <path fill="#BEC5C9" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z"/>
+        <path fill="#FFF" d="M173.561 171.615a62.767 62.767 0 0 0-2.065-2.955 67.7 67.7 0 0 0-2.608-3.299 70.112 70.112 0 0 0-3.184-3.527 71.097 71.097 0 0 0-5.924-5.47 72.458 72.458 0 0 0-10.023-7.030c-1.741-.99-3.528-1.929-5.358-2.809-.872-.41-1.750-.81-2.634-1.195a44.34 44.34 0 0 0-1.793-.762 38.713 38.713 0 0 0-2.374-.897 30.038 30.038 0 0 0-2.399-.666 25.792 25.792 0 0 0-2.427-.438 22.956 22.956 0 0 0-2.458-.21 22.2 22.2 0 0 0-2.491.042 21.86 21.86 0 0 0-2.526.317 23.28 23.28 0 0 0-2.562.597 27.29 27.29 0 0 0-2.601.893 32.63 32.63 0 0 0-2.641 1.208 38.63 38.63 0 0 0-2.682 1.543 44.92 44.92 0 0 0-2.723 1.907c-.456.345-.905.699-1.350 1.064-.225.182-.447.368-.667.558-.22.19-.438.382-.655.577-.216.195-.43.393-.643.593-.43.403-.853.815-1.267 1.234-.211.21-.42.422-.627.637-.207.215-.412.433-.614.653-.202.220-.402.442-.599.666-.196.224-.390.450-.581.678-.192.230-.380.462-.566.696-.186.234-.369.470-.549.709-.180.239-.356.480-.530.724-.174.244-.344.490-.511.739-.167.249-.330.500-.490.754-.160.254-.316.510-.469.769-.153.259-.302.520-.447.784-.146.264-.287.530-.426.799-.138.269-.273.540-.404.815-.131.275-.258.552-.382.832-.124.280-.245.562-.363.847a62.79 62.79 0 0 0-.642 1.712 63.53 63.53 0 0 0-.571 1.77 60.97 60.97 0 0 0-.5 1.826 57.31 57.31 0 0 0-.43 1.882 54.47 54.47 0 0 0-.357 1.934 51.48 51.48 0 0 0-.285 1.984 48.95 48.95 0 0 0-.213 2.033 47.13 47.13 0 0 0-.14 2.080 46.01 46.01 0 0 0-.066 2.125c-.012.71-.013 1.420.0 2.130h141.922c.013-.71.012-1.420 0-2.130a46.01 46.01 0 0 0-.066-2.125 47.13 47.13 0 0 0-.140-2.080 48.95 48.95 0 0 0-.213-2.033 51.48 51.48 0 0 0-.285-1.984 54.47 54.47 0 0 0-.357-1.934 57.31 57.31 0 0 0-.43-1.882 60.97 60.97 0 0 0-.5-1.826 63.53 63.53 0 0 0-.571-1.770 62.79 62.79 0 0 0-.642-1.712c-.118-.285-.239-.567-.363-.847-.124-.280-.251-.557-.382-.832-.131-.275-.266-.546-.404-.815-.139-.269-.280-.535-.426-.799-.146-.264-.294-.525-.447-.784-.153-.259-.309-.515-.469-.769-.160-.254-.323-.505-.490-.754-.167-.249-.337-.495-.511-.739-.174-.244-.350-.485-.530-.724-.186-.234-.374-.466-.566-.696-.191-.230-.385-.456-.581-.678-.197-.224-.397-.446-.599-.666-.202-.220-.407-.438-.614-.653-.207-.215-.416-.427-.627-.637-.414-.419-.837-.831-1.267-1.234-.213-.200-.427-.398-.643-.593-.217-.195-.435-.387-.655-.577-.220-.190-.444-.376-.667-.558-.445-.365-.894-.719-1.350-1.064a44.92 44.92 0 0 0-2.723-1.907 38.63 38.63 0 0 0-2.682-1.543 32.63 32.63 0 0 0-2.641-1.208 27.29 27.29 0 0 0-2.601-.893 23.28 23.28 0 0 0-2.562-.597 21.86 21.86 0 0 0-2.526-.317 22.2 22.2 0 0 0-2.491-.042 22.956 22.956 0 0 0-2.458.210 25.792 25.792 0 0 0-2.427.438 30.038 30.038 0 0 0-2.399.666 38.713 38.713 0 0 0-2.374.897 44.34 44.34 0 0 0-1.793.762c-.884.385-1.762.785-2.634 1.195-1.830.880-3.617 1.819-5.358 2.809a72.458 72.458 0 0 0-10.023 7.030 71.097 71.097 0 0 0-5.924 5.470 70.112 70.112 0 0 0-3.184 3.527 67.7 67.7 0 0 0-2.608 3.299 62.767 62.767 0 0 0-2.065 2.955z"/>
+        <path fill="#FFF" d="M106.25 93.75c14.912 0 27-12.088 27-27s-12.088-27-27-27-27 12.088-27 27 12.088 27 27 27z"/>
+      </svg>
+    </div>
+  );
+}
+
+// ── Image upload helper ───────────────────────────────────────────────────────
+function IconUploadButton({ currentIcon, currentIconUrl, onUploaded, size = 40 }) {
+  const inputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await db.storage.upload('group-icons', `${Date.now()}-${file.name}`, file);
+      const url = db.storage.getPublicUrl('group-icons', uploaded.path || uploaded.Key || uploaded.key);
+      onUploaded(url);
+    } catch (err) {
+      console.error('Upload failed', err);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="relative inline-block cursor-pointer" onClick={() => inputRef.current?.click()}>
+      <GroupAvatar src={currentIconUrl} icon={currentIcon} size={size} />
+      <div
+        className="absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity"
+        style={{ borderRadius: '50%' }}
+      >
+        {uploading
+          ? <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
+          : <Camera className="w-4 h-4 text-white" />
+        }
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    </div>
+  );
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function SubjectGroupChat() {
   const navigate = useNavigate();
@@ -435,36 +518,49 @@ export default function SubjectGroupChat() {
     staleTime: 300_000,
   });
 
-  // Query for subject-based official group
+  // ── Step 1: Resolve the subject (from state OR from slug lookup) ─────────────
+  const { data: resolvedSubject } = useQuery({
+    queryKey: ['subject-by-slug', subjectSlug],
+    queryFn: async () => {
+      // Try state first (fast path)
+      if (location.state?.subject) return location.state.subject;
+      if (location.state?.group) return null;
+      if (isCommunity) return null;
+      // Fallback: look up subject by slug from DB
+      const allSubjects = await db.entities.Subject.filter({ status: 'published' }, 'name', 100);
+      const slug = subjectSlug.toLowerCase();
+      return allSubjects.find(s =>
+        (s.slug && s.slug === slug) ||
+        s.name.toLowerCase().replace(/\s+/g, '-') === slug
+      ) || null;
+    },
+    enabled: !isCommunity && !location.state?.group,
+    staleTime: 300_000,
+  });
+
+  // ── Step 2: Resolve/create the StudyGroup ────────────────────────────────────
+  const subjectForGroup = location.state?.subject || resolvedSubject;
+
   const { data: subjectGroupResult, isLoading: isGroupLoading } = useQuery({
     queryKey: ['subject-chat-group', subjectSlug, isCommunity],
     queryFn: async () => {
       // Direct group from My Groups list
-      if (location.state?.group) {
-        return location.state.group;
-      }
+      if (location.state?.group) return location.state.group;
 
       if (isCommunity) {
-        // Query by specific fixed group ID 'community-global'
         try {
           const existing = await db.entities.StudyGroup.get('community-global');
-          if (existing && existing.status === 'active') {
-            return existing;
-          }
-        } catch (e) {
-          // If 404 or fails, we will create it below
-        }
-
-        // Try query filter in case id get lookup didn't work directly
-        const list = await db.entities.StudyGroup.filter({ id: 'community-global' });
-        if (list && list.length > 0) return list[0];
-
-        // Create community-global study group if not exists
+          if (existing?.status === 'active') return existing;
+        } catch (_) {}
+        const list = await db.entities.StudyGroup.filter({ status: 'active' }, 'created_date', 5);
+        const found = list.find(g => g.id === 'community-global');
+        if (found) return found;
         return await db.entities.StudyGroup.create({
           id: 'community-global',
           name: 'Chibondo Academy',
           description: 'Official global community group chat',
           icon: '🎓',
+          icon_url: null,
           creator_id: 'system',
           creator_name: 'System',
           member_ids: user?.id ? [user.id] : [],
@@ -473,72 +569,66 @@ export default function SubjectGroupChat() {
           is_private: false,
           status: 'active',
         });
-      } else {
-        const subject = location.state?.subject;
-        if (!subject) return null;
-
-        // Query by subject_id to ensure a stable key and no duplicates
-        const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' });
-        if (existingList && existingList.length > 0) {
-          return existingList[0];
-        }
-
-        // Auto-create on first visit
-        return await db.entities.StudyGroup.create({
-          name: `${subject.name} Group`,
-          description: `Official study group for ${subject.name}`,
-          icon: '📚',
-          subject_id: subject.id,
-          subject_name: subject.name,
-          creator_id: user?.id || 'system',
-          creator_name: user ? (user.full_name || user.email) : 'System',
-          member_ids: user?.id ? [user.id] : [],
-          member_names: user?.id ? [user.full_name || user.email] : [],
-          member_count: user?.id ? 1 : 0,
-          is_private: false,
-          status: 'active',
-        });
       }
+
+      // Subject chat — need subject resolved
+      const subject = subjectForGroup;
+      if (!subject) return null;
+
+      // Look up by subject_id
+      const existingList = await db.entities.StudyGroup.filter({ subject_id: subject.id, status: 'active' }, '-created_date', 5);
+      if (existingList?.length > 0) return existingList[0];
+
+      // Auto-create
+      return await db.entities.StudyGroup.create({
+        name: `${subject.name} Group`,
+        description: `Official study group for ${subject.name}`,
+        icon: '📚',
+        icon_url: null,
+        subject_id: subject.id,
+        subject_name: subject.name,
+        creator_id: user?.id || 'system',
+        creator_name: user ? (user.full_name || user.email) : 'System',
+        member_ids: user?.id ? [user.id] : [],
+        member_names: user?.id ? [user.full_name || user.email] : [],
+        member_count: user?.id ? 1 : 0,
+        is_private: false,
+        status: 'active',
+      });
     },
-    enabled: isCommunity || !!(location.state?.group) || (!!subjectSlug && !!location.state?.subject),
+    enabled: isCommunity || !!(location.state?.group) || !!subjectForGroup,
     staleTime: 30_000,
   });
 
-  // Auto-join membership hook/logic when the group is active
+  // Auto-join silently
   useEffect(() => {
-    if (!subjectGroupResult || !user?.id) return;
+    if (!subjectGroupResult?.id || !user?.id) return;
     const memberIds = subjectGroupResult.member_ids || [];
     if (!memberIds.includes(user.id)) {
-      const updatedIds = [...memberIds, user.id];
-      const updatedNames = [...(subjectGroupResult.member_names || []), user.full_name || user.email];
       db.entities.StudyGroup.update(subjectGroupResult.id, {
-        member_ids: updatedIds,
-        member_names: updatedNames,
-        member_count: updatedIds.length,
-      }).catch(err => {
-        console.error('Silent auto-join failed:', err);
-      });
+        member_ids: [...memberIds, user.id],
+        member_names: [...(subjectGroupResult.member_names || []), user.full_name || user.email],
+        member_count: memberIds.length + 1,
+      }).catch(() => {});
     }
-  }, [subjectGroupResult, user?.id]);
+  }, [subjectGroupResult?.id, user?.id]);
 
-  // Keep activeGroup state synced or initialized to subjectGroupResult
+  // Sync activeGroup
   useEffect(() => {
-    if (subjectGroupResult) {
-      setActiveGroup(subjectGroupResult);
-    }
+    if (subjectGroupResult) setActiveGroup(subjectGroupResult);
   }, [subjectGroupResult]);
 
-  if (isGroupLoading) {
+  const displayedGroup = activeGroup || subjectGroupResult;
+
+  // Loading state — waiting for subject resolution then group
+  if (isGroupLoading || (!isCommunity && !location.state?.group && !subjectForGroup && !displayedGroup)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-gray-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
-        <p className="text-sm">Loading Forum Chat...</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: WA_GREEN }} />
+        <p className="text-sm text-gray-400">Loading chat…</p>
       </div>
     );
   }
-
-  // Handle case where activeGroup is determined
-  const displayedGroup = activeGroup || subjectGroupResult;
 
   if (displayedGroup) {
     return (
@@ -555,29 +645,21 @@ export default function SubjectGroupChat() {
             user={user}
             subjects={subjects}
             onClose={() => setShowCreateGroup(false)}
-            onCreate={(newGroup) => {
-              // On success, go to forums home where 'My Groups' section will display it
-              navigate('/forums');
-            }}
+            onCreate={() => navigate('/forums')}
           />
         )}
       </>
     );
   }
 
-  // No subject state passed — probably navigated directly by URL
-  // Show a loading-like message and redirect to forums to pick a subject
-  useEffect(() => {
-    if (!isGroupLoading && !displayedGroup && !isCommunity) {
-      const timer = setTimeout(() => navigate('/forums'), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isGroupLoading, displayedGroup, isCommunity]);
-
+  // True not-found (shouldn't normally happen)
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-gray-500 gap-3">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 p-8">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: WA_GREEN }} />
-      <p className="text-sm text-gray-400">Loading chat…</p>
+      <p className="text-sm text-gray-400">Setting up chat room…</p>
+      <button onClick={() => navigate('/forums')} className="text-xs text-gray-400 underline mt-2">
+        Go back to forums
+      </button>
     </div>
   );
 }
