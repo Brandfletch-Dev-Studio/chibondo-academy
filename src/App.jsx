@@ -191,6 +191,7 @@ const AppRoutes = () => {
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/library/read/:resourceId" element={<DocumentViewer />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="/fees" element={<SubscriptionPage />} />
         <Route path="/lesson/:lessonId" element={<LessonPage />} />
 
         {/* ── AUTHENTICATED-ONLY ROUTES (redirect to login if guest) ── */}
