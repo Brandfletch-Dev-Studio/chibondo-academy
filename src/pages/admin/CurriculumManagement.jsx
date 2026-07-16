@@ -30,12 +30,12 @@ function FormManager() {
   const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
 
   const saveMutation = useMutation({
-    mutationFn: () => editing ? (async () => null)(/* AcademicForm removed */ editing.id, form) : (async () => null)(/* AcademicForm removed */ form),
+    mutationFn: () => editing ? db.entities.AcademicForm.update(editing.id, form) : db.entities.AcademicForm.create(form),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['forms'] }); closeDialog(); toast.success(editing ? 'Form updated' : 'Form created'); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => (async () => null)(/* AcademicForm removed */ id),
+    mutationFn: (id) => db.entities.AcademicForm.delete(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['forms'] }); toast.success('Form deleted'); },
   });
 
@@ -317,13 +317,13 @@ function TopicManager() {
     mutationFn: () => {
       const sub = subjects.find(s => s.id === formData.subject_id);
       const data = { ...formData, subject_name: sub?.name || '', form_id: sub?.form_id || '' };
-      return editing ? (async () => null)(/* Topic removed */ editing.id, data) : (async () => null)(/* Topic removed */ data);
+      return editing ? db.entities.Topic.update(editing.id, data) : db.entities.Topic.create(data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allTopics'] }); closeDialog(); toast.success(editing ? 'Topic updated' : 'Topic created'); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => (async () => null)(/* Topic removed */ id),
+    mutationFn: (id) => db.entities.Topic.delete(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allTopics'] }); toast.success('Topic deleted'); },
   });
 
