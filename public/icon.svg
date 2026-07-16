@@ -1,46 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e2d5c" />
-      <stop offset="100%" stop-color="#2d4a8a" />
-    </linearGradient>
-    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.3" />
-    </filter>
-  </defs>
-
-  <!-- Background with sharp rounded corners (maskable) -->
-  <rect width="512" height="512" rx="80" ry="80" fill="url(#bgGrad)" />
-
-  <!-- Logo Group centered with padding -->
-  <g transform="translate(0, -10)" filter="url(#dropShadow)">
-    <!-- Open Book -->
-    <!-- Spine Accent (Gold) -->
-    <path d="M256,215 L256,335" stroke="#c9a84c" stroke-width="12" stroke-linecap="round" />
+  <rect width="512" height="512" fill="#0d1420"/>
+  <!-- Logo scaled and centred: 200x240 → fit in 512x512 at scale ~1.8, centred -->
+  <g transform="translate(156, 76) scale(1.0)">
     
-    <!-- Left Pages (White/Cream #f8fafc) -->
-    <path d="M256,220 C220,195 160,195 110,210 L110,320 C160,305 220,305 256,330 Z" fill="#f8fafc" />
-    <!-- Left page edge lines to show thickness -->
-    <path d="M110,210 L110,214 C160,199 220,199 256,224 L256,220 Z" fill="#e2e8f0" />
-    <path d="M110,320 L110,324 C160,309 220,309 256,334 L256,330 Z" fill="#cbd5e1" />
+  <!-- Twin offset rectangular frames (back frame slightly offset top-left) -->
+  <!-- Back frame -->
+  <rect x="30" y="18" width="110" height="148" rx="2"
+        stroke="#c9a84c" stroke-width="4" fill="none" opacity="0.7"/>
+  <!-- Front frame (offset down-right) -->
+  <rect x="44" y="30" width="110" height="148" rx="2"
+        stroke="#c9a84c" stroke-width="4" fill="none"/>
 
-    <!-- Right Pages (White/Cream #f8fafc) -->
-    <path d="M256,220 C292,195 352,195 402,210 L402,320 C352,305 292,305 256,330 Z" fill="#f8fafc" />
-    <!-- Right page edge lines to show thickness -->
-    <path d="M402,210 L402,214 C352,199 292,199 256,224 L256,220 Z" fill="#e2e8f0" />
-    <path d="M402,320 L402,324 C352,309 292,309 256,334 L256,330 Z" fill="#cbd5e1" />
+  <!-- Quill / feather pen -->
+  <!-- Quill body — large gold feather shape centred over frames -->
+  <path d="
+    M 99 42
+    C 135 38, 160 60, 155 95
+    C 150 125, 128 148, 108 165
+    C 103 170, 100 175, 99 182
+    C 98 175, 95 170, 90 165
+    C 70 148, 48 125, 43 95
+    C 38 60, 63 38, 99 42 Z
+  " fill="#c9a84c"/>
 
-    <!-- Graduation Cap (Gold #c9a84c) sitting above the book -->
-    <!-- Cap Diamond/Top -->
-    <polygon points="256,105 346,135 256,165 166,135" fill="#c9a84c" />
-    <!-- Cap Band/Skullcap -->
-    <path d="M206,143 L206,165 C206,180 306,180 306,165 L306,143" fill="#b0903b" />
-    <!-- Tassel -->
-    <path d="M256,135 L330,165 L330,195" fill="none" stroke="#b0903b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-    <!-- Tassel Fringe -->
-    <polygon points="325,195 335,195 330,205" fill="#b0903b" />
+  <!-- Quill spine / rachis -->
+  <line x1="99" y1="42" x2="99" y2="210"
+        stroke="#a07830" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Feather barbs — left side -->
+  <path d="M 99 65 C 82 72, 68 80, 55 90" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 80 C 80 88, 65 97, 52 108" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 95 C 81 103, 67 112, 56 124" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 110 C 83 118, 71 128, 63 140" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 125 C 86 133, 76 143, 71 154" stroke="#a07830" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M 99 140 C 90 147, 83 156, 80 165" stroke="#a07830" stroke-width="1" fill="none" stroke-linecap="round"/>
+
+  <!-- Feather barbs — right side -->
+  <path d="M 99 65 C 116 72, 130 80, 143 90" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 80 C 118 88, 133 97, 146 108" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 95 C 117 103, 131 112, 142 124" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 110 C 115 118, 127 128, 135 140" stroke="#a07830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 99 125 C 112 133, 122 143, 127 154" stroke="#a07830" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M 99 140 C 108 147, 115 156, 118 165" stroke="#a07830" stroke-width="1" fill="none" stroke-linecap="round"/>
+
+  <!-- Nib tip -->
+  <path d="M 99 182 L 95 210 L 99 220 L 103 210 Z" fill="#c9a84c"/>
+
+  <!-- Base / ink stand (small dark triangle) -->
+  <path d="M 88 218 L 99 236 L 110 218 Z" fill="#1e2d5c" stroke="#c9a84c" stroke-width="1.5"/>
+
   </g>
-
-  <!-- Bottom strip with text 'CA' in clean sans-serif -->
-  <text x="256" y="425" fill="#ffffff" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="4" text-anchor="middle">CA</text>
 </svg>
