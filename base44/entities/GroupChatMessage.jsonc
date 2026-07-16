@@ -1,0 +1,17 @@
+{
+  "name": "GroupChatMessage",
+  "type": "object",
+  "properties": {
+    "group_id":      { "type": "string", "description": "ID of the StudyGroup this message belongs to" },
+    "author_id":     { "type": "string" },
+    "author_name":   { "type": "string" },
+    "author_avatar": { "type": "string" },
+    "author_role":   { "type": "string", "enum": ["student", "teacher", "admin"], "default": "student" },
+    "body":          { "type": "string", "description": "Message text" },
+    "reply_to_id":   { "type": "string", "description": "ID of message being replied to (optional)" },
+    "reply_preview": { "type": "string", "description": "First 80 chars of the replied-to message" },
+    "reply_author":  { "type": "string", "description": "Name of the author being replied to" },
+    "deleted":       { "type": "boolean", "default": false }
+  },
+  "required": ["group_id", "author_id", "body"]
+}
