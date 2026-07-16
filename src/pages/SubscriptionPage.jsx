@@ -231,7 +231,7 @@ export default function SubscriptionPage() {
               <p className="text-xs text-muted-foreground">Watch this quick guide before you pay</p>
             </div>
           </div>
-          <div className="relative w-full" style={paddingBottom: '56.25%'}>
+          <div className="relative w-full" style={{paddingBottom: '56.25%'}}>
             <iframe
               src="https://www.youtube.com/embed/2oaEnOO4S7g?rel=0&modestbranding=1"
               title="How to Pay School Fees — Chibondo Academy"
