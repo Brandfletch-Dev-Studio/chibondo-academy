@@ -36,7 +36,7 @@ export default function StudentProgressTracker() {
 
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['studentProfiles'],
-    queryFn: () => db.entities.StudentProfile.filter({}),
+    queryFn: () => db.entities.User.filter({}),
   });
 
   const getStudentName = (studentId) => {
