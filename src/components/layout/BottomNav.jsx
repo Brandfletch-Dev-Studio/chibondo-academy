@@ -9,7 +9,7 @@ const authNavItems = [
   { label: 'Referrals', icon: Gift,          path: '/affiliate' },
   { label: 'Library',   icon: Library,       path: '/library' },
   { label: 'Forums',    icon: MessageSquare, path: '/forums' },
-  { label: 'Fees',      icon: CreditCard,    path: '/subscription' },
+  { label: 'Fees',      icon: CreditCard,    path: '/fees' },
 ];
 
 // Nav items shown to guests (public pages only)
