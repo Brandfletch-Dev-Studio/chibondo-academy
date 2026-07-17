@@ -22,7 +22,7 @@ export default function NotificationsPage() {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications', user?.id],
-    queryFn: () => db.entities.Notification.filter({ user_id: user.id }, '-created_date', 50),
+    queryFn: async () => { try { return await db.entities.Notification.filter({ user_id: user.id }, '-created_date', 50); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
     staleTime: 0,
   });
