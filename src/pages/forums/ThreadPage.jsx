@@ -87,7 +87,8 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ user_id: authorId, status: 'active' }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     enabled:  open && !!authorId && (role === 'teacher' || role === 'admin'),
     staleTime: 120_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const tutorProfile = tutorProfiles[0] || null;
   const tutorSlug    = tutorProfile?.slug || (role === 'teacher' ? authorId : null);
 
@@ -328,7 +329,8 @@ export default function ThreadPage() {
     queryFn: async () => { try { return await []; } catch(e) { console.error(e); return []; } },
     enabled: !state?.thread && !!threadSlug && threadSlug.length < 30,
     staleTime: 30_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const thread = state?.thread || threadArr[0];
   const resolvedThreadId = thread?.id || threadSlug;
   const subject = state?.subject;
@@ -342,7 +344,8 @@ export default function ThreadPage() {
     staleTime: 0,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // Top-level comments (no reply_to_id) — sorted: accepted first, tutor next, then chrono
   const comments = [...allReplies.filter(r => !r.reply_to_id)].sort((a, b) => {
