@@ -28,30 +28,25 @@ export default function TeacherNotifications() {
   const [targetStudentId, setTargetStudentId] = useState('');
 
   // Teacher's own subjects
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => db.entities.Subject.filter({ teacher_id: user.id }),
+  const { data: subjects = [] } = useQuery({queryKey: ['teacherSubjects', user?.id],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: user.id }); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-  });
+    placeholderData: [],}));
 
   // Enrollments for selected subject
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ['subjectEnrollments', subjectId],
-    queryFn: () => db.entities.Enrollment.filter({ subject_id: subjectId }),
+  const { data: enrollments = [] } = useQuery({queryKey: ['subjectEnrollments', subjectId],
+    queryFn: async () => { try { return await db.entities.Enrollment.filter({ subject_id: subjectId }); } catch(e) { console.error(e); return []; } },
     enabled: !!subjectId,
-  });
+    placeholderData: [],}));
 
-  const { data: allEnrollments = [] } = useQuery({
-    queryKey: ['teacherAllEnrollments', user?.id],
-    queryFn: async () => {
-      const subs = await db.entities.Subject.filter({ teacher_id: user.id });
+  const { data: allEnrollments = [] } = useQuery({queryKey: ['teacherAllEnrollments', user?.id],
+    queryFn: async () => { try { const subs = await db.entities.Subject.filter({ teacher_id: user.id });
       if (!subs.length) return [];
       // Get enrollments for all teacher subjects
       const all = await Promise.all(subs.map(s => db.entities.Enrollment.filter({ subject_id: s.id })));
-      return all.flat();
-    },
+      return all.flat(); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-  });
+    placeholderData: [],}));
 
   // Unique students across all teacher subjects
   const studentProfiles = useMemo(() => {
