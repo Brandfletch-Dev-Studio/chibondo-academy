@@ -27,12 +27,12 @@ export default function LibraryPage() {
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['library-resources'],
-    queryFn: () => db.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 300),
+    queryFn: async () => { try { return await db.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 300); } catch(e) { console.error(e); return []; } },
   });
 
   const { data: subscription } = useQuery({
     queryKey: ['subscription', user?.id],
-    queryFn: () => db.entities.Subscription.filter({ student_id: user.id, status: 'active' }, '-created_date', 1),
+    queryFn: async () => { try { return await db.entities.Subscription.filter({ student_id: user.id, status: 'active' }, '-created_date', 1); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
     select: data => data[0] || null,
   });
