@@ -241,6 +241,7 @@ const AppRoutes = () => {
           <Route path="/admin/teachers" element={<Navigate to="/admin/tutors" replace />} />
           <Route path="/admin/subscriptions" element={<RoleGuard allowed={['admin']}><AdminSubscriptions /></RoleGuard>} />
           <Route path="/admin/settings" element={<RoleGuard allowed={['admin']}><AdminSettings /></RoleGuard>} />
+          <Route path="/admin/bunny-migration" element={<RoleGuard allowed={['admin']}><BunnyMigration /></RoleGuard>} />
           <Route path="/admin/notifications" element={<RoleGuard allowed={['admin']}><AdminNotifications /></RoleGuard>} />
           <Route path="/admin/blog" element={<RoleGuard allowed={['admin']}><AdminBlog /></RoleGuard>} />
           <Route path="/admin/curriculum" element={<RoleGuard allowed={['admin']}><CurriculumManagement /></RoleGuard>} />
