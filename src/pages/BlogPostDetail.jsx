@@ -32,7 +32,7 @@ function readTime(content = '') {
 function RelatedPosts({ currentId, category }) {
   const { data: related = [] } = useQuery({
     queryKey: ['relatedPosts', category, currentId],
-    queryFn: () => db.entities.BlogPost.filter({ status: 'published', category }, '-published_at', 4),
+    queryFn: async () => { try { return await db.entities.BlogPost.filter({ status: 'published', category }, '-published_at', 4); } catch(e) { console.error(e); return []; } },
     enabled: !!category,
   });
   const filtered = related.filter(p => p.id !== currentId).slice(0, 3);
@@ -65,7 +65,7 @@ function RelatedPosts({ currentId, category }) {
 function TutorBlock({ tutorProfileId, tutorSlug }) {
   const { data: profiles = [] } = useQuery({
     queryKey: ['tutorProfile', tutorProfileId],
-    queryFn: () => db.entities.TutorProfile.filter({ id: tutorProfileId }),
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ id: tutorProfileId }); } catch(e) { console.error(e); return []; } },
     enabled: !!tutorProfileId,
   });
   const tutor = profiles[0];
