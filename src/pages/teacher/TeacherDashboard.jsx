@@ -11,30 +11,25 @@ export default function TeacherDashboard() {
   const { user } = useOutletContext() ?? {};
   const [expandedSubject, setExpandedSubject] = useState(null);
 
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => db.entities.Subject.filter({ teacher_id: user.id }, 'order', 50),
+  const { data: subjects = [] } = useQuery({queryKey: ['teacherSubjects', user?.id],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: user.id }, 'order', 50); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-  });
+    placeholderData: [],}));
 
-  const { data: allEnrollments = [] } = useQuery({
-    queryKey: ['teacherEnrollments', subjects.map(s => s.id).join(',')],
-    queryFn: async () => {
-      const results = [];
+  const { data: allEnrollments = [] } = useQuery({queryKey: ['teacherEnrollments', subjects.map(s => s.id).join(',')],
+    queryFn: async () => { try { const results = [];
       for (const s of subjects) {
         const e = await db.entities.Enrollment.filter({ subject_id: s.id }, '-created_date', 200);
         results.push(...e.map(en => ({ ...en, subject_name: s.name })));
       }
-      return results;
-    },
+      return results; } catch(e) { console.error(e); return []; } },
     enabled: subjects.length > 0,
-  });
+    placeholderData: [],}));
 
-  const { data: studentProfiles = [] } = useQuery({
-    queryKey: ['studentProfiles'],
-    queryFn: () => db.entities.User.list('-created_date', 200),
+  const { data: studentProfiles = [] } = useQuery({queryKey: ['studentProfiles'],
+    queryFn: async () => { try { return await db.entities.User.list('-created_date', 200); } catch(e) { console.error(e); return []; } },
     enabled: allEnrollments.length > 0,
-  });
+    placeholderData: [],}));
 
   const profileByUserId = Object.fromEntries(studentProfiles.map(p => [p.user_id, p]));
 
