@@ -11,12 +11,12 @@ export default function MyQuizzes() {
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['availableQuizzes'],
-    queryFn: () => db.entities.Quiz.filter({ status: 'published' }, '-created_date', 100),
+    queryFn: async () => { try { return await db.entities.Quiz.filter({ status: 'published' }, '-created_date', 100); } catch(e) { console.error(e); return []; } },
   });
 
   const { data: attempts = [] } = useQuery({
     queryKey: ['myAttempts', user?.id],
-    queryFn: () => db.entities.QuizAttempt.filter({ student_id: user.id }, '-created_date', 200),
+    queryFn: async () => { try { return await db.entities.QuizAttempt.filter({ student_id: user.id }, '-created_date', 200); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
   });
 
