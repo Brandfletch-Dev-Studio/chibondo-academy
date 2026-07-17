@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
+import { UploadProvider } from '@/lib/UploadContext';
 import RoleGuard from '@/components/RoleGuard';
 import { useOutletContext } from 'react-router-dom';
 
@@ -264,10 +265,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-          <Toaster />
-        </Router>
+        <UploadProvider>
+          <Router>
+            <AppRoutes />
+            <Toaster />
+          </Router>
+        </UploadProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

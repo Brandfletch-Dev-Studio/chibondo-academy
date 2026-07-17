@@ -20,6 +20,7 @@ import {
   MoreVertical, ArrowUp, ArrowDown, Search, Code2, Type, AlignLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUpload } from '@/lib/UploadContext';
 import { formatDistanceToNow } from 'date-fns';
 
 
@@ -102,9 +103,7 @@ function VideoInput({ lesson, onChange }) {
   const [urlInput, setUrlInput] = useState(lesson.video_url || '');
   const [fetching, setFetching] = useState(false);
   const [meta, setMeta] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const { startUpload } = useUpload();
 
   useEffect(() => {
     setProvider(lesson.video_provider || 'none');
@@ -140,112 +139,20 @@ function VideoInput({ lesson, onChange }) {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Reset input so same file can be re-selected if needed
+    e.target.value = '';
 
-    const apiKey  = localStorage.getItem('bunny_api_key');
-    const libId   = localStorage.getItem('bunny_lib_id');
+    const title = lesson?.title || file.name.replace(/\.[^.]+$/, '');
+    toast({ title: 'Upload started', description: 'You can leave this page — the upload continues in the background.' });
 
-    if (!apiKey || !libId) {
-      toast.error('Video upload not configured. Please contact your administrator.');
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress(2);
-    setUploadStatus('Preparing upload…');
-
-    try {
-      // Step 1: Get signed TUS upload credentials from our backend
-      const signRes = await fetch('/api/bunny?action=sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: lesson.title || file.name.replace(/\.[^.]+$/, ''),
-          lessonId: lesson.id,
-          bunnyLibraryId: libId,
-          bunnyApiKey: apiKey,
-        }),
-      });
-      const signData = await signRes.json();
-      if (!signRes.ok) throw new Error(signData.error || 'Could not get upload credentials');
-
-      const { videoId, embedUrl, authSignature, authExpiry, libraryId: lib } = signData;
-      setUploadProgress(5);
-      setUploadStatus('Starting upload…');
-
-      // Step 2: Upload directly to Bunny via TUS protocol (browser → Bunny)
-      // TUS: POST to create upload, then PATCH chunks
-      const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB chunks
-      const fileSize = file.size;
-
-      // TUS Create
-      const tusCreateRes = await fetch('https://video.bunnycdn.com/tusupload', {
-        method: 'POST',
-        headers: {
-          AuthorizationSignature: authSignature,
-          AuthorizationExpire:    String(authExpiry),
-          VideoId:                videoId,
-          LibraryId:              String(lib),
-          'Tus-Resumable':        '1.0.0',
-          'Upload-Length':        String(fileSize),
-          'Content-Type':         'application/offset+octet-stream',
-        },
-      });
-      if (!tusCreateRes.ok) {
-        const err = await tusCreateRes.text();
-        throw new Error(`TUS create failed (${tusCreateRes.status}): ${err}`);
-      }
-      const uploadLocation = tusCreateRes.headers.get('Location');
-      if (!uploadLocation) throw new Error('No TUS upload location returned');
-
-      setUploadProgress(8);
-      setUploadStatus('Uploading video…');
-
-      // TUS PATCH — send in chunks, track progress
-      let offset = 0;
-      while (offset < fileSize) {
-        const chunk = file.slice(offset, offset + CHUNK_SIZE);
-        const patchRes = await fetch(uploadLocation, {
-          method: 'PATCH',
-          headers: {
-            AuthorizationSignature: authSignature,
-            AuthorizationExpire:    String(authExpiry),
-            VideoId:                videoId,
-            LibraryId:              String(lib),
-            'Tus-Resumable':        '1.0.0',
-            'Upload-Offset':        String(offset),
-            'Content-Type':         'application/offset+octet-stream',
-          },
-          body: chunk,
-        });
-        if (!patchRes.ok) {
-          const err = await patchRes.text();
-          throw new Error(`TUS patch failed at offset ${offset}: ${err}`);
-        }
-        offset += chunk.size;
-        const pct = Math.round(8 + (offset / fileSize) * 82); // 8%→90% during upload
-        setUploadProgress(pct);
-        setUploadStatus(`Uploading… ${pct}%`);
-      }
-
-      // Step 3: Update lesson with Bunny embed URL (also done server-side in sign endpoint)
-      setUploadProgress(95);
-      setUploadStatus('Finalising…');
+    startUpload(file, title, lesson?.id, ({ embedUrl }) => {
       onChange({ video_url: embedUrl, video_provider: 'bunny' });
       setUrlInput(embedUrl);
-      setUploadProgress(100);
-      setUploadStatus('✓ Upload complete!');
-      toast.success('Video uploaded successfully — it will be ready to play in 1-2 minutes');
-      setTimeout(() => { setUploading(false); setUploadProgress(0); setUploadStatus(''); }, 2000);
-    } catch (err) {
-      console.error('[video-upload]', err);
-      toast.error(err.message || 'Upload failed');
-      setUploading(false);
-      setUploadProgress(0);
-      setUploadStatus('');
-    }
+      toast.success('Video ready — processing in 1-2 minutes');
+    });
   };
 
   return (
@@ -275,29 +182,16 @@ function VideoInput({ lesson, onChange }) {
       {provider === 'upload' && (
         <div className="space-y-2">
           <label className="block">
-            <input type="file" accept="video/*" className="sr-only" onChange={handleFileUpload} disabled={uploading} />
-            <div className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-6 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors ${uploading ? 'pointer-events-none opacity-70' : ''}`}>
-              {uploading ? (
-                <>
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <p className="text-sm font-medium">Uploading…</p>
-                  <div className="w-full max-w-xs bg-muted rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">{uploadProgress}%</p>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-6 h-6 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">Click to upload your video lesson</p>
-                  <p className="text-xs text-muted-foreground/60">MP4, WebM, MOV supported</p>
-                </>
-              )}
+            <input type="file" accept="video/*" className="sr-only" onChange={handleFileUpload} />
+            <div className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-6 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
+              <Upload className="w-6 h-6 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">Click to select video</p>
+              <p className="text-xs text-muted-foreground/60">MP4, WebM, MOV · Upload continues in background</p>
             </div>
           </label>
-          {urlInput && !uploading && (
+          {urlInput && (
             <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-xl text-xs text-green-700">
-              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> Video uploaded successfully
+              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> Video uploaded — processing in 1-2 min
             </div>
           )}
         </div>
