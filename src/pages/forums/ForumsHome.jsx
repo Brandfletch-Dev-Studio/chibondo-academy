@@ -82,12 +82,14 @@ export default function ForumsHome() {
   const { data: subjects = [], isLoading } = useQuery({queryKey: ['forum-subjects'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 100); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: recentMsgs = [] } = useQuery({queryKey: ['forum-recent-msgs'],
     queryFn: async () => { try { return await db.entities.GroupChatMessage.filter({}, '-created_date', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // Per-subject: last message + count
   const subjectStats = useMemo(() => {
@@ -115,7 +117,8 @@ export default function ForumsHome() {
     select: groups => groups.filter(g =>
       g.creator_id === user?.id || (g.member_ids || []).includes(user?.id)
     ),
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const filteredSubjects = useMemo(() =>
     subjects.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase())),
