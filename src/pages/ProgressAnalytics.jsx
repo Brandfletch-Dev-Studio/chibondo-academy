@@ -61,15 +61,13 @@ export default function ProgressAnalytics() {
     name: e.subject_name,
     progress: e.progress_percentage || 0,
     lessons: e.completed_lessons?.length || 0,
-  }));
-
+  });
   // Quiz performance over time
   const quizData = quizAttempts.slice(0, 10).reverse().map((q, i) => ({
     attempt: i + 1,
     score: q.percentage || 0,
     date: new Date(q.created_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-  }));
-
+  });
   // Weekly activity (mock - would need activity logs entity)
   const weeklyData = [
     { day: 'Mon', minutes: 45 },
