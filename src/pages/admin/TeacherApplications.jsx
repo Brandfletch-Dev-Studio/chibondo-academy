@@ -22,7 +22,7 @@ export default function TeacherApplications() {
 
   const { data: applications = [] } = useQuery({queryKey: ['teacherApplications'],
     queryFn: async () => { try { return await db.entities.TeacherApplication.filter({}, '-created_date'); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],});
 
   const updateApplication = useMutation({
     mutationFn: async ({ id, status, notes }) => {
