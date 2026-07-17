@@ -22,7 +22,7 @@ export default function QuizPage() {
 
   const { data: quiz } = useQuery({
     queryKey: ['quiz', quizId],
-    queryFn: async () => { const r = (await db.entities.Quiz.filter({ id: quizId })).catch(()=>[]); return r[0]; },
+    queryFn: async () => { const r = (await db.entities.Quiz.filter({ id: quizId }).catch(()=>[]); return r[0]; },
   });
 
   useEffect(() => {
