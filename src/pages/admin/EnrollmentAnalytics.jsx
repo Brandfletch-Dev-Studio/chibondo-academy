@@ -27,15 +27,18 @@ export default function EnrollmentAnalytics() {
   const { data: enrollments = [], isLoading } = useQuery({queryKey: ['admin-all-enrollments'],
     queryFn: async () => { try { return await db.entities.Enrollment.list('-created_date', 5000); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const { data: subjects = [] } = useQuery({queryKey: ['admin-all-subjects'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const { data: tutors = [] } = useQuery({queryKey: ['admin-tutors'],
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 100); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const subjectMap     = useMemo(() => Object.fromEntries(subjects.map(s => [s.id, s])), [subjects]);
   const tutorMap       = useMemo(() => Object.fromEntries(tutors.map(t => [t.id, t])), [tutors]);
