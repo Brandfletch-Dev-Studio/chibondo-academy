@@ -64,15 +64,18 @@ export default function AdminBlog() {
 
   const { data: posts = [], isLoading } = useQuery({queryKey: ['adminBlogPosts'],
     queryFn: async () => { try { return await db.entities.BlogPost.filter({}, '-created_date', 200); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status:'published' }, 'name', 50); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: tutors = [] } = useQuery({queryKey: ['allTutors'],
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ is_visible:true, status:'active' }, 'full_name', 50); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setTagInput(''); setActiveTab('content'); setOpen(true); };
   const openEdit = p => {
@@ -85,15 +88,13 @@ export default function AdminBlog() {
     ...f, [k]: v,
     ...(k==='title' && !editing ? { slug: slugify(v), meta_title: v.slice(0,60) } : {}),
     ...(k==='excerpt' && !editing ? { meta_description: v.slice(0,160) } : {}),
-  }));
-
+  });
   const addTag = () => {
     const t = tagInput.trim().toLowerCase();
     if (t && !form.tags.includes(t)) setForm(f=>({...f, tags:[...f.tags,t]}));
     setTagInput('');
   };
-  const removeTag = t => setForm(f=>({...f, tags:f.tags.filter(x=>x!==t)}));
-
+  const removeTag = t => setForm(f=>({...f, tags:f.tags.filter(x=>x!==t)});
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
