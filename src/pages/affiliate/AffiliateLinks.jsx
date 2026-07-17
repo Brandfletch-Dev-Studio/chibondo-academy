@@ -74,7 +74,8 @@ export default function AffiliateLinks() {
 
   const { data: subjects = [] } = useQuery({queryKey: ['subjects-for-links'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 50); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const whatsappMsg = `📚 *The Chibondo Academy* — Malawi's #1 online secondary school!\n\nMSCE lessons for ALL subjects — Form 3 & Form 4.\n\nFees from *MWK 10,000/month* — affordable & comprehensive.\n\n📲 Register FREE 👇\n${baseRef}`;
 
