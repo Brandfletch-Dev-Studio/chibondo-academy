@@ -28,7 +28,7 @@ export default function RevisionHub() {
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['revisionResources'],
-    queryFn: () => db.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 200),
+    queryFn: async () => { try { return await db.entities.RevisionResource.filter({ status: 'published' }, '-created_date', 200); } catch(e) { console.error(e); return []; } },
   });
 
   const { data: forms = [] } = useQuery({
