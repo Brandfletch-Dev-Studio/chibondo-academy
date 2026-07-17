@@ -20,10 +20,9 @@ export default function TeacherApplications() {
   const [selectedApp, setSelectedApp] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
 
-  const { data: applications = [] } = useQuery({
-    queryKey: ['teacherApplications'],
-    queryFn: () => db.entities.TeacherApplication.filter({}, '-created_date'),
-  });
+  const { data: applications = [] } = useQuery({queryKey: ['teacherApplications'],
+    queryFn: async () => { try { return await db.entities.TeacherApplication.filter({}, '-created_date'); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const updateApplication = useMutation({
     mutationFn: async ({ id, status, notes }) => {
