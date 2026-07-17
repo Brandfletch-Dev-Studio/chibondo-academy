@@ -197,50 +197,59 @@ async function handleAutomatch(req, res) {
   });
 }
 
-// ── action=migrate (YouTube → Bunny via cobalt.tools) ───────────────────────
+// ── action=migrate (YouTube → Bunny direct fetch) ────────────────────────────
 async function handleMigrate(req, res) {
   const { lessonId, youtubeUrl, bunnyLibraryId, bunnyApiKey, lessonTitle } = req.body||{};
   if (!lessonId||!youtubeUrl||!bunnyLibraryId||!bunnyApiKey)
     return res.status(400).json({error:'lessonId, youtubeUrl, bunnyLibraryId, bunnyApiKey required'});
 
-  // 1. Resolve stream via cobalt.tools
-  const cobalt = await fetch('https://api.cobalt.tools/', {
-    method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
-    body:JSON.stringify({url:youtubeUrl,videoQuality:'1080',filenameStyle:'basic'}),
-    signal:AbortSignal.timeout(20000),
-  });
-  const cobaltData = await cobalt.json();
-  if (cobaltData.status==='error') return res.status(400).json({error:cobaltData.error?.code||'cobalt error'});
-  const streamUrl = cobaltData.url;
-  if (!streamUrl) return res.status(400).json({error:'No stream URL from cobalt'});
+  const title = lessonTitle || `Lesson ${lessonId}`;
 
-  // 2. Create video on Bunny
-  const title = lessonTitle||`Lesson ${lessonId}`;
-  const createRes = await fetch(`https://video.bunnycdn.com/library/${bunnyLibraryId}/videos`,{
-    method:'POST', headers:{AccessKey:bunnyApiKey,'Content-Type':'application/json'},
-    body:JSON.stringify({title}),
+  // 1. Create video slot on Bunny
+  const createRes = await fetch(`https://video.bunnycdn.com/library/${bunnyLibraryId}/videos`, {
+    method: 'POST',
+    headers: { AccessKey: bunnyApiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
   });
   const video = await createRes.json();
-  if (!createRes.ok||!video.guid) return res.status(500).json({error:`Bunny create failed: ${video.message}`});
+  if (!createRes.ok || !video.guid)
+    return res.status(500).json({ error: `Bunny create failed: ${video.message || JSON.stringify(video)}` });
   const videoId = video.guid;
-
-  // 3. Kick off Bunny fetch-from-URL
-  const fetchRes = await fetch(
-    `https://video.bunnycdn.com/library/${bunnyLibraryId}/videos/${videoId}/fetch`,{
-    method:'POST', headers:{AccessKey:bunnyApiKey,'Content-Type':'application/json'},
-    body:JSON.stringify({url:streamUrl}),
-  });
   const embedUrl = `https://iframe.mediadelivery.net/embed/${bunnyLibraryId}/${videoId}`;
 
-  // 4. Update lesson in Supabase
-  await fetch(`${SUPABASE_URL}/rest/v1/lessons?id=eq.${lessonId}`,{
-    method:'PATCH', headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,
-    'Content-Type':'application/json',Prefer:'return=minimal'},
-    body:JSON.stringify({video_url:embedUrl,video_provider:'bunny',bunny_video_id:videoId}),
+  // 2. Tell Bunny to pull the video directly from the YouTube URL
+  //    Bunny's /fetch endpoint works for public & unlisted YouTube links
+  const fetchRes = await fetch(
+    `https://video.bunnycdn.com/library/${bunnyLibraryId}/videos/${videoId}/fetch`, {
+    method: 'POST',
+    headers: { AccessKey: bunnyApiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: youtubeUrl }),
+  });
+  const fetchData = await fetchRes.json().catch(() => ({}));
+
+  // 3. Update lesson in Supabase (service-role, bypasses RLS)
+  await fetch(`${SUPABASE_URL}/rest/v1/lessons?id=eq.${lessonId}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({
+      video_url:      embedUrl,
+      video_provider: 'bunny',
+      bunny_video_id: videoId,
+      bunny_library_id: bunnyLibraryId,
+    }),
   });
 
-  return res.status(200).json({success:true, videoId, embedUrl,
-    fetchStatus:fetchRes.ok?'started':'failed'});
+  return res.status(200).json({
+    success:     true,
+    videoId,
+    embedUrl,
+    fetchStatus: fetchRes.ok ? 'started' : `failed: ${fetchData.message || fetchRes.status}`,
+  });
 }
 
 // ── Main router ──────────────────────────────────────────────────────────────
