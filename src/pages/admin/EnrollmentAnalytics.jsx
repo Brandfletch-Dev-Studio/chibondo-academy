@@ -24,21 +24,18 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
 }
 
 export default function EnrollmentAnalytics() {
-  const { data: enrollments = [], isLoading } = useQuery({
-    queryKey: ['admin-all-enrollments'],
-    queryFn: () => db.entities.Enrollment.list('-created_date', 5000),
+  const { data: enrollments = [], isLoading } = useQuery({queryKey: ['admin-all-enrollments'],
+    queryFn: async () => { try { return await db.entities.Enrollment.list('-created_date', 5000); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['admin-all-subjects'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    placeholderData: [],}));
+  const { data: subjects = [] } = useQuery({queryKey: ['admin-all-subjects'],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
-  });
-  const { data: tutors = [] } = useQuery({
-    queryKey: ['admin-tutors'],
-    queryFn: () => db.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 100),
+    placeholderData: [],}));
+  const { data: tutors = [] } = useQuery({queryKey: ['admin-tutors'],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ status: 'active' }, 'full_name', 100); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
-  });
+    placeholderData: [],}));
 
   const subjectMap     = useMemo(() => Object.fromEntries(subjects.map(s => [s.id, s])), [subjects]);
   const tutorMap       = useMemo(() => Object.fromEntries(tutors.map(t => [t.id, t])), [tutors]);
