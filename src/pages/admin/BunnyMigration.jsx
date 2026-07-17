@@ -92,12 +92,13 @@ function SettingsPanel({ apiKey, setApiKey, libraryId, setLibraryId, onSave, onC
 }
 
 // ── Tab: Auto-Match ───────────────────────────────────────────────────────────
-function AutoMatchTab({ lessons, setLessons, apiKey, libraryId }) {
+function AutoMatchTab({ lessons, setLessons, apiKey, libraryId, setTab }) {
   const [running, setRunning]     = useState(false);
   const [dryRun, setDryRun]       = useState(true);
   const [result, setResult]       = useState(null);
   const [threshold, setThreshold] = useState(35);
   const [confirming, setConfirming] = useState(false);
+  const [skipped, setSkipped] = useState(new Set());
   const [applying, setApplying]   = useState(false);
 
   async function runMatch(dry) {
@@ -279,18 +280,57 @@ function AutoMatchTab({ lessons, setLessons, apiKey, libraryId }) {
           {/* No-match list */}
           {result.noMatches?.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                No match found ({result.noMatches.length}) — link manually
-              </h4>
-              <div className="space-y-1 max-h-[25vh] overflow-y-auto pr-1">
-                {result.noMatches.map((m, i) => (
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  No match found ({result.noMatches.filter(m => !skipped.has(m.lessonId)).length})
+                </h4>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1"
+                    onClick={() => setSkipped(new Set(result.noMatches.map(m => m.lessonId)))}>
+                    <X className="w-3 h-3" /> Skip All
+                  </Button>
+                  <Button size="sm" className="text-xs h-7 gap-1"
+                    style={{ background: NAVY, color: 'white' }}
+                    onClick={() => setTab('link')}>
+                    <Link2 className="w-3 h-3" /> Link Manually
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1 max-h-[30vh] overflow-y-auto pr-1">
+                {result.noMatches.filter(m => !skipped.has(m.lessonId)).map((m, i) => (
                   <div key={i} className="rounded-lg border bg-card/50 p-2.5 flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground flex-shrink-0">{m.subjectName}</span>
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0 w-20 truncate">{m.subjectName}</span>
                     <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                    <p className="text-[11px] truncate">{m.lessonTitle}</p>
+                    <p className="text-[11px] truncate flex-1">{m.lessonTitle}</p>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setSkipped(prev => new Set([...prev, m.lessonId]));
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded border text-muted-foreground hover:bg-muted transition-colors"
+                        title="Skip this lesson"
+                      >
+                        Skip
+                      </button>
+                      <button
+                        onClick={() => setTab('link')}
+                        className="text-[10px] px-2 py-0.5 rounded border text-primary hover:bg-primary/5 transition-colors"
+                        title="Link manually"
+                      >
+                        Link
+                      </button>
+                    </div>
                   </div>
                 ))}
+                {result.noMatches.length > 0 && skipped.size > 0 && skipped.size < result.noMatches.length && (
+                  <p className="text-[10px] text-muted-foreground text-center pt-1">
+                    {skipped.size} skipped · <button className="underline" onClick={() => setSkipped(new Set())}>undo</button>
+                  </p>
+                )}
+                {result.noMatches.every(m => skipped.has(m.lessonId)) && (
+                  <p className="text-center py-3 text-xs text-muted-foreground">All skipped ✓</p>
+                )}
               </div>
             </div>
           )}
@@ -771,7 +811,7 @@ export default function BunnyMigration() {
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mr-2" /> Loading lessons…
         </div>
       ) : tab === 'automatch' ? (
-        <AutoMatchTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
+        <AutoMatchTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} setTab={setTab} />
       ) : tab === 'link' ? (
         <LinkExistingTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
       ) : (
