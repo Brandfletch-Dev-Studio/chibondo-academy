@@ -93,11 +93,13 @@ export default function TutorsDirectory() {
 
   const { data: tutors = [], isLoading } = useQuery({queryKey: ['tutors-public'],
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: subjects = [] } = useQuery({queryKey: ['subjects-all'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 200); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // Count subjects per tutor via teacher_id or tutor_profile_id
   const subjectCountByTutor = useMemo(() => {
