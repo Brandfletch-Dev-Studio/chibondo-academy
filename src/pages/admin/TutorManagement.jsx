@@ -44,7 +44,7 @@ function TutorForm({ initial, onSave, onClose, isSaving }) {
   const [qualInput, setQualInput] = useState({ name: '', institution: '', year: '' });
   const [certInput, setCertInput] = useState({ name: '', organization: '', date_issued: '' });
 
-  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v });
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const autoSlug = () => {
     if (!form.slug && form.full_name) set('slug', slugify(form.full_name));
   };
