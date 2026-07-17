@@ -122,7 +122,10 @@ export default function BunnyMigration() {
       clearInterval(progressTimer);
       const data = await res.json();
 
-      if (!res.ok || !data.success) throw new Error(data.error || 'Migration failed');
+      if (!res.ok || !data.success) {
+        // Throw the full JSON so catch block can parse structured errors
+        throw new Error(JSON.stringify(data));
+      }
 
       setJobs(p => ({ ...p, [lesson.id]: { status: 'processing', progress: 95, message: '⏳ Bunny is processing the video…', embedUrl: data.embedUrl } }));
       setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, video_url: data.embedUrl, video_provider: 'bunny' } : l));
@@ -131,8 +134,18 @@ export default function BunnyMigration() {
       pollUntilReady(lesson.id, data.videoId, data.embedUrl);
 
     } catch (err) {
-      setJobs(p => ({ ...p, [lesson.id]: { status: 'error', progress: 100, message: err.message } }));
-      toast.error(err.message);
+      // Try to parse structured error from server
+      let errMsg = err.message;
+      let isUnlisted = false;
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed.error === 'unlisted_not_accessible') {
+          isUnlisted = true;
+          errMsg = parsed.message;
+        }
+      } catch (_) {}
+      setJobs(p => ({ ...p, [lesson.id]: { status: 'error', progress: 100, message: errMsg, isUnlisted } }));
+      toast.error(isUnlisted ? 'Unlisted video — needs manual upload' : errMsg);
     }
   }
 
@@ -445,6 +458,37 @@ export default function BunnyMigration() {
                     )}>
                       {job.message}
                     </p>
+                    {job.isUnlisted && (
+                      <div className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 p-3 space-y-2">
+                        <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Manual upload needed:</p>
+                        <ol className="text-[11px] text-amber-700 dark:text-amber-300 space-y-1 list-none">
+                          <li>1. Download the video from YouTube (use <a href="https://yt1s.com" target="_blank" rel="noreferrer" className="underline">yt1s.com</a> or similar)</li>
+                          <li>2. Upload it to <a href={`https://dash.bunny.net/stream/${bunnyLibraryId}`} target="_blank" rel="noreferrer" className="underline">your Bunny library</a></li>
+                          <li>3. Copy the embed URL and paste it below</li>
+                        </ol>
+                        <div className="flex gap-2 mt-2">
+                          <input
+                            type="text"
+                            placeholder="https://iframe.mediadelivery.net/embed/..."
+                            className="flex-1 text-[11px] border rounded px-2 py-1 bg-background"
+                            id={`manual-${lesson.id}`}
+                          />
+                          <button
+                            onClick={async () => {
+                              const url = document.getElementById(`manual-${lesson.id}`)?.value?.trim();
+                              if (!url) return;
+                              await db.entities.Lesson.update(lesson.id, { video_url: url, video_provider: 'bunny' });
+                              setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, video_url: url, video_provider: 'bunny' } : l));
+                              setJobs(p => ({ ...p, [lesson.id]: { status: 'done', progress: 100, message: '✓ Manually migrated', embedUrl: url } }));
+                              toast.success('Lesson updated!');
+                            }}
+                            className="text-[11px] bg-primary text-primary-foreground px-3 py-1 rounded font-semibold"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {job.embedUrl && (
                       <p className="text-[10px] font-mono text-green-600 truncate">{job.embedUrl}</p>
                     )}
