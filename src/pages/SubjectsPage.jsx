@@ -16,19 +16,28 @@ export default function SubjectsPage() {
 
   const { data: subjects = [], isLoading } = useQuery({
     queryKey: ['subjects'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'order', 100),
+    queryFn: async () => {
+      try { return await db.entities.Subject.filter({ status: 'published' }, 'order', 100); }
+      catch(e) { console.error('subjects fetch failed', e); return []; }
+    },
   });
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['myEnrollments', user?.id],
-    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }, '-created_date', 100),
+    queryFn: async () => {
+      try { return await db.entities.Enrollment.filter({ student_id: user.id }, '-created_date', 100); }
+      catch(e) { console.error('enrollments fetch failed', e); return []; }
+    },
     enabled: !!user?.id,
   });
 
   // Fetch all lessons to compute real per-subject counts
   const { data: allLessons = [] } = useQuery({
     queryKey: ['allLessonsCount'],
-    queryFn: () => db.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000),
+    queryFn: async () => {
+      try { return await db.entities.Lesson.filter({ status: 'published' }, 'created_date', 2000); }
+      catch(e) { console.error('lessons fetch failed', e); return []; }
+    },
   });
 
   // Build maps
@@ -70,8 +79,7 @@ export default function SubjectsPage() {
     : formNames.filter(name => name === selectedForm);
 
   // Always show something — if no groups matched, show all
-  const effectiveGroups = groupedForms.length > 0 ? groupedForms : ['All'];
-  if (!subjectsByForm['All']) subjectsByForm['All'] = filteredSubjects;
+  const effectiveGroups = groupedForms.length > 0 ? groupedForms : formNames;
 
   return (
     <>
