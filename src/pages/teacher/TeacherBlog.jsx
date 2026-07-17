@@ -59,13 +59,15 @@ export default function TeacherBlog() {
   const { data: tutorProfiles = [] } = useQuery({queryKey: ['myTutorProfile', user?.id],
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ user_id: user?.id }); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const myProfile = tutorProfiles[0];
 
   const { data: posts = [], isLoading } = useQuery({queryKey: ['teacherBlogPosts', user?.id],
     queryFn: async () => { try { return await db.entities.BlogPost.filter({ created_by: user?.id }, '-created_date', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // ── Analytics derived from posts ─────────────────────────────────────────
   const totalViews     = posts.reduce((s, p) => s + (p.view_count || 0), 0);
@@ -89,14 +91,13 @@ export default function TeacherBlog() {
     ...f, [k]: v,
     ...(k === 'title' && !editing ? { slug: slugify(v), meta_title: v.slice(0, 60) } : {}),
     ...(k === 'excerpt' && !editing ? { meta_description: v.slice(0, 160) } : {}),
-  }));
+  });
   const addTag = () => {
     const t = tagInput.trim().toLowerCase();
     if (t && !form.tags.includes(t)) setForm(f => ({ ...f, tags: [...f.tags, t] }));
     setTagInput('');
   };
-  const removeTag = t => setForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }));
-
+  const removeTag = t => setForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) });
   const copyLink = (post) => {
     const url = `${window.location.origin}/blog/${post.slug || post.id}`;
     navigator.clipboard.writeText(url).then(() => {
