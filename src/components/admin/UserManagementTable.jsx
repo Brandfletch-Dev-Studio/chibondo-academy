@@ -22,7 +22,7 @@ export default function UserManagementTable() {
   // Use the service-role function — bypasses RLS so every admin sees all users
   const { data: adminData, isLoading } = useQuery({
     queryKey: ['adminUsers'],
-    queryFn: () => db.entities.User.list('-created_date', 2000).then(users => ({ users })),
+    queryFn: () => db.entities.User.list('-created_date', 2000).then(users => ({ users }),
     staleTime: 30_000,
   });
   const users = adminData?.users ?? [];
