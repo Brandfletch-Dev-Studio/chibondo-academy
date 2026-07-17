@@ -91,7 +91,7 @@ export default function TeacherBlog() {
     ...f, [k]: v,
     ...(k === 'title' && !editing ? { slug: slugify(v), meta_title: v.slice(0, 60) } : {}),
     ...(k === 'excerpt' && !editing ? { meta_description: v.slice(0, 160) } : {}),
-  });
+  }));
   const addTag = () => {
     const t = tagInput.trim().toLowerCase();
     if (t && !form.tags.includes(t)) setForm(f => ({ ...f, tags: [...f.tags, t] }));
