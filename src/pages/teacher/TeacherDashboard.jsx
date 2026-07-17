@@ -14,7 +14,8 @@ export default function TeacherDashboard() {
   const { data: subjects = [] } = useQuery({queryKey: ['teacherSubjects', user?.id],
     queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: user.id }, 'order', 50); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: allEnrollments = [] } = useQuery({queryKey: ['teacherEnrollments', subjects.map(s => s.id).join(',')],
     queryFn: async () => { try { const results = [];
@@ -24,12 +25,14 @@ export default function TeacherDashboard() {
       }
       return results; } catch(e) { console.error(e); return []; } },
     enabled: subjects.length > 0,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: studentProfiles = [] } = useQuery({queryKey: ['studentProfiles'],
     queryFn: async () => { try { return await db.entities.User.list('-created_date', 200); } catch(e) { console.error(e); return []; } },
     enabled: allEnrollments.length > 0,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const profileByUserId = Object.fromEntries(studentProfiles.map(p => [p.user_id, p]));
 
