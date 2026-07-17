@@ -255,7 +255,7 @@ async function authFetch(path, body, method = 'POST') {
     headers: { apikey: SUPABASE_ANON, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.message || 'Auth error'), { status: res.status });
   return data;
 }

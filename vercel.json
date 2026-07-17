@@ -7,8 +7,7 @@
   ],
   "functions": {
     "api/bunny-upload.js": {
-      "maxDuration": 300,
-      "memory": 1024
+      "maxDuration": 60
     }
   }
 }
