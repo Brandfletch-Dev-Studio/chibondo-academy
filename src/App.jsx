@@ -99,6 +99,7 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
 const AdminSubscriptions = lazy(() => import('@/pages/admin/AdminSubscriptions'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
+const BunnyMigration = React.lazy(() => import('./pages/admin/BunnyMigration'));
 const TeacherApplications = lazy(() => import('@/pages/admin/TeacherApplications'));
 const StudentProgressTracker = lazy(() => import('@/pages/teacher/StudentProgressTracker'));
 const AdminNotifications = lazy(() => import('@/pages/admin/AdminNotifications'));
