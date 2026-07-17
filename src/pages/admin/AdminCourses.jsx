@@ -150,38 +150,33 @@ export default function AdminCourses() {
   const [formData, setFormData] = useState(empty);
 
   /* ── Data ── */
-  const { data: subjects = [], isLoading: loadingSubjects } = useQuery({
-    queryKey: ['adminSubjects'],
-    queryFn: () => db.entities.Subject.list('order', 300),
+  const { data: subjects = [], isLoading: loadingSubjects } = useQuery({queryKey: ['adminSubjects'],
+    queryFn: async () => { try { return await db.entities.Subject.list('order', 300); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
     refetchInterval: 60_000,
-  });
+    placeholderData: [],}));
 
-  const { data: forms = [] } = useQuery({
-    queryKey: ['forms'],
-    queryFn: () => db.entities.AcademicForm.list('order', 50),
-  });
+  const { data: forms = [] } = useQuery({queryKey: ['forms'],
+    queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
-  const { data: teachers = [] } = useQuery({
-    queryKey: ['teachers'],
-    queryFn: () => db.entities.User.filter({ role: 'teacher' }),
-  });
+  const { data: teachers = [] } = useQuery({queryKey: ['teachers'],
+    queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   /* Live topic counts for ALL subjects */
-  const { data: topics = [], isLoading: loadingTopics } = useQuery({
-    queryKey: ['allTopicsAdmin'],
-    queryFn: () => db.entities.Topic.list('order', 1000),
+  const { data: topics = [], isLoading: loadingTopics } = useQuery({queryKey: ['allTopicsAdmin'],
+    queryFn: async () => { try { return await db.entities.Topic.list('order', 1000); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
     refetchInterval: 60_000,
-  });
+    placeholderData: [],}));
 
   /* Live lesson counts */
-  const { data: lessons = [], isLoading: loadingLessons } = useQuery({
-    queryKey: ['allLessonsAdmin'],
-    queryFn: () => db.entities.Lesson.list('order', 3000),
+  const { data: lessons = [], isLoading: loadingLessons } = useQuery({queryKey: ['allLessonsAdmin'],
+    queryFn: async () => { try { return await db.entities.Lesson.list('order', 3000); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
     refetchInterval: 60_000,
-  });
+    placeholderData: [],}));
 
   /* ── Derived ── */
   const pendingSubjects = useMemo(
