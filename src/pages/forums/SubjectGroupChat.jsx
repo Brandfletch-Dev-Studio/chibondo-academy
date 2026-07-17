@@ -498,11 +498,10 @@ export default function SubjectGroupChat() {
 
       <div style={{
         display: 'flex', flexDirection: 'column',
-        flex: 1,
-        height: '100%',
-        minHeight: 0,
+        height: 'calc(100dvh - 56px - 64px)', /* dvh minus TopBar(56) and BottomNav(64) */
         overflow: 'hidden',
         background: t.bg,
+        position: 'relative',
       }}>
 
         {/* ── Header ── */}
