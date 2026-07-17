@@ -103,13 +103,15 @@ export default function TutorProfilePage() {
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ slug, status: 'active' }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
     enabled:  !looksLikeId,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: profilesByUserId = [], isLoading: loadingById } = useQuery({queryKey: ['tutor-by-user-id', slug],
     queryFn: async () => { try { return await db.entities.TutorProfile.filter({ user_id: slug, status: 'active' }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
     enabled:  looksLikeId,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* The resolved TutorProfile (may be null — teacher with no profile yet) */
   const tutorProfile = profilesBySlug[0] || profilesByUserId[0] || null;
@@ -125,7 +127,8 @@ export default function TutorProfilePage() {
     queryFn: async () => { try { return await db.entities.User.filter({ id: teacherUserId }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     enabled:  !!teacherUserId,
     staleTime: 120_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const teacherUser = teacherUsers[0] || null;
 
   /* ─────────────────────────────────────────────────
@@ -137,14 +140,16 @@ export default function TutorProfilePage() {
     queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: teacherUserId, status: 'published' }, 'name', 50); } catch(e) { console.error(e); return []; } },
     enabled:  !!teacherUserId,
     staleTime: 30_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* Blog posts */
   const { data: blogPosts = [] } = useQuery({queryKey: ['tutor-blog', teacherUserId],
     queryFn: async () => { try { return await db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 6); } catch(e) { console.error(e); return []; } },
     enabled:  !!teacherUserId,
     staleTime: 120_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
   const tutorPosts = blogPosts.filter(p =>
     p.tutor_profile_id === tutorProfile?.id || p.author_id === teacherUserId
   );
