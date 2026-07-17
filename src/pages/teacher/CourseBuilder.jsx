@@ -252,21 +252,21 @@ function VideoInput({ lesson, onChange }) {
     <div className="space-y-3">
       <div>
         <Label className="text-xs mb-1.5 block">Video Source</Label>
-        <div className="flex gap-2 flex-wrap">
+        <div className="grid grid-cols-2 gap-2">
           {[
-            { val: 'none', label: 'None', icon: X },
-            { val: 'youtube', label: 'YouTube', icon: Youtube },
-            { val: 'bunny', label: 'Video Link', icon: Video },
-            { val: 'upload', label: 'Upload Video Lesson', icon: Upload },
-            { val: 'external', label: 'External URL', icon: Globe },
+            { val: 'none',     label: 'No Video',             icon: X },
+            { val: 'youtube',  label: 'YouTube Link',         icon: Youtube },
+            { val: 'upload',   label: 'Upload Video Lesson',  icon: Upload },
+            { val: 'bunny',    label: 'Paste Video URL',      icon: Video },
           ].map(({ val, label, icon: Icon }) => (
             <button key={val} onClick={() => handleProviderChange(val)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all w-full ${
                 provider === val
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:border-primary/40'
               }`}>
-              <Icon className="w-3.5 h-3.5" />{label}
+              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{label}</span>
             </button>
           ))}
         </div>
