@@ -44,8 +44,7 @@ function TutorForm({ initial, onSave, onClose, isSaving }) {
   const [qualInput, setQualInput] = useState({ name: '', institution: '', year: '' });
   const [certInput, setCertInput] = useState({ name: '', organization: '', date_issued: '' });
 
-  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v });
   const autoSlug = () => {
     if (!form.slug && form.full_name) set('slug', slugify(form.full_name));
   };
@@ -286,24 +285,28 @@ export default function TutorManagement() {
   const { data: tutors = [], isLoading: loadingTutors } = useQuery({queryKey: ['admin-tutors'],
     queryFn: async () => { try { return await db.entities.TutorProfile.list('full_name', 500); } catch(e) { console.error(e); return []; } },
     staleTime: 0,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: applications = [], isLoading: loadingApps } = useQuery({queryKey: ['teacherApplications'],
     queryFn: async () => { try { return await db.entities.TeacherApplication.filter({}, '-created_date', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 0,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // All platform teachers (role = teacher) — to detect unlinked ones
   const { data: allTeachers = [] } = useQuery({queryKey: ['all-teachers-mgmt'],
     queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // Subjects with teacher_id set — for auto-profile detection
   const { data: subjects = [] } = useQuery({queryKey: ['all-subjects-mgmt'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 300); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   // ── Mutations ──
   const createMut = useMutation({
