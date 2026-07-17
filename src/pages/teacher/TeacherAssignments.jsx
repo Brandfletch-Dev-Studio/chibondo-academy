@@ -43,11 +43,11 @@ export default function TeacherAssignments() {
 
   const { data: assignments = [] } = useQuery({queryKey: ['teacherAssignments'],
     queryFn: async () => { try { return await db.entities.Assignment.list('-created_date', 100); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],});
 
   const { data: subjects = [] } = useQuery({queryKey: ['subjects'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'order', 100); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],});
 
   const saveMutation = useMutation({
     mutationFn: (data) => db.entities.Assignment.create(data),
