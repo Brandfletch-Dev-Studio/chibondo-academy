@@ -358,7 +358,7 @@ function LinkExistingTab({ lessons, setLessons, apiKey, libraryId }) {
     setLoadingBunny(true);
     try {
       const params = new URLSearchParams({ libraryId, apiKey, page: p, search, perPage: PER_PAGE });
-      const r = await fetch(`/api/bunny?action=library?${params}`);
+      const r = await fetch(`/api/bunny?action=library&${params}`);
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       setBunnyVideos(data.videos || []);
@@ -553,7 +553,7 @@ function AutoMigrateTab({ lessons, setLessons, apiKey, libraryId }) {
     const iv = setInterval(async () => {
       if (++attempts > 40) { clearInterval(iv); return; }
       try {
-        const r = await fetch(`/api/bunny?action=status?libraryId=${libraryId}&videoId=${videoId}&apiKey=${apiKey}`);
+        const r = await fetch(`/api/bunny?action=status&libraryId=${libraryId}&videoId=${videoId}&apiKey=${apiKey}`);
         const d = await r.json();
         if (d.status === 'ready') {
           clearInterval(iv);
