@@ -78,52 +78,44 @@ export default function TeacherCourses() {
   const [formData, setFormData] = useState(empty);
 
   /* Subjects assigned to this teacher */
-  const { data: subjects = [], isLoading: loadingSubjects } = useQuery({
-    queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => db.entities.Subject.filter({ teacher_id: user.id }, 'order', 100),
+  const { data: subjects = [], isLoading: loadingSubjects } = useQuery({queryKey: ['teacherSubjects', user?.id],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: user.id }, 'order', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
     staleTime: 30_000,
-  });
+    placeholderData: [],}));
 
   /* Live topic counts — all topics for this teacher's subjects */
   const subjectIds = subjects.map(s => s.id);
-  const { data: topics = [], isLoading: loadingTopics } = useQuery({
-    queryKey: ['teacherTopics', subjectIds.join(',')],
-    queryFn: async () => {
-      if (!subjectIds.length) return [];
+  const { data: topics = [], isLoading: loadingTopics } = useQuery({queryKey: ['teacherTopics', subjectIds.join(',')],
+    queryFn: async () => { try { if (!subjectIds.length) return [];
       const all = [];
       for (const sid of subjectIds) {
         const t = await db.entities.Topic.filter({ subject_id: sid }, 'order', 200);
         all.push(...t);
       }
-      return all;
-    },
+      return all; } catch(e) { console.error(e); return []; } },
     enabled: subjectIds.length > 0,
     staleTime: 30_000,
     refetchInterval: 60_000,
-  });
+    placeholderData: [],}));
 
   /* Live lesson counts */
-  const { data: lessons = [], isLoading: loadingLessons } = useQuery({
-    queryKey: ['teacherLessons', subjectIds.join(',')],
-    queryFn: async () => {
-      if (!subjectIds.length) return [];
+  const { data: lessons = [], isLoading: loadingLessons } = useQuery({queryKey: ['teacherLessons', subjectIds.join(',')],
+    queryFn: async () => { try { if (!subjectIds.length) return [];
       const all = [];
       for (const sid of subjectIds) {
         const l = await db.entities.Lesson.filter({ subject_id: sid }, 'order', 500);
         all.push(...l);
       }
-      return all;
-    },
+      return all; } catch(e) { console.error(e); return []; } },
     enabled: subjectIds.length > 0,
     staleTime: 30_000,
     refetchInterval: 60_000,
-  });
+    placeholderData: [],}));
 
-  const { data: forms = [] } = useQuery({
-    queryKey: ['forms'],
-    queryFn: () => db.entities.AcademicForm.list('order', 50),
-  });
+  const { data: forms = [] } = useQuery({queryKey: ['forms'],
+    queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const pendingCourses = subjects.filter(s => s.pending_approval && s.status === 'draft');
   const activeCourses  = subjects.filter(s => !s.pending_approval || s.status === 'published');
