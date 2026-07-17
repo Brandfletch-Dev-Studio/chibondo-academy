@@ -448,7 +448,7 @@ export default function LessonPage() {
         keywords={lesson.seo_keywords || `${lesson.title}, MSCE, Chibondo Academy`}
       />
 
-      <div className="flex flex-col lg:flex-row min-h-screen -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 bg-background text-foreground relative pb-24 lg:pb-0">
+      <div className="flex flex-col lg:flex-row min-h-screen -mx-4 sm:-mx-6 lg:-mx-8 bg-background text-foreground relative pb-24 lg:pb-0">
         
         {/* 1. MOBILE TOP BAR (sticky) */}
         <div className="sticky top-0 z-40 w-full bg-card/95 backdrop-blur-md border-b border-border lg:hidden flex flex-col">
@@ -598,7 +598,7 @@ export default function LessonPage() {
           </div>
 
           {/* 2. VIDEO PLAYER AREA */}
-          <div className="w-full bg-black lg:sticky lg:top-[73px] z-30 shadow-md">
+          <div className="w-full bg-black lg:sticky lg:top-[65px] z-30 shadow-md">
             {hasVideo ? (
               <div className="w-full">
                 {!user ? (
