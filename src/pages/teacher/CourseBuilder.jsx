@@ -134,7 +134,7 @@ function VideoInput({ lesson, onChange }) {
     } else if (provider === 'bunny') {
       const embed = getBunnyEmbed(urlInput);
       onChange({ video_url: urlInput, video_provider: 'bunny' });
-      toast.success('Bunny.net video linked');
+      toast.success('Video linked successfully');
     } else {
       onChange({ video_url: urlInput, video_provider: provider });
     }
@@ -148,7 +148,7 @@ function VideoInput({ lesson, onChange }) {
     const libId   = localStorage.getItem('bunny_lib_id');
 
     if (!apiKey || !libId) {
-      toast.error('Bunny credentials not set. Ask your admin to configure Bunny in the Video Manager.');
+      toast.error('Video upload not configured. Please contact your administrator.');
       return;
     }
 
@@ -173,7 +173,7 @@ function VideoInput({ lesson, onChange }) {
 
       const { videoId, embedUrl, authSignature, authExpiry, libraryId: lib } = signData;
       setUploadProgress(5);
-      setUploadStatus('Starting upload to Bunny…');
+      setUploadStatus('Starting upload…');
 
       // Step 2: Upload directly to Bunny via TUS protocol (browser → Bunny)
       // TUS: POST to create upload, then PATCH chunks
@@ -236,11 +236,11 @@ function VideoInput({ lesson, onChange }) {
       onChange({ video_url: embedUrl, video_provider: 'bunny' });
       setUrlInput(embedUrl);
       setUploadProgress(100);
-      setUploadStatus('✓ Uploaded to Bunny!');
-      toast.success('Video uploaded to Bunny 🐰 — processing in 1-2 min');
+      setUploadStatus('✓ Upload complete!');
+      toast.success('Video uploaded successfully — it will be ready to play in 1-2 minutes');
       setTimeout(() => { setUploading(false); setUploadProgress(0); setUploadStatus(''); }, 2000);
     } catch (err) {
-      console.error('[bunny-upload]', err);
+      console.error('[video-upload]', err);
       toast.error(err.message || 'Upload failed');
       setUploading(false);
       setUploadProgress(0);
@@ -256,8 +256,8 @@ function VideoInput({ lesson, onChange }) {
           {[
             { val: 'none', label: 'None', icon: X },
             { val: 'youtube', label: 'YouTube', icon: Youtube },
-            { val: 'bunny', label: 'Bunny.net', icon: Video },
-            { val: 'upload', label: 'Upload to Bunny', icon: Upload },
+            { val: 'bunny', label: 'Video Link', icon: Video },
+            { val: 'upload', label: 'Upload Video Lesson', icon: Upload },
             { val: 'external', label: 'External URL', icon: Globe },
           ].map(({ val, label, icon: Icon }) => (
             <button key={val} onClick={() => handleProviderChange(val)}
@@ -289,7 +289,7 @@ function VideoInput({ lesson, onChange }) {
               ) : (
                 <>
                   <Upload className="w-6 h-6 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">Click to upload video</p>
+                  <p className="text-sm text-muted-foreground">Click to upload your video lesson</p>
                   <p className="text-xs text-muted-foreground/60">MP4, WebM, MOV supported</p>
                 </>
               )}
@@ -312,7 +312,7 @@ function VideoInput({ lesson, onChange }) {
               onBlur={handleUrlBlur}
               placeholder={
                 provider === 'youtube' ? 'https://www.youtube.com/watch?v=...'
-                : provider === 'bunny' ? 'Bunny video ID or embed URL'
+                : provider === 'bunny' ? 'Paste video embed URL'
                 : 'https://...'
               }
               className="flex-1 text-sm"
@@ -332,10 +332,10 @@ function VideoInput({ lesson, onChange }) {
             </div>
           )}
 
-          {/* Bunny preview */}
+          {/* Video link preview */}
           {provider === 'bunny' && urlInput && (
             <div className="flex items-center gap-2 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl text-xs text-orange-700">
-              <Video className="w-3.5 h-3.5 flex-shrink-0" /> Bunny.net video linked
+              <Video className="w-3.5 h-3.5 flex-shrink-0" /> Video linked successfully
             </div>
           )}
         </div>
