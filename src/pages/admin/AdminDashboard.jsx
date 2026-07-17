@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, BookOpen, TrendingUp, CreditCard, GraduationCap,
   Gift, AlertCircle, CheckCircle2, Clock, Layers,
-  UserCheck, ArrowRight, ArrowUpRight, DollarSign, Loader2
+  UserCheck, ArrowRight, ArrowUpRight, DollarSign, Loader2, Video
 } from 'lucide-react';
 
 const TIME_FILTERS = [
@@ -275,6 +275,14 @@ export default function AdminDashboard() {
             gradient="bg-gradient-to-br from-amber-600 to-amber-800"
             loading={loadingEnrollments}
           />
+          <StatCard
+            label="Video Migration"
+            value={`${allLessons.filter(l => l.video_provider === 'bunny').length}/${allLessons.filter(l => l.video_url).length}`}
+            sub="lessons on Bunny.net"
+            icon={Video}
+            gradient="bg-gradient-to-br from-purple-600 to-indigo-800"
+            to="/admin/bunny-migration"
+          />
         </div>
       </div>
 
@@ -311,6 +319,29 @@ export default function AdminDashboard() {
           <p className="text-2xl font-display font-bold">{totalAffiliates}</p>
           <p className="text-xs font-semibold text-foreground/80">Affiliates</p>
           <p className="text-[11px] text-muted-foreground">{filteredReferrals.filter(r => ['paid','rewarded'].includes(r.status)).length} conversions</p>
+        </div>
+      </div>
+
+      {/* Quick Tools */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          <Layers className="w-4 h-4 text-primary" /> Admin Tools
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            { label: 'Video Migration', icon: Video, to: '/admin/bunny-migration', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+            { label: 'Curriculum', icon: BookOpen, to: '/admin/curriculum', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+            { label: 'Notifications', icon: AlertCircle, to: '/admin/notifications', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+            { label: 'Settings', icon: UserCheck, to: '/admin/settings', color: 'text-teal-500', bg: 'bg-teal-500/10' },
+          ].map(({ label, icon: Icon, to, color, bg }) => (
+            <Link key={to} to={to}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border hover:bg-muted/40 transition-colors group">
+              <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <Icon className={`w-4 h-4 ${color}`} />
+              </div>
+              <span className="text-[11px] font-medium text-center leading-tight">{label}</span>
+            </Link>
+          ))}
         </div>
       </div>
 

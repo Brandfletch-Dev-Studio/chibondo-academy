@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as tus from 'tus-js-client';
 import { db } from '@/api/supabaseClient';
 import { useOutletContext } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -697,6 +698,296 @@ function AutoMigrateTab({ lessons, setLessons, apiKey, libraryId }) {
   );
 }
 
+// ── Tab: Direct Upload to Bunny (polished) ────────────────────────────────────
+function DirectUploadTab({ lessons, setLessons, apiKey, libraryId }) {
+  const [queue, setQueue]         = useState([]); // [{id, file, lessonId, status, progress, speed, eta, uploadObj}]
+  const [dragging, setDragging]   = useState(false);
+  const dropRef                   = useRef(null);
+  const fileRef                   = useRef(null);
+
+  const lessonOptions = lessons.filter(l => !isBunny(l.video_url));
+
+  function addFiles(files) {
+    const MAX = 4 * 1024 * 1024 * 1024; // 4 GB
+    const valid = Array.from(files).filter(f => {
+      if (!f.type.startsWith('video/')) { toast.error(`${f.name}: Not a video file`); return false; }
+      if (f.size > MAX) { toast.error(`${f.name}: Exceeds 4 GB limit`); return false; }
+      return true;
+    });
+    setQueue(q => [...q, ...valid.map(f => ({
+      id: crypto.randomUUID(), file: f, lessonId: '', status: 'idle',
+      progress: 0, speed: 0, eta: null, uploadObj: null
+    }))]);
+  }
+
+  // Drag and drop handlers
+  const onDragOver = e => { e.preventDefault(); setDragging(true); };
+  const onDragLeave = e => { if (!dropRef.current?.contains(e.relatedTarget)) setDragging(false); };
+  const onDrop = e => {
+    e.preventDefault(); setDragging(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  function updateItem(id, patch) {
+    setQueue(q => q.map(item => item.id === id ? { ...item, ...patch } : item));
+  }
+
+  async function startUpload(itemId) {
+    const item = queue.find(i => i.id === itemId);
+    if (!item || !apiKey || !libraryId) {
+      toast.error('Add Bunny credentials in Settings first'); return;
+    }
+    if (!item.lessonId) { toast.error('Select a lesson first'); return; }
+
+    updateItem(itemId, { status: 'creating', progress: 2 });
+
+    try {
+      // 1. Create video on Bunny
+      const createRes = await fetch(`https://video.bunnycdn.com/library/${libraryId}/videos`, {
+        method: 'POST',
+        headers: { AccessKey: apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: item.file.name.replace(/\.[^.]+$/, '') })
+      });
+      if (!createRes.ok) throw new Error('Failed to create video on Bunny');
+      const { guid: videoId } = await createRes.json();
+
+      updateItem(itemId, { status: 'uploading', progress: 5, videoId });
+
+      // 2. TUS upload
+      const startTime = Date.now();
+      let lastLoaded = 0;
+
+      await new Promise((resolve, reject) => {
+        const upload = new tus.Upload(item.file, {
+          endpoint: `https://video.bunnycdn.com/tusupload`,
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          headers: {
+            AuthorizationSignature: apiKey,
+            AuthorizationExpire: 0,
+            VideoId: videoId,
+            LibraryId: libraryId,
+          },
+          metadata: {
+            filetype: item.file.type,
+            title: item.file.name,
+          },
+          onProgress(bytesUploaded, bytesTotal) {
+            const pct = Math.round((bytesUploaded / bytesTotal) * 90) + 5;
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = bytesUploaded / elapsed; // bytes/s
+            const remaining = (bytesTotal - bytesUploaded) / speed;
+            updateItem(itemId, {
+              progress: pct,
+              speed: speed / (1024 * 1024), // MB/s
+              eta: remaining,
+              uploadObj: upload,
+            });
+            lastLoaded = bytesUploaded;
+          },
+          onSuccess() { resolve(); },
+          onError(err) { reject(err); },
+        });
+        upload.start();
+      });
+
+      updateItem(itemId, { status: 'linking', progress: 97, speed: 0, eta: null });
+
+      // 3. Auto-link to lesson
+      const embedUrl = `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}`;
+      await db.entities.Lesson.update(item.lessonId, {
+        video_url: embedUrl,
+        video_provider: 'bunny',
+        bunny_video_id: videoId,
+        bunny_library_id: libraryId,
+      });
+      setLessons(ls => ls.map(l => l.id === item.lessonId
+        ? { ...l, video_url: embedUrl, video_provider: 'bunny', bunny_video_id: videoId }
+        : l));
+
+      updateItem(itemId, { status: 'done', progress: 100 });
+      toast.success(`${item.file.name} uploaded & linked!`);
+    } catch (err) {
+      console.error(err);
+      updateItem(itemId, { status: 'error', progress: 0 });
+      toast.error(`Upload failed: ${err.message}`);
+    }
+  }
+
+  function pauseUpload(itemId) {
+    const item = queue.find(i => i.id === itemId);
+    if (item?.uploadObj) { item.uploadObj.abort(); updateItem(itemId, { status: 'paused' }); }
+  }
+  function resumeUpload(itemId) {
+    const item = queue.find(i => i.id === itemId);
+    if (item?.uploadObj) { item.uploadObj.start(); updateItem(itemId, { status: 'uploading' }); }
+  }
+  function removeItem(itemId) {
+    const item = queue.find(i => i.id === itemId);
+    if (item?.uploadObj) try { item.uploadObj.abort(); } catch {}
+    setQueue(q => q.filter(i => i.id !== itemId));
+  }
+
+  function fmtEta(s) {
+    if (!s || s < 1) return '';
+    if (s < 60) return `${Math.round(s)}s left`;
+    return `${Math.round(s/60)}m left`;
+  }
+  function fmtFileSize(bytes) {
+    if (bytes > 1024**3) return (bytes/1024**3).toFixed(1)+' GB';
+    return (bytes/1024**2).toFixed(0)+' MB';
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Drop zone */}
+      <div
+        ref={dropRef}
+        onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+        onClick={() => fileRef.current?.click()}
+        className={cn(
+          'border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all select-none',
+          dragging
+            ? 'border-purple-400 bg-purple-500/10 scale-[1.01]'
+            : 'border-border hover:border-purple-300 hover:bg-muted/40'
+        )}
+      >
+        <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center transition-colors',
+          dragging ? 'bg-purple-500/20' : 'bg-muted')}>
+          <Upload className={cn('w-6 h-6 transition-colors', dragging ? 'text-purple-500' : 'text-muted-foreground')} />
+        </div>
+        <div className="text-center">
+          <p className="font-semibold text-sm">{dragging ? 'Drop videos here' : 'Drag & drop videos'}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">or click to browse · max 4 GB per file · video files only</p>
+        </div>
+        <input ref={fileRef} type="file" accept="video/*" multiple className="hidden"
+          onChange={e => { addFiles(e.target.files); e.target.value=''; }} />
+      </div>
+
+      {/* Queue */}
+      {queue.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Upload Queue ({queue.length})</h3>
+            <button onClick={() => setQueue([])}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors">Clear all</button>
+          </div>
+
+          {queue.map(item => (
+            <div key={item.id} className={cn(
+              'rounded-xl border bg-card p-4 space-y-3 transition-all',
+              item.status === 'done' && 'border-green-200 bg-green-50/30 dark:bg-green-950/10',
+              item.status === 'error' && 'border-red-200 bg-red-50/30 dark:bg-red-950/10',
+            )}>
+              {/* File info row */}
+              <div className="flex items-start gap-3">
+                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
+                  item.status === 'done' ? 'bg-green-500/10' : item.status === 'error' ? 'bg-red-500/10' : 'bg-purple-500/10')}>
+                  {item.status === 'done'
+                    ? <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    : item.status === 'error'
+                    ? <AlertTriangle className="w-4 h-4 text-red-500" />
+                    : <Video className="w-4 h-4 text-purple-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.file.name}</p>
+                  <p className="text-xs text-muted-foreground">{fmtFileSize(item.file.size)}</p>
+                </div>
+                <button onClick={() => removeItem(item.id)}
+                  className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Lesson selector */}
+              {item.status === 'idle' || item.status === 'paused' ? (
+                <select
+                  value={item.lessonId}
+                  onChange={e => updateItem(item.id, { lessonId: e.target.value })}
+                  className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-purple-400"
+                >
+                  <option value="">— Link to a lesson (optional) —</option>
+                  {lessonOptions.map(l => (
+                    <option key={l.id} value={l.id}>{l.title}</option>
+                  ))}
+                </select>
+              ) : item.status === 'done' ? (
+                <p className="text-xs text-green-600 font-medium">✓ Uploaded & linked to lesson</p>
+              ) : null}
+
+              {/* Progress bar */}
+              {['uploading','creating','linking','paused'].includes(item.status) && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>
+                      {item.status === 'creating' ? 'Creating on Bunny…'
+                        : item.status === 'linking' ? 'Linking to lesson…'
+                        : item.status === 'paused' ? 'Paused'
+                        : `${item.progress}%`}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {item.speed > 0 && <span>{item.speed.toFixed(1)} MB/s</span>}
+                      {item.eta > 0 && <span>{fmtEta(item.eta)}</span>}
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                    <div
+                      className={cn('h-2 rounded-full transition-all duration-300',
+                        item.status === 'paused' ? 'bg-yellow-400' : 'bg-gradient-to-r from-purple-500 to-indigo-500')}
+                      style={{ width: `${item.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                {item.status === 'idle' && (
+                  <Button size="sm" onClick={() => startUpload(item.id)}
+                    className="text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
+                    <Upload className="w-3 h-3 mr-1" /> Upload to Bunny
+                  </Button>
+                )}
+                {item.status === 'uploading' && (
+                  <Button size="sm" variant="outline" onClick={() => pauseUpload(item.id)} className="text-xs">
+                    ⏸ Pause
+                  </Button>
+                )}
+                {item.status === 'paused' && (
+                  <Button size="sm" onClick={() => resumeUpload(item.id)} className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white">
+                    ▶ Resume
+                  </Button>
+                )}
+                {item.status === 'error' && (
+                  <Button size="sm" variant="outline" onClick={() => { updateItem(item.id,{status:'idle',progress:0}); }} className="text-xs text-red-600">
+                    ↺ Retry
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Upload all idle */}
+          {queue.filter(i => i.status === 'idle').length > 1 && (
+            <Button
+              onClick={() => queue.filter(i=>i.status==='idle').forEach(i=>startUpload(i.id))}
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload All ({queue.filter(i=>i.status==='idle').length} files)
+            </Button>
+          )}
+        </div>
+      )}
+
+      {queue.length === 0 && (
+        <div className="text-center py-4 text-xs text-muted-foreground">
+          Drop video files above to build your upload queue
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function BunnyMigration() {
   const { user } = useOutletContext();
@@ -797,6 +1088,7 @@ export default function BunnyMigration() {
           { key: 'automatch', label: '✨ Auto-Match' },
           { key: 'link',      label: '🔗 Link Manually' },
           { key: 'migrate',   label: '⬆️ Migrate YouTube' },
+          { key: 'upload',    label: '📤 Direct Upload' },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={cn('flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all',
@@ -814,8 +1106,10 @@ export default function BunnyMigration() {
         <AutoMatchTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} setTab={setTab} />
       ) : tab === 'link' ? (
         <LinkExistingTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
-      ) : (
+      ) : tab === 'migrate' ? (
         <AutoMigrateTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
+      ) : (
+        <DirectUploadTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
       )}
     </div>
   );
