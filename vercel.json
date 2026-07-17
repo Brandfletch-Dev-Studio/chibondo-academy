@@ -4,5 +4,11 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/bunny-upload.js": {
+      "maxDuration": 300,
+      "memory": 1024
+    }
+  }
 }
