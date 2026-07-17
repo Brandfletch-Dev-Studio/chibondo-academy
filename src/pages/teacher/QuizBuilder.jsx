@@ -118,10 +118,9 @@ export default function QuizBuilder() {
   const [form, setForm] = useState({ title: '', description: '', time_limit_minutes: 0, pass_percentage: 50, status: 'draft' });
   const [questions, setQuestions] = useState([]);
 
-  const { data: quizzes = [] } = useQuery({
-    queryKey: ['teacherQuizzes'],
-    queryFn: () => db.entities.Quiz.list('-created_date', 100),
-  });
+  const { data: quizzes = [] } = useQuery({queryKey: ['teacherQuizzes'],
+    queryFn: async () => { try { return await db.entities.Quiz.list('-created_date', 100); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const saveMutation = useMutation({
     mutationFn: (data) => editingQuiz ? db.entities.Quiz.update(editingQuiz.id, data) : db.entities.Quiz.create(data),
