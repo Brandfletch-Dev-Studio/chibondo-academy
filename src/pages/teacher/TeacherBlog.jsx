@@ -56,18 +56,16 @@ export default function TeacherBlog() {
   const [activeTab, setActiveTab] = useState('content');
   const [copiedId, setCopiedId]   = useState(null);
 
-  const { data: tutorProfiles = [] } = useQuery({
-    queryKey: ['myTutorProfile', user?.id],
-    queryFn: () => db.entities.TutorProfile.filter({ user_id: user?.id }),
+  const { data: tutorProfiles = [] } = useQuery({queryKey: ['myTutorProfile', user?.id],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ user_id: user?.id }); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-  });
+    placeholderData: [],}));
   const myProfile = tutorProfiles[0];
 
-  const { data: posts = [], isLoading } = useQuery({
-    queryKey: ['teacherBlogPosts', user?.id],
-    queryFn: () => db.entities.BlogPost.filter({ created_by: user?.id }, '-created_date', 100),
+  const { data: posts = [], isLoading } = useQuery({queryKey: ['teacherBlogPosts', user?.id],
+    queryFn: async () => { try { return await db.entities.BlogPost.filter({ created_by: user?.id }, '-created_date', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
-  });
+    placeholderData: [],}));
 
   // ── Analytics derived from posts ─────────────────────────────────────────
   const totalViews     = posts.reduce((s, p) => s + (p.view_count || 0), 0);
