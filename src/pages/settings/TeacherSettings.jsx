@@ -197,9 +197,11 @@ export default function TeacherSettings() {
     staleTime: 0,
   });
 
-  /* ── Init account fields ── */
+  /* ── Init account fields (once per user session — prevents autosave loop) ── */
+  const accountInitialised = useRef(false);
   useEffect(() => {
-    if (user) {
+    if (user && !accountInitialised.current) {
+      accountInitialised.current = true;
       setFullName(user.full_name || '');
       setAvatarPreview(user.avatar_url || '');
       setPhone(user.phone_number || '');
@@ -283,8 +285,6 @@ export default function TeacherSettings() {
       const { file_url } = await db.integrations.Core.UploadFile({ file });
       setAvatarPreview(file_url);
       await db.auth.updateMe({ avatar_url: file_url });
-      await checkUserAuth();
-      queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Profile photo updated!');
     } catch {
       toast.error('Upload failed — please try again.');
@@ -297,8 +297,6 @@ export default function TeacherSettings() {
   const removeAvatar = async () => {
     setAvatarPreview('');
     await db.auth.updateMe({ avatar_url: '' });
-    await checkUserAuth();
-    queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
     toast.success('Profile photo removed');
   };
 
@@ -308,8 +306,6 @@ export default function TeacherSettings() {
     setProfileSaving(true);
     try {
       await db.auth.updateMe({ full_name: fullName.trim(), phone_number: phone });
-      await checkUserAuth();
-      queryClient.invalidateQueries({ queryKey: ['my-tutor-profile', user?.id] });
       toast.success('Account saved!');
     } catch { toast.error('Could not save account'); }
     finally { setProfileSaving(false); }
