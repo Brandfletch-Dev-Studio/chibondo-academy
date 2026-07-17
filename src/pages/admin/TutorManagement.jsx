@@ -283,31 +283,27 @@ export default function TutorManagement() {
   const [reviewApp, setReviewApp]     = useState(null);
 
   // ── Data fetching ──
-  const { data: tutors = [], isLoading: loadingTutors } = useQuery({
-    queryKey: ['admin-tutors'],
-    queryFn: () => db.entities.TutorProfile.list('full_name', 500),
+  const { data: tutors = [], isLoading: loadingTutors } = useQuery({queryKey: ['admin-tutors'],
+    queryFn: async () => { try { return await db.entities.TutorProfile.list('full_name', 500); } catch(e) { console.error(e); return []; } },
     staleTime: 0,
-  });
+    placeholderData: [],}));
 
-  const { data: applications = [], isLoading: loadingApps } = useQuery({
-    queryKey: ['teacherApplications'],
-    queryFn: () => db.entities.TeacherApplication.filter({}, '-created_date', 200),
+  const { data: applications = [], isLoading: loadingApps } = useQuery({queryKey: ['teacherApplications'],
+    queryFn: async () => { try { return await db.entities.TeacherApplication.filter({}, '-created_date', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 0,
-  });
+    placeholderData: [],}));
 
   // All platform teachers (role = teacher) — to detect unlinked ones
-  const { data: allTeachers = [] } = useQuery({
-    queryKey: ['all-teachers-mgmt'],
-    queryFn: () => db.entities.User.filter({ role: 'teacher' }),
+  const { data: allTeachers = [] } = useQuery({queryKey: ['all-teachers-mgmt'],
+    queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
+    placeholderData: [],}));
 
   // Subjects with teacher_id set — for auto-profile detection
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['all-subjects-mgmt'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 300),
+  const { data: subjects = [] } = useQuery({queryKey: ['all-subjects-mgmt'],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 300); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
+    placeholderData: [],}));
 
   // ── Mutations ──
   const createMut = useMutation({
