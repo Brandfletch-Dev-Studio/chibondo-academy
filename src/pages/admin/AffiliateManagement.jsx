@@ -58,29 +58,25 @@ export default function AffiliateManagement() {
   const [settingsForm, setSettingsForm] = useState({});
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  const { data: allReferrals = [], isLoading: loadingRef } = useQuery({
-    queryKey: ['admin-all-referrals'],
-    queryFn: () => db.entities.Referral.list('-created_date', 500),
+  const { data: allReferrals = [], isLoading: loadingRef } = useQuery({queryKey: ['admin-all-referrals'],
+    queryFn: async () => { try { return await db.entities.Referral.list('-created_date', 500); } catch(e) { console.error(e); return []; } },
     staleTime: 0, refetchOnWindowFocus: true, refetchInterval: 30_000,
-  });
+    placeholderData: [],}));
 
-  const { data: allPayouts = [], isLoading: loadingPay } = useQuery({
-    queryKey: ['admin-all-payouts'],
-    queryFn: () => db.entities.PayoutRequest.list('-created_date', 200),
+  const { data: allPayouts = [], isLoading: loadingPay } = useQuery({queryKey: ['admin-all-payouts'],
+    queryFn: async () => { try { return await db.entities.PayoutRequest.list('-created_date', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 0, refetchOnWindowFocus: true, refetchInterval: 30_000,
-  });
+    placeholderData: [],}));
 
-  const { data: affiliates = [] } = useQuery({
-    queryKey: ['admin-affiliates'],
-    queryFn: () => db.entities.User.filter({ role: 'affiliate' }, 'full_name', 200),
+  const { data: affiliates = [] } = useQuery({queryKey: ['admin-affiliates'],
+    queryFn: async () => { try { return await db.entities.User.filter({ role: 'affiliate' }, 'full_name', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
+    placeholderData: [],}));
 
-  const { data: settingsRows = [] } = useQuery({
-    queryKey: ['affiliateSettings'],
-    queryFn: () => db.entities.PlatformSettings.filter({ key: 'affiliate_commission' }),
+  const { data: settingsRows = [] } = useQuery({queryKey: ['affiliateSettings'],
+    queryFn: async () => { try { return await db.entities.PlatformSettings.filter({ key: 'affiliate_commission' }); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
+    placeholderData: [],}));
 
   const settings        = settingsRows[0]?.value || {};
   const commissionAmt   = settings.commission_amount ?? settings.fixed_amount ?? 10000;
