@@ -26,8 +26,10 @@ function FormManager() {
   const empty = { name: '', description: '', order: 0, status: 'active' };
   const [form, setForm] = useState(empty);
 
-  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => db.entities.AcademicForm.list('order', 50) });
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
+  const { data: forms = [] } = useQuery({queryKey: ['forms'], queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? db.entities.AcademicForm.update(editing.id, form) : db.entities.AcademicForm.create(form),
@@ -116,10 +118,14 @@ function CourseManager() {
   const empty = { name: '', description: '', form_id: '', teacher_id: '', is_premium: true, status: 'draft', order: 0 };
   const [formData, setFormData] = useState(empty);
 
-  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => db.entities.AcademicForm.list('order', 50) });
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => db.entities.User.filter({ role: 'teacher' }) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
+  const { data: forms = [] } = useQuery({queryKey: ['forms'], queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: teachers = [] } = useQuery({queryKey: ['teachers'], queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: enrollments = [] } = useQuery({queryKey: ['allEnrollments'], queryFn: async () => { try { return await db.entities.Enrollment.list('-created_date', 5000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -309,9 +315,12 @@ function TopicManager() {
   const empty = { title: '', description: '', subject_id: '', form_id: '', order: 0, status: 'draft' };
   const [formData, setFormData] = useState(empty);
 
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => db.entities.Topic.list('order', 1000) });
-  const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => db.entities.Lesson.list('order', 1000) });
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: topics = [] } = useQuery({queryKey: ['allTopics'], queryFn: async () => { try { return await db.entities.Topic.list('order', 1000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: lessons = [] } = useQuery({queryKey: ['allLessons'], queryFn: async () => { try { return await db.entities.Lesson.list('order', 1000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -408,8 +417,10 @@ function TopicManager() {
 // ─── PENDING COURSE APPROVALS ─────────────────────────────────────────────────
 function PendingApprovals() {
   const queryClient = useQueryClient();
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.filter({ pending_approval: true }) });
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => db.entities.User.filter({ role: 'teacher' }) });
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.filter({ pending_approval: true }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: teachers = [] } = useQuery({queryKey: ['teachers'], queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const approveMutation = useMutation({
     mutationFn: (id) => db.entities.Subject.update(id, { status: 'published', pending_approval: false }),
@@ -469,9 +480,12 @@ function PendingApprovals() {
 // ─── TUTOR ALLOCATION ─────────────────────────────────────────────────────────
 function TutorAllocation() {
   const queryClient = useQueryClient();
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => db.entities.User.filter({ role: 'teacher' }) });
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
+  const { data: teachers = [] } = useQuery({queryKey: ['teachers'], queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: enrollments = [] } = useQuery({queryKey: ['allEnrollments'], queryFn: async () => { try { return await db.entities.Enrollment.list('-created_date', 5000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const reassignMutation = useMutation({
     mutationFn: ({ subjectId, teacherId, teacherName }) =>
@@ -550,10 +564,14 @@ function TutorAllocation() {
 // ─── COURSE ENROLLMENTS ───────────────────────────────────────────────────────
 function CourseEnrollments() {
   const [selectedSubject, setSelectedSubject] = useState('');
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
-  const { data: students = [] } = useQuery({ queryKey: ['allStudents'], queryFn: () => db.entities.User.filter({}) });
-  const { data: users = [] } = useQuery({ queryKey: ['allUsers'], queryFn: () => db.entities.User.filter({ role: 'user' }) });
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: enrollments = [] } = useQuery({queryKey: ['allEnrollments'], queryFn: async () => { try { return await db.entities.Enrollment.list('-created_date', 5000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: students = [] } = useQuery({queryKey: ['allStudents'], queryFn: async () => { try { return await db.entities.User.filter({}); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: users = [] } = useQuery({queryKey: ['allUsers'], queryFn: async () => { try { return await db.entities.User.filter({ role: 'user' }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const courseEnrollments = selectedSubject ? enrollments.filter(e => e.subject_id === selectedSubject) : [];
 
@@ -614,12 +632,18 @@ function CourseEnrollments() {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function CurriculumManagement() {
-  const { data: subjects = [] } = useQuery({ queryKey: ['allSubjects'], queryFn: () => db.entities.Subject.list('order', 200) });
-  const { data: forms = [] } = useQuery({ queryKey: ['forms'], queryFn: () => db.entities.AcademicForm.list('order', 50) });
-  const { data: topics = [] } = useQuery({ queryKey: ['allTopics'], queryFn: () => db.entities.Topic.list('order', 1000) });
-  const { data: teachers = [] } = useQuery({ queryKey: ['teachers'], queryFn: () => db.entities.User.filter({ role: 'teacher' }) });
-  const { data: enrollments = [] } = useQuery({ queryKey: ['allEnrollments'], queryFn: () => db.entities.Enrollment.list('-created_date', 5000) });
-  const { data: lessons = [] } = useQuery({ queryKey: ['allLessons'], queryFn: () => db.entities.Lesson.filter({}) });
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: forms = [] } = useQuery({queryKey: ['forms'], queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: topics = [] } = useQuery({queryKey: ['allTopics'], queryFn: async () => { try { return await db.entities.Topic.list('order', 1000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: teachers = [] } = useQuery({queryKey: ['teachers'], queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: enrollments = [] } = useQuery({queryKey: ['allEnrollments'], queryFn: async () => { try { return await db.entities.Enrollment.list('-created_date', 5000); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
+  const { data: lessons = [] } = useQuery({queryKey: ['allLessons'], queryFn: async () => { try { return await db.entities.Lesson.filter({}); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const stats = [
     { label: 'Classes', value: forms.length, icon: GraduationCap, color: 'text-primary bg-primary/10' },
