@@ -12,13 +12,13 @@ export default function ProgressPage() {
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', user?.id],
-    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 50),
+    queryFn: async () => { try { return await db.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 50); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
   });
 
   const { data: quizAttempts = [] } = useQuery({
     queryKey: ['myQuizAttempts', user?.id],
-    queryFn: () => db.entities.QuizAttempt.filter({ student_id: user.id, status: 'completed' }, '-created_date', 100),
+    queryFn: async () => { try { return await db.entities.QuizAttempt.filter({ student_id: user.id, status: 'completed' }, '-created_date', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
   });
 
