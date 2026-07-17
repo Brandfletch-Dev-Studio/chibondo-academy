@@ -105,18 +105,16 @@ export default function TutorsPage() {
   // ── Data fetching ──────────────────────────────────────────────────────────
   // TutorProfile has rls.read={} — fully public, works for logged-out users.
   // We drive the directory from TutorProfile only; no User.filter() needed.
-  const { data: tutorProfiles = [], isLoading } = useQuery({
-    queryKey: ['all-tutor-profiles-public'],
-    queryFn:  () => db.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200),
+  const { data: tutorProfiles = [], isLoading } = useQuery({queryKey: ['all-tutor-profiles-public'],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ status: 'active', is_visible: true }, 'full_name', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
+    placeholderData: [],}));
 
   // Published subjects — rls allows public reads on published records.
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects-all-for-tutors'],
-    queryFn:  () => db.entities.Subject.filter({ status: 'published' }, 'name', 500),
+  const { data: subjects = [] } = useQuery({queryKey: ['subjects-all-for-tutors'],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 500); } catch(e) { console.error(e); return []; } },
     staleTime: 60_000,
-  });
+    placeholderData: [],}));
 
   // Course count per tutor (match on tutor_profile_id OR teacher_id === user_id)
   const courseCountByProfile = useMemo(() => {
