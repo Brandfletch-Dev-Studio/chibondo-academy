@@ -286,7 +286,7 @@ export default function LessonPage() {
 
   const { data: allLessons = [] } = useQuery({
     queryKey: ['subjectLessons', lesson?.subject_id],
-    queryFn: () => db.entities.Lesson.filter({ subject_id: lesson.subject_id }, 'order', 200),
+    queryFn: async () => { try { return await db.entities.Lesson.filter({ subject_id: lesson.subject_id }, 'order', 200); } catch(e) { console.error(e); return []; } },
     enabled: !!lesson?.subject_id,
     onSuccess: (lessons) => {
       const currentLesson = lessons.find(l => l.id === lessonId);
@@ -298,7 +298,7 @@ export default function LessonPage() {
 
   const { data: topics = [] } = useQuery({
     queryKey: ['topics', lesson?.subject_id],
-    queryFn: () => db.entities.Topic.filter({ subject_id: lesson?.subject_id }, 'order', 200),
+    queryFn: async () => { try { return await db.entities.Topic.filter({ subject_id: lesson?.subject_id }, 'order', 200); } catch(e) { console.error(e); return []; } },
     enabled: !!lesson?.subject_id,
   });
 
