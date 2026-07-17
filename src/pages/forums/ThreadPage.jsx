@@ -83,12 +83,11 @@ function AvatarViewer({ open, onClose, name, role, avatarUrl, authorId }) {
   const [imgErr, setImgErr] = React.useState(false);
 
   // Fetch TutorProfile if this is a teacher — to get their slug
-  const { data: tutorProfiles = [] } = useQuery({
-    queryKey: ['tutor-profile-for-viewer', authorId],
-    queryFn:  () => db.entities.TutorProfile.filter({ user_id: authorId, status: 'active' }, 'full_name', 1),
+  const { data: tutorProfiles = [] } = useQuery({queryKey: ['tutor-profile-for-viewer', authorId],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ user_id: authorId, status: 'active' }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     enabled:  open && !!authorId && (role === 'teacher' || role === 'admin'),
     staleTime: 120_000,
-  });
+    placeholderData: [],}));
   const tutorProfile = tutorProfiles[0] || null;
   const tutorSlug    = tutorProfile?.slug || (role === 'teacher' ? authorId : null);
 
@@ -325,27 +324,25 @@ export default function ThreadPage() {
 
   /* ── Thread ── */
   const threadId = state?.thread?.id || threadSlug;
-  const { data: threadArr = [], isLoading: loadingThread } = useQuery({
-    queryKey: ['thread', threadSlug],
-    queryFn: async () => [],
+  const { data: threadArr = [], isLoading: loadingThread } = useQuery({queryKey: ['thread', threadSlug],
+    queryFn: async () => { try { return await []; } catch(e) { console.error(e); return []; } },
     enabled: !state?.thread && !!threadSlug && threadSlug.length < 30,
     staleTime: 30_000,
-  });
+    placeholderData: [],}));
   const thread = state?.thread || threadArr[0];
   const resolvedThreadId = thread?.id || threadSlug;
   const subject = state?.subject;
 
   /* ── All replies (comments + nested replies) ── */
-  const { data: allReplies = [], isLoading: loadingReplies } = useQuery({
-    queryKey: ['replies', resolvedThreadId],
-    queryFn: () => db.entities.Discussion.filter(
+  const { data: allReplies = [], isLoading: loadingReplies } = useQuery({queryKey: ['replies', resolvedThreadId],
+    queryFn: async () => { try { return await db.entities.Discussion.filter(
       { parent_id: resolvedThreadId, status: 'active' }, 'created_date', 500
-    ),
+    ); } catch(e) { console.error(e); return []; } },
     enabled: !!resolvedThreadId,
     staleTime: 0,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
-  });
+    placeholderData: [],}));
 
   // Top-level comments (no reply_to_id) — sorted: accepted first, tutor next, then chrono
   const comments = [...allReplies.filter(r => !r.reply_to_id)].sort((a, b) => {
