@@ -16,28 +16,24 @@ import {
 } from '@/components/ui/table';
 
 export default function StudentProgressTracker() {
-  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => db.auth.me() });
+  const { data: user } = useQuery({queryKey: ['currentUser'], queryFn: async () => { try { return await db.auth.me(); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['teacherSubjects', user?.id],
-    queryFn: () => db.entities.Subject.filter({ teacher_id: user?.id }),
+  const { data: subjects = [] } = useQuery({queryKey: ['teacherSubjects', user?.id],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: user?.id }); } catch(e) { console.error(e); return []; } },
     enabled: user?.role === 'teacher' || user?.role === 'admin',
-  });
+    placeholderData: [],}));
 
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ['subjectEnrollments'],
-    queryFn: async () => {
-      const subjectIds = subjects.map(s => s.id);
+  const { data: enrollments = [] } = useQuery({queryKey: ['subjectEnrollments'],
+    queryFn: async () => { try { const subjectIds = subjects.map(s => s.id);
       const all = await db.entities.Enrollment.filter({});
-      return all.filter(e => subjectIds.includes(e.subject_id));
-    },
+      return all.filter(e => subjectIds.includes(e.subject_id)); } catch(e) { console.error(e); return []; } },
     enabled: subjects.length > 0,
-  });
+    placeholderData: [],}));
 
-  const { data: studentProfiles = [] } = useQuery({
-    queryKey: ['studentProfiles'],
-    queryFn: () => db.entities.User.filter({}),
-  });
+  const { data: studentProfiles = [] } = useQuery({queryKey: ['studentProfiles'],
+    queryFn: async () => { try { return await db.entities.User.filter({}); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const getStudentName = (studentId) => {
     const profile = studentProfiles.find(p => p.user_id === studentId);
