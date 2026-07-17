@@ -82,7 +82,8 @@ export default function TeacherCourses() {
     queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: user.id }, 'order', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
     staleTime: 30_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* Live topic counts — all topics for this teacher's subjects */
   const subjectIds = subjects.map(s => s.id);
@@ -97,7 +98,8 @@ export default function TeacherCourses() {
     enabled: subjectIds.length > 0,
     staleTime: 30_000,
     refetchInterval: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* Live lesson counts */
   const { data: lessons = [], isLoading: loadingLessons } = useQuery({queryKey: ['teacherLessons', subjectIds.join(',')],
@@ -111,11 +113,13 @@ export default function TeacherCourses() {
     enabled: subjectIds.length > 0,
     staleTime: 30_000,
     refetchInterval: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: forms = [] } = useQuery({queryKey: ['forms'],
     queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const pendingCourses = subjects.filter(s => s.pending_approval && s.status === 'draft');
   const activeCourses  = subjects.filter(s => !s.pending_approval || s.status === 'published');
