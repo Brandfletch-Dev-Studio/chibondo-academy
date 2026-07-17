@@ -96,11 +96,10 @@ export default function AffiliateMaterials() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [form, setForm] = useState({ title: '', description: '', type: 'banner', file_url: '', thumbnail_url: '', content: '' });
 
-  const { data: materials = [], isLoading } = useQuery({
-    queryKey: ['affiliateMaterials'],
-    queryFn: () => db.entities.AffiliateMaterial.filter({}, '-created_date', 100),
+  const { data: materials = [], isLoading } = useQuery({queryKey: ['affiliateMaterials'],
+    queryFn: async () => { try { return await db.entities.AffiliateMaterial.filter({}, '-created_date', 100); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
-  });
+    placeholderData: [],}));
 
   const saveMut = useMutation({
     mutationFn: async () => {
