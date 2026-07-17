@@ -772,13 +772,7 @@ export default function LessonPage() {
                 )}
 
                 {activeTab === 'discussion' && (
-                  <div className="space-y-6">
-                    <LessonComments lessonId={lessonId} user={user} />
-                    <div className="border-t border-border pt-6 mt-8">
-                      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-4">Legacy Forum</p>
-                      <LessonDiscussion lessonId={lessonId} lessonTitle={lesson.title} lessonUrl={`/lesson/${lessonId}`} user={user} subjectId={lesson.subject_id} />
-                    </div>
-                  </div>
+                  <LessonComments lessonId={lessonId} user={user} />
                 )}
 
                 {activeTab === 'downloads' && user && (

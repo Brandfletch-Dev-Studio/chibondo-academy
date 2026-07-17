@@ -321,6 +321,9 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
       qc.invalidateQueries({ queryKey: ['lessonComments', lessonId] });
       setNewComment('');
     },
+    onError: (err) => {
+      console.error('[LessonComments] save error:', err);
+    },
   });
 
   const updateMutation = useMutation({
@@ -333,21 +336,16 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lessonComments', lessonId] }),
   });
 
-  const buildPayload = (content, parentId = null) => ({
-    lesson_id:     lessonId,
-    lesson_title:  lessonTitle || null,
-    lesson_url:    lessonUrl || null,
-    subject_id:    subjectId || null,
-    // No subject_slug — lesson comments never appear in forum routes
-    author_id:     user.id,
-    author_name:   user.full_name || user.email?.split('@')[0] || 'Student',
+  const buildPayload = (commentContent, parentId = null) => ({
+    lesson_id:    lessonId,
+    author_id:    user.id,
+    author_name:  user.full_name || user.email?.split('@')[0] || 'Student',
     author_avatar: user.avatar_url || null,
-    author_role:   user.role || 'student',
-    content,
-    parent_id:     parentId,
-    status:        'active',
-    likes:         0,
-    liked_by:      [],
+    author_role:  user.role || 'student',
+    content:      commentContent,
+    parent_id:    parentId,
+    status:       'active',
+    likes:        0,
   });
 
   const handlePost = () => {
@@ -394,7 +392,7 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center gap-2">
         <MessageSquare className="w-4 h-4 text-muted-foreground" />
