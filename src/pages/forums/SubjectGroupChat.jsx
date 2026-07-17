@@ -8,7 +8,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import {
   ArrowLeft, MoreVertical, Camera, X, Users,
-  Image as ImageIcon, Send, Smile, Palette, Check, ChevronDown
+  Image as ImageIcon, Send, Smile, Palette, Check, ChevronDown,
+  Mic, MicOff, Paperclip, FileText, Play, Pause, Download, AtSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,6 +23,7 @@ const THEMES = {
     label: 'Classic',
     bg: '#E5DDD5',
     sent: '#DCF8C6',
+    received: 'white',
     header: NAVY,
     inputBg: '#F0F2F5',
     pattern: null,
@@ -40,6 +42,7 @@ const THEMES = {
     label: 'Ocean',
     bg: '#e8f4f8',
     sent: '#b3e5fc',
+    received: 'white',
     header: '#0277bd',
     inputBg: '#e1f5fe',
     pattern: null,
@@ -48,6 +51,7 @@ const THEMES = {
     label: 'Forest',
     bg: '#e8f5e9',
     sent: '#c8e6c9',
+    received: 'white',
     header: '#2e7d32',
     inputBg: '#f1f8e9',
     pattern: null,
@@ -56,6 +60,7 @@ const THEMES = {
     label: 'Royal',
     bg: '#f3e5f5',
     sent: '#e1bee7',
+    received: 'white',
     header: '#6a1b9a',
     inputBg: '#fce4ec',
     pattern: null,
@@ -64,6 +69,7 @@ const THEMES = {
     label: 'ACA Gold',
     bg: '#fdf8ee',
     sent: '#fff3cd',
+    received: 'white',
     header: NAVY,
     inputBg: '#f5f0e8',
     pattern: null,
@@ -167,13 +173,11 @@ function EditIconModal({ group, onClose, onSaved }) {
     if (!file) return;
     setSaving(true);
     try {
-      const ext  = file.name.split('.').pop();
-      const path = `group-icons/${group.id}.${ext}`;
-      await db.storage.upload('public', path, file);
-      const { publicUrl } = db.storage.getPublicUrl('public', path);
-      setUrl(publicUrl || '');
+      // Use standard ACA upload pattern
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
+      setUrl(file_url || '');
       toast.success('Image ready');
-    } catch (e) {
+    } catch (err) {
       toast.error('Upload failed');
     } finally { setSaving(false); }
   };
@@ -260,19 +264,160 @@ function EditIconModal({ group, onClose, onSaved }) {
   );
 }
 
+// ── Custom Audio Player for Voice Notes ───────────────────────────────────────
+function CustomAudioPlayer({ url }) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio(url);
+    const audio = audioRef.current;
+
+    const onTimeUpdate = () => {
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+
+    const onLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const onEnded = () => {
+      setPlaying(false);
+      setProgress(0);
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [url]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.play().catch(() => {});
+      setPlaying(true);
+    }
+  };
+
+  const fmtDuration = (secs) => {
+    if (isNaN(secs)) return '0:00';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0', minWidth: 200 }}>
+      <button
+        onClick={togglePlay}
+        style={{
+          width: 36, height: 36, borderRadius: '50%', background: NAVY,
+          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'white', flexShrink: 0
+        }}
+      >
+        {playing ? <Pause style={{ width: 16, height: 16, fill: 'white' }} /> : <Play style={{ width: 16, height: 16, fill: 'white', marginLeft: 2 }} />}
+      </button>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {/* Waveform-style CSS animated visualizer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: 18, position: 'relative' }}>
+          {[...Array(15)].map((_, i) => {
+            // Generate some pseudo heights for the bars
+            const baseHeight = [12, 16, 8, 14, 18, 10, 15, 6, 12, 16, 8, 14, 10, 15, 12][i];
+            const isPassed = (i / 15) * 100 <= progress;
+            return (
+              <div
+                key={i}
+                style={{
+                  width: 3,
+                  height: baseHeight,
+                  borderRadius: 2,
+                  background: isPassed ? NAVY : '#bbb',
+                  animation: playing && !isPassed ? 'pulseBar 1.2s infinite ease-in-out' : 'none',
+                  animationDelay: `${i * 0.08}s`,
+                }}
+              />
+            );
+          })}
+          <style>{`
+            @keyframes pulseBar {
+              0%, 100% { transform: scaleY(1); }
+              50% { transform: scaleY(1.4); }
+            }
+          `}</style>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#666' }}>
+          <span>{fmtDuration(audioRef.current ? audioRef.current.currentTime : 0)}</span>
+          <span>{fmtDuration(duration || 0)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Message Bubble ────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isMine, showName, theme }) {
+function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap }) {
   const t         = THEMES[theme] || THEMES.classic;
   const color     = nameColor(msg.author_id);
   const isStaff   = msg.author_role === 'teacher' || msg.author_role === 'admin';
   const textColor = t.textColor || '#111';
   const receivedBg = t.received || 'white';
 
+  // Swipe handlers (right swipe to reply)
+  const touchStart = useRef(0);
+  const handleTouchStart = (e) => {
+    touchStart.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e) => {
+    const diff = e.changedTouches[0].clientX - touchStart.current;
+    if (diff > 80 && onReply) {
+      onReply(msg);
+    }
+  };
+
+  // Helper to parse and highlight @mentions in blue
+  const renderBody = (text) => {
+    if (!text) return '';
+    const parts = text.split(/(@[a-zA-Z0-9_\s.\-]+?)(?=\s|$|[@.,!?])/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        return <span key={i} style={{ color: '#1d9bf0', fontWeight: 600 }}>{part}</span>;
+      }
+      return part;
+    });
+  };
+
   return (
-    <div style={{
-      display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row',
-      alignItems: 'flex-end', gap: 6, marginBottom: 3, padding: '0 10px',
-    }}>
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (onReply) onReply(msg);
+      }}
+      style={{
+        display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row',
+        alignItems: 'flex-end', gap: 6, marginBottom: 3, padding: '0 10px',
+        userSelect: 'none', cursor: 'pointer'
+      }}
+      title="Swipe right or right-click to reply"
+    >
       {/* Avatar */}
       <div style={{ width: 28, flexShrink: 0 }}>
         {!isMine && showName && (
@@ -288,15 +433,6 @@ function MessageBubble({ msg, isMine, showName, theme }) {
 
       {/* Bubble */}
       <div style={{ maxWidth: '78%' }}>
-        {msg.reply_preview && (
-          <div style={{
-            background: 'rgba(0,0,0,0.07)', borderLeft: `3px solid ${color}`,
-            borderRadius: 6, padding: '3px 8px', marginBottom: 2, fontSize: 11, color: '#555',
-          }}>
-            <span style={{ fontWeight: 700, color }}>{msg.reply_author}: </span>
-            {msg.reply_preview}
-          </div>
-        )}
         <div style={{
           background: isMine ? t.sent : receivedBg,
           borderRadius: isMine ? '14px 0 14px 14px' : '0 14px 14px 14px',
@@ -314,9 +450,82 @@ function MessageBubble({ msg, isMine, showName, theme }) {
               )}
             </div>
           )}
-          <p style={{ margin: 0, fontSize: 14, color: isMine ? '#111' : textColor, lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-            {msg.body}
-          </p>
+
+          {/* Quoted Message (WhatsApp-style Reply Bubble) */}
+          {msg.reply_preview && (
+            <div style={{
+              background: 'rgba(0,0,0,0.05)',
+              borderLeft: `3px solid ${color}`,
+              borderRadius: 6,
+              padding: '4px 8px',
+              marginBottom: 6,
+              fontSize: 12,
+              color: '#555',
+            }}>
+              <div style={{ fontWeight: 700, color, fontSize: 11 }}>{msg.reply_author}</div>
+              <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                {msg.reply_preview}
+              </div>
+            </div>
+          )}
+
+          {/* Render content based on message type */}
+          {msg.type === 'voice' ? (
+            <CustomAudioPlayer url={msg.voice_url || msg.media_url} />
+          ) : msg.type === 'image' ? (
+            <div style={{ margin: '4px 0' }}>
+              <img
+                src={msg.media_url}
+                alt="Shared Image"
+                onClick={() => onImageTap && onImageTap(msg.media_url)}
+                style={{
+                  maxWidth: 240,
+                  maxHeight: 240,
+                  borderRadius: 10,
+                  cursor: 'zoom-in',
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
+              />
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: '#666', fontStyle: 'italic' }}>
+                {msg.body !== '📷 Photo' && msg.body}
+              </p>
+            </div>
+          ) : msg.type === 'document' ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', background: 'rgba(0,0,0,0.04)',
+              borderRadius: 8, margin: '4px 0', border: '1px solid rgba(0,0,0,0.08)'
+            }}>
+              <FileText style={{ width: 28, height: 28, color: NAVY }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#333', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {msg.media_name || 'Document'}
+                </div>
+                <div style={{ fontSize: 11, color: '#888' }}>
+                  Document Card
+                </div>
+              </div>
+              <a
+                href={msg.media_url}
+                download={msg.media_name || 'document'}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  width: 32, height: 32, borderRadius: '50%', background: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: NAVY
+                }}
+              >
+                <Download style={{ width: 16, height: 16 }} />
+              </a>
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 14, color: isMine ? '#111' : textColor, lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+              {renderBody(msg.body)}
+            </p>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, marginTop: 3 }}>
             <span style={{ fontSize: 10, color: isMine ? '#888' : (theme === 'midnight' ? '#aaa' : '#aaa') }}>
               {fmtTime(msg.created_date)}
@@ -344,6 +553,24 @@ export default function SubjectGroupChat() {
   const [showTheme, setShowTheme]       = useState(false);
   const [localGroup, setLocalGroup]     = useState(null);
 
+  // Attachment button / list picker states
+  const [showPicker, setShowPicker] = useState(false);
+  const imageInputRef = useRef(null);
+  const docInputRef = useRef(null);
+
+  // Fullscreen Image Lightbox
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+
+  // Voice Note states
+  const [recording, setRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const audioChunks = useRef([]);
+
+  // Mentions / Tagging States
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(-1); // Where the '@' starts in textarea
+
   // Theme persisted to localStorage per-group
   const themeKey = `chat-theme-${subjectSlug}`;
   const [theme, setTheme] = useState(() => localStorage.getItem(themeKey) || 'classic');
@@ -354,6 +581,7 @@ export default function SubjectGroupChat() {
   const endRef      = useRef(null);
   const textareaRef = useRef(null);
   const menuRef     = useRef(null);
+  const pickerRef   = useRef(null);
 
   // Passed-in subject / group from navigation state
   const navSubject = location.state?.subject;
@@ -365,6 +593,13 @@ export default function SubjectGroupChat() {
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, [showMenu]);
+
+  useEffect(() => {
+    if (!showPicker) return;
+    const h = e => { if (pickerRef.current && !pickerRef.current.contains(e.target)) setShowPicker(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [showPicker]);
 
   const saveTheme = key => {
     setTheme(key);
@@ -416,6 +651,22 @@ export default function SubjectGroupChat() {
     staleTime: 0,
   });
 
+  // Extract distinct author_names as a proxy for active members in the group
+  const members = useMemo(() => {
+    const list = new Set();
+    messages.forEach(m => {
+      if (m.author_name) list.add(m.author_name);
+    });
+    // Add tutor/admin and self if not present
+    if (user?.full_name) list.add(user.full_name);
+    return Array.from(list);
+  }, [messages, user]);
+
+  const filteredMembers = useMemo(() => {
+    if (!showMentions) return [];
+    return members.filter(m => m.toLowerCase().includes(mentionQuery.toLowerCase()));
+  }, [members, showMentions, mentionQuery]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: messages.length < 4 ? 'instant' : 'smooth' });
   }, [messages.length]);
@@ -452,15 +703,33 @@ export default function SubjectGroupChat() {
     onSettled: () => qc.invalidateQueries({ queryKey: ['groupChat', group.id] }),
   });
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback((customPayload = null) => {
+    if (!user?.id || !group) return;
+
+    if (customPayload) {
+      sendMutation.mutate({
+        group_id   : group.id,
+        author_id  : user.id,
+        author_name: user.full_name || user.email?.split('@')[0] || 'Student',
+        author_role: user.role || 'student',
+        deleted    : false,
+        ...customPayload,
+        ...(replyTo ? { reply_to_id: replyTo.id, reply_preview: replyTo.body.slice(0, 80), reply_author: replyTo.author_name } : {}),
+      });
+      setReplyTo(null);
+      return;
+    }
+
     const trimmed = text.trim();
-    if (!trimmed || !user?.id || !group) return;
+    if (!trimmed) return;
+
     sendMutation.mutate({
       group_id   : group.id,
       author_id  : user.id,
       author_name: user.full_name || user.email?.split('@')[0] || 'Student',
       author_role: user.role || 'student',
       body       : trimmed,
+      type       : 'text',
       deleted    : false,
       ...(replyTo ? { reply_to_id: replyTo.id, reply_preview: replyTo.body.slice(0, 80), reply_author: replyTo.author_name } : {}),
     });
@@ -469,11 +738,145 @@ export default function SubjectGroupChat() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }, [text, user, group, replyTo, sendMutation]);
 
-  const handleKey = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+  const handleKey = e => {
+    if (showMentions && filteredMembers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        // Keyboard navigation can be added if needed, or simply let user tap
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        insertMention(filteredMembers[0]);
+        return;
+      }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   const handleTextChange = e => {
-    setText(e.target.value);
+    const val = e.target.value;
+    setText(val);
+
     const el = textareaRef.current;
-    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    // Mention triggers on '@'
+    const selStart = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, selStart);
+    const lastAtIdx = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIdx !== -1 && (lastAtIdx === 0 || /\s/.test(textBeforeCursor[lastAtIdx - 1]))) {
+      const query = textBeforeCursor.slice(lastAtIdx + 1);
+      if (!/\s/.test(query)) {
+        setShowMentions(true);
+        setMentionQuery(query);
+        setMentionIndex(lastAtIdx);
+        return;
+      }
+    }
+    setShowMentions(false);
+  };
+
+  const insertMention = (name) => {
+    if (mentionIndex === -1) return;
+    const before = text.slice(0, mentionIndex);
+    const after = text.slice(textareaRef.current.selectionStart);
+    const updated = `${before}@${name} ${after}`;
+    setText(updated);
+    setShowMentions(false);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  };
+
+  // ── Image & Doc Handling ──
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      toast.loading('Uploading photo...', { id: 'upload' });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
+      handleSend({
+        type: 'image',
+        media_url: file_url,
+        body: '📷 Photo'
+      });
+      toast.success('Photo shared!', { id: 'upload' });
+    } catch (err) {
+      toast.error('Failed to upload image', { id: 'upload' });
+    }
+    setShowPicker(false);
+  };
+
+  const handleDocUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      toast.loading('Uploading document...', { id: 'upload' });
+      const { file_url } = await db.integrations.Core.UploadFile({ file });
+      handleSend({
+        type: 'document',
+        media_url: file_url,
+        media_name: file.name,
+        body: '📄 Document'
+      });
+      toast.success('Document shared!', { id: 'upload' });
+    } catch (err) {
+      toast.error('Failed to upload document', { id: 'upload' });
+    }
+    setShowPicker(false);
+  };
+
+  // ── Voice Recording Handling ──
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      audioChunks.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunks.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+        try {
+          toast.loading('Sending voice note...', { id: 'voice' });
+          const { file_url } = await db.integrations.Core.UploadFile({ file });
+          handleSend({
+            type: 'voice',
+            voice_url: file_url,
+            body: '🎤 Voice note'
+          });
+          toast.success('Voice note sent!', { id: 'voice' });
+        } catch (err) {
+          toast.error('Failed to send voice note', { id: 'voice' });
+        }
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecording(true);
+    } catch (err) {
+      toast.error('Could not access microphone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    setRecording(false);
   };
 
   if (!group) {
@@ -494,6 +897,29 @@ export default function SubjectGroupChat() {
       {showTheme && <ThemePicker current={theme} onSelect={saveTheme} onClose={() => setShowTheme(false)} />}
       {showEditIcon && (
         <EditIconModal group={group} onClose={() => setShowEditIcon(false)} onSaved={setLocalGroup} />
+      )}
+
+      {/* Fullscreen Image Lightbox */}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.95)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: 16
+          }}
+        >
+          <img src={lightboxUrl} alt="Fullscreen" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, objectFit: 'contain' }} />
+          <button
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.2)',
+              border: 'none', color: 'white', padding: 8, borderRadius: '50%', cursor: 'pointer'
+            }}
+          >
+            <X style={{ width: 24, height: 24 }} />
+          </button>
+        </div>
       )}
 
       <div style={{
@@ -622,11 +1048,38 @@ export default function SubjectGroupChat() {
                 isMine={item.msg.author_id === user?.id}
                 showName={item.showName}
                 theme={theme}
+                onReply={setReplyTo}
+                onImageTap={setLightboxUrl}
               />
             )
           )}
           <div ref={endRef} style={{ height: 8 }} />
         </div>
+
+        {/* ── Mentions Dropdown ── */}
+        {showMentions && filteredMembers.length > 0 && (
+          <div style={{
+            position: 'absolute', bottom: 64, left: 10, right: 10,
+            background: 'white', borderRadius: 12, border: '1px solid #eee',
+            boxShadow: '0 -4px 16px rgba(0,0,0,0.1)', maxOverflowY: 'auto', maxHeight: 200, zIndex: 100
+          }}>
+            {filteredMembers.map((m, idx) => (
+              <button
+                key={idx}
+                onClick={() => insertMention(m)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 14px', background: 'none', border: 'none',
+                  textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid #f9f9f9',
+                  fontSize: 13, fontWeight: 500, color: '#333'
+                }}
+              >
+                <AtSign style={{ width: 14, height: 14, color: '#1d9bf0' }} />
+                <span>{m}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ── Reply preview ── */}
         {replyTo && (
@@ -645,6 +1098,27 @@ export default function SubjectGroupChat() {
           </div>
         )}
 
+        {/* ── Recording Indicator ── */}
+        {recording && (
+          <div style={{
+            flexShrink: 0, background: 'rgba(255,255,255,0.95)',
+            borderTop: '1px solid rgba(0,0,0,0.06)', padding: '12px 16px',
+            display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center'
+          }}>
+            <div style={{
+              width: 12, height: 12, borderRadius: '50%', background: 'red',
+              animation: 'pulseRed 1s infinite alternate'
+            }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>Recording Voice Note...</span>
+            <style>{`
+              @keyframes pulseRed {
+                from { opacity: 0.3; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1.1); }
+              }
+            `}</style>
+          </div>
+        )}
+
         {/* ── Input bar ── */}
         <div style={{
           flexShrink: 0,
@@ -652,7 +1126,73 @@ export default function SubjectGroupChat() {
           borderTop: '1px solid rgba(0,0,0,0.06)',
           padding: '8px 10px',
           display: 'flex', alignItems: 'flex-end', gap: 8,
+          position: 'relative'
         }}>
+          {/* Paperclip Button */}
+          <button
+            onClick={() => setShowPicker(p => !p)}
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'white', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}
+          >
+            <Paperclip style={{ width: 20, height: 20, color: NAVY }} />
+          </button>
+
+          {/* Attachment Selector Dropdown */}
+          {showPicker && (
+            <div
+              ref={pickerRef}
+              style={{
+                position: 'absolute', bottom: 64, left: 10,
+                background: 'white', borderRadius: 14, overflow: 'hidden',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column',
+                zIndex: 200, width: 160
+              }}
+            >
+              <button
+                onClick={() => { imageInputRef.current?.click(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 13,
+                  fontWeight: 600, color: '#333', textAlign: 'left', borderBottom: '1px solid #f5f5f5'
+                }}
+              >
+                <ImageIcon style={{ width: 16, height: 16, color: NAVY }} />
+                <span>Image</span>
+              </button>
+              <button
+                onClick={() => { docInputRef.current?.click(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 13,
+                  fontWeight: 600, color: '#333', textAlign: 'left'
+                }}
+              >
+                <FileText style={{ width: 16, height: 16, color: NAVY }} />
+                <span>Document</span>
+              </button>
+            </div>
+          )}
+
+          {/* Hidden inputs for attachments */}
+          <input
+            type="file"
+            ref={imageInputRef}
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleImageUpload}
+          />
+          <input
+            type="file"
+            ref={docInputRef}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+            style={{ display: 'none' }}
+            onChange={handleDocUpload}
+          />
+
           <textarea
             ref={textareaRef}
             value={text}
@@ -668,22 +1208,48 @@ export default function SubjectGroupChat() {
               boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
             }}
           />
-          <button
-            onClick={handleSend}
-            disabled={!text.trim()}
-            style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: text.trim() ? '#25D366' : '#ccc',
-              border: 'none', cursor: text.trim() ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              transition: 'background 0.15s, transform 0.1s',
-              transform: text.trim() ? 'scale(1)' : 'scale(0.9)',
-              boxShadow: text.trim() ? '0 2px 8px rgba(37,211,102,0.4)' : 'none',
-            }}
-          >
-            <Send style={{ color: 'white', width: 18, height: 18, marginLeft: 2 }} />
-          </button>
+
+          {/* Send / Voice Note Mic Button */}
+          {text.trim() ? (
+            <button
+              onClick={() => handleSend()}
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: '#25D366',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'background 0.15s, transform 0.1s',
+                transform: 'scale(1)',
+                boxShadow: '0 2px 8px rgba(37,211,102,0.4)',
+              }}
+            >
+              <Send style={{ color: 'white', width: 18, height: 18, marginLeft: 2 }} />
+            </button>
+          ) : (
+            <button
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+              onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: recording ? 'red' : NAVY,
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'background 0.15s, transform 0.1s',
+                transform: recording ? 'scale(1.15)' : 'scale(1)',
+                boxShadow: recording ? '0 2px 12px rgba(255,0,0,0.5)' : '0 2px 8px rgba(13,27,75,0.3)',
+              }}
+            >
+              {recording ? (
+                <MicOff style={{ color: 'white', width: 18, height: 18 }} />
+              ) : (
+                <Mic style={{ color: 'white', width: 18, height: 18 }} />
+              )}
+            </button>
+          )}
         </div>
       </div>
     </>
