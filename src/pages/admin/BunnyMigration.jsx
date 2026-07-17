@@ -124,9 +124,11 @@ export default function BunnyMigration() {
 
       if (!res.ok || !data.success) throw new Error(data.error || 'Migration failed');
 
-      setJobs(p => ({ ...p, [lesson.id]: { status: 'done', progress: 100, message: `✓ ${data.quality || 'HD'} — processing on Bunny`, embedUrl: data.embedUrl } }));
+      setJobs(p => ({ ...p, [lesson.id]: { status: 'processing', progress: 95, message: '⏳ Bunny is processing the video…', embedUrl: data.embedUrl } }));
       setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, video_url: data.embedUrl, video_provider: 'bunny' } : l));
-      toast.success(`${lesson.title} migrated! 🐰`);
+      toast.success(`${lesson.title} uploaded! Bunny is encoding… 🐰`);
+      // Poll until Bunny finishes encoding
+      pollUntilReady(lesson.id, data.videoId, data.embedUrl);
 
     } catch (err) {
       setJobs(p => ({ ...p, [lesson.id]: { status: 'error', progress: 100, message: err.message } }));
@@ -156,6 +158,36 @@ export default function BunnyMigration() {
     advance();
     const timer = setInterval(advance, 4000);
     return timer;
+  }
+
+
+  async function pollUntilReady(lessonId, videoId, embedUrl) {
+    if (!bunnyLibraryId || !bunnyApiKey || !videoId) return;
+    let attempts = 0;
+    const maxAttempts = 40; // poll for up to ~3 min
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(interval);
+        setJobs(p => ({ ...p, [lessonId]: { ...p[lessonId], status: 'done', progress: 100, message: '✓ Ready (check Bunny dashboard if not playing yet)' } }));
+        return;
+      }
+      try {
+        const r = await fetch(`/api/bunny-status?libraryId=${bunnyLibraryId}&videoId=${videoId}&apiKey=${bunnyApiKey}`);
+        const d = await r.json();
+        if (d.status === 'ready') {
+          clearInterval(interval);
+          setJobs(p => ({ ...p, [lessonId]: { status: 'done', progress: 100, message: `✓ Ready — ${d.availableResolutions || 'HD'}`, embedUrl } }));
+          toast.success('Video is ready to play! ✅');
+        } else if (d.status === 'failed') {
+          clearInterval(interval);
+          setJobs(p => ({ ...p, [lessonId]: { status: 'error', progress: 100, message: 'Bunny encoding failed. Try again.' } }));
+        } else {
+          const pct = Math.min(97, 95 + (d.encodeProgress || 0) * 0.02);
+          setJobs(p => ({ ...p, [lessonId]: { ...p[lessonId], progress: pct, message: `⏳ Bunny ${d.status}… ${d.encodeProgress || 0}%` } }));
+        }
+      } catch (e) { /* silently retry */ }
+    }, 5000);
   }
 
   async function runBulk() {
