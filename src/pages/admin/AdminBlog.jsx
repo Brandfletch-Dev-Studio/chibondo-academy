@@ -62,20 +62,17 @@ export default function AdminBlog() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const { data: posts = [], isLoading } = useQuery({
-    queryKey: ['adminBlogPosts'],
-    queryFn: () => db.entities.BlogPost.filter({}, '-created_date', 200),
-  });
+  const { data: posts = [], isLoading } = useQuery({queryKey: ['adminBlogPosts'],
+    queryFn: async () => { try { return await db.entities.BlogPost.filter({}, '-created_date', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['allSubjects'],
-    queryFn: () => db.entities.Subject.filter({ status:'published' }, 'name', 50),
-  });
+  const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ status:'published' }, 'name', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
-  const { data: tutors = [] } = useQuery({
-    queryKey: ['allTutors'],
-    queryFn: () => db.entities.TutorProfile.filter({ is_visible:true, status:'active' }, 'full_name', 50),
-  });
+  const { data: tutors = [] } = useQuery({queryKey: ['allTutors'],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ is_visible:true, status:'active' }, 'full_name', 50); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setTagInput(''); setActiveTab('content'); setOpen(true); };
   const openEdit = p => {
