@@ -97,7 +97,7 @@ export default function TeacherBlog() {
     if (t && !form.tags.includes(t)) setForm(f => ({ ...f, tags: [...f.tags, t] }));
     setTagInput('');
   };
-  const removeTag = t => setForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) });
+  const removeTag = t => setForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }));
   const copyLink = (post) => {
     const url = `${window.location.origin}/blog/${post.slug || post.id}`;
     navigator.clipboard.writeText(url).then(() => {
