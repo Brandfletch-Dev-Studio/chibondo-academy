@@ -652,7 +652,7 @@ function CourseEnrollments() {
 export default function CurriculumManagement() {
   const { data: subjects = [] } = useQuery({queryKey: ['allSubjects'], queryFn: async () => { try { return await db.entities.Subject.list('order', 200); } catch(e) { console.error(e); return []; } },
     placeholderData: [],
-  }));
+  });
   const { data: forms = [] } = useQuery({queryKey: ['forms'], queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
     placeholderData: [],
   });
