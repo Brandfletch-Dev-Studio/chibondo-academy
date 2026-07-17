@@ -19,15 +19,13 @@ export default function AssignmentGrading() {
   const [marks, setMarks] = useState('');
   const [feedback, setFeedback] = useState('');
 
-  const { data: assignments = [] } = useQuery({
-    queryKey: ['teacherAssignments'],
-    queryFn: () => db.entities.Assignment.list('-created_date', 100),
-  });
+  const { data: assignments = [] } = useQuery({queryKey: ['teacherAssignments'],
+    queryFn: async () => { try { return await db.entities.Assignment.list('-created_date', 100); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
-  const { data: submissions = [] } = useQuery({
-    queryKey: ['allSubmissions'],
-    queryFn: () => db.entities.AssignmentSubmission.list('-created_date', 200),
-  });
+  const { data: submissions = [] } = useQuery({queryKey: ['allSubmissions'],
+    queryFn: async () => { try { return await db.entities.AssignmentSubmission.list('-created_date', 200); } catch(e) { console.error(e); return []; } },
+    placeholderData: [],}));
 
   const gradeMutation = useMutation({
     mutationFn: ({ id, data }) => db.entities.AssignmentSubmission.update(id, data),
