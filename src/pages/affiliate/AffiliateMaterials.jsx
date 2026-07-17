@@ -99,7 +99,8 @@ export default function AffiliateMaterials() {
   const { data: materials = [], isLoading } = useQuery({queryKey: ['affiliateMaterials'],
     queryFn: async () => { try { return await db.entities.AffiliateMaterial.filter({}, '-created_date', 100); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const saveMut = useMutation({
     mutationFn: async () => {
