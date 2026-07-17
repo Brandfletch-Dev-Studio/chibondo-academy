@@ -99,19 +99,17 @@ export default function TutorProfilePage() {
   ───────────────────────────────────────────────── */
   const looksLikeId = /^[a-f0-9]{24}$/.test(slug);
 
-  const { data: profilesBySlug = [], isLoading: loadingSlug } = useQuery({
-    queryKey: ['tutor-by-slug', slug],
-    queryFn:  () => db.entities.TutorProfile.filter({ slug, status: 'active' }, 'full_name', 1),
+  const { data: profilesBySlug = [], isLoading: loadingSlug } = useQuery({queryKey: ['tutor-by-slug', slug],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ slug, status: 'active' }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
     enabled:  !looksLikeId,
-  });
+    placeholderData: [],}));
 
-  const { data: profilesByUserId = [], isLoading: loadingById } = useQuery({
-    queryKey: ['tutor-by-user-id', slug],
-    queryFn:  () => db.entities.TutorProfile.filter({ user_id: slug, status: 'active' }, 'full_name', 1),
+  const { data: profilesByUserId = [], isLoading: loadingById } = useQuery({queryKey: ['tutor-by-user-id', slug],
+    queryFn: async () => { try { return await db.entities.TutorProfile.filter({ user_id: slug, status: 'active' }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
     enabled:  looksLikeId,
-  });
+    placeholderData: [],}));
 
   /* The resolved TutorProfile (may be null — teacher with no profile yet) */
   const tutorProfile = profilesBySlug[0] || profilesByUserId[0] || null;
@@ -123,12 +121,11 @@ export default function TutorProfilePage() {
   ───────────────────────────────────────────────── */
   const teacherUserId = tutorProfile?.user_id || (looksLikeId ? slug : null);
 
-  const { data: teacherUsers = [], isLoading: loadingUser } = useQuery({
-    queryKey: ['teacher-user', teacherUserId],
-    queryFn:  () => db.entities.User.filter({ id: teacherUserId }, 'full_name', 1),
+  const { data: teacherUsers = [], isLoading: loadingUser } = useQuery({queryKey: ['teacher-user', teacherUserId],
+    queryFn: async () => { try { return await db.entities.User.filter({ id: teacherUserId }, 'full_name', 1); } catch(e) { console.error(e); return []; } },
     enabled:  !!teacherUserId,
     staleTime: 120_000,
-  });
+    placeholderData: [],}));
   const teacherUser = teacherUsers[0] || null;
 
   /* ─────────────────────────────────────────────────
@@ -136,20 +133,18 @@ export default function TutorProfilePage() {
      (the user's ID) as the primary join key, so courses
      show up even if TutorProfile isn't created yet.
   ───────────────────────────────────────────────── */
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['tutor-subjects-by-teacher', teacherUserId],
-    queryFn:  () => db.entities.Subject.filter({ teacher_id: teacherUserId, status: 'published' }, 'name', 50),
+  const { data: subjects = [] } = useQuery({queryKey: ['tutor-subjects-by-teacher', teacherUserId],
+    queryFn: async () => { try { return await db.entities.Subject.filter({ teacher_id: teacherUserId, status: 'published' }, 'name', 50); } catch(e) { console.error(e); return []; } },
     enabled:  !!teacherUserId,
     staleTime: 30_000,
-  });
+    placeholderData: [],}));
 
   /* Blog posts */
-  const { data: blogPosts = [] } = useQuery({
-    queryKey: ['tutor-blog', teacherUserId],
-    queryFn:  () => db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 6),
+  const { data: blogPosts = [] } = useQuery({queryKey: ['tutor-blog', teacherUserId],
+    queryFn: async () => { try { return await db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 6); } catch(e) { console.error(e); return []; } },
     enabled:  !!teacherUserId,
     staleTime: 120_000,
-  });
+    placeholderData: [],}));
   const tutorPosts = blogPosts.filter(p =>
     p.tutor_profile_id === tutorProfile?.id || p.author_id === teacherUserId
   );
