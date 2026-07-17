@@ -26,7 +26,7 @@ export default function TeacherDashboard() {
       return results; } catch(e) { console.error(e); return []; } },
     enabled: subjects.length > 0,
     placeholderData: [],
-  }));
+  });
 
   const { data: studentProfiles = [] } = useQuery({queryKey: ['studentProfiles'],
     queryFn: async () => { try { return await db.entities.User.list('-created_date', 200); } catch(e) { console.error(e); return []; } },
