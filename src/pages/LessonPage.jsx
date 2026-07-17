@@ -35,6 +35,145 @@ function getYouTubeId(url) {
 
 const EMBED_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share; screen-wake-lock";
 
+// ─── BUNNY PLAYER — polls encoding status before showing iframe ────────────────
+function BunnyPlayer({ videoUrl, lesson }) {
+  const [bunnyStatus, setBunnyStatus] = useState(null); // null=checking, 'ready', 'encoding', 'failed'
+  const [progress, setProgress]       = useState(0);
+  const [pollCount, setPollCount]     = useState(0);
+
+  // Extract libraryId and videoId from the embed URL
+  // Format: https://iframe.mediadelivery.net/embed/{libraryId}/{videoId}
+  const match = videoUrl?.match(/iframe\.mediadelivery\.net\/embed\/([^/]+)\/([^?#]+)/);
+  const libraryId = match?.[1];
+  const videoId   = match?.[2] || lesson?.bunny_video_id;
+
+  // Get stored API key for status check
+  const apiKey = typeof window !== 'undefined' ? localStorage.getItem('bunny_api_key') : null;
+
+  useEffect(() => {
+    if (!libraryId || !videoId || !apiKey) {
+      // No credentials — just show the iframe and hope it's ready
+      setBunnyStatus('ready');
+      return;
+    }
+
+    let cancelled = false;
+    let timer = null;
+
+    async function checkStatus() {
+      try {
+        const params = new URLSearchParams({ libraryId, videoId, apiKey });
+        const r = await fetch(`/api/bunny?action=status&${params}`);
+        if (!r.ok) { setBunnyStatus('ready'); return; } // fallback to show iframe
+        const data = await r.json();
+        if (cancelled) return;
+
+        const st = data.status; // 'queued','processing','encoding','ready','failed'
+        setProgress(data.encodeProgress || 0);
+        setBunnyStatus(st);
+
+        // Keep polling if still encoding (every 8 seconds, max 30 polls = ~4 min)
+        if ((st === 'encoding' || st === 'processing' || st === 'queued') && pollCount < 30) {
+          setPollCount(c => c + 1);
+          timer = setTimeout(checkStatus, 8000);
+        }
+      } catch {
+        setBunnyStatus('ready'); // network error — show iframe anyway
+      }
+    }
+
+    checkStatus();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [libraryId, videoId, apiKey]);
+
+  // Still checking
+  if (bunnyStatus === null) {
+    return (
+      <div className="relative aspect-video bg-black w-full flex items-center justify-center">
+        <div className="text-center text-white/70 space-y-3">
+          <svg className="w-8 h-8 mx-auto animate-spin opacity-60" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <p className="text-sm font-medium">Loading video…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Still encoding
+  if (bunnyStatus === 'encoding' || bunnyStatus === 'processing' || bunnyStatus === 'queued') {
+    return (
+      <div className="relative aspect-video w-full flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #0d1b4b 0%, #1a2f6b 100%)' }}>
+        <div className="text-center space-y-4 px-6 max-w-sm">
+          {/* Animated progress ring */}
+          <div className="relative w-20 h-20 mx-auto">
+            <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6"/>
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#D4AF37" strokeWidth="6"
+                strokeDasharray={`${2 * Math.PI * 34}`}
+                strokeDashoffset={`${2 * Math.PI * 34 * (1 - (progress || 5) / 100)}`}
+                strokeLinecap="round" className="transition-all duration-1000"/>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{progress || '…'}%</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm">Video is Processing</p>
+            <p className="text-white/60 text-xs mt-1">
+              This video is being encoded by our servers.
+              It will be ready in a few minutes — please check back shortly.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-white/40 text-xs">
+            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            Auto-refreshing…
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Encoding failed
+  if (bunnyStatus === 'failed') {
+    return (
+      <div className="relative aspect-video w-full flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #1a0505 0%, #2d0a0a 100%)' }}>
+        <div className="text-center space-y-3 px-6 max-w-sm">
+          <div className="w-14 h-14 rounded-full bg-red-900/50 flex items-center justify-center mx-auto">
+            <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <p className="text-white font-semibold text-sm">Video Encoding Failed</p>
+          <p className="text-white/50 text-xs">
+            This video could not be processed. Please contact your teacher or admin.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ready — show the actual iframe
+  return (
+    <div className="relative aspect-video bg-black w-full">
+      <iframe
+        src={videoUrl}
+        className="absolute inset-0 w-full h-full"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+        title={lesson?.title || 'Video lesson'}
+      />
+    </div>
+  );
+}
+
 function VideoPlayer({ lesson }) {
   const { video_url, video_provider } = lesson;
   if (!video_url) return null;
@@ -79,20 +218,9 @@ function VideoPlayer({ lesson }) {
     );
   }
 
-  // Bunny.net stream embed
+  // Bunny.net stream embed — with encoding-state awareness
   if (video_provider === 'bunny' || video_url?.includes('iframe.mediadelivery.net') || video_url?.includes('b-cdn.net')) {
-    return (
-      <div className="relative aspect-video bg-black w-full">
-        <iframe
-          src={video_url}
-          className="absolute inset-0 w-full h-full"
-          allow={EMBED_ALLOW}
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-          title={lesson.title}
-        />
-      </div>
-    );
+    return <BunnyPlayer videoUrl={video_url} lesson={lesson} />;
   }
 
   // Vimeo
