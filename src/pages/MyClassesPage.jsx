@@ -111,7 +111,7 @@ export default function MyClassesPage() {
 
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['my-enrollments', user?.id],
-    queryFn: () => db.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 100),
+    queryFn: async () => { try { return await db.entities.Enrollment.filter({ student_id: user.id }, '-last_accessed', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
     staleTime: 30_000,
   });
@@ -119,7 +119,7 @@ export default function MyClassesPage() {
   // Fetch subjects for cover images
   const { data: subjects = [] } = useQuery({
     queryKey: ['all-subjects-for-classes'],
-    queryFn: () => db.entities.Subject.filter({ status: 'published' }, 'name', 200),
+    queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 200); } catch(e) { console.error(e); return []; } },
     staleTime: 120_000,
   });
   const subjectMap = React.useMemo(() => {
