@@ -109,7 +109,7 @@ export default function BlogPage() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['blogPosts'],
-    queryFn: () => db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 100),
+    queryFn: async () => { try { return await db.entities.BlogPost.filter({ status: 'published' }, '-published_at', 100); } catch(e) { console.error(e); return []; } },
   });
 
   const featuredPosts = useMemo(() => posts.filter(p => p.is_featured).slice(0, 1), [posts]);
