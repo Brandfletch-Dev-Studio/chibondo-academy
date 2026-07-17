@@ -154,29 +154,34 @@ export default function AdminCourses() {
     queryFn: async () => { try { return await db.entities.Subject.list('order', 300); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
     refetchInterval: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: forms = [] } = useQuery({queryKey: ['forms'],
     queryFn: async () => { try { return await db.entities.AcademicForm.list('order', 50); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   const { data: teachers = [] } = useQuery({queryKey: ['teachers'],
     queryFn: async () => { try { return await db.entities.User.filter({ role: 'teacher' }); } catch(e) { console.error(e); return []; } },
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* Live topic counts for ALL subjects */
   const { data: topics = [], isLoading: loadingTopics } = useQuery({queryKey: ['allTopicsAdmin'],
     queryFn: async () => { try { return await db.entities.Topic.list('order', 1000); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
     refetchInterval: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* Live lesson counts */
   const { data: lessons = [], isLoading: loadingLessons } = useQuery({queryKey: ['allLessonsAdmin'],
     queryFn: async () => { try { return await db.entities.Lesson.list('order', 3000); } catch(e) { console.error(e); return []; } },
     staleTime: 30_000,
     refetchInterval: 60_000,
-    placeholderData: [],}));
+    placeholderData: [],
+  });
 
   /* ── Derived ── */
   const pendingSubjects = useMemo(
