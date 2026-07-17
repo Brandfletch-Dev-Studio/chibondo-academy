@@ -174,3 +174,13 @@ html { scroll-behavior: smooth; }
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+
+
+/* Chat page: fixed-height container so only messages scroll, input stays visible above BottomNav */
+.chat-main-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  /* no extra padding needed — SubjectGroupChat uses calc() height directly */
+}
