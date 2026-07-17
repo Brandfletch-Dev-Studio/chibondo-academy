@@ -104,6 +104,7 @@ function VideoInput({ lesson, onChange }) {
   const [meta, setMeta] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   useEffect(() => {
     setProvider(lesson.video_provider || 'none');
@@ -142,23 +143,108 @@ function VideoInput({ lesson, onChange }) {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const apiKey  = localStorage.getItem('bunny_api_key');
+    const libId   = localStorage.getItem('bunny_lib_id');
+
+    if (!apiKey || !libId) {
+      toast.error('Bunny credentials not set. Ask your admin to configure Bunny in the Video Manager.');
+      return;
+    }
+
     setUploading(true);
-    setUploadProgress(0);
-    // Simulate progress while uploading
-    const interval = setInterval(() => setUploadProgress(p => Math.min(p + 10, 90)), 400);
+    setUploadProgress(2);
+    setUploadStatus('Preparing upload…');
+
     try {
-      const { file_url } = await db.integrations.Core.UploadFile({ file });
-      clearInterval(interval);
+      // Step 1: Get signed TUS upload credentials from our backend
+      const signRes = await fetch('/api/bunny-upload-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: lesson.title || file.name.replace(/\.[^.]+$/, ''),
+          lessonId: lesson.id,
+          bunnyLibraryId: libId,
+          bunnyApiKey: apiKey,
+        }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok) throw new Error(signData.error || 'Could not get upload credentials');
+
+      const { videoId, embedUrl, authSignature, authExpiry, libraryId: lib } = signData;
+      setUploadProgress(5);
+      setUploadStatus('Starting upload to Bunny…');
+
+      // Step 2: Upload directly to Bunny via TUS protocol (browser → Bunny)
+      // TUS: POST to create upload, then PATCH chunks
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB chunks
+      const fileSize = file.size;
+
+      // TUS Create
+      const tusCreateRes = await fetch('https://video.bunnycdn.com/tusupload', {
+        method: 'POST',
+        headers: {
+          AuthorizationSignature: authSignature,
+          AuthorizationExpire:    String(authExpiry),
+          VideoId:                videoId,
+          LibraryId:              String(lib),
+          'Tus-Resumable':        '1.0.0',
+          'Upload-Length':        String(fileSize),
+          'Content-Type':         'application/offset+octet-stream',
+        },
+      });
+      if (!tusCreateRes.ok) {
+        const err = await tusCreateRes.text();
+        throw new Error(`TUS create failed (${tusCreateRes.status}): ${err}`);
+      }
+      const uploadLocation = tusCreateRes.headers.get('Location');
+      if (!uploadLocation) throw new Error('No TUS upload location returned');
+
+      setUploadProgress(8);
+      setUploadStatus('Uploading video…');
+
+      // TUS PATCH — send in chunks, track progress
+      let offset = 0;
+      while (offset < fileSize) {
+        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+        const patchRes = await fetch(uploadLocation, {
+          method: 'PATCH',
+          headers: {
+            AuthorizationSignature: authSignature,
+            AuthorizationExpire:    String(authExpiry),
+            VideoId:                videoId,
+            LibraryId:              String(lib),
+            'Tus-Resumable':        '1.0.0',
+            'Upload-Offset':        String(offset),
+            'Content-Type':         'application/offset+octet-stream',
+          },
+          body: chunk,
+        });
+        if (!patchRes.ok) {
+          const err = await patchRes.text();
+          throw new Error(`TUS patch failed at offset ${offset}: ${err}`);
+        }
+        offset += chunk.size;
+        const pct = Math.round(8 + (offset / fileSize) * 82); // 8%→90% during upload
+        setUploadProgress(pct);
+        setUploadStatus(`Uploading… ${pct}%`);
+      }
+
+      // Step 3: Update lesson with Bunny embed URL (also done server-side in sign endpoint)
+      setUploadProgress(95);
+      setUploadStatus('Finalising…');
+      onChange({ video_url: embedUrl, video_provider: 'bunny' });
+      setUrlInput(embedUrl);
       setUploadProgress(100);
-      onChange({ video_url: file_url, video_provider: 'upload' });
-      setUrlInput(file_url);
-      toast.success('Video uploaded');
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      clearInterval(interval);
+      setUploadStatus('✓ Uploaded to Bunny!');
+      toast.success('Video uploaded to Bunny 🐰 — processing in 1-2 min');
+      setTimeout(() => { setUploading(false); setUploadProgress(0); setUploadStatus(''); }, 2000);
+    } catch (err) {
+      console.error('[bunny-upload]', err);
+      toast.error(err.message || 'Upload failed');
       setUploading(false);
-      setTimeout(() => setUploadProgress(0), 1000);
+      setUploadProgress(0);
+      setUploadStatus('');
     }
   };
 
@@ -171,7 +257,7 @@ function VideoInput({ lesson, onChange }) {
             { val: 'none', label: 'None', icon: X },
             { val: 'youtube', label: 'YouTube', icon: Youtube },
             { val: 'bunny', label: 'Bunny.net', icon: Video },
-            { val: 'upload', label: 'Upload', icon: Upload },
+            { val: 'upload', label: 'Upload to Bunny', icon: Upload },
             { val: 'external', label: 'External URL', icon: Globe },
           ].map(({ val, label, icon: Icon }) => (
             <button key={val} onClick={() => handleProviderChange(val)}
