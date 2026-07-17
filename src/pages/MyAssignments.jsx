@@ -11,12 +11,12 @@ export default function MyAssignments() {
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['assignments'],
-    queryFn: () => db.entities.Assignment.filter({ status: 'published' }, '-created_date', 100),
+    queryFn: async () => { try { return await db.entities.Assignment.filter({ status: 'published' }, '-created_date', 100); } catch(e) { console.error(e); return []; } },
   });
 
   const { data: submissions = [] } = useQuery({
     queryKey: ['mySubmissions', user?.id],
-    queryFn: () => db.entities.AssignmentSubmission.filter({ student_id: user.id }, '-created_date', 100),
+    queryFn: async () => { try { return await db.entities.AssignmentSubmission.filter({ student_id: user.id }, '-created_date', 100); } catch(e) { console.error(e); return []; } },
     enabled: !!user?.id,
   });
 
