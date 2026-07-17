@@ -7,7 +7,8 @@ import {
   RefreshCw, Settings, CheckCircle2, Upload,
   ExternalLink, Zap, Globe, Loader2, Info,
   Search, Link2, Play, X, ChevronRight,
-  AlertTriangle, Sparkles, Clock, Video
+  AlertTriangle, Sparkles, Clock, Video,
+  ShieldCheck, Trash2, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -989,6 +990,232 @@ function DirectUploadTab({ lessons, setLessons, apiKey, libraryId }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+
+// ── Tab: Health Check ────────────────────────────────────────────────────────
+function HealthCheckTab({ lessons, setLessons, apiKey, libraryId }) {
+  const [checking, setChecking]   = useState(false);
+  const [results, setResults]     = useState(null); // { videoId, lessonId, status, ... }[]
+  const [deleting, setDeleting]   = useState(new Set());
+  const [unlinking, setUnlinking] = useState(new Set());
+
+  const bunnyLessons = lessons.filter(l =>
+    (isBunny(l.video_url) || l.video_provider === 'bunny') && l.bunny_video_id
+  );
+
+  const STATUS_COLOR = {
+    ready:      'text-green-600 bg-green-50',
+    encoding:   'text-blue-600 bg-blue-50',
+    processing: 'text-blue-600 bg-blue-50',
+    queued:     'text-yellow-600 bg-yellow-50',
+    failed:     'text-red-600 bg-red-50',
+    not_found:  'text-red-700 bg-red-100',
+    timeout:    'text-orange-600 bg-orange-50',
+    error:      'text-red-600 bg-red-50',
+    unknown:    'text-gray-500 bg-gray-100',
+  };
+
+  const STATUS_LABEL = {
+    ready:      '✓ Ready',
+    encoding:   '⚙ Encoding',
+    processing: '⚙ Processing',
+    queued:     '⏳ Queued',
+    failed:     '✗ Failed',
+    not_found:  '✗ Not Found',
+    timeout:    '⚠ Timeout',
+    error:      '✗ Error',
+    unknown:    '? Unknown',
+  };
+
+  async function runCheck() {
+    if (!apiKey || !libraryId) { toast.error('Add Bunny credentials in Settings first'); return; }
+    if (!bunnyLessons.length) { toast.error('No Bunny-linked lessons with video IDs found'); return; }
+    setChecking(true);
+    setResults(null);
+    try {
+      const videoIds = bunnyLessons.map(l => ({ videoId: l.bunny_video_id, lessonId: l.id }));
+      const r = await fetch('/api/bunny?action=validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bunnyLibraryId: libraryId, bunnyApiKey: apiKey, videoIds }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      // Merge lesson titles back in
+      const lessonMap = Object.fromEntries(lessons.map(l => [l.id, l]));
+      const enriched = data.statuses.map(s => ({
+        ...s,
+        lessonTitle: lessonMap[s.lessonId]?.title || s.lessonId,
+        subjectName: lessonMap[s.lessonId]?.subject_name || '',
+        videoUrl:    lessonMap[s.lessonId]?.video_url || '',
+      }));
+      setResults(enriched);
+      const bad = enriched.filter(s => ['failed','not_found','error','timeout'].includes(s.status));
+      const good = enriched.filter(s => s.status === 'ready');
+      toast.success(`Health check done: ${good.length} ready, ${bad.length} invalid`);
+    } catch (e) {
+      toast.error(`Check failed: ${e.message}`);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function autoFixAll() {
+    if (!results) return;
+    const invalid = results.filter(s => ['failed','not_found','error'].includes(s.status));
+    if (!invalid.length) { toast.success('Nothing to fix — all videos are valid!'); return; }
+    toast.info(`Auto-cancelling ${invalid.length} invalid videos…`);
+    for (const item of invalid) {
+      await deleteVideo(item, true);
+    }
+    toast.success(`Cleaned up ${invalid.length} invalid video records`);
+  }
+
+  async function deleteVideo(item, silent = false) {
+    setDeleting(prev => new Set([...prev, item.videoId]));
+    try {
+      // 1. Delete from Bunny (if not already gone)
+      if (item.status !== 'not_found') {
+        await fetch('/api/bunny?action=delete-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bunnyLibraryId: libraryId, bunnyApiKey: apiKey, videoId: item.videoId }),
+        });
+      }
+      // 2. Clear video fields on lesson in Supabase
+      await db.entities.Lesson.update(item.lessonId, {
+        video_url:      null,
+        video_provider: null,
+        bunny_video_id: null,
+      });
+      // 3. Update local state
+      setLessons(prev => prev.map(l => l.id === item.lessonId
+        ? { ...l, video_url: null, video_provider: null, bunny_video_id: null }
+        : l
+      ));
+      setResults(prev => prev.filter(r => r.videoId !== item.videoId));
+      if (!silent) toast.success(`"${item.lessonTitle}" cleared`);
+    } catch (e) {
+      if (!silent) toast.error(`Failed: ${e.message}`);
+    } finally {
+      setDeleting(prev => { const s = new Set(prev); s.delete(item.videoId); return s; });
+    }
+  }
+
+  const invalid = results?.filter(s => ['failed','not_found','error','timeout'].includes(s.status)) || [];
+  const ready   = results?.filter(s => s.status === 'ready') || [];
+  const pending = results?.filter(s => ['encoding','processing','queued'].includes(s.status)) || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Header panel */}
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: NAVY }}>
+            <ShieldCheck className="w-4 h-4 text-yellow-300" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm">Video Health Check</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Validates all {bunnyLessons.length} Bunny-linked lessons against the live Bunny API.
+              Detects failed, missing, or stuck videos and lets you clean them up instantly.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={runCheck} disabled={checking || !apiKey || !libraryId}
+            style={{ background: NAVY, color: 'white' }} size="sm" className="gap-1.5 text-xs">
+            {checking
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking {bunnyLessons.length} videos…</>
+              : <><RotateCcw className="w-3.5 h-3.5" /> Run Health Check</>}
+          </Button>
+          {results && invalid.length > 0 && (
+            <Button onClick={autoFixAll} variant="destructive" size="sm" className="gap-1.5 text-xs">
+              <Trash2 className="w-3.5 h-3.5" /> Auto-Fix All Invalid ({invalid.length})
+            </Button>
+          )}
+          {results && (
+            <Button onClick={runCheck} variant="outline" size="sm" className="gap-1.5 text-xs"
+              disabled={checking}>
+              <RefreshCw className="w-3.5 h-3.5" /> Re-check
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      {results && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Ready',   count: ready.length,   color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950/20' },
+            { label: 'Pending', count: pending.length,  color: 'text-blue-600',  bg: 'bg-blue-50 dark:bg-blue-950/20' },
+            { label: 'Invalid', count: invalid.length,  color: 'text-red-600',   bg: 'bg-red-50 dark:bg-red-950/20' },
+          ].map(({ label, count, color, bg }) => (
+            <div key={label} className={`rounded-xl border p-3 text-center ${bg}`}>
+              <p className={`text-xl font-bold ${color}`}>{count}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Results list — show invalid first, then pending, then ready */}
+      {results && (
+        <div className="space-y-2">
+          {[...invalid, ...pending, ...ready].map(item => {
+            const isInvalid = ['failed','not_found','error','timeout'].includes(item.status);
+            const isDel = deleting.has(item.videoId);
+            return (
+              <div key={item.videoId}
+                className={cn(
+                  'flex items-center gap-3 p-3 rounded-xl border bg-card',
+                  isInvalid && 'border-red-200 bg-red-50/30 dark:bg-red-950/10'
+                )}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate">{item.lessonTitle}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{item.subjectName}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">{item.videoId}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {item.status === 'encoding' && (
+                    <span className="text-[10px] text-blue-600">{item.encodeProgress}%</span>
+                  )}
+                  <span className={cn(
+                    'text-[10px] font-bold px-2 py-0.5 rounded-full',
+                    STATUS_COLOR[item.status] || STATUS_COLOR.unknown
+                  )}>
+                    {STATUS_LABEL[item.status] || item.status}
+                  </span>
+                  {isInvalid && (
+                    <Button size="sm" variant="ghost"
+                      className="h-7 w-7 p-0 text-red-500 hover:bg-red-100 hover:text-red-700"
+                      onClick={() => deleteVideo(item)} disabled={isDel}>
+                      {isDel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  )}
+                  {!isInvalid && item.videoUrl && (
+                    <a href={item.videoUrl} target="_blank" rel="noopener noreferrer"
+                      className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors">
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {results && results.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <ShieldCheck className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">No Bunny videos to check.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BunnyMigration() {
   const { user } = useOutletContext();
   const [lessons, setLessons]         = useState([]);
@@ -1089,6 +1316,7 @@ export default function BunnyMigration() {
           { key: 'link',      label: '🔗 Link Manually' },
           { key: 'migrate',   label: '⬆️ Migrate YouTube' },
           { key: 'upload',    label: '📤 Direct Upload' },
+          { key: 'health',    label: '🛡 Health Check' },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={cn('flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all',
@@ -1108,8 +1336,10 @@ export default function BunnyMigration() {
         <LinkExistingTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
       ) : tab === 'migrate' ? (
         <AutoMigrateTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
-      ) : (
+      ) : tab === 'upload' ? (
         <DirectUploadTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
+      ) : (
+        <HealthCheckTab lessons={lessons} setLessons={setLessons} apiKey={apiKey} libraryId={libraryId} />
       )}
     </div>
   );

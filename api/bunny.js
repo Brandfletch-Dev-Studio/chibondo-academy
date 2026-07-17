@@ -252,6 +252,61 @@ async function handleMigrate(req, res) {
   });
 }
 
+
+// ── action=validate (bulk-check Bunny-linked lessons) ────────────────────────
+async function handleValidate(req, res) {
+  const { bunnyLibraryId, bunnyApiKey, videoIds } = req.body || {};
+  if (!bunnyLibraryId || !bunnyApiKey || !Array.isArray(videoIds))
+    return res.status(400).json({ error: 'bunnyLibraryId, bunnyApiKey, videoIds[] required' });
+
+  const STATUS = { 0:'queued', 1:'processing', 2:'encoding', 3:'ready', 4:'ready', 5:'failed' };
+
+  const results = await Promise.allSettled(
+    videoIds.map(async ({ videoId, lessonId }) => {
+      try {
+        const r = await fetch(
+          `https://video.bunnycdn.com/library/${bunnyLibraryId}/videos/${videoId}`,
+          { headers: { AccessKey: bunnyApiKey }, signal: AbortSignal.timeout(8000) }
+        );
+        if (r.status === 404) return { videoId, lessonId, status: 'not_found', code: 404 };
+        if (!r.ok) return { videoId, lessonId, status: 'error', code: r.status };
+        const d = await r.json();
+        const st = STATUS[d.status] || 'unknown';
+        return {
+          videoId, lessonId,
+          status: st,
+          code:   d.status,
+          encodeProgress: d.encodeProgress || 0,
+          length: d.length || 0,
+          title:  d.title || '',
+        };
+      } catch(e) {
+        return { videoId, lessonId, status: 'timeout', error: e.message };
+      }
+    })
+  );
+
+  const statuses = results.map(r => r.status === 'fulfilled' ? r.value : { ...r.reason, status:'error' });
+  return res.status(200).json({ statuses });
+}
+
+// ── action=delete-video (remove a Bunny video permanently) ───────────────────
+async function handleDeleteVideo(req, res) {
+  const { bunnyLibraryId, bunnyApiKey, videoId } = req.body || {};
+  if (!bunnyLibraryId || !bunnyApiKey || !videoId)
+    return res.status(400).json({ error: 'bunnyLibraryId, bunnyApiKey, videoId required' });
+
+  const r = await fetch(
+    `https://video.bunnycdn.com/library/${bunnyLibraryId}/videos/${videoId}`,
+    { method: 'DELETE', headers: { AccessKey: bunnyApiKey } }
+  );
+  if (!r.ok && r.status !== 404) {
+    const txt = await r.text().catch(() => r.status.toString());
+    return res.status(r.status).json({ error: txt });
+  }
+  return res.status(200).json({ success: true, videoId });
+}
+
 // ── Main router ──────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   cors(res);
@@ -262,8 +317,10 @@ export default async function handler(req, res) {
     if (action==='library')    return await handleLibrary(req, res);
     if (action==='status')     return await handleStatus(req, res);
     if (action==='sign')       return await handleSign(req, res);
-    if (action==='automatch')  return await handleAutomatch(req, res);
-    if (action==='migrate')    return await handleMigrate(req, res);
+    if (action==='automatch')    return await handleAutomatch(req, res);
+    if (action==='migrate')      return await handleMigrate(req, res);
+    if (action==='validate')     return await handleValidate(req, res);
+    if (action==='delete-video') return await handleDeleteVideo(req, res);
     return res.status(400).json({error:'Missing ?action= (library|status|sign|automatch|migrate)'});
   } catch (err) {
     console.error(`[bunny:${action}]`, err.message);
