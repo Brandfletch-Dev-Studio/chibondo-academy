@@ -216,7 +216,7 @@ export default function AppLayout() {
         </div>
       )}
       <PWAManager user={enrichedUser} />
-      <div className="h-dvh bg-background flex overflow-hidden">
+      <div className={isChatPage ? "h-dvh bg-background flex overflow-hidden" : "min-h-screen bg-background flex"}>
       {/* Desktop Sidebar — shown for authenticated users only */}
       {!isGuest && (
         <div className="hidden lg:block flex-shrink-0">
@@ -236,7 +236,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0 overflow-hidden transition-[margin] duration-300 ease-in-out",
+          isChatPage ? "flex-1 flex flex-col min-w-0 overflow-hidden transition-[margin] duration-300 ease-in-out" : "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
           !isGuest && collapsed ? "lg:ml-16" : !isGuest ? "lg:ml-64" : ""
         )}
         onTouchStart={onTouchStart}
