@@ -122,14 +122,20 @@ async function handleSign(req, res) {
 async function handleAutomatch(req, res) {
   const { bunnyLibraryId, bunnyApiKey, dryRun=false, threshold=0.35 } = req.body||{};
   if (!bunnyLibraryId||!bunnyApiKey) return res.status(400).json({error:'bunnyLibraryId and bunnyApiKey required'});
+
   const [bunnyVideos, lessonsRes] = await Promise.all([
     fetchBunnyVideos(bunnyLibraryId, bunnyApiKey),
-    fetch(`${SUPABASE_URL}/rest/v1/lessons?select=id,title,video_url,video_provider&limit=2000`,
+    fetch(`${SUPABASE_URL}/rest/v1/lessons?select=id,title,video_url,video_provider,subject_name,topic_title&limit=2000`,
       {headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}}),
   ]);
   const lessons = await lessonsRes.json();
+
+  const alreadyLinked = lessons.filter(l=>(l.video_url||'').includes('mediadelivery.net'));
   const unlinked = lessons.filter(l=>!(l.video_url||'').includes('mediadelivery.net'));
-  const results = []; const used = new Set();
+
+  const matchRows = [], noMatchRows = [];
+  const used = new Set();
+
   for (const lesson of unlinked) {
     let best=0, bestVid=null;
     for (const v of bunnyVideos) {
@@ -139,28 +145,56 @@ async function handleAutomatch(req, res) {
     }
     const matched = best>=threshold && bestVid;
     if (matched) used.add(bestVid.guid);
-    results.push({
-      lessonId:lesson.id, lessonTitle:lesson.title, matched,
-      score:Math.round(best*100),
-      bunnyVideoId:matched?bestVid.guid:null, bunnyTitle:matched?bestVid.title:null,
-      embedUrl:matched?`https://iframe.mediadelivery.net/embed/${bunnyLibraryId}/${bestVid.guid}`:null,
-      durationSec:matched?bestVid.length||0:0,
-      estimatedMin:matched&&bestVid.length?Math.ceil(bestVid.length/60):null,
-    });
+
+    const row = {
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      subjectName: lesson.subject_name || '',
+      topicTitle: lesson.topic_title || '',
+      matched,
+      score: Math.round(best*100),
+      bunnyVideoId: matched ? bestVid.guid : null,
+      bunnyTitle: matched ? bestVid.title : null,
+      bunnyStatus: matched ? bestVid.status : null,
+      embedUrl: matched ? `https://iframe.mediadelivery.net/embed/${bunnyLibraryId}/${bestVid.guid}` : null,
+      durationSec: matched ? (bestVid.length||0) : 0,
+      estimatedMin: matched && bestVid.length ? Math.ceil(bestVid.length/60) : null,
+    };
+    if (matched) matchRows.push(row);
+    else noMatchRows.push(row);
   }
-  let updated=0;
+
+  // Apply updates if not a dry run
+  let updated = 0, durationUpdated = 0;
   if (!dryRun) {
-    await Promise.all(results.filter(r=>r.matched&&r.embedUrl).map(async r=>{
-      const body={video_url:r.embedUrl,video_provider:'bunny'};
-      if(r.durationSec) body.video_duration=r.durationSec;
-      if(r.estimatedMin) body.estimated_minutes=r.estimatedMin;
-      const ok = await fetch(`${SUPABASE_URL}/rest/v1/lessons?id=eq.${r.lessonId}`,{
-        method:'PATCH', headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,
-        'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});
-      if(ok.ok) updated++;
+    await Promise.all(matchRows.map(async r => {
+      const body = { video_url: r.embedUrl, video_provider: 'bunny', bunny_video_id: r.bunnyVideoId };
+      if (r.durationSec) { body.video_duration = r.durationSec; durationUpdated++; }
+      if (r.estimatedMin) body.estimated_minutes = r.estimatedMin;
+      const ok = await fetch(`${SUPABASE_URL}/rest/v1/lessons?id=eq.${r.lessonId}`, {
+        method: 'PATCH',
+        headers: { apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`,
+          'Content-Type':'application/json', Prefer:'return=minimal' },
+        body: JSON.stringify(body),
+      });
+      if (ok.ok) updated++;
     }));
   }
-  return res.status(200).json({matched:results.filter(r=>r.matched).length, updated, dryRun, results});
+
+  return res.status(200).json({
+    dry: dryRun,
+    stats: {
+      bunnyVideos: bunnyVideos.length,
+      totalLessons: lessons.length,
+      newlyMatched: matchRows.length,
+      alreadyLinked: alreadyLinked.length,
+      noMatch: noMatchRows.length,
+      updated,
+      durationUpdated,
+    },
+    matches: matchRows,
+    noMatches: noMatchRows,
+  });
 }
 
 // ── action=migrate (YouTube → Bunny via cobalt.tools) ───────────────────────

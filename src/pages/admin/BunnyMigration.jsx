@@ -116,7 +116,7 @@ function AutoMatchTab({ lessons, setLessons, apiKey, libraryId, setTab }) {
       if (!r.ok) throw new Error(data.error);
       setResult({ ...data, dry });
       if (!dry) {
-        toast.success(`✅ Matched ${data.stats.updated} lessons + updated ${data.stats.durationUpdated} durations!`);
+        toast.success(`✅ Matched ${data.stats?.updated ?? 0} lessons + updated ${data.stats?.durationUpdated ?? 0} durations!`);
         // refresh lesson list
         const fresh = await db.entities.Lesson.list().catch(() => lessons);
         setLessons(fresh);
@@ -220,10 +220,10 @@ function AutoMatchTab({ lessons, setLessons, apiKey, libraryId, setTab }) {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { label: 'Bunny Videos', val: result.stats.bunnyVideos, color: 'text-primary' },
-              { label: 'New Matches', val: result.stats.newlyMatched, color: 'text-green-600' },
-              { label: 'Already on Bunny', val: result.stats.alreadyLinked, color: 'text-muted-foreground' },
-              { label: 'No Match', val: result.stats.noMatch, color: 'text-red-500' },
+              { label: 'Bunny Videos', val: result.stats?.bunnyVideos ?? 0, color: 'text-primary' },
+              { label: 'New Matches', val: result.stats?.newlyMatched ?? 0, color: 'text-green-600' },
+              { label: 'Already on Bunny', val: result.stats?.alreadyLinked ?? 0, color: 'text-muted-foreground' },
+              { label: 'No Match', val: result.stats?.noMatch ?? 0, color: 'text-red-500' },
             ].map(({ label, val, color }) => (
               <div key={label} className="rounded-lg border bg-card p-3 text-center">
                 <p className={`text-2xl font-bold ${color}`}>{val}</p>
@@ -232,10 +232,10 @@ function AutoMatchTab({ lessons, setLessons, apiKey, libraryId, setTab }) {
             ))}
           </div>
 
-          {result.dry && result.stats.newlyMatched > 0 && (
+          {result.dry && (result.stats?.newlyMatched ?? 0) > 0 && (
             <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 p-3">
               <p className="text-xs font-semibold text-green-800 dark:text-green-200">
-                ✅ Preview complete — {result.stats.newlyMatched} lessons can be matched.
+                ✅ Preview complete — {result.stats?.newlyMatched ?? 0} lessons can be matched.
                 Click <strong>"Apply All Matches"</strong> to save.
               </p>
             </div>
@@ -244,7 +244,7 @@ function AutoMatchTab({ lessons, setLessons, apiKey, libraryId, setTab }) {
           {!result.dry && (
             <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 p-3">
               <p className="text-xs font-semibold text-green-800 dark:text-green-200">
-                ✅ Done! {result.stats.updated} lessons linked · {result.stats.durationUpdated} durations synced
+                ✅ Done! {result.stats?.updated ?? 0} lessons linked · {result.stats?.durationUpdated ?? 0} durations synced
               </p>
             </div>
           )}
