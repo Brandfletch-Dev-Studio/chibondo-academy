@@ -216,7 +216,7 @@ export default function AppLayout() {
         </div>
       )}
       <PWAManager user={enrichedUser} />
-      <div className={isChatPage ? "h-dvh bg-background flex overflow-hidden" : "min-h-screen bg-background flex"}>
+      <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar — shown for authenticated users only */}
       {!isGuest && (
         <div className="hidden lg:block flex-shrink-0">
@@ -236,7 +236,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <div
         className={cn(
-          isChatPage ? "flex-1 flex flex-col min-w-0 overflow-hidden transition-[margin] duration-300 ease-in-out" : "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
+          "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out",
           !isGuest && collapsed ? "lg:ml-16" : !isGuest ? "lg:ml-64" : ""
         )}
         onTouchStart={onTouchStart}
@@ -247,7 +247,7 @@ export default function AppLayout() {
             notificationCount={notifications.length}
             onMenuClick={() => setMobileOpen(true)}
           />
-        <main key={location.pathname} className={isChatPage ? "flex-1 overflow-hidden flex flex-col min-h-0" : "flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter"}>
+        <main key={location.pathname} className={isChatPage ? "chat-main-layout" : "flex-1 p-4 lg:p-6 pb-24 lg:pb-6 w-full max-w-7xl mx-auto page-enter"}>
           <Outlet context={{ user: enrichedUser, notifications }} />
         </main>
       </div>
