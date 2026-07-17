@@ -107,7 +107,7 @@ function AutoMatchTab({ lessons, setLessons, apiKey, libraryId, setTab }) {
     setRunning(true);
     setResult(null);
     try {
-      const r = await fetch('/api/bunny-automatch', {
+      const r = await fetch('/api/bunny?action=automatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bunnyLibraryId: libraryId, bunnyApiKey: apiKey, dryRun: dry, threshold: threshold / 100 }),
@@ -358,7 +358,7 @@ function LinkExistingTab({ lessons, setLessons, apiKey, libraryId }) {
     setLoadingBunny(true);
     try {
       const params = new URLSearchParams({ libraryId, apiKey, page: p, search, perPage: PER_PAGE });
-      const r = await fetch(`/api/bunny-library?${params}`);
+      const r = await fetch(`/api/bunny?action=library?${params}`);
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       setBunnyVideos(data.videos || []);
@@ -553,7 +553,7 @@ function AutoMigrateTab({ lessons, setLessons, apiKey, libraryId }) {
     const iv = setInterval(async () => {
       if (++attempts > 40) { clearInterval(iv); return; }
       try {
-        const r = await fetch(`/api/bunny-status?libraryId=${libraryId}&videoId=${videoId}&apiKey=${apiKey}`);
+        const r = await fetch(`/api/bunny?action=status?libraryId=${libraryId}&videoId=${videoId}&apiKey=${apiKey}`);
         const d = await r.json();
         if (d.status === 'ready') {
           clearInterval(iv);
@@ -573,7 +573,7 @@ function AutoMigrateTab({ lessons, setLessons, apiKey, libraryId }) {
     if (!apiKey || !libraryId) { toast.error('Enter Bunny credentials'); return; }
     setJobs(p => ({ ...p, [lesson.id]: { status: 'running', progress: 10, message: 'Resolving stream…' } }));
     try {
-      const r = await fetch('/api/bunny-migrate', {
+      const r = await fetch('/api/bunny?action=migrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: lesson.video_url, lessonId: lesson.id, bunnyLibraryId: libraryId, bunnyApiKey: apiKey, title: lesson.title }),

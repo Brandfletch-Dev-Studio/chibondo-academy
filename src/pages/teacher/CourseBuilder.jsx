@@ -158,7 +158,7 @@ function VideoInput({ lesson, onChange }) {
 
     try {
       // Step 1: Get signed TUS upload credentials from our backend
-      const signRes = await fetch('/api/bunny-upload-sign', {
+      const signRes = await fetch('/api/bunny?action=sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
