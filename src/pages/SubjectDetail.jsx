@@ -359,11 +359,14 @@ export default function SubjectDetail() {
         )}
       </div>
 
-      {/* ── Enrollment count ── */}
-      {(subject?.enrollment_count > 0) && (
+      {/* ── Tutor / teacher ── */}
+      {subject?.teacher_name && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="w-4 h-4" />
-          <span><span className="font-semibold text-foreground">{subject.enrollment_count.toLocaleString()}</span> students enrolled</span>
+          <GraduationCap className="w-4 h-4 text-primary/70 flex-shrink-0" />
+          <span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mr-1.5">Tutor</span>
+            <span className="font-semibold text-foreground">{subject.teacher_name}</span>
+          </span>
         </div>
       )}
 
