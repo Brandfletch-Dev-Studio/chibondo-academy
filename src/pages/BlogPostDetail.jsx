@@ -352,6 +352,7 @@ export default function BlogPostDetail() {
               .aca-article-body h3 { font-size: 1.1rem; }
               .aca-article-body p { margin: 0 0 0.55em; }
               .aca-article-body p + p { margin-top: 0; }
+              .aca-article-body .ql-editor p { margin-bottom: 0.55em; }
               .aca-article-body a { color: hsl(var(--primary)); text-decoration: underline; }
               .aca-article-body a:hover { opacity: 0.8; }
               .aca-article-body ul,.aca-article-body ol { margin: 0.75em 0 1em 1.5em; }
