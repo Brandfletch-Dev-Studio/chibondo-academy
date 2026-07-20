@@ -110,7 +110,7 @@ const CurriculumManagement = lazy(() => import('@/pages/admin/CurriculumManageme
 const AdminCourses = lazy(() => import('@/pages/admin/AdminCourses'));
 const AffiliateManagement = lazy(() => import('@/pages/admin/AffiliateManagement'));
 const TutorManagement = lazy(() => import('@/pages/admin/TutorManagement'));
-// StudentSettings removed — rebuilding
+const StudentSettings = lazy(() => import('@/pages/settings/StudentSettings'));
 const TeacherSettings = lazy(() => import('@/pages/settings/TeacherSettings'));
 
 
@@ -221,7 +221,7 @@ const AppRoutes = () => {
             <Route path="profile" element={<AffiliateProfile />} />
           </Route>
 
-          <Route path="/settings" element={<div style={{padding:32,textAlign:"center",color:"#888"}}>Settings coming soon…</div>} />
+          <Route path="/settings" element={<StudentSettings />} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<RoleGuard allowed={['teacher','admin']}><TeacherDashboard /></RoleGuard>} />
