@@ -102,6 +102,18 @@ Visit {subscription_link} to renew.
 
 Regards,
 The Chibondo Academy Team`,
+
+  // ── Manual Nudge (cart recovery / payment reminder) ──────────────────────
+  nudge_enabled: true,
+  nudge_subject: 'Complete your payment to unlock your lessons 📚',
+  nudge_body:
+`Hi {student_name}, you tried to pay fees to unlock access to video lessons on The Chibondo Academy.
+
+Please complete your payment to unlock full access to your lessons:
+
+Use this link: {fees_link}
+
+If you have any problems, please let us know so that we can assist you make payment.`,
 };
 
 const TEMPLATE_FIELDS = [
@@ -144,6 +156,14 @@ const TEMPLATE_FIELDS = [
     badge: '3 days before',
     badgeColor: 'bg-accent/10 text-accent border-accent/20',
     description: "Sent 3 days before expiry. Variables: {student_name}, {end_date}, {days_left}, {subscription_link}",
+  },
+  {
+    id: 'nudge',
+    label: 'Manual Nudge / Payment Reminder',
+    icon: Mail,
+    badge: 'Manual trigger',
+    badgeColor: 'bg-primary/10 text-primary border-primary/20',
+    description: 'Sent when admin clicks "Nudge" on a pending payment. Variables: {student_name}, {fees_link}, {amount}, {plan}',
   },
 ];
 
