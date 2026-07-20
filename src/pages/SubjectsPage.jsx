@@ -166,7 +166,6 @@ export default function SubjectsPage() {
                     const isPremium = subject.is_premium;
                     const isEnrolled = !!enrollment;
                     const lessonCount = lessonCountBySubject[subject.id] || 0;
-                    const studentCount = subject.enrollment_count || 0;
                     const progressPct = enrollment?.progress_percentage || 0;
 
                     return (
@@ -228,19 +227,15 @@ export default function SubjectsPage() {
                           )}
 
                           {/* Stats row */}
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <BookOpen className="w-3 h-3 text-primary/60" />
                               {lessonCount} lesson{lessonCount !== 1 ? 's' : ''}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3 text-primary/60" />
-                              {studentCount} student{studentCount !== 1 ? 's' : ''}
-                            </span>
-                            {subject.updated_date && (
-                              <span className="flex items-center gap-1 ml-auto">
-                                <Calendar className="w-3 h-3" />
-                                {format(new Date(subject.updated_date), 'MMM yyyy')}
+                            {subject.teacher_name && (
+                              <span className="flex items-center gap-1 ml-auto min-w-0">
+                                <GraduationCap className="w-3 h-3 text-primary/60 flex-shrink-0" />
+                                <span className="truncate">{subject.teacher_name}</span>
                               </span>
                             )}
                           </div>
