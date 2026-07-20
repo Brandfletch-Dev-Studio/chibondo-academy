@@ -834,60 +834,214 @@ export default function AdminSubscriptions() {
         </TabsContent>
       </Tabs>
 
-      {/* Subscription detail side panel */}
+      {/* ── Subscription detail side panel — beautiful redesign ── */}
       {selectedSub && (() => {
         const s = selectedSub;
         const profile = profileMap[s.student_id];
+        const daysLeft = s.expires_at
+          ? Math.ceil((new Date(s.expires_at) - new Date()) / 86400000)
+          : s.end_date
+          ? Math.ceil((new Date(s.end_date) - new Date()) / 86400000)
+          : null;
+        const startDate = s.start_date;
+        const endDate   = s.expires_at || s.end_date;
+        const duration  = startDate && endDate
+          ? Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000)
+          : null;
+        const name     = s._user?.full_name || s.student_name || 'Unknown';
+        const email    = s._user?.email || '—';
+        const phone    = profile?.phone_number || '—';
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const isActive = s.status === 'active';
+        const isExpired = daysLeft !== null && daysLeft <= 0;
+        const isWarn    = daysLeft !== null && daysLeft > 0 && daysLeft <= 4;
+
         return (
           <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedSub(null)}>
-            <div className="w-full max-w-sm bg-card border-l border-border h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
-                <p className="font-display font-bold text-sm">{s._user?.full_name || 'Student'}</p>
-                <button onClick={() => setSelectedSub(null)} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4" /></button>
-              </div>
-              <div className="p-4 space-y-4">
-                <div className="space-y-2">
-                  {[
-                    { label: 'Email',    value: s._user?.email || '—' },
-                    { label: 'Phone',    value: profile?.phone_number || '—' },
-                    { label: 'Class',    value: profile?.form || '—' },
-                    { label: 'Plan',     value: s.plan || '—' },
-                    { label: 'Status',   value: STATUS_LABELS[s.status] || s.status },
-                    { label: 'Expires',  value: s.end_date ? format(new Date(s.end_date), 'dd MMM yyyy') : '—' },
-                    { label: 'Started',  value: s.start_date ? format(new Date(s.start_date), 'dd MMM yyyy') : '—' },
-                  ].map(item => (
-                    <div key={item.label} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{item.label}</span>
-                      <span className="font-medium">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-                {profile?.subjects?.length > 0 && (
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div
+              className="relative bg-background w-full max-w-sm h-full overflow-y-auto shadow-2xl flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Hero header */}
+              <div className={`relative px-5 pt-12 pb-6 border-b ${
+                isActive  ? 'bg-gradient-to-br from-emerald-500/10 via-card to-card border-emerald-400/20' :
+                isExpired ? 'bg-gradient-to-br from-destructive/10 via-card to-card border-destructive/20' :
+                            'bg-gradient-to-br from-amber-500/10 via-card to-card border-amber-400/20'
+              }`}>
+                {/* Close button */}
+                <button
+                  onClick={() => setSelectedSub(null)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted/80 hover:bg-muted flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Avatar + name */}
+                <div className="flex flex-col items-center text-center gap-2">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/15 border-2 border-primary/25 flex items-center justify-center text-2xl font-bold text-primary shadow-lg">
+                    {initials}
+                  </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1.5">Enrolled Subjects</p>
-                    <div className="flex flex-wrap gap-1">
-                      {profile.subjects.map(sub => <span key={sub} className="text-xs bg-muted px-2 py-0.5 rounded">{sub}</span>)}
+                    <h2 className="font-bold text-lg leading-tight tracking-tight">{name}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5 font-mono">{email}</p>
+                  </div>
+
+                  {/* Status badges */}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+                    <Badge className={`capitalize text-xs font-semibold px-3 py-0.5 ${STATUS_COLORS[s.status] || 'bg-muted'}`}>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse" />}
+                      {STATUS_LABELS[s.status] || s.status}
+                    </Badge>
+                    <Badge className={`capitalize text-xs font-semibold px-3 py-0.5 ${PLAN_COLORS[s.plan] || 'bg-muted'}`}>
+                      {s.plan}
+                    </Badge>
+                  </div>
+
+                  {/* Days pill */}
+                  {daysLeft !== null && (
+                    <span className={`mt-1 text-xs font-semibold px-4 py-1.5 rounded-full ${
+                      isExpired ? 'bg-destructive/15 text-destructive' :
+                      isWarn    ? 'bg-amber-500/15 text-amber-600' :
+                                  'bg-emerald-500/10 text-emerald-600'
+                    }`}>
+                      {isExpired
+                        ? `Expired ${Math.abs(daysLeft)}d ago`
+                        : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 p-4 space-y-4">
+
+                {/* Contact card */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-2 border-b border-border bg-muted/40">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Contact</p>
+                  </div>
+                  <div className="divide-y divide-border/60">
+                    {[
+                      { icon: Mail,   label: 'Email', value: email },
+                      { icon: Phone,  label: 'Phone', value: phone },
+                      { icon: School, label: 'Class', value: profile?.form ? `Form ${profile.form}` : '—' },
+                    ].map(({ icon: Icon, label, value }) => (
+                      <div key={label} className="flex items-center gap-3 px-4 py-3">
+                        <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide leading-none mb-0.5">{label}</p>
+                          <p className="text-sm font-medium truncate">{value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subscription timeline */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-2 border-b border-border bg-muted/40">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Subscription Period</p>
+                  </div>
+                  <div className="px-4 py-4 flex items-center gap-2">
+                    {/* Start box */}
+                    <div className="flex-1 text-center bg-muted/40 rounded-xl p-3">
+                      <p className="text-[10px] text-muted-foreground mb-1">Started</p>
+                      <p className="text-base font-bold leading-tight">
+                        {startDate ? format(new Date(startDate), 'dd MMM') : '—'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {startDate ? format(new Date(startDate), 'yyyy') : ''}
+                      </p>
+                    </div>
+                    {/* connector */}
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-border" />
+                      <div className="w-px h-4 bg-border" />
+                      {duration && <p className="text-[9px] text-muted-foreground">{duration}d</p>}
+                      <div className="w-px h-4 bg-border" />
+                      <div className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-destructive' : isWarn ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                    </div>
+                    {/* End box */}
+                    <div className={`flex-1 text-center rounded-xl p-3 ${isExpired ? 'bg-destructive/10' : isWarn ? 'bg-amber-500/10' : 'bg-muted/40'}`}>
+                      <p className="text-[10px] text-muted-foreground mb-1">Expires</p>
+                      <p className={`text-base font-bold leading-tight ${isExpired ? 'text-destructive' : isWarn ? 'text-amber-600' : ''}`}>
+                        {endDate ? format(new Date(endDate), 'dd MMM') : '—'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {endDate ? format(new Date(endDate), 'yyyy') : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enrolled subjects */}
+                {profile?.subjects?.length > 0 && (
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    <div className="px-4 py-2 border-b border-border bg-muted/40">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Subjects</p>
+                    </div>
+                    <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                      {profile.subjects.map(sub => (
+                        <span key={sub} className="text-xs bg-primary/8 text-primary border border-primary/15 px-2.5 py-1 rounded-full font-medium">{sub}</span>
+                      ))}
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {s.status !== 'active' && (
-                    <Button size="sm" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'active' } }); setSelectedSub(null); }}>
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Activate
+
+                {/* Quick Actions */}
+                <div className="space-y-2 pb-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-0.5">Actions</p>
+
+                  {/* Top row: Cancel/Activate + Extend */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {s.status !== 'active' ? (
+                      <Button size="sm"
+                        className="h-14 flex-col gap-1 text-[11px] font-semibold rounded-xl"
+                        onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'active' } }); setSelectedSub(null); }}>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Activate
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline"
+                        className="h-14 flex-col gap-1 text-[11px] rounded-xl border-muted-foreground/20"
+                        onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'cancelled' } }); setSelectedSub(null); }}>
+                        <XCircle className="w-4 h-4 text-muted-foreground" />
+                        Cancel
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline"
+                      className="h-14 flex-col gap-1 text-[11px] rounded-xl border-primary/20 text-primary hover:bg-primary/5"
+                      onClick={() => { handleExtend(s, 30); setSelectedSub(null); }}>
+                      <RefreshCw className="w-4 h-4" />
+                      +30d
                     </Button>
-                  )}
-                  {s.status === 'active' && (
-                    <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'cancelled' } }); setSelectedSub(null); }}>
-                      <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
+                    <Button size="sm" variant="outline"
+                      className="h-14 flex-col gap-1 text-[11px] rounded-xl border-primary/20 text-primary hover:bg-primary/5"
+                      onClick={() => { handleExtend(s, 365); setSelectedSub(null); }}>
+                      <RefreshCw className="w-4 h-4" />
+                      +1yr
                     </Button>
-                  )}
-                  <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 30); setSelectedSub(null); }}><RefreshCw className="w-3.5 h-3.5 mr-1" /> +30d</Button>
-                  <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 365); setSelectedSub(null); }}><RefreshCw className="w-3.5 h-3.5 mr-1" /> +1yr</Button>
-                  <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { setHistoryStudent({ id: s.student_id, name: s._user?.full_name || 'Unknown' }); setSelectedSub(null); }}>
-                    <History className="w-3.5 h-3.5 mr-1" /> History
-                  </Button>
-                  <Button size="sm" variant="destructive" className="h-9 text-xs" onClick={() => { deleteMutation.mutate(s.id); setSelectedSub(null); }}><XCircle className="w-3.5 h-3.5 mr-1" /> Delete</Button>
+                  </div>
+
+                  {/* Bottom row: History + Delete */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button size="sm" variant="outline"
+                      className="h-12 flex-col gap-1 text-[11px] rounded-xl border-border"
+                      onClick={() => { setHistoryStudent({ id: s.student_id, name: s._user?.full_name || 'Unknown' }); setSelectedSub(null); }}>
+                      <History className="w-4 h-4 text-muted-foreground" />
+                      History
+                    </Button>
+                    <Button size="sm" variant="outline"
+                      className="h-12 flex-col gap-1 text-[11px] rounded-xl border-destructive/30 text-destructive hover:bg-destructive/5"
+                      onClick={() => { deleteMutation.mutate(s.id); setSelectedSub(null); }}>
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
+
               </div>
             </div>
           </div>
