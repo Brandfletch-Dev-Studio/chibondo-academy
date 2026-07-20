@@ -860,7 +860,7 @@ export default function AdminSubscriptions() {
           <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedSub(null)}>
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
             <div
-              className="relative bg-background w-full max-w-sm h-full overflow-y-auto shadow-2xl flex flex-col"
+              className="relative bg-background w-full max-w-sm h-full overflow-y-auto shadow-2xl flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
               style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
               onClick={e => e.stopPropagation()}
             >
@@ -919,7 +919,7 @@ export default function AdminSubscriptions() {
                 </div>
               </div>
 
-              <div className="flex-1 p-4 space-y-4">
+              <div className="flex-1 p-4 space-y-4 pb-24">
 
                 {/* Contact card */}
                 <div className="rounded-2xl border border-border bg-card overflow-hidden">
