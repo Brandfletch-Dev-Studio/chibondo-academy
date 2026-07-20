@@ -41,16 +41,31 @@ const EMPTY = {
 const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 
 const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [1,2,3,false] }],
-    ['bold','italic','underline','strike'],
-    [{ list:'ordered' },{ list:'bullet' }],
-    ['blockquote','code-block'],
-    [{ color:[] },{ background:[] }],
-    ['link','image','video'],
-    ['clean'],
-  ],
+  toolbar: {
+    container: [
+      [{ header: [1, 2, 3, 4, false] }],
+      [{ font: [] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ color: [] }, { background: [] }],
+      [{ align: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
+      ['blockquote', 'code-block'],
+      ['link', 'image', 'video'],
+      [{ script: 'sub' }, { script: 'super' }],
+      ['clean'],
+    ],
+  },
+  clipboard: { matchVisual: false },
 };
+
+const QUILL_FORMATS = [
+  'header', 'font', 'bold', 'italic', 'underline', 'strike',
+  'color', 'background', 'align',
+  'list', 'bullet', 'indent',
+  'blockquote', 'code-block',
+  'link', 'image', 'video',
+  'script',
+];
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
@@ -342,7 +357,28 @@ export default function AdminBlog() {
               <div>
                 <Label>Content</Label>
                 <div className="mt-1 rounded-lg overflow-hidden border border-border" style={{minHeight:320}}>
-                  <ReactQuill theme="snow" value={form.content} onChange={v=>set('content',v)} style={{minHeight:280}} modules={QUILL_MODULES} />
+                  <style>{`
+                    .ql-editor p { margin-bottom: 0.45em !important; margin-top: 0 !important; }
+                    .ql-editor h1,.ql-editor h2,.ql-editor h3,.ql-editor h4 { margin-top: 1.2em; margin-bottom: 0.4em; }
+                    .ql-editor { min-height: 280px; font-size: 14px; line-height: 1.7; }
+                    .ql-toolbar.ql-snow { border-radius: 8px 8px 0 0; background: hsl(var(--muted)/0.4); flex-wrap: wrap; }
+                    .ql-container.ql-snow { border-radius: 0 0 8px 8px; }
+                    .ql-snow .ql-picker-label { color: hsl(var(--foreground)); }
+                    .ql-snow .ql-stroke { stroke: hsl(var(--foreground)); }
+                    .ql-snow .ql-fill { fill: hsl(var(--foreground)); }
+                    .ql-video { width: 100%; aspect-ratio: 16/9; border-radius: 8px; margin: 1em 0; }
+                  `}</style>
+                  <ReactQuill
+                    theme="snow"
+                    value={form.content}
+                    onChange={v => set('content', v)}
+                    modules={QUILL_MODULES}
+                    formats={QUILL_FORMATS}
+                    style={{ minHeight: 320 }}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Tip: Use the toolbar to embed images, links and YouTube videos. Drag the toolbar icons to reorder content.
+                  </p>
                 </div>
               </div>
             </TabsContent>
