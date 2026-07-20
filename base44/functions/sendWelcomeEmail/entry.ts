@@ -4,7 +4,7 @@
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_Z2rVV1Yz_BapfeMWdpLWbHuBjyJ6QTpaD';
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
 const APP_URL        = Deno.env.get('APP_URL') || 'https://chibondoacademy.com';
 
