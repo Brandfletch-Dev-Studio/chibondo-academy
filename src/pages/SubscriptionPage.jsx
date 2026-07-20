@@ -56,6 +56,14 @@ export default function SubscriptionPage() {
 
   const hasPaidFees = subscription && subscription.status === 'active';
 
+  const subDaysLeft = (() => {
+    const expiry = subscription?.expires_at || subscription?.end_date;
+    if (!expiry) return null;
+    return Math.ceil((new Date(expiry) - new Date()) / 86400000);
+  })();
+  const isExpiringSoon = subDaysLeft !== null && subDaysLeft <= 7;
+  const isExpiring3    = subDaysLeft !== null && subDaysLeft <= 3;
+
   // ── Handle PayChangu return redirect ──────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -205,7 +213,7 @@ export default function SubscriptionPage() {
         description="Affordable online secondary education at Chibondo Academy. Monthly, quarterly, and annual plans available. Access MSCE lessons, quizzes, past papers from MWK 10,000/month."
         canonical={`${window.location.origin}/subscription`}
       />
-      <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="space-y-8 max-w-4xl mx-auto" id="pricing-cards">
 
       {/* ── Verifying payment banner ── */}
       {verifying && (
@@ -238,23 +246,94 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* Active Subscription Banner */}
+      {/* ── Active subscription status card ── */}
       {hasPaidFees && (
-        <div className="bg-success/10 border border-success/30 rounded-2xl p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
-            <Check className="w-6 h-6 text-success" />
+        <div className={`rounded-2xl border p-5 ${
+          isExpiring3 ? 'bg-destructive/8 border-destructive/25' :
+          isExpiringSoon ? 'bg-amber-500/8 border-amber-400/25' :
+          'bg-emerald-500/8 border-emerald-400/25'
+        }`}>
+          <div className="flex items-start gap-4">
+            {/* Status icon */}
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+              isExpiring3 ? 'bg-destructive/15' :
+              isExpiringSoon ? 'bg-amber-500/15' :
+              'bg-emerald-500/15'
+            }`}>
+              {isExpiringSoon
+                ? <Calendar className={`w-6 h-6 ${isExpiring3 ? 'text-destructive' : 'text-amber-600'}`} />
+                : <Check className="w-6 h-6 text-emerald-600" />
+              }
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`font-bold text-base ${
+                  isExpiring3 ? 'text-destructive' :
+                  isExpiringSoon ? 'text-amber-700 dark:text-amber-400' :
+                  'text-emerald-700 dark:text-emerald-400'
+                }`}>
+                  {isExpiring3 ? 'Expiring soon!' :
+                   isExpiringSoon ? 'Renew soon' :
+                   'Fees Paid ✓'}
+                </p>
+                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${
+                  isExpiring3 ? 'bg-destructive/15 text-destructive' :
+                  isExpiringSoon ? 'bg-amber-500/15 text-amber-600' :
+                  'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                }`}>
+                  {subscription.plan}
+                </span>
+              </div>
+
+              {/* Days left progress */}
+              {subDaysLeft !== null && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {subDaysLeft <= 0 ? 'Expired' : `${subDaysLeft} day${subDaysLeft !== 1 ? 's' : ''} remaining`}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {subscription.expires_at
+                        ? `Until ${new Date(subscription.expires_at || subscription.end_date).toLocaleDateString('en-MW', { day: 'numeric', month: 'short' })}`
+                        : ''}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  {(() => {
+                    const totalDays = { monthly: 30, quarterly: 90, annual: 365, biannual: 730 }[subscription.plan] || 30;
+                    const pct = Math.max(0, Math.min(100, (subDaysLeft / totalDays) * 100));
+                    return (
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${
+                          isExpiring3 ? 'bg-destructive' :
+                          isExpiringSoon ? 'bg-amber-500' :
+                          'bg-emerald-500'
+                        }`} style={{ width: `${pct}%` }} />
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-success">Fees Paid ✓</p>
-            <p className="text-sm text-muted-foreground">
-              You have an active <span className="font-medium capitalize">{subscription.plan}</span> plan.
-              {subscription.expires_at && ` Valid until ${new Date(subscription.expires_at).toLocaleDateString('en-MW', { day: 'numeric', month: 'long', year: 'numeric' })}.`}
-            </p>
-          </div>
-          <div className="ml-auto">
-            <Link to="/subjects">
-              <Button variant="outline" size="sm">Go to Lessons</Button>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 mt-4">
+            <Link to="/subjects" className="flex-1">
+              <Button variant="outline" size="sm" className="w-full">
+                <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Go to Lessons
+              </Button>
             </Link>
+            {isExpiringSoon && (
+              <Button size="sm" className={`flex-1 font-semibold ${
+                isExpiring3 ? 'bg-destructive hover:bg-destructive/90' : 'bg-amber-500 hover:bg-amber-600'
+              } text-white border-0`}
+                onClick={() => document.getElementById('pricing-cards')?.scrollIntoView({ behavior: 'smooth' })}>
+                <Zap className="w-3.5 h-3.5 mr-1.5" /> Renew Now
+              </Button>
+            )}
           </div>
         </div>
       )}
