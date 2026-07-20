@@ -76,7 +76,11 @@ export default function Register() {
         email: loginEmail,
         password,
         full_name: fullName.trim(),
-        phone: formattedPhone,
+        phone_number: formattedPhone,  // saved into user_metadata by supabaseClient
+        data: {
+          full_name: fullName.trim(),
+          phone_number: formattedPhone,
+        },
       });
 
       const token = result?.access_token ?? result?.token ?? result?.data?.access_token;
