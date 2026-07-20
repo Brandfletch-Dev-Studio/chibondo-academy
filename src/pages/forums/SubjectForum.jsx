@@ -182,7 +182,16 @@ function ThreadCard({ thread, subjectSlug, navigate, user, onShare, onAvatarClic
   return (
     <div className="relative group">
       <button
-        onClick={() => navigate(`/forums/${subjectSlug}/${thread.slug || thread.id}`, { state: { thread } })}
+        onClick={async () => {
+          // Mark as read: add user.id to last_seen_by
+          if (user?.id && isUnread) {
+            try {
+              const updatedSeen = [...(thread.last_seen_by || []), user.id];
+              await db.entities.Discussion.update(thread.id, { last_seen_by: updatedSeen });
+            } catch (_) {}
+          }
+          navigate(`/forums/${subjectSlug}/${thread.slug || thread.id}`, { state: { thread } });
+        }}
         className={`w-full text-left bg-card border rounded-2xl p-4 hover:border-primary/40 hover:shadow-md active:scale-[0.99] transition-all duration-150 ${
           isUnread ? 'border-accent/40' : 'border-border'
         }`}
