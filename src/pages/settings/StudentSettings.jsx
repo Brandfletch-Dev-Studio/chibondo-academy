@@ -143,38 +143,53 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
     if (!fullName.trim()) { toast.error('Full name is required'); return; }
     setSaving(true);
     try {
+      // Format phone to +265
+      const rawPhone = phone.trim();
+      const formatPhone = (p) => {
+        const digits = p.replace(/\D/g, '');
+        if (p.startsWith('+265')) return p.replace(/\s/g, '');
+        if (digits.startsWith('265')) return '+' + digits;
+        if (digits.startsWith('0'))   return '+265' + digits.slice(1);
+        if (digits.length === 9)      return '+265' + digits;
+        return p;
+      };
+      const formattedPhone = rawPhone ? formatPhone(rawPhone) : '';
+
       // 1. Update Supabase auth user_metadata
-      await db.auth.updateMe({ full_name: fullName.trim() });
       await db.auth.updateMe({
+        full_name: fullName.trim(),
         data: {
           full_name:    fullName.trim(),
-          phone_number: phone.trim(),
+          phone_number: formattedPhone,
           school_name:  schoolName.trim(),
         }
       });
 
-      // 2. Sync to StudentProfile entity (used by admin panel for nudges)
+      // 2. Sync to StudentProfile entity — this is the ground truth for admin panel
       if (user?.id) {
         try {
           const existing = await db.entities.StudentProfile.filter({ user_id: user.id });
           const profileData = {
             full_name:    fullName.trim(),
-            phone_number: phone.trim(),
+            phone_number: formattedPhone,
             school_name:  schoolName.trim(),
+            user_id:      user.id,
+            email:        user.email || '',
           };
           if (existing.length > 0) {
             await db.entities.StudentProfile.update(existing[0].id, profileData);
           } else {
-            await db.entities.StudentProfile.create({ user_id: user.id, ...profileData });
+            await db.entities.StudentProfile.create(profileData);
           }
+          qc.invalidateQueries({ queryKey: ['studentProfile'] });
         } catch (profileErr) {
           console.warn('StudentProfile sync failed (non-fatal):', profileErr);
         }
       }
 
       await checkUserAuth();
-      // Clear the phone banner dismissal so it re-checks
-      if (phone.trim()) localStorage.removeItem('phone_banner_dismissed');
+      // Clear the phone banner so it re-checks
+      if (formattedPhone) localStorage.removeItem('phone_banner_dismissed');
       toast.success('Profile saved!');
     } catch (err) {
       toast.error(err?.message || 'Save failed — please try again');
@@ -226,8 +241,15 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
           <Field label="Phone Number">
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input value={phone} onChange={e => setPhone(e.target.value)}
-                placeholder="+265 XXX XXX XXX" className="pl-9" />
+              <Input value={phone}
+                onChange={e => {
+                  let v = e.target.value;
+                  // Auto-prepend +265 if user types a local number
+                  if (v.length === 1 && v === '0') v = '+265';
+                  if (v.length === 1 && /[1-9]/.test(v)) v = '+265' + v;
+                  setPhone(v);
+                }}
+                placeholder="+265 XXX XXX XXX" className="pl-9" inputMode="tel" />
             </div>
           </Field>
           <div className="col-span-full">
@@ -248,12 +270,23 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
 
 // ── Academic Panel ────────────────────────────────────────────────────────
 function AcademicPanel({ user, profile, qc }) {
+  const { checkUserAuth } = useAuth();
   const [saving,       setSaving]       = useState(false);
   const [selectedForm, setSelectedForm] = useState(profile?.form || '');
 
+  // Also load from StudentProfile DB so we always have the latest
+  const { data: spRows = [] } = useQuery({
+    queryKey: ['studentProfile-academic', user?.id],
+    queryFn: () => db.entities.StudentProfile.filter({ user_id: user.id }),
+    enabled: !!user?.id,
+    staleTime: 30_000,
+  });
+  const sp = spRows[0] || null;
+
   useEffect(() => {
-    if (profile?.form) setSelectedForm(profile.form);
-  }, [profile?.form]);
+    const formVal = profile?.form || sp?.form || '';
+    if (formVal) setSelectedForm(formVal);
+  }, [profile?.form, sp?.form]);
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', user?.id],
@@ -265,10 +298,26 @@ function AcademicPanel({ user, profile, qc }) {
     if (!selectedForm) { toast.error('Please select a form first'); return; }
     setSaving(true);
     try {
-      // Save form selection to user_metadata via Supabase auth
+      // 1. Save to Supabase auth user_metadata
       await db.auth.updateMe({ data: { form: selectedForm } });
+
+      // 2. Sync to StudentProfile so admin panel can see class/form
+      if (user?.id) {
+        try {
+          if (sp?.id) {
+            await db.entities.StudentProfile.update(sp.id, { form: selectedForm, class: selectedForm });
+          } else {
+            await db.entities.StudentProfile.create({ user_id: user.id, form: selectedForm, class: selectedForm });
+          }
+          qc.invalidateQueries({ queryKey: ['studentProfile-academic'] });
+          qc.invalidateQueries({ queryKey: ['studentProfile'] });
+        } catch (profileErr) {
+          console.warn('StudentProfile form sync failed:', profileErr);
+        }
+      }
+
       await checkUserAuth();
-      toast.success('Form saved!');
+      toast.success('Class saved!');
     } catch (err) {
       toast.error(err?.message || 'Save failed — please try again');
     } finally {
@@ -685,16 +734,24 @@ export default function StudentSettings() {
 
   const [searchParams, setSearchParams] = React.useState ? React.useState(null) : [null, null];
 
-  // Profile data lives in Supabase user_metadata — no extra DB table needed
-  // user_metadata is loaded by AuthContext and available on the user object
+  // Load StudentProfile from DB — this is the ground truth for phone, school, form
+  // user_metadata can be stale right after registration, so DB is the fallback source
+  const { data: spRows = [], isLoading: profileQueryLoading } = useQuery({
+    queryKey: ['studentProfile', user?.id],
+    queryFn: () => db.entities.StudentProfile.filter({ user_id: user.id }),
+    enabled: !!user?.id,
+    staleTime: 30_000,
+  });
+  const sp = spRows[0] || null;
+
+  // Merge: DB record wins over user_metadata (DB is always up-to-date)
   const profile = {
-    id: user?.id,
-    phone_number: user?.user_metadata?.phone_number || user?.phone_number || '',
-    school_name:  user?.user_metadata?.school_name  || user?.school_name  || '',
-    form:         user?.user_metadata?.form         || user?.form         || '',
-    avatar_url:   user?.user_metadata?.avatar_url   || user?.avatar_url   || '',
+    id:           sp?.id || user?.id,
+    phone_number: sp?.phone_number || user?.user_metadata?.phone_number || user?.phone_number || '',
+    school_name:  sp?.school_name  || user?.user_metadata?.school_name  || user?.school_name  || '',
+    form:         sp?.form         || user?.user_metadata?.form         || user?.form         || '',
+    avatar_url:   sp?.avatar_url   || user?.user_metadata?.avatar_url   || user?.avatar_url   || '',
   };
-  const profileQueryLoading = false;
 
   const panels = {
     profile:       <ProfilePanel user={user} profile={profile} profileLoaded={!profileQueryLoading} qc={qc} />,
