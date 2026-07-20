@@ -143,10 +143,8 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
     if (!fullName.trim()) { toast.error('Full name is required'); return; }
     setSaving(true);
     try {
-      // Update users table via Supabase
+      // 1. Update Supabase auth user_metadata
       await db.auth.updateMe({ full_name: fullName.trim() });
-
-      // Save extended profile fields to user_metadata
       await db.auth.updateMe({
         data: {
           full_name:    fullName.trim(),
@@ -155,7 +153,28 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
         }
       });
 
+      // 2. Sync to StudentProfile entity (used by admin panel for nudges)
+      if (user?.id) {
+        try {
+          const existing = await db.entities.StudentProfile.filter({ user_id: user.id });
+          const profileData = {
+            full_name:    fullName.trim(),
+            phone_number: phone.trim(),
+            school_name:  schoolName.trim(),
+          };
+          if (existing.length > 0) {
+            await db.entities.StudentProfile.update(existing[0].id, profileData);
+          } else {
+            await db.entities.StudentProfile.create({ user_id: user.id, ...profileData });
+          }
+        } catch (profileErr) {
+          console.warn('StudentProfile sync failed (non-fatal):', profileErr);
+        }
+      }
+
       await checkUserAuth();
+      // Clear the phone banner dismissal so it re-checks
+      if (phone.trim()) localStorage.removeItem('phone_banner_dismissed');
       toast.success('Profile saved!');
     } catch (err) {
       toast.error(err?.message || 'Save failed — please try again');
