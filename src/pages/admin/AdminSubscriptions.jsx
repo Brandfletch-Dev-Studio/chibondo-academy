@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import { Badge } from '@/components/ui/badge';
@@ -8,45 +8,39 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   CreditCard, Search, CheckCircle2, XCircle, Clock, TrendingUp,
   Users, Banknote, CalendarDays, MoreVertical, Plus, Loader2, RefreshCw,
-  Eye, X, ArrowRight, Mail, Send
+  Eye, X, ArrowRight, Mail, Send, Download, MessageSquare, Smartphone,
+  Phone, BookOpen, GraduationCap, StickyNote, History, Filter
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const STATUS_COLORS = {
-  active: 'bg-success/10 text-success border-success/20',
-  expired: 'bg-destructive/10 text-destructive border-destructive/20',
+  active:    'bg-success/10 text-success border-success/20',
+  expired:   'bg-destructive/10 text-destructive border-destructive/20',
   cancelled: 'bg-muted text-muted-foreground border-border',
-  trial: 'bg-accent/10 text-accent border-accent/20',
-  pending: 'bg-accent/10 text-accent border-accent/20',
+  trial:     'bg-accent/10 text-accent border-accent/20',
+  pending:   'bg-accent/10 text-accent border-accent/20',
 };
-
-// Map raw status values to display labels
-const STATUS_LABELS = {
-  active: 'Active',
-  expired: 'Expired',
-  cancelled: 'Cancelled',
-  trial: 'Pending',
-  pending: 'Pending',
-};
-
+const STATUS_LABELS = { active:'Active', expired:'Expired', cancelled:'Cancelled', trial:'Pending', pending:'Pending' };
 const PLAN_COLORS = {
-  free: 'bg-muted text-muted-foreground border-border',
-  monthly: 'bg-primary/10 text-primary border-primary/20',
+  free:      'bg-muted text-muted-foreground border-border',
+  monthly:   'bg-primary/10 text-primary border-primary/20',
   quarterly: 'bg-accent/10 text-accent border-accent/20',
-  annual: 'bg-success/10 text-success border-success/20',
-  biannual: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  annual:    'bg-success/10 text-success border-success/20',
+  biannual:  'bg-purple-500/10 text-purple-600 border-purple-500/20',
 };
-
 const PAYMENT_STATUS_COLORS = {
   completed: 'bg-success/10 text-success',
-  pending: 'bg-accent/10 text-accent',
-  failed: 'bg-destructive/10 text-destructive',
-  refunded: 'bg-muted text-muted-foreground',
+  pending:   'bg-accent/10 text-accent',
+  failed:    'bg-destructive/10 text-destructive',
+  refunded:  'bg-muted text-muted-foreground',
+  cancelled: 'bg-muted text-muted-foreground',
 };
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
@@ -62,38 +56,97 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
   );
 }
 
+// ── Student Payment History side panel ──────────────────────────────────────
+function StudentHistoryPanel({ studentId, studentName, payments, onClose }) {
+  const studentPayments = payments
+    .filter(p => p.student_id === studentId)
+    .sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div className="w-full max-w-md bg-card border-l border-border h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+          <div>
+            <p className="font-display font-bold text-sm">{studentName}</p>
+            <p className="text-xs text-muted-foreground">Payment History ({studentPayments.length})</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="p-4 space-y-3">
+          {studentPayments.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">No payment records</p>
+          )}
+          {studentPayments.map(p => (
+            <div key={p.id} className="bg-muted/30 border border-border rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${PAYMENT_STATUS_COLORS[p.status] || 'bg-muted'}`}>
+                  {p.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
+                  {p.status === 'pending' && <Clock className="w-3 h-3" />}
+                  {p.status === 'failed' && <XCircle className="w-3 h-3" />}
+                  {p.status}
+                </span>
+                <span className={`text-sm font-bold ${p.status === 'completed' ? 'text-success' : 'text-foreground'}`}>
+                  MWK {p.amount?.toLocaleString()}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
+                <span>Method: <span className="text-foreground capitalize">{p.method?.replace(/_/g,' ') || '—'}</span></span>
+                <span>Date: <span className="text-foreground">{p.created_date ? format(new Date(p.created_date), 'dd MMM yy') : '—'}</span></span>
+                {p.reference && <span className="col-span-2 font-mono">Ref: {p.reference}</span>}
+                {p.description && <span className="col-span-2">{p.description}</span>}
+                {p.nudge_count > 0 && <span className="col-span-2">Nudges sent: {p.nudge_count}</span>}
+                {p.notes && <span className="col-span-2 italic">Note: {p.notes}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminSubscriptions() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
+  const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPlan, setFilterPlan] = useState('all');
-  const [grantOpen, setGrantOpen] = useState(false);
-  const [sendingRecovery, setSendingRecovery] = useState(null); // payment id being sent
-  const [nudgingAll, setNudgingAll] = useState(false);
+  const [filterPlan, setFilterPlan]     = useState('all');
+  const [filterClass, setFilterClass]   = useState('all');
+  const [filterPayStatus, setFilterPayStatus] = useState('all');
+  const [grantOpen, setGrantOpen]       = useState(false);
+  const [markPaidOpen, setMarkPaidOpen] = useState(false);
+  const [sendingRecovery, setSendingRecovery] = useState(null);
+  const [sendingSms, setSendingSms]     = useState(null);
+  const [nudgingAll, setNudgingAll]     = useState(false);
+  const [historyStudent, setHistoryStudent] = useState(null); // { id, name }
   const [grantStudentEmail, setGrantStudentEmail] = useState('');
-  const [grantPlan, setGrantPlan] = useState('monthly');
-  const [grantMonths, setGrantMonths] = useState(1);
-  const [selectedSub, setSelectedSub] = useState(null); // membership detail drawer
+  const [grantPlan, setGrantPlan]       = useState('monthly');
+  const [grantMonths, setGrantMonths]   = useState(1);
+  const [selectedSub, setSelectedSub]   = useState(null);
+
+  // Mark as paid form
+  const [mpEmail, setMpEmail]     = useState('');
+  const [mpAmount, setMpAmount]   = useState('');
+  const [mpPlan, setMpPlan]       = useState('monthly');
+  const [mpMethod, setMpMethod]   = useState('bank_transfer');
+  const [mpRef, setMpRef]         = useState('');
+  const [mpDesc, setMpDesc]       = useState('');
+  const [mpLoading, setMpLoading] = useState(false);
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ['allSubscriptions'],
     queryFn: () => db.entities.Subscription.list('-created_date', 2000),
     staleTime: 30_000,
   });
-
   const { data: payments = [] } = useQuery({
     queryKey: ['allPayments'],
     queryFn: () => db.entities.Payment.list('-created_date', 2000),
     staleTime: 30_000,
   });
-
-  // Fetch StudentProfiles directly — has user_id + full_name, no function call needed
   const { data: studentProfiles = [] } = useQuery({
     queryKey: ['allStudentProfiles'],
-    queryFn: () => db.entities.User.list('-created_date', 2000),
+    queryFn: () => db.entities.StudentProfile.list('-created_date', 2000),
     staleTime: 60_000,
   });
-  // Also try getAdminUsers for email/role data (best-effort, may fail)
   const { data: adminUsersResult = {} } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => db.entities.User.list('-created_date', 2000).then(users => ({ users })).catch(() => ({ users: [] })),
@@ -106,7 +159,6 @@ export default function AdminSubscriptions() {
     onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
       toast.success('Subscription updated');
-      // If subscription activated, cancel pending payments for this student (so they won't get nudged)
       if (variables.data?.status === 'active') {
         const sub = subscriptions.find(s => s.id === variables.id);
         if (sub?.student_id) {
@@ -117,25 +169,32 @@ export default function AdminSubscriptions() {
       }
     },
   });
-
   const deleteMutation = useMutation({
     mutationFn: (id) => db.entities.Subscription.delete(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] }); toast.success('Subscription removed'); },
   });
+  const updatePaymentMutation = useMutation({
+    mutationFn: ({ id, data }) => db.entities.Payment.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allPayments'] }),
+  });
 
-  // ── Grant access extra state ─────────────────────────────────────────────
-  const [grantMode, setGrantMode] = useState('single'); // 'single' | 'bulk'
-  const [grantSearch, setGrantSearch] = useState('');
+  // Lookups
+  const userMap    = useMemo(() => Object.fromEntries((users || []).map(u => [u.id, u])), [users]);
+  const profileMap = useMemo(() => Object.fromEntries(studentProfiles.map(p => [p.user_id, p])), [studentProfiles]);
+
+  // Grant access state
+  const [grantMode, setGrantMode]             = useState('single');
+  const [grantSearch, setGrantSearch]         = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState([]);
-  const [customDays, setCustomDays] = useState('');
-  const [grantDurationType, setGrantDurationType] = useState('preset'); // 'preset'|'custom'
+  const [customDays, setCustomDays]           = useState('');
+  const [grantDurationType, setGrantDurationType] = useState('preset');
 
   const computeGrantDays = () => {
     if (grantDurationType === 'custom') return Math.max(1, parseInt(customDays) || 30);
-    return ({ monthly: 30, annual: 365, biannual: 730 }[grantPlan] || 30) * grantMonths;
+    return ({ monthly: 30, annual: 365, biannual: 730, quarterly: 90 }[grantPlan] || 30) * grantMonths;
   };
 
-  const allGrantableUsers = React.useMemo(() => {
+  const allGrantableUsers = useMemo(() => {
     const map = {};
     users.forEach(u => { map[u.id] = { id: u.id, email: u.email || '', full_name: u.full_name || '' }; });
     studentProfiles.forEach(p => {
@@ -148,16 +207,12 @@ export default function AdminSubscriptions() {
     const q = grantSearch.toLowerCase();
     return !q || u.email.toLowerCase().includes(q) || u.full_name.toLowerCase().includes(q);
   });
-
-  const toggleUserId = (id) => setSelectedUserIds(prev =>
-    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-  );
+  const toggleUserId = (id) => setSelectedUserIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const grantMutation = useMutation({
     mutationFn: async () => {
       const days = computeGrantDays();
       if (days < 1) throw new Error('Duration must be at least 1 day');
-
       let targets = [];
       if (grantMode === 'bulk') {
         if (selectedUserIds.length === 0) throw new Error('Select at least one student');
@@ -165,52 +220,36 @@ export default function AdminSubscriptions() {
       } else {
         const email = grantStudentEmail.trim().toLowerCase();
         if (!email) throw new Error('Enter a student email');
-        // Pass email to backend — it will resolve the user
         targets = [{ email }];
       }
-
       const planLabel = grantDurationType === 'custom' ? 'custom' : grantPlan;
-
-      // Use the service-role-backed endpoint — bypasses RLS
       const token = localStorage.getItem('aca_access_token');
       const resp = await fetch('/api/admin-grant-access', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           targets: targets.filter(t => t.id).map(t => ({ id: t.id, email: t.email })),
           email:   targets.length === 1 && !targets[0].id ? targets[0].email : undefined,
-          plan:    planLabel,
-          days,
+          plan:    planLabel, days,
         }),
       });
       const result = await resp.json();
-      if (!resp.ok || !result.success) {
-        throw new Error(result.error || result.errors?.[0]?.error || 'Grant failed');
-      }
+      if (!resp.ok || !result.success) throw new Error(result.error || result.errors?.[0]?.error || 'Grant failed');
       return result.granted;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
       toast.success('Access granted to ' + count + (count > 1 ? ' students' : ' student') + ' ✓');
-      setGrantOpen(false);
-      setGrantStudentEmail('');
-      setSelectedUserIds([]);
-      setGrantSearch('');
-      setGrantDurationType('preset');
-      setCustomDays('');
+      setGrantOpen(false); setGrantStudentEmail(''); setSelectedUserIds([]); setGrantSearch('');
+      setGrantDurationType('preset'); setCustomDays('');
     },
     onError: (err) => toast.error(err.message || 'Failed to grant access'),
   });
 
-  // Build lookup: prefer User record (has email), fall back to StudentProfile (has full_name)
-  const userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
-  const profileMap = Object.fromEntries(studentProfiles.map(p => [p.user_id, p]));
-  const enriched = subscriptions.map(s => {
-    const userRec = userMap[s.student_id];
-    const profile = profileMap[s.student_id];
+  // Enriched subscription records
+  const enriched = useMemo(() => subscriptions.map(s => {
+    const userRec  = userMap[s.student_id];
+    const profile  = profileMap[s.student_id];
     return {
       ...s,
       _user: userRec
@@ -218,20 +257,36 @@ export default function AdminSubscriptions() {
         : profile
           ? { id: s.student_id, full_name: profile.full_name, email: '', avatar_url: profile.avatar_url }
           : null,
+      _profile: profile,
     };
-  });
+  }), [subscriptions, userMap, profileMap]);
 
-  const filtered = enriched.filter(s => {
-    const matchStatus = filterStatus === 'all' || s.status === filterStatus;
-    const matchPlan = filterPlan === 'all' || s.plan === filterPlan;
-    const matchSearch = !search || s._user?.full_name?.toLowerCase().includes(search.toLowerCase()) || s._user?.email?.toLowerCase().includes(search.toLowerCase()) || s.student_id?.includes(search);
-    return matchStatus && matchPlan && matchSearch;
-  });
+  const filtered = useMemo(() => enriched.filter(s => {
+    const matchStatus  = filterStatus === 'all' || s.status === filterStatus;
+    const matchPlan    = filterPlan === 'all' || s.plan === filterPlan;
+    const matchClass   = filterClass === 'all' || profileMap[s.student_id]?.form === filterClass;
+    const matchSearch  = !search ||
+      s._user?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      s._user?.email?.toLowerCase().includes(search.toLowerCase()) ||
+      s.student_id?.includes(search);
+    return matchStatus && matchPlan && matchClass && matchSearch;
+  }), [enriched, filterStatus, filterPlan, filterClass, search, profileMap]);
+
+  // Filtered payments
+  const filteredPayments = useMemo(() => payments.filter(p => {
+    const matchStatus = filterPayStatus === 'all' || p.status === filterPayStatus;
+    const matchSearch = !search ||
+      (p.student_name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.student_email || userMap[p.student_id]?.email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (profileMap[p.student_id]?.form || '').toLowerCase().includes(search.toLowerCase());
+    const matchClass = filterClass === 'all' || profileMap[p.student_id]?.form === filterClass;
+    return matchStatus && matchSearch && matchClass;
+  }), [payments, filterPayStatus, search, filterClass, userMap, profileMap]);
 
   // Stats
-  const totalRevenue = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount || 0), 0);
-  const activeCount = subscriptions.filter(s => s.status === 'active').length;
-  const expiredCount = subscriptions.filter(s => s.status === 'expired').length;
+  const totalRevenue  = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const activeCount   = subscriptions.filter(s => s.status === 'active').length;
+  const expiredCount  = subscriptions.filter(s => s.status === 'expired').length;
   const pendingPayments = payments.filter(p => p.status === 'pending').length;
 
   const handleExtend = (sub, days) => {
@@ -240,17 +295,12 @@ export default function AdminSubscriptions() {
     toast.success(`Extended by ${days} days`);
   };
 
-  // ── Manual recovery email — triggers the cron function for a single student ──
+  // ── Send email nudge ──────────────────────────────────────────────────────
   const handleSendRecovery = async (payment) => {
     setSendingRecovery(payment.id);
     try {
-      // Look up the student email from userMap or profileMap
-      const email = userMap[payment.student_id]?.email || payment.student_email || '';
-      if (!email) {
-        toast.error('No email found for this student');
-        return;
-      }
-      // Call the ACA's own cartRecoveryEmails function — self-contained, no external deps
+      const email = payment.student_email || userMap[payment.student_id]?.email || '';
+      if (!email) { toast.error('No email found for this student'); return; }
       const nudgeRes = await fetch('https://chibondoacademy.com/api/cart-recovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -260,469 +310,452 @@ export default function AdminSubscriptions() {
           payment_id: payment.id,
           amount: payment.amount,
           description: payment.description,
-          student_name: userMap[payment.student_id]?.full_name || '',
+          student_name: payment.student_name || userMap[payment.student_id]?.full_name || profileMap[payment.student_id]?.full_name || '',
         }),
       });
       const res = await nudgeRes.json();
       if (!nudgeRes.ok || res?.error) throw new Error(res?.error || 'Nudge failed');
+      // Increment nudge_count
+      updatePaymentMutation.mutate({ id: payment.id, data: { last_nudge_at: new Date().toISOString(), nudge_count: (payment.nudge_count || 0) + 1 } });
       toast.success(`Recovery email sent to ${email}`);
-    } catch (e) {
-      toast.error(e.message || 'Failed to send recovery email');
-    } finally {
-      setSendingRecovery(null);
-    }
+    } catch (e) { toast.error(e.message || 'Failed to send recovery email'); }
+    finally { setSendingRecovery(null); }
   };
 
+  // ── Send SMS nudge ────────────────────────────────────────────────────────
+  const handleSendSms = async (payment) => {
+    const phone = payment.student_phone || profileMap[payment.student_id]?.phone_number || '';
+    if (!phone) { toast.error('No phone number for this student'); return; }
+    setSendingSms(payment.id);
+    try {
+      const smsRes = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          student_name: payment.student_name || userMap[payment.student_id]?.full_name || '',
+          amount: payment.amount,
+          payment_link: 'https://chibondoacademy.com/subscription',
+        }),
+      });
+      const res = await smsRes.json();
+      if (!smsRes.ok || res?.error) throw new Error(res?.error || 'SMS failed');
+      updatePaymentMutation.mutate({ id: payment.id, data: { last_nudge_at: new Date().toISOString(), nudge_count: (payment.nudge_count || 0) + 1 } });
+      toast.success(`SMS sent to ${phone}`);
+    } catch (e) { toast.error(e.message || 'Failed to send SMS'); }
+    finally { setSendingSms(null); }
+  };
 
-  // ── Nudge All — send recovery email to every pending payment that hasn't been paid ──
+  // ── Nudge All ─────────────────────────────────────────────────────────────
   const handleNudgeAll = async () => {
-    const pendingPayments = payments.filter(p => p.status === 'pending');
-    if (pendingPayments.length === 0) { toast.info('No pending payments to nudge'); return; }
+    const pendingList = payments.filter(p => p.status === 'pending');
+    if (pendingList.length === 0) { toast.info('No pending payments to nudge'); return; }
     setNudgingAll(true);
-    let sent = 0, failed = 0;
-    for (const payment of pendingPayments) {
-      // Skip if this student has a completed payment (already paid)
+    let sent = 0, skipped = 0, failed = 0;
+    for (const payment of pendingList) {
       const hasPaid = payments.some(p => p.student_id === payment.student_id && p.status === 'completed');
-      if (hasPaid) continue;
-      const email = userMap[payment.student_id]?.email || payment.student_email || '';
+      if (hasPaid) { skipped++; continue; }
+      const email = payment.student_email || userMap[payment.student_id]?.email || '';
       if (!email) { failed++; continue; }
       try {
-        const nudgeRes = await fetch('https://chibondoacademy.com/api/cart-recovery', {
+        const res = await fetch('https://chibondoacademy.com/api/cart-recovery', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            force_student_id: payment.student_id,
-            force_email: email,
-            payment_id: payment.id,
-            amount: payment.amount,
-            description: payment.description,
-            student_name: userMap[payment.student_id]?.full_name || profileMap[payment.student_id]?.full_name || '',
+            force_student_id: payment.student_id, force_email: email,
+            payment_id: payment.id, amount: payment.amount, description: payment.description,
+            student_name: payment.student_name || userMap[payment.student_id]?.full_name || '',
           }),
         });
-        const res = await nudgeRes.json();
-        if (!nudgeRes.ok || res?.error) throw new Error(res?.error || 'Nudge failed');
+        const data = await res.json();
+        if (!res.ok || data?.error) throw new Error(data?.error);
+        updatePaymentMutation.mutate({ id: payment.id, data: { last_nudge_at: new Date().toISOString(), nudge_count: (payment.nudge_count || 0) + 1 } });
         sent++;
-      } catch (e) {
-        failed++;
-      }
+      } catch { failed++; }
     }
     setNudgingAll(false);
-    if (sent > 0) toast.success(`Nudge sent to ${sent} student${sent > 1 ? 's' : ''}${failed > 0 ? ` (${failed} failed)` : ''}`);
-    else if (failed > 0) toast.error(`All ${failed} nudges failed`);
-    else toast.info('No un-paid pending students to nudge');
+    toast.success(`Nudged ${sent}${skipped ? `, skipped ${skipped} (already paid)` : ''}${failed ? `, ${failed} failed` : ''}`);
   };
+
+  // ── CSV Export ────────────────────────────────────────────────────────────
+  const handleExportCSV = () => {
+    const headers = ['Name','Email','Phone','Class','Subjects','Amount (MWK)','Status','Method','Reference','Date','Nudge Count','Notes'];
+    const rows = filteredPayments.map(p => {
+      const profile = profileMap[p.student_id];
+      const user    = userMap[p.student_id];
+      return [
+        p.student_name || profile?.full_name || user?.full_name || '',
+        p.student_email || user?.email || '',
+        p.student_phone || profile?.phone_number || '',
+        p.student_class || profile?.form || '',
+        (p.subjects_enrolled || profile?.subjects || []).join('; '),
+        p.amount || 0,
+        p.status || '',
+        (p.method || '').replace(/_/g,' '),
+        p.reference || '',
+        p.created_date ? format(new Date(p.created_date), 'yyyy-MM-dd HH:mm') : '',
+        p.nudge_count || 0,
+        p.notes || '',
+      ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `chibondo-payments-${format(new Date(),'yyyy-MM-dd')}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} payment records`);
+  };
+
+  // ── Mark as Paid ──────────────────────────────────────────────────────────
+  const handleMarkPaid = async () => {
+    if (!mpEmail || !mpAmount) { toast.error('Email and amount are required'); return; }
+    setMpLoading(true);
+    try {
+      const token = localStorage.getItem('aca_access_token');
+      const days  = { monthly: 30, quarterly: 90, annual: 365, biannual: 730 }[mpPlan] || 30;
+      const resp  = await fetch('/api/admin-grant-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ email: mpEmail.trim(), plan: mpPlan, days }),
+      });
+      const result = await resp.json();
+      if (!resp.ok || !result.success) throw new Error(result.error || 'Failed to activate');
+      // Also create a Payment record for record-keeping
+      const matchUser = users.find(u => u.email?.toLowerCase() === mpEmail.trim().toLowerCase());
+      if (matchUser) {
+        await db.entities.Payment.create({
+          student_id:    matchUser.id,
+          student_name:  matchUser.full_name || '',
+          student_email: matchUser.email || '',
+          student_phone: profileMap[matchUser.id]?.phone_number || '',
+          student_class: profileMap[matchUser.id]?.form || '',
+          subjects_enrolled: profileMap[matchUser.id]?.subjects || [],
+          amount:  parseFloat(mpAmount),
+          status:  'completed',
+          method:  mpMethod,
+          reference: mpRef || `MANUAL-${Date.now()}`,
+          description: mpDesc || `Manual ${mpPlan} payment entered by admin`,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['allPayments'] });
+      toast.success(`✓ Access granted & payment recorded for ${mpEmail}`);
+      setMarkPaidOpen(false);
+      setMpEmail(''); setMpAmount(''); setMpRef(''); setMpDesc('');
+    } catch (e) { toast.error(e.message || 'Failed'); }
+    finally { setMpLoading(false); }
+  };
+
+  const unpaidPendingCount = payments.filter(p =>
+    p.status === 'pending' && !payments.some(pp => pp.student_id === p.student_id && pp.status === 'completed')
+  ).length;
 
   return (
     <div className="space-y-6">
-      {/* Page header — stacks on mobile, row on md+ */}
+      {/* History panel */}
+      {historyStudent && (
+        <StudentHistoryPanel
+          studentId={historyStudent.id}
+          studentName={historyStudent.name}
+          payments={payments}
+          onClose={() => setHistoryStudent(null)}
+        />
+      )}
+
+      {/* Page header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl font-display font-bold leading-tight">School Fees &amp; Subscriptions</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage student fee payments and access</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 px-3 text-xs gap-1.5 border-border hover:bg-muted"
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5"
             onClick={async () => {
               const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-              const stale = subscriptions.filter(s =>
-                ['trial', 'cancelled'].includes(s.status) && s.created_date < cutoff
-              );
+              const stale  = subscriptions.filter(s => ['trial','cancelled'].includes(s.status) && s.created_date < cutoff);
               if (stale.length === 0) { toast.info('No stale records to clean'); return; }
               await Promise.all(stale.map(s => db.entities.Subscription.delete(s.id)));
               queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
               toast.success(`Cleaned ${stale.length} stale record(s)`);
             }}>
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Clean Stale</span>
+            <RefreshCw className="w-3.5 h-3.5" /> Clean Stale
           </Button>
-          <Button
-            size="sm"
-            className="h-8 px-3 text-xs gap-1.5"
-            onClick={() => setGrantOpen(true)}>
-            <Plus className="w-3.5 h-3.5" />
-            <span>Grant Access</span>
+          <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5 border-success/40 text-success hover:bg-success/10"
+            onClick={() => setMarkPaidOpen(true)}>
+            <CheckCircle2 className="w-3.5 h-3.5" /> Mark as Paid
+          </Button>
+          <Button size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => setGrantOpen(true)}>
+            <Plus className="w-3.5 h-3.5" /> Grant Access
           </Button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Banknote} label="Total Revenue" value={`MWK ${totalRevenue.toLocaleString()}`} sub="Confirmed payments" color="bg-success/10 text-success" />
-        <StatCard icon={CheckCircle2} label="Active Subscribers" value={activeCount} sub="Currently paying" color="bg-primary/10 text-primary" />
-        <StatCard icon={XCircle} label="Expired" value={expiredCount} sub="Need renewal" color="bg-destructive/10 text-destructive" />
-        <StatCard icon={Clock} label="Pending Payments" value={pendingPayments} sub="Awaiting confirmation" color="bg-accent/10 text-accent" />
+        <StatCard icon={Users}       label="Active Students"   value={activeCount}                      sub={`${expiredCount} expired`}              color="bg-success/10 text-success" />
+        <StatCard icon={Banknote}    label="Total Revenue"     value={`MWK ${(totalRevenue/1000).toFixed(0)}k`} sub="completed payments"            color="bg-primary/10 text-primary" />
+        <StatCard icon={Clock}       label="Pending Payments"  value={pendingPayments}                  sub={`${unpaidPendingCount} not yet paid`}   color="bg-accent/10 text-accent" />
+        <StatCard icon={CreditCard}  label="Total Payments"    value={payments.length}                  sub={`${payments.filter(p=>p.status==='completed').length} completed`} color="bg-muted text-muted-foreground" />
+      </div>
+
+      {/* Search + filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input placeholder="Search name, email…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+        </div>
+        <Select value={filterClass} onValueChange={setFilterClass}>
+          <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="All Classes" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Classes</SelectItem>
+            {['Form 1','Form 2','Form 3','Form 4'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Tabs defaultValue="subscriptions">
-        <TabsList>
-          <TabsTrigger value="subscriptions"><Users className="w-4 h-4 mr-1.5" /> Subscriptions</TabsTrigger>
-          <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-1.5" /> Payment History</TabsTrigger>
+        <TabsList className="h-9">
+          <TabsTrigger value="subscriptions" className="text-xs">Subscriptions ({subscriptions.length})</TabsTrigger>
+          <TabsTrigger value="payments" className="text-xs">Payments ({payments.length})</TabsTrigger>
         </TabsList>
 
         {/* SUBSCRIPTIONS TAB */}
         <TabsContent value="subscriptions" className="mt-5 space-y-4">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search student..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
+          <div className="flex flex-wrap gap-2">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="trial">Pending</SelectItem>
+                {['all','active','expired','pending','cancelled'].map(s => (
+                  <SelectItem key={s} value={s} className="text-xs capitalize">{s === 'all' ? 'All Status' : STATUS_LABELS[s] || s}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={filterPlan} onValueChange={setFilterPlan}>
-              <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Plans</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="annual">Annual</SelectItem>
-                <SelectItem value="biannual">Biannual</SelectItem>
-                <SelectItem value="free">Free</SelectItem>
+                {['all','monthly','quarterly','annual','biannual'].map(p => (
+                  <SelectItem key={p} value={p} className="text-xs capitalize">{p === 'all' ? 'All Plans' : p}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Membership Table */}
+          <div className="space-y-2">
+            {isLoading && <div className="text-center py-10 text-muted-foreground text-sm"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />Loading…</div>}
+            {!isLoading && filtered.length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">No subscriptions found</div>}
+            {filtered.map(s => {
+              const profile = profileMap[s.student_id];
+              const phone   = profile?.phone_number;
+              const form    = profile?.form;
+              const subjects = profile?.subjects || [];
+              return (
+                <div key={s.id} className="bg-card border border-border rounded-2xl p-4 hover:border-accent/30 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          className="font-semibold text-sm hover:text-accent transition-colors text-left"
+                          onClick={() => setHistoryStudent({ id: s.student_id, name: s._user?.full_name || 'Unknown' })}
+                        >
+                          {s._user?.full_name || 'Unknown Student'}
+                        </button>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${STATUS_COLORS[s.status] || STATUS_COLORS.cancelled}`}>
+                          {STATUS_LABELS[s.status] || s.status}
+                        </span>
+                        {s.plan && <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize ${PLAN_COLORS[s.plan] || PLAN_COLORS.free}`}>{s.plan}</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
+                        {s._user?.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{s._user.email}</span>}
+                        {phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{phone}</span>}
+                        {form && <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" />{form}</span>}
+                        {s.end_date && <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />Expires {format(new Date(s.end_date), 'dd MMM yyyy')}</span>}
+                      </div>
+                      {subjects.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {subjects.slice(0,4).map(sub => <span key={sub} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{sub}</span>)}
+                          {subjects.length > 4 && <span className="text-[10px] text-muted-foreground">+{subjects.length - 4} more</span>}
+                        </div>
+                      )}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreVertical className="w-4 h-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="text-xs">
+                        <DropdownMenuItem onClick={() => setSelectedSub(s)}>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setHistoryStudent({ id: s.student_id, name: s._user?.full_name || 'Unknown' })}>
+                          <History className="w-3.5 h-3.5 mr-2" /> Payment History
+                        </DropdownMenuItem>
+                        {s.status !== 'active' && <DropdownMenuItem onClick={() => updateMutation.mutate({ id: s.id, data: { status: 'active' } })}>Activate</DropdownMenuItem>}
+                        {s.status === 'active'  && <DropdownMenuItem onClick={() => updateMutation.mutate({ id: s.id, data: { status: 'cancelled' } })}>Cancel</DropdownMenuItem>}
+                        <DropdownMenuItem onClick={() => handleExtend(s, 30)}>+30 Days</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExtend(s, 365)}>+1 Year</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(s.id)}>Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* PAYMENTS TAB */}
+        <TabsContent value="payments" className="mt-5">
+          {/* Filter + action bar */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <Select value={filterPayStatus} onValueChange={setFilterPayStatus}>
+              <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['all','pending','completed','failed','refunded','cancelled'].map(s => (
+                  <SelectItem key={s} value={s} className="text-xs capitalize">{s === 'all' ? 'All Status' : s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground flex-1">{filteredPayments.length} record{filteredPayments.length !== 1 ? 's' : ''}</span>
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5" onClick={handleExportCSV}>
+              <Download className="w-3 h-3" /> Export CSV
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5 border-accent/40 text-accent hover:bg-accent/10"
+              onClick={handleNudgeAll} disabled={nudgingAll || unpaidPendingCount === 0}>
+              {nudgingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+              {nudgingAll ? 'Sending…' : `Nudge All (${unpaidPendingCount})`}
+            </Button>
+          </div>
+
           <div className="bg-card rounded-2xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Student</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Plan</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Contact</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Class / Subjects</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Start Date</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">End Date</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Amount</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Method / Ref</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Date</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Amount</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {isLoading && (
-                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
-                  )}
-                  {!isLoading && filtered.map(sub => {
-                    const isExpiringSoon = sub.status === 'active' && sub.expires_at &&
-                      (new Date(sub.expires_at) - new Date()) < 4 * 24 * 60 * 60 * 1000 &&
-                      (new Date(sub.expires_at) - new Date()) > 0;
-                    const isOverdue = sub.status === 'active' && sub.expires_at && new Date(sub.expires_at) < new Date();
+                  {filteredPayments.map(p => {
+                    const profile  = profileMap[p.student_id];
+                    const user     = userMap[p.student_id];
+                    const name     = p.student_name || profile?.full_name || user?.full_name || 'Unknown';
+                    const email    = p.student_email || user?.email || '';
+                    const phone    = p.student_phone || profile?.phone_number || '';
+                    const form     = p.student_class || profile?.form || '';
+                    const subjects = p.subjects_enrolled || profile?.subjects || [];
+                    const hasPaid  = payments.some(pp => pp.student_id === p.student_id && pp.status === 'completed');
+
                     return (
-                    <tr key={sub.id} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelectedSub(sub)}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                            {sub._user?.full_name?.[0]?.toUpperCase() || '?'}
+                      <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                        {/* Student */}
+                        <td className="px-4 py-3">
+                          <button className="text-sm font-medium hover:text-accent transition-colors text-left"
+                            onClick={() => setHistoryStudent({ id: p.student_id, name })}>
+                            {name}
+                          </button>
+                          {p.nudge_count > 0 && (
+                            <span className="ml-2 text-[10px] bg-accent/10 text-accent px-1.5 py-0.5 rounded-full">
+                              {p.nudge_count} nudge{p.nudge_count > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </td>
+                        {/* Contact */}
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <div className="space-y-0.5">
+                            {email && <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{email}</p>}
+                            {phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{phone}</p>}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">{sub._user?.full_name || 'Unknown'}</p>
-                            <p className="text-[10px] text-muted-foreground">{sub._user?.email || sub.student_id?.slice(0, 14) + '...'}</p>
+                        </td>
+                        {/* Class / Subjects */}
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <div className="space-y-1">
+                            {form && <p className="text-xs font-medium flex items-center gap-1"><GraduationCap className="w-3 h-3" />{form}</p>}
+                            {subjects.length > 0 && (
+                              <div className="flex flex-wrap gap-0.5">
+                                {subjects.slice(0,2).map(s => <span key={s} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{s}</span>)}
+                                {subjects.length > 2 && <span className="text-[10px] text-muted-foreground">+{subjects.length-2}</span>}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge className={`text-[10px] capitalize ${PLAN_COLORS[sub.plan] || 'bg-muted'}`}>{sub.plan}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge className={`text-[10px] capitalize ${STATUS_COLORS[sub.status] || 'bg-muted'}`}>
-                          {STATUS_LABELS[sub.status] || sub.status}
-                        </Badge>
-                      </td>
-                      {/* Start Date */}
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        {sub.start_date ? (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <CalendarDays className="w-3 h-3 flex-shrink-0" />
-                            {format(new Date(sub.start_date), 'MMM d, yyyy')}
+                        </td>
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${PAYMENT_STATUS_COLORS[p.status] || 'bg-muted'}`}>
+                            {p.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
+                            {p.status === 'pending'   && <Clock className="w-3 h-3" />}
+                            {p.status === 'failed'    && <XCircle className="w-3 h-3" />}
+                            {p.status}
                           </div>
-                        ) : <span className="text-xs text-muted-foreground">—</span>}
-                      </td>
-                      {/* End Date */}
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        {sub.expires_at ? (
-                          <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-semibold' : isExpiringSoon ? 'text-amber-500 font-semibold' : 'text-muted-foreground'}`}>
-                            <CalendarDays className="w-3 h-3 flex-shrink-0" />
-                            {format(new Date(sub.expires_at), 'MMM d, yyyy')}
-                            {isExpiringSoon && <span className="text-[9px] bg-amber-500/10 text-amber-500 px-1 rounded">Soon</span>}
-                            {isOverdue && <span className="text-[9px] bg-destructive/10 text-destructive px-1 rounded">Overdue</span>}
+                        </td>
+                        {/* Method/Ref */}
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <p className="text-xs capitalize">{p.method?.replace(/_/g,' ') || '—'}</p>
+                          {p.reference && <p className="text-[10px] font-mono text-muted-foreground">{p.reference}</p>}
+                        </td>
+                        {/* Date */}
+                        <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
+                          {p.created_date ? format(new Date(p.created_date), 'MMM d, yyyy HH:mm') : '—'}
+                          {p.last_nudge_at && <p className="text-[10px] opacity-60">Last nudge: {format(new Date(p.last_nudge_at), 'MMM d')}</p>}
+                        </td>
+                        {/* Amount */}
+                        <td className="px-4 py-3 text-right">
+                          <span className={`text-sm font-bold ${p.status === 'completed' ? 'text-success' : 'text-foreground'}`}>
+                            MWK {p.amount?.toLocaleString()}
+                          </span>
+                        </td>
+                        {/* Actions */}
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Admin notes popover */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className={`p-1 rounded hover:bg-muted transition-colors ${p.notes ? 'text-accent' : 'text-muted-foreground'}`} title="Notes">
+                                  <StickyNote className="w-3.5 h-3.5" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 p-3" align="end">
+                                <p className="text-xs font-semibold mb-2">Admin Note</p>
+                                <Textarea
+                                  className="text-xs h-20 resize-none"
+                                  defaultValue={p.notes || ''}
+                                  placeholder="Add a note…"
+                                  onBlur={e => {
+                                    if (e.target.value !== (p.notes || ''))
+                                      updatePaymentMutation.mutate({ id: p.id, data: { notes: e.target.value } });
+                                  }}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            {p.status === 'pending' && !hasPaid && (
+                              <>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-[11px] gap-1 border-accent/40 text-accent hover:bg-accent/10 px-2"
+                                  onClick={() => handleSendRecovery(p)} disabled={sendingRecovery === p.id}
+                                  title="Send email nudge">
+                                  {sendingRecovery === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                                  {sendingRecovery === p.id ? '…' : 'Email'}
+                                </Button>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-[11px] gap-1 border-primary/40 text-primary hover:bg-primary/10 px-2"
+                                  onClick={() => handleSendSms(p)} disabled={sendingSms === p.id || !phone}
+                                  title={phone ? 'Send SMS nudge' : 'No phone number on file'}>
+                                  {sendingSms === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Smartphone className="w-3 h-3" />}
+                                  {sendingSms === p.id ? '…' : 'SMS'}
+                                </Button>
+                              </>
+                            )}
                           </div>
-                        ) : <span className="text-xs text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs font-medium hidden lg:table-cell">
-                        {sub.amount_paid > 0 ? `MWK ${sub.amount_paid.toLocaleString()}` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSub(sub)}>
-                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {sub.status !== 'active' && (
-                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: sub.id, data: { status: 'active' } })}>
-                                  <CheckCircle2 className="w-4 h-4 mr-2 text-success" /> Activate
-                                </DropdownMenuItem>
-                              )}
-                              {sub.status === 'active' && (
-                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: sub.id, data: { status: 'cancelled' } })}>
-                                  <XCircle className="w-4 h-4 mr-2 text-destructive" /> Cancel
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleExtend(sub, 30)}>
-                                <RefreshCw className="w-4 h-4 mr-2" /> Extend 30 days
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleExtend(sub, 365)}>
-                                <RefreshCw className="w-4 h-4 mr-2" /> Extend 1 year
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteMutation.mutate(sub.id)}>
-                                <XCircle className="w-4 h-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </td>
-                    </tr>
-                  )})}
-                  {!isLoading && filtered.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">No subscriptions found</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* ── Membership Detail Drawer ────────────────────────────────────── */}
-        {selectedSub && (() => {
-          const s = selectedSub;
-          const daysLeft = s.expires_at ? Math.ceil((new Date(s.expires_at) - new Date()) / 86400000) : null;
-          const duration = s.start_date && s.expires_at
-            ? Math.ceil((new Date(s.expires_at) - new Date(s.start_date)) / 86400000)
-            : null;
-          return (
-            <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedSub(null)}>
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-              <div
-                className="relative bg-card border-l border-border w-full max-w-sm h-full overflow-y-auto shadow-2xl"
-                onClick={e => e.stopPropagation()}
-              >
-                {/* Drawer header */}
-                <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                      {s._user?.full_name?.[0]?.toUpperCase() || '?'}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold leading-tight">{s._user?.full_name || 'Unknown'}</p>
-                      <p className="text-[10px] text-muted-foreground">{s._user?.email || '—'}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedSub(null)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <div className="p-5 space-y-5">
-                  {/* Status + Plan badges */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={`capitalize ${STATUS_COLORS[s.status] || 'bg-muted'}`}>
-                      {STATUS_LABELS[s.status] || s.status}
-                    </Badge>
-                    <Badge className={`capitalize ${PLAN_COLORS[s.plan] || 'bg-muted'}`}>{s.plan}</Badge>
-                    {daysLeft !== null && daysLeft > 0 && (
-                      <span className="text-[10px] text-muted-foreground">{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span>
-                    )}
-                    {daysLeft !== null && daysLeft <= 0 && (
-                      <span className="text-[10px] text-destructive font-semibold">Expired {Math.abs(daysLeft)} day{Math.abs(daysLeft) !== 1 ? 's' : ''} ago</span>
-                    )}
-                  </div>
-
-                  {/* Membership period */}
-                  <div className="bg-muted/40 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Membership Period</p>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <p className="text-[10px] text-muted-foreground mb-0.5">Start Date</p>
-                        <p className="text-sm font-semibold">
-                          {s.start_date ? format(new Date(s.start_date), 'dd MMM yyyy') : '—'}
-                        </p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-[10px] text-muted-foreground mb-0.5">End Date</p>
-                        <p className={`text-sm font-semibold ${daysLeft !== null && daysLeft <= 0 ? 'text-destructive' : daysLeft !== null && daysLeft <= 3 ? 'text-amber-500' : ''}`}>
-                          {s.expires_at ? format(new Date(s.expires_at), 'dd MMM yyyy') : '—'}
-                        </p>
-                      </div>
-                    </div>
-                    {duration && (
-                      <p className="text-[10px] text-muted-foreground">Duration: {duration} days</p>
-                    )}
-                  </div>
-
-                  {/* Payment details */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payment</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { label: 'Amount Paid', value: s.amount_paid > 0 ? `MWK ${s.amount_paid.toLocaleString()}` : '—' },
-                        { label: 'Currency',    value: s.currency || 'MWK' },
-                        { label: 'Method',      value: s.payment_method?.replace(/_/g, ' ') || '—' },
-                        { label: 'Auto-renew',  value: s.auto_renew ? 'Yes' : 'No' },
-                      ].map(item => (
-                        <div key={item.label} className="bg-muted/30 rounded-lg p-3">
-                          <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                          <p className="text-xs font-semibold capitalize mt-0.5">{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Record metadata */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Record Info</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { label: 'Created',  value: s.created_date ? format(new Date(s.created_date), 'dd MMM yyyy HH:mm') : '—' },
-                        { label: 'Updated',  value: s.updated_date ? format(new Date(s.updated_date), 'dd MMM yyyy HH:mm') : '—' },
-                        { label: 'Record ID', value: s.id?.slice(0, 10) + '...' },
-                        { label: 'Student ID', value: s.student_id?.slice(0, 10) + '...' },
-                      ].map(item => (
-                        <div key={item.label} className="bg-muted/30 rounded-lg p-3">
-                          <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                          <p className="text-xs font-semibold mt-0.5 break-all">{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Quick actions */}
-                  <div className="space-y-2 pb-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick Actions</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {s.status !== 'active' && (
-                        <Button size="sm" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'active' } }); setSelectedSub(null); }}>
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Activate
-                        </Button>
-                      )}
-                      {s.status === 'active' && (
-                        <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'cancelled' } }); setSelectedSub(null); }}>
-                          <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 30); setSelectedSub(null); }}>
-                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> +30 days
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 365); setSelectedSub(null); }}>
-                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> +1 year
-                      </Button>
-                      <Button size="sm" variant="destructive" className="h-9 text-xs col-span-2" onClick={() => { deleteMutation.mutate(s.id); setSelectedSub(null); }}>
-                        <XCircle className="w-3.5 h-3.5 mr-1" /> Delete Record
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* PAYMENTS TAB */}
-        <TabsContent value="payments" className="mt-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-muted-foreground">
-              {payments.filter(p => p.status === 'pending').length} pending payment{payments.filter(p => p.status === 'pending').length !== 1 ? 's' : ''}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 px-3 text-xs gap-1.5 border-accent/40 text-accent hover:bg-accent/10"
-              onClick={handleNudgeAll}
-              disabled={nudgingAll || payments.filter(p => p.status === 'pending').length === 0}
-              title="Send recovery email to all students with pending payments"
-            >
-              {nudgingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-              {nudgingAll ? 'Sending…' : `Nudge All (${payments.filter(p => p.status === 'pending' && !payments.some(pp => pp.student_id === p.student_id && pp.status === 'completed')).length})`}
-            </Button>
-          </div>
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Student</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Method</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Reference</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Date</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Amount</th>
-                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {payments.map(p => (
-                    <tr key={p.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-medium">{p.student_name && p.student_name !== 'Unknown' ? p.student_name : (profileMap[p.student_id]?.full_name || userMap[p.student_id]?.full_name || 'Unknown')}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground capitalize">
-                        {p.method?.replace(/_/g, ' ') || '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${PAYMENT_STATUS_COLORS[p.status] || 'bg-muted'}`}>
-                          {p.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
-                          {p.status === 'pending' && <Clock className="w-3 h-3" />}
-                          {p.status === 'failed' && <XCircle className="w-3 h-3" />}
-                          {p.status}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-mono text-muted-foreground hidden md:table-cell">
-                        {p.reference || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
-                        {p.created_date ? format(new Date(p.created_date), 'MMM d, yyyy HH:mm') : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`text-sm font-bold ${p.status === 'completed' ? 'text-success' : 'text-foreground'}`}>
-                          MWK {p.amount?.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {p.status === 'pending' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-[11px] gap-1.5 border-accent/40 text-accent hover:bg-accent/10"
-                            onClick={() => handleSendRecovery(p)}
-                            disabled={sendingRecovery === p.id}
-                            title="Manually send a cart recovery email to this student"
-                          >
-                            {sendingRecovery === p.id
-                              ? <Loader2 className="w-3 h-3 animate-spin" />
-                              : <Send className="w-3 h-3" />
-                            }
-                            {sendingRecovery === p.id ? 'Sending…' : 'Nudge'}
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {payments.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">No payment records yet</td></tr>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredPayments.length === 0 && (
+                    <tr><td colSpan={8} className="text-center py-10 text-muted-foreground text-sm">No payment records match your filters</td></tr>
                   )}
                 </tbody>
               </table>
@@ -731,69 +764,140 @@ export default function AdminSubscriptions() {
         </TabsContent>
       </Tabs>
 
+      {/* Subscription detail side panel */}
+      {selectedSub && (() => {
+        const s = selectedSub;
+        const profile = profileMap[s.student_id];
+        return (
+          <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedSub(null)}>
+            <div className="w-full max-w-sm bg-card border-l border-border h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+                <p className="font-display font-bold text-sm">{s._user?.full_name || 'Student'}</p>
+                <button onClick={() => setSelectedSub(null)} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="space-y-2">
+                  {[
+                    { label: 'Email',    value: s._user?.email || '—' },
+                    { label: 'Phone',    value: profile?.phone_number || '—' },
+                    { label: 'Class',    value: profile?.form || '—' },
+                    { label: 'Plan',     value: s.plan || '—' },
+                    { label: 'Status',   value: STATUS_LABELS[s.status] || s.status },
+                    { label: 'Expires',  value: s.end_date ? format(new Date(s.end_date), 'dd MMM yyyy') : '—' },
+                    { label: 'Started',  value: s.start_date ? format(new Date(s.start_date), 'dd MMM yyyy') : '—' },
+                  ].map(item => (
+                    <div key={item.label} className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-medium">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+                {profile?.subjects?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">Enrolled Subjects</p>
+                    <div className="flex flex-wrap gap-1">
+                      {profile.subjects.map(sub => <span key={sub} className="text-xs bg-muted px-2 py-0.5 rounded">{sub}</span>)}
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {s.status !== 'active' && (
+                    <Button size="sm" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'active' } }); setSelectedSub(null); }}>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Activate
+                    </Button>
+                  )}
+                  {s.status === 'active' && (
+                    <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { updateMutation.mutate({ id: s.id, data: { status: 'cancelled' } }); setSelectedSub(null); }}>
+                      <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 30); setSelectedSub(null); }}><RefreshCw className="w-3.5 h-3.5 mr-1" /> +30d</Button>
+                  <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { handleExtend(s, 365); setSelectedSub(null); }}><RefreshCw className="w-3.5 h-3.5 mr-1" /> +1yr</Button>
+                  <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => { setHistoryStudent({ id: s.student_id, name: s._user?.full_name || 'Unknown' }); setSelectedSub(null); }}>
+                    <History className="w-3.5 h-3.5 mr-1" /> History
+                  </Button>
+                  <Button size="sm" variant="destructive" className="h-9 text-xs" onClick={() => { deleteMutation.mutate(s.id); setSelectedSub(null); }}><XCircle className="w-3.5 h-3.5 mr-1" /> Delete</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Mark as Paid Dialog */}
+      <Dialog open={markPaidOpen} onOpenChange={setMarkPaidOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-success" /> Manual Payment Entry</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1"><Label className="text-xs">Student Email *</Label>
+              <Input value={mpEmail} onChange={e => setMpEmail(e.target.value)} placeholder="student@email.com" type="email" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs">Amount (MWK) *</Label>
+                <Input value={mpAmount} onChange={e => setMpAmount(e.target.value)} placeholder="10000" type="number" /></div>
+              <div className="space-y-1"><Label className="text-xs">Plan</Label>
+                <Select value={mpPlan} onValueChange={setMpPlan}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['monthly','quarterly','annual','biannual'].map(p => <SelectItem key={p} value={p} className="text-xs capitalize">{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Payment Method</Label>
+              <Select value={mpMethod} onValueChange={setMpMethod}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[['airtel_money','Airtel Money'],['tnm_mpamba','TNM Mpamba'],['bank_transfer','Bank Transfer'],['paychangu','PayChangu']].map(([v,l]) => <SelectItem key={v} value={v} className="text-xs">{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Reference</Label>
+              <Input value={mpRef} onChange={e => setMpRef(e.target.value)} placeholder="Transaction reference (optional)" /></div>
+            <div className="space-y-1"><Label className="text-xs">Notes</Label>
+              <Input value={mpDesc} onChange={e => setMpDesc(e.target.value)} placeholder="e.g. Cash payment received at office" /></div>
+            <Button className="w-full gap-2" onClick={handleMarkPaid} disabled={mpLoading}>
+              {mpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {mpLoading ? 'Processing…' : 'Grant Access & Record Payment'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Grant Access Dialog */}
       <Dialog open={grantOpen} onOpenChange={(v) => {
         setGrantOpen(v);
-        if (!v) {
-          setSelectedUserIds([]);
-          setGrantSearch('');
-          setGrantMode('single');
-          setGrantDurationType('preset');
-          setCustomDays('');
-        }
+        if (!v) { setSelectedUserIds([]); setGrantSearch(''); setGrantMode('single'); setGrantDurationType('preset'); setCustomDays(''); }
       }}>
         <DialogContent className="max-w-lg max-h-[90vh] flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>Grant Free Access</DialogTitle>
-          </DialogHeader>
-
-          {/* Mode toggle */}
+          <DialogHeader><DialogTitle>Grant Free Access</DialogTitle></DialogHeader>
           <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
-            <button onClick={() => setGrantMode('single')}
-              className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantMode === 'single' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
-              Single Student
-            </button>
-            <button onClick={() => setGrantMode('bulk')}
-              className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantMode === 'bulk' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
-              Bulk / All Students
-            </button>
+            <button onClick={() => setGrantMode('single')} className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantMode === 'single' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>Single Student</button>
+            <button onClick={() => setGrantMode('bulk')}   className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantMode === 'bulk'   ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>Bulk / All Students</button>
           </div>
-
-          {/* Single mode */}
           {grantMode === 'single' && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Student Email</Label>
-              <Input value={grantStudentEmail} onChange={e => setGrantStudentEmail(e.target.value)}
-                placeholder="student@example.com" type="email" />
+              <Input value={grantStudentEmail} onChange={e => setGrantStudentEmail(e.target.value)} placeholder="student@example.com" type="email" />
             </div>
           )}
-
-          {/* Bulk mode */}
           {grantMode === 'bulk' && (
             <div className="space-y-2 flex flex-col" style={{ minHeight: 0 }}>
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Select Students</Label>
                 <div className="flex gap-2">
-                  <button onClick={() => setSelectedUserIds(filteredGrantUsers.map(u => u.id))}
-                    className="text-xs text-primary hover:underline">All</button>
-                  <button onClick={() => setSelectedUserIds([])}
-                    className="text-xs text-muted-foreground hover:underline">None</button>
+                  <button onClick={() => setSelectedUserIds(filteredGrantUsers.map(u => u.id))} className="text-xs text-primary hover:underline">All</button>
+                  <button onClick={() => setSelectedUserIds([])} className="text-xs text-muted-foreground hover:underline">None</button>
                 </div>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input placeholder="Search name or email" value={grantSearch}
-                  onChange={e => setGrantSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+                <Input placeholder="Search name or email" value={grantSearch} onChange={e => setGrantSearch(e.target.value)} className="pl-8 h-8 text-xs" />
               </div>
               <div className="border border-border rounded-xl overflow-y-auto divide-y divide-border/50" style={{ maxHeight: '180px' }}>
-                {filteredGrantUsers.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-6">No students found</p>
-                )}
+                {filteredGrantUsers.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No students found</p>}
                 {filteredGrantUsers.map(u => (
                   <label key={u.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors">
-                    <input type="checkbox" checked={selectedUserIds.includes(u.id)}
-                      onChange={() => toggleUserId(u.id)}
-                      className="w-4 h-4 accent-primary rounded" />
+                    <input type="checkbox" checked={selectedUserIds.includes(u.id)} onChange={() => toggleUserId(u.id)} className="w-4 h-4 accent-primary rounded" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{u.full_name || '—'}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
@@ -801,76 +905,35 @@ export default function AdminSubscriptions() {
                   </label>
                 ))}
               </div>
-              {selectedUserIds.length > 0 && (
-                <p className="text-xs text-primary font-medium">
-                  {selectedUserIds.length}{selectedUserIds.length > 1 ? ' students' : ' student'} selected
-                </p>
-              )}
+              {selectedUserIds.length > 0 && <p className="text-xs text-primary font-medium">{selectedUserIds.length} student{selectedUserIds.length > 1 ? 's' : ''} selected</p>}
             </div>
           )}
-
-          {/* Duration */}
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Duration</Label>
             <div className="flex gap-1 bg-muted/50 p-1 rounded-xl">
-              <button onClick={() => setGrantDurationType('preset')}
-                className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantDurationType === 'preset' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
-                Preset Plan
-              </button>
-              <button onClick={() => setGrantDurationType('custom')}
-                className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantDurationType === 'custom' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>
-                Custom Days
-              </button>
+              <button onClick={() => setGrantDurationType('preset')} className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantDurationType === 'preset' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>Preset Plan</button>
+              <button onClick={() => setGrantDurationType('custom')} className={"flex-1 text-xs font-medium py-1.5 rounded-lg transition-all " + (grantDurationType === 'custom' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground')}>Custom Days</button>
             </div>
             {grantDurationType === 'preset' ? (
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Plan</Label>
-                  <Select value={grantPlan} onValueChange={setGrantPlan}>
-                    <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly (30 days)</SelectItem>
-                      <SelectItem value="annual">Annual (365 days)</SelectItem>
-                      <SelectItem value="biannual">Biannual (730 days)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Months</Label>
-                  <Input type="number" min={1} max={24} value={grantMonths}
-                    onChange={e => setGrantMonths(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="mt-1 h-9" />
-                </div>
+                <Select value={grantPlan} onValueChange={setGrantPlan}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{['monthly','quarterly','annual','biannual'].map(p => <SelectItem key={p} value={p} className="text-xs capitalize">{p}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={String(grantMonths)} onValueChange={v => setGrantMonths(Number(v))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{[1,2,3,6,12].map(n => <SelectItem key={n} value={String(n)} className="text-xs">×{n} ({computeGrantDays()} days)</SelectItem>)}</SelectContent>
+                </Select>
               </div>
             ) : (
-              <div>
-                <Label className="text-xs text-muted-foreground">Number of days</Label>
-                <Input type="number" min={1} max={3650} value={customDays}
-                  onChange={e => setCustomDays(e.target.value)} placeholder="e.g. 30"
-                  className="mt-1 h-9" />
-              </div>
+              <Input value={customDays} onChange={e => setCustomDays(e.target.value)} placeholder="e.g. 45" type="number" className="h-9 text-xs" />
             )}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-xs text-primary font-medium">
-              {computeGrantDays()}{computeGrantDays() !== 1 ? ' days' : ' day'}{' access'}
-              {grantMode === 'bulk' && selectedUserIds.length > 0 && (
-                <span>{' for '}{selectedUserIds.length}{selectedUserIds.length > 1 ? ' students' : ' student'}</span>
-              )}
-            </div>
           </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setGrantOpen(false)}>Cancel</Button>
-            <Button className="flex-1" onClick={() => grantMutation.mutate()}
-              disabled={
-                grantMutation.isPending ||
-                (grantMode === 'single' && !grantStudentEmail) ||
-                (grantMode === 'bulk' && selectedUserIds.length === 0) ||
-                (grantDurationType === 'custom' && (!customDays || parseInt(customDays) < 1))
-              }>
-              {grantMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
-              Grant Access
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">Granting <strong>{computeGrantDays()} days</strong> of access{grantMode === 'bulk' && selectedUserIds.length > 0 ? ` to ${selectedUserIds.length} student${selectedUserIds.length > 1 ? 's' : ''}` : ''}</p>
+          <Button onClick={() => grantMutation.mutate()} disabled={grantMutation.isPending} className="gap-2">
+            {grantMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {grantMutation.isPending ? 'Granting…' : 'Grant Access'}
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
