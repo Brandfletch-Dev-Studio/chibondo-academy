@@ -371,20 +371,105 @@ function CustomAudioPlayer({ url }) {
   );
 }
 
+// ── Message Action Sheet ─────────────────────────────────────────────────────
+function MessageActionSheet({ msg, isMine, isStaff, onReply, onCopy, onDelete, onPin, onReport, onClose }) {
+  const actions = [
+    { icon: '↩️', label: 'Reply',        fn: () => { onReply(msg); onClose(); } },
+    { icon: '📋', label: 'Copy Text',    fn: () => { onCopy(msg); onClose(); }, show: !!msg.body && msg.type !== 'image' && msg.type !== 'voice' },
+    { icon: '📌', label: 'Pin Message',  fn: () => { onPin(msg); onClose(); }, show: isStaff },
+    { icon: '🗑️', label: 'Delete',       fn: () => { onDelete(msg); onClose(); }, show: isMine || isStaff, danger: true },
+    { icon: '🚩', label: 'Report',       fn: () => { onReport(msg); onClose(); }, show: !isMine },
+  ].filter(a => a.show !== false);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+          zIndex: 1000, backdropFilter: 'blur(2px)'
+        }}
+      />
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'var(--card, #fff)', borderRadius: '20px 20px 0 0',
+        zIndex: 1001, padding: '8px 0 32px',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.18)',
+        animation: 'slideUp 0.18s ease-out',
+      }}>
+        {/* Drag handle */}
+        <div style={{ width: 40, height: 4, background: '#ddd', borderRadius: 99, margin: '0 auto 12px' }} />
+
+        {/* Message preview */}
+        <div style={{
+          margin: '0 16px 12px', padding: '10px 14px',
+          background: 'rgba(0,0,0,0.04)', borderRadius: 12,
+          fontSize: 13, color: '#555',
+          maxHeight: 60, overflow: 'hidden', textOverflow: 'ellipsis',
+          borderLeft: '3px solid hsl(var(--primary))',
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: 'hsl(var(--primary))', marginBottom: 3 }}>
+            {msg.author_name}
+          </div>
+          {msg.type === 'image' ? '📷 Photo' : msg.type === 'voice' ? '🎤 Voice note' : msg.body?.slice(0, 80)}
+        </div>
+
+        {/* Actions */}
+        {actions.map(({ icon, label, fn, danger }) => (
+          <button key={label} onClick={fn} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 16,
+            padding: '14px 24px', background: 'none', border: 'none',
+            fontSize: 15, color: danger ? '#e53935' : 'var(--foreground, #111)',
+            cursor: 'pointer', textAlign: 'left',
+          }}>
+            <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{icon}</span>
+            <span style={{ fontWeight: 500 }}>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
+        }
+      `}</style>
+    </>
+  );
+}
+
 // ── Message Bubble ────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap }) {
+function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap, onAction, isAdmin }) {
   const t         = THEMES[theme] || THEMES.classic;
   const color     = nameColor(msg.author_id);
-  const isStaff   = msg.author_role === 'teacher' || msg.author_role === 'admin';
+  const isStaff   = msg.author_role === 'teacher' || msg.author_role === 'admin' || isAdmin;
   const textColor = t.textColor || '#111';
   const receivedBg = t.received || 'white';
 
-  // Swipe handlers (right swipe to reply)
+  // Long-press → action sheet
+  const pressTimer  = useRef(null);
+  const didLongPress = useRef(false);
+
+  const startPress = () => {
+    didLongPress.current = false;
+    pressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      if (onAction) onAction(msg, isMine, isStaff);
+    }, 450);
+  };
+  const endPress = () => clearTimeout(pressTimer.current);
+
+  // Swipe handlers (right swipe to reply — keep for UX muscle memory)
   const touchStart = useRef(0);
   const handleTouchStart = (e) => {
     touchStart.current = e.touches[0].clientX;
+    startPress();
   };
   const handleTouchEnd = (e) => {
+    endPress();
+    if (didLongPress.current) return; // long-press already handled
     const diff = e.changedTouches[0].clientX - touchStart.current;
     if (diff > 80 && onReply) {
       onReply(msg);
@@ -407,16 +492,19 @@ function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap }) {
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onMouseDown={startPress}
+      onMouseUp={endPress}
+      onMouseLeave={endPress}
       onContextMenu={(e) => {
         e.preventDefault();
-        if (onReply) onReply(msg);
+        if (onAction) onAction(msg, isMine, isStaff);
       }}
       style={{
         display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row',
         alignItems: 'flex-end', gap: 6, marginBottom: 3, padding: '0 10px',
         userSelect: 'none', cursor: 'pointer'
       }}
-      title="Swipe right or right-click to reply"
+      title="Hold to see options"
     >
       {/* Avatar */}
       <div style={{ width: 28, flexShrink: 0 }}>
