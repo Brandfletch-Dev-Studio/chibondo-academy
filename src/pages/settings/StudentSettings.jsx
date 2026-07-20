@@ -91,6 +91,8 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
   const [fullName,  setFullName]  = useState(user?.full_name || '');
   const [phone,     setPhone]     = useState(profile?.phone_number || '');
   const [schoolName,setSchoolName]= useState(profile?.school_name || '');
+  const [emailInput,setEmailInput]= useState('');
+  const isPlaceholderEmail = !user?.email || user.email.includes('@student.chibondoacademy.com');
 
   // Re-seed when user is present AND the profile query has actually resolved
   // (profileLoaded distinguishes "still fetching" from "fetched, no profile yet" —
@@ -143,6 +145,23 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
     if (!fullName.trim()) { toast.error('Full name is required'); return; }
     setSaving(true);
     try {
+      // If student has placeholder email and provided a real one, update auth email
+      if (isPlaceholderEmail && emailInput.trim()) {
+        if (!/\S+@\S+\.\S+/.test(emailInput.trim())) {
+          toast.error('Please enter a valid email address');
+          setSaving(false);
+          return;
+        }
+        try {
+          await db.auth.updateMe({ email: emailInput.trim() });
+          toast.success('Email added! Check your inbox to confirm it.');
+        } catch (emailErr) {
+          toast.error(emailErr?.message || 'Could not update email — try again');
+          setSaving(false);
+          return;
+        }
+      }
+
       // Format phone to +265
       const rawPhone = phone.trim();
       const formatPhone = (p) => {
@@ -169,12 +188,13 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
       if (user?.id) {
         try {
           const existing = await db.entities.StudentProfile.filter({ user_id: user.id });
+          const realEmail = (!isPlaceholderEmail ? user.email : emailInput.trim()) || user.email || '';
           const profileData = {
             full_name:    fullName.trim(),
             phone_number: formattedPhone,
             school_name:  schoolName.trim(),
             user_id:      user.id,
-            email:        user.email || '',
+            email:        realEmail,
           };
           if (existing.length > 0) {
             await db.entities.StudentProfile.update(existing[0].id, profileData);
@@ -235,8 +255,20 @@ function ProfilePanel({ user, profile, profileLoaded, qc }) {
               <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
             </Field>
           </div>
-          <Field label="Email Address" hint="Cannot be changed here">
-            <Input value={user?.email || ''} disabled className="opacity-60 cursor-not-allowed" />
+          <Field label="Email Address" hint={isPlaceholderEmail ? undefined : "Cannot be changed here"}>
+            {isPlaceholderEmail ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-300/60 bg-amber-50/60 dark:bg-amber-900/10">
+                  <span className="text-xs text-amber-700 dark:text-amber-400 flex-1">
+                    No email linked. Add one to recover your account.
+                  </span>
+                </div>
+                <Input value={emailInput} onChange={e => setEmailInput(e.target.value)}
+                  placeholder="your@email.com" type="email" />
+              </div>
+            ) : (
+              <Input value={user?.email || ''} disabled className="opacity-60 cursor-not-allowed" />
+            )}
           </Field>
           <Field label="Phone Number">
             <div className="relative">
