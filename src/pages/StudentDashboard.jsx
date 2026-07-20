@@ -8,7 +8,7 @@ import SetupChecklist from '@/components/dashboard/SetupChecklist';
 import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle, BookOpen, ArrowRight, Trophy, Clock,
-  Share2, Newspaper, ChevronRight
+  Share2, Newspaper, ChevronRight, Phone, X
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
