@@ -1076,32 +1076,38 @@ export default function SubjectGroupChat() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Pick best supported mimeType — webm/opus for Chrome/Android, mp4 for Safari/iOS
-      const mimeType = (() => {
-        const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
-        return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
-      })();
+
+      // Cross-browser mimeType: webm on Chrome/Android, mp4 on Safari/iOS
+      const MIME_CANDIDATES = [
+        'audio/webm;codecs=opus', 'audio/webm',
+        'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg',
+      ];
+      const mimeType = MIME_CANDIDATES.find(m => {
+        try { return MediaRecorder.isTypeSupported(m); } catch { return false; }
+      }) || '';
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       audioChunks.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunks.current.push(e.data);
-        }
+        if (e.data.size > 0) audioChunks.current.push(e.data);
       };
 
       recorder.onstop = async () => {
-        const recMime = recorder.mimeType || 'audio/webm';
-        const ext = recMime.includes('mp4') ? 'm4a' : recMime.includes('ogg') ? 'ogg' : 'webm';
-        const blob = new Blob(audioChunks.current, { type: recMime });
-        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: recMime });
+        if (audioChunks.current.length === 0) return; // cancelled
+        const finalMime = recorder.mimeType || mimeType || 'audio/webm';
+        const ext = finalMime.includes('mp4') ? 'mp4'
+                  : finalMime.includes('ogg')  ? 'ogg'
+                  : 'webm';
+        const blob = new Blob(audioChunks.current, { type: finalMime });
+        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: finalMime });
         try {
           toast.loading('Sending voice note...', { id: 'voice' });
           const { file_url } = await db.integrations.Core.UploadFile({ file });
           handleSend({
             type: 'voice',
             voice_url: file_url,
-            body: '🎤 Voice note'
+            media_url: file_url,
+            body: '🎤 Voice note',
           });
           toast.success('Voice note sent!', { id: 'voice' });
         } catch (err) {
@@ -1123,7 +1129,6 @@ export default function SubjectGroupChat() {
     clearInterval(recTimerRef.current);
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       if (cancel) {
-        // Override onstop to discard
         mediaRecorder.onstop = () => {};
         audioChunks.current = [];
       }
