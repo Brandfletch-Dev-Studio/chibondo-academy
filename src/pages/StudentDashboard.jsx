@@ -8,8 +8,7 @@ import SetupChecklist from '@/components/dashboard/SetupChecklist';
 import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle, BookOpen, ArrowRight, Trophy, Clock,
-  Share2, Newspaper, ChevronRight, Phone, X
-} from 'lucide-react';
+  Share2, Newspaper, ChevronRight, Phone, X, CreditCard, AlertCircle} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 /* ─── Mini in-progress class card ─────────────────────────────────────────── */
@@ -111,6 +110,28 @@ export default function StudentDashboard() {
     staleTime: 60_000,
   });
 
+  const { data: activeSub } = useQuery({
+    queryKey: ['activeSub', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const results = await db.entities.Subscription.filter({ student_id: userId, status: 'active' });
+      return results[0] || null;
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
+
+  const subDaysLeft = React.useMemo(() => {
+    const expiry = activeSub?.expires_at || activeSub?.end_date;
+    if (!expiry) return null;
+    return Math.ceil((new Date(expiry) - new Date()) / 86400000);
+  }, [activeSub]);
+
+  // Show renewal banner when: active sub with ≤7 days left, OR no active sub at all
+  const showRenewalBanner = userId && activeSub !== undefined && (
+    !activeSub || (subDaysLeft !== null && subDaysLeft <= 7)
+  );
+
   const [phoneBannerDismissed, setPhoneBannerDismissed] = React.useState(
     () => !!localStorage.getItem('phone_banner_dismissed')
   );
@@ -182,6 +203,50 @@ export default function StudentDashboard() {
           <button onClick={dismissPhoneBanner} className="p-1 rounded hover:bg-accent/20 transition-colors text-accent flex-shrink-0" aria-label="Dismiss">
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* ── Subscription renewal banner ── */}
+      {showRenewalBanner && (
+        <div className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border text-sm ${
+          !activeSub
+            ? 'bg-destructive/8 border-destructive/20'
+            : subDaysLeft <= 3
+            ? 'bg-destructive/8 border-destructive/20'
+            : 'bg-amber-500/8 border-amber-400/20'
+        }`}>
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+            !activeSub || subDaysLeft <= 3 ? 'bg-destructive/15' : 'bg-amber-500/15'
+          }`}>
+            {!activeSub
+              ? <AlertCircle className={`w-4 h-4 text-destructive`} />
+              : <CreditCard className={`w-4 h-4 ${subDaysLeft <= 3 ? 'text-destructive' : 'text-amber-600'}`} />
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            {!activeSub ? (
+              <>
+                <p className="font-semibold text-destructive text-xs">No active subscription</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Pay school fees to access lessons, quizzes and past papers.</p>
+              </>
+            ) : (
+              <>
+                <p className={`font-semibold text-xs ${subDaysLeft <= 3 ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'}`}>
+                  {subDaysLeft === 0 ? 'Expires today!' : `${subDaysLeft} day${subDaysLeft !== 1 ? 's' : ''} left`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                  {activeSub.plan} plan · renew to keep uninterrupted access
+                </p>
+              </>
+            )}
+          </div>
+          <a href="/fees" className={`text-xs font-bold whitespace-nowrap px-3 py-1.5 rounded-lg transition-colors ${
+            !activeSub || subDaysLeft <= 3
+              ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              : 'bg-amber-500 text-white hover:bg-amber-600'
+          }`}>
+            {!activeSub ? 'Pay Fees' : 'Renew Now'}
+          </a>
         </div>
       )}
 
