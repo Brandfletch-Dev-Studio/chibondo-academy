@@ -131,7 +131,7 @@ function NudgeBadge({ ts, count }) {
 function buildNudgeMessage(name, amount) {
   const firstName = (name || 'Student').split(' ')[0];
   const amt = amount ? `MWK ${Number(amount).toLocaleString()}` : '';
-  return `Hi ${firstName}, your Chibondo Academy MSCE school fees${amt ? ` of ${amt}` : ''} are still pending. Please complete your payment to unlock full access to your lessons and past papers: https://chibondoacademy.com/subscription`;
+  return `Hi ${firstName}, your Chibondo Academy MSCE school fees${amt ? ` of ${amt}` : ''} are still pending. Please complete your payment to unlock full access to your lessons and past papers: https://chibondoacademy.com/fees`;
 }
 
 export default function AdminSubscriptions() {
@@ -364,7 +364,7 @@ export default function AdminSubscriptions() {
           phone,
           student_name: payment.student_name || userMap[payment.student_id]?.full_name || '',
           amount: payment.amount,
-          payment_link: 'https://chibondoacademy.com/subscription',
+          payment_link: 'https://chibondoacademy.com/fees',
         }),
       });
       const res = await smsRes.json();
