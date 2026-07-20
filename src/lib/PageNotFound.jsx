@@ -94,12 +94,6 @@ function CourseCard({ subject }) {
               {subject.teacher_name}
             </p>
           )}
-          {subject.enrollment_count > 0 && (
-            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: BRAND.gold }}>
-              <Users className="w-3 h-3" />
-              {subject.enrollment_count.toLocaleString()} students
-            </p>
-          )}
         </div>
       </div>
     </Link>
