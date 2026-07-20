@@ -8,6 +8,36 @@
     "student_name": {
       "type": "string"
     },
+    "student_email": {
+      "type": "string"
+    },
+    "student_phone": {
+      "type": "string"
+    },
+    "student_class": {
+      "type": "string"
+    },
+    "subjects_enrolled": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nudge_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_nudge_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    },
     "subscription_id": {
       "type": "string"
     },
@@ -23,7 +53,8 @@
       "enum": [
         "airtel_money",
         "tnm_mpamba",
-        "bank_transfer"
+        "bank_transfer",
+        "paychangu"
       ]
     },
     "reference": {
@@ -35,7 +66,8 @@
         "pending",
         "completed",
         "failed",
-        "refunded"
+        "refunded",
+        "cancelled"
       ],
       "default": "pending"
     },
