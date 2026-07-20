@@ -69,6 +69,7 @@ export default function AdminSubscriptions() {
   const [filterPlan, setFilterPlan] = useState('all');
   const [grantOpen, setGrantOpen] = useState(false);
   const [sendingRecovery, setSendingRecovery] = useState(null); // payment id being sent
+  const [nudgingAll, setNudgingAll] = useState(false);
   const [grantStudentEmail, setGrantStudentEmail] = useState('');
   const [grantPlan, setGrantPlan] = useState('monthly');
   const [grantMonths, setGrantMonths] = useState(1);
@@ -102,7 +103,19 @@ export default function AdminSubscriptions() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => db.entities.Subscription.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] }); toast.success('Subscription updated'); },
+    onSuccess: async (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
+      toast.success('Subscription updated');
+      // If subscription activated, cancel pending payments for this student (so they won't get nudged)
+      if (variables.data?.status === 'active') {
+        const sub = subscriptions.find(s => s.id === variables.id);
+        if (sub?.student_id) {
+          const pendingForStudent = payments.filter(p => p.student_id === sub.student_id && p.status === 'pending');
+          await Promise.all(pendingForStudent.map(p => db.entities.Payment.update(p.id, { status: 'cancelled' }).catch(() => {})));
+          if (pendingForStudent.length > 0) queryClient.invalidateQueries({ queryKey: ['allPayments'] });
+        }
+      }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -258,6 +271,45 @@ export default function AdminSubscriptions() {
     } finally {
       setSendingRecovery(null);
     }
+  };
+
+
+  // ── Nudge All — send recovery email to every pending payment that hasn't been paid ──
+  const handleNudgeAll = async () => {
+    const pendingPayments = payments.filter(p => p.status === 'pending');
+    if (pendingPayments.length === 0) { toast.info('No pending payments to nudge'); return; }
+    setNudgingAll(true);
+    let sent = 0, failed = 0;
+    for (const payment of pendingPayments) {
+      // Skip if this student has a completed payment (already paid)
+      const hasPaid = payments.some(p => p.student_id === payment.student_id && p.status === 'completed');
+      if (hasPaid) continue;
+      const email = userMap[payment.student_id]?.email || payment.student_email || '';
+      if (!email) { failed++; continue; }
+      try {
+        const nudgeRes = await fetch('https://chibondoacademy.com/api/cart-recovery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            force_student_id: payment.student_id,
+            force_email: email,
+            payment_id: payment.id,
+            amount: payment.amount,
+            description: payment.description,
+            student_name: userMap[payment.student_id]?.full_name || profileMap[payment.student_id]?.full_name || '',
+          }),
+        });
+        const res = await nudgeRes.json();
+        if (!nudgeRes.ok || res?.error) throw new Error(res?.error || 'Nudge failed');
+        sent++;
+      } catch (e) {
+        failed++;
+      }
+    }
+    setNudgingAll(false);
+    if (sent > 0) toast.success(`Nudge sent to ${sent} student${sent > 1 ? 's' : ''}${failed > 0 ? ` (${failed} failed)` : ''}`);
+    else if (failed > 0) toast.error(`All ${failed} nudges failed`);
+    else toast.info('No un-paid pending students to nudge');
   };
 
   return (
@@ -591,6 +643,22 @@ export default function AdminSubscriptions() {
 
         {/* PAYMENTS TAB */}
         <TabsContent value="payments" className="mt-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-muted-foreground">
+              {payments.filter(p => p.status === 'pending').length} pending payment{payments.filter(p => p.status === 'pending').length !== 1 ? 's' : ''}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-3 text-xs gap-1.5 border-accent/40 text-accent hover:bg-accent/10"
+              onClick={handleNudgeAll}
+              disabled={nudgingAll || payments.filter(p => p.status === 'pending').length === 0}
+              title="Send recovery email to all students with pending payments"
+            >
+              {nudgingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+              {nudgingAll ? 'Sending…' : `Nudge All (${payments.filter(p => p.status === 'pending' && !payments.some(pp => pp.student_id === p.student_id && pp.status === 'completed')).length})`}
+            </Button>
+          </div>
           <div className="bg-card rounded-2xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
