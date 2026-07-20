@@ -14,8 +14,7 @@ import {
   CreditCard, Search, CheckCircle2, XCircle, Clock, TrendingUp,
   Users, Banknote, CalendarDays, MoreVertical, Plus, Loader2, RefreshCw,
   Eye, X, ArrowRight, Mail, Send, Download, MessageSquare, Smartphone,
-  Phone, BookOpen, GraduationCap, StickyNote, History, Filter
-} from 'lucide-react';
+  Phone, BookOpen, GraduationCap, StickyNote, History, Filter, School, Trash2} from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
