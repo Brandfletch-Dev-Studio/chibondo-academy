@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
-import { BookOpen, Lock, ChevronRight, Search, Users, Calendar, PlayCircle, Star } from 'lucide-react';
+import { BookOpen, Lock, ChevronRight, Search, Users, Calendar, PlayCircle, Star, GraduationCap } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
