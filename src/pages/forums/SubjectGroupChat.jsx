@@ -628,7 +628,7 @@ function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap, onAc
               🚫 This message was deleted
             </p>
           ) : msg.type === 'voice' ? (
-            <CustomAudioPlayer url={msg.voice_url || msg.media_url} />
+            <CustomAudioPlayer url={msg.voice_url || msg.media_url} isMine={isMine} />
           ) : msg.type === 'video' ? (
             <video
               src={msg.media_url}
