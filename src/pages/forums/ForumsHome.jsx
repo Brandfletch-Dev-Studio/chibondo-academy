@@ -120,10 +120,15 @@ export default function ForumsHome() {
     placeholderData: [],
   });
 
-  const filteredSubjects = useMemo(() =>
-    subjects.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase())),
-    [subjects, search]
-  );
+  const filteredSubjects = useMemo(() => {
+    const filtered = subjects.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()));
+    // Sort by latest activity — chats with recent messages float to the top
+    return [...filtered].sort((a, b) => {
+      const ta = subjectStats[a.id]?.lastTime ? new Date(subjectStats[a.id].lastTime).getTime() : 0;
+      const tb = subjectStats[b.id]?.lastTime ? new Date(subjectStats[b.id].lastTime).getTime() : 0;
+      return tb - ta;
+    });
+  }, [subjects, search, subjectStats]);
 
   const goSubject = s => {
     const slug = s.slug || s.name.toLowerCase().replace(/\s+/g, '-');
@@ -272,10 +277,13 @@ export default function ForumsHome() {
                 const stats = subjectStats[subject.id] || {};
                 const slug  = subject.slug || subject.name.toLowerCase().replace(/\s+/g, '-');
 
+                const lastVisit = localStorage.getItem(`chat_last_visit_subject-${subject.id}`);
+                const hasUnread = stats.lastTime && (!lastVisit || new Date(stats.lastTime) > new Date(lastVisit));
+
                 return (
                   <div
                     key={subject.id}
-                    onClick={() => goSubject(subject)}
+                    onClick={() => { localStorage.setItem(`chat_last_visit_subject-${subject.id}`, new Date().toISOString()); goSubject(subject); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '11px 16px', borderBottom: '1px solid #f5f5f5',
@@ -287,19 +295,20 @@ export default function ForumsHome() {
                     <ChatAvatar icon={meta.icon} color={meta.color} size={50} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: '#111', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontWeight: hasUnread ? 800 : 600, fontSize: 14, color: '#111', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                           {subject.name}
                         </span>
-                        <span style={{ fontSize: 11, color: '#aaa', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: hasUnread ? '#333' : '#aaa', fontWeight: hasUnread ? 700 : 400, whiteSpace: 'nowrap', flexShrink: 0 }}>
                           {relativeTime(stats.lastTime)}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-                        <p style={{ margin: 0, fontSize: 12, color: '#888', overflow: 'hidden',
-                                     whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: hasUnread ? '#333' : '#888',
+                                     fontWeight: hasUnread ? 600 : 400,
+                                     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}>
                           {stats.lastMsg || 'Tap to join the conversation'}
                         </p>
-                        <Badge count={stats.count} />
+                        {hasUnread && <Badge count={stats.count} />}
                       </div>
                     </div>
                   </div>
