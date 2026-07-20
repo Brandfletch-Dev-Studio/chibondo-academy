@@ -33,10 +33,9 @@ export default function Login() {
     return () => obs.disconnect();
   }, []);
 
-  const resolveEmail = () => {
-    if (loginMethod === 'email') return email.trim();
-    // Derive placeholder email from phone digits (same logic as register)
-    const digits = phone.replace(/\D/g,'');
+  // Derive fallback placeholder email from phone digits (used only if no real email exists)
+  const derivePlaceholderEmail = (phoneStr) => {
+    const digits = phoneStr.replace(/\D/g, '');
     const last9  = digits.slice(-9);
     return `${last9}@student.chibondoacademy.com`;
   };
@@ -47,7 +46,7 @@ export default function Login() {
 
     if (loginMethod === 'phone') {
       if (!phone.trim()) { setError("Please enter your phone number"); return; }
-      if (phone.replace(/\D/g,'').length < 9) { setError("Please enter a valid phone number"); return; }
+      if (phone.replace(/\D/g, '').length < 9) { setError("Please enter a valid phone number"); return; }
     } else {
       if (!email.trim()) { setError("Please enter your email address"); return; }
     }
@@ -55,7 +54,37 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await db.auth.loginViaEmailPassword(resolveEmail(), password);
+      let loginEmail;
+
+      if (loginMethod === 'email') {
+        loginEmail = email.trim();
+      } else {
+        // Format phone to +265
+        const digits = phone.replace(/\D/g, '');
+        const formatted = phone.startsWith('+265') ? phone.replace(/\s/g,'')
+          : digits.startsWith('265') ? '+' + digits
+          : digits.startsWith('0')   ? '+265' + digits.slice(1)
+          : digits.length === 9      ? '+265' + digits
+          : phone;
+
+        // Look up StudentProfile by phone to find their real registered email
+        try {
+          const profiles = await db.entities.StudentProfile.filter({ phone_number: formatted });
+          const profile  = profiles[0];
+          if (profile?.email && !profile.email.includes('@student.chibondoacademy.com')) {
+            // Use their real email
+            loginEmail = profile.email;
+          } else {
+            // Fall back to derived placeholder (phone-only registration)
+            loginEmail = derivePlaceholderEmail(phone);
+          }
+        } catch (_) {
+          // DB lookup failed — fall back to placeholder
+          loginEmail = derivePlaceholderEmail(phone);
+        }
+      }
+
+      await db.auth.loginViaEmailPassword(loginEmail, password);
       window.location.href = "/";
     } catch (err) {
       if (loginMethod === 'phone') {
