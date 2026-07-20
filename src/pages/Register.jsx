@@ -85,43 +85,29 @@ export default function Register() {
 
       const token = result?.access_token ?? result?.token ?? result?.data?.access_token;
 
-      // Always persist pending registration data to localStorage so it can be
-      // picked up after OTP verification (covers the no-token / email-confirm flow)
-      localStorage.setItem('pending_registration', JSON.stringify({
-        phone_number: formattedPhone,
-        full_name: fullName.trim(),
-        email: loginEmail,
-      }));
+      // No OTP — session is always live immediately after registration
+      if (token) db.auth.setToken(token);
 
-      if (token) {
-        db.auth.setToken(token);
-        // Session is live — save StudentProfile immediately
-        try {
-          const me = await db.auth.me();
-          if (me?.id) {
-            const existing = await db.entities.StudentProfile.filter({ user_id: me.id });
-            const profileData = {
-              user_id:      me.id,
-              full_name:    fullName.trim(),
-              phone_number: formattedPhone,
-              email:        loginEmail,
-            };
-            if (existing.length > 0) {
-              await db.entities.StudentProfile.update(existing[0].id, profileData);
-            } else {
-              await db.entities.StudentProfile.create(profileData);
-            }
-            localStorage.removeItem('pending_registration');
+      // Save StudentProfile immediately so phone is available for admin nudges
+      try {
+        const me = await db.auth.me();
+        if (me?.id) {
+          const existing = await db.entities.StudentProfile.filter({ user_id: me.id });
+          const profileData = {
+            user_id:      me.id,
+            full_name:    fullName.trim(),
+            phone_number: formattedPhone,
+            email:        loginEmail,
+          };
+          if (existing.length > 0) {
+            await db.entities.StudentProfile.update(existing[0].id, profileData);
+          } else {
+            await db.entities.StudentProfile.create(profileData);
           }
-        } catch (_) {}
-        window.location.replace("/dashboard");
-      } else {
-        // OTP flow — phone will be saved when AuthContext loads after verification
-        navigate("/verify-otp", {
-          replace: true,
-          state: { email: loginEmail, phone: formattedPhone, fullName: fullName.trim(), refCode: refCode || null },
-        });
-      }
+        }
+      } catch (_) {}
+
+      window.location.replace("/dashboard");
     } catch (err) {
       const msg = err.message || "";
       if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists") || msg.toLowerCase().includes("user already")) {
