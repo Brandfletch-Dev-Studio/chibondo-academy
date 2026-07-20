@@ -104,6 +104,23 @@ export default function StudentDashboard() {
 
   const userId   = user?.id;
 
+  const { data: studentProfile } = useQuery({
+    queryKey: ['studentProfile', userId],
+    queryFn: () => db.entities.StudentProfile.filter({ user_id: userId }).then(r => r[0] || null),
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
+
+  const [phoneBannerDismissed, setPhoneBannerDismissed] = React.useState(
+    () => !!localStorage.getItem('phone_banner_dismissed')
+  );
+  const showPhoneBanner = !phoneBannerDismissed && !!userId && studentProfile !== undefined && !studentProfile?.phone_number;
+
+  const dismissPhoneBanner = () => {
+    localStorage.setItem('phone_banner_dismissed', '1');
+    setPhoneBannerDismissed(true);
+  };
+
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
     queryFn:  () => db.entities.Enrollment.filter({ student_id: userId }, '-last_accessed', 20),
@@ -150,6 +167,23 @@ export default function StudentDashboard() {
   return (
     <div className="space-y-6">
       <WelcomeCard user={user} />
+
+      {/* Phone number banner — shown to existing users without a phone on file */}
+      {showPhoneBanner && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-accent/10 border border-accent/20 text-sm">
+          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+            <Phone className="w-4 h-4 text-accent" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-accent text-xs">Add your phone number</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Keep your account secure and receive important updates.</p>
+          </div>
+          <a href="/settings" className="text-xs font-semibold text-accent underline underline-offset-2 whitespace-nowrap">Add now</a>
+          <button onClick={dismissPhoneBanner} className="p-1 rounded hover:bg-accent/20 transition-colors text-accent flex-shrink-0" aria-label="Dismiss">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Setup checklist — shown below welcome until complete */}
       <SetupChecklist user={user} />
