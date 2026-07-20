@@ -472,6 +472,12 @@ function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap }) {
           {/* Render content based on message type */}
           {msg.type === 'voice' ? (
             <CustomAudioPlayer url={msg.voice_url || msg.media_url} />
+          ) : msg.type === 'video' ? (
+            <video
+              src={msg.media_url}
+              controls
+              style={{ width: '100%', maxWidth: 260, borderRadius: 10, margin: '4px 0', display: 'block' }}
+            />
           ) : msg.type === 'image' ? (
             <div style={{ margin: '4px 0' }}>
               <img
@@ -722,7 +728,12 @@ export default function SubjectGroupChat() {
   });
 
   const handleSend = useCallback((customPayload = null) => {
-    if (!user?.id || !group) return;
+    if (!user?.id) {
+      // Guest trying to send — redirect to register
+      window.location.href = '/register';
+      return;
+    }
+    if (!group) return;
 
     if (customPayload) {
       sendMutation.mutate({
