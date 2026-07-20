@@ -1078,6 +1078,21 @@ export default function SubjectGroupChat() {
         <EditIconModal group={group} onClose={() => setShowEditIcon(false)} onSaved={setLocalGroup} />
       )}
 
+      {/* Message Action Sheet */}
+      {actionSheet && (
+        <MessageActionSheet
+          msg={actionSheet.msg}
+          isMine={actionSheet.isMine}
+          isStaff={actionSheet.isStaff}
+          onReply={(m) => { setReplyTo(m); setActionSheet(null); }}
+          onCopy={handleCopyMsg}
+          onDelete={handleDeleteMsg}
+          onPin={handlePinMsg}
+          onReport={handleReportMsg}
+          onClose={() => setActionSheet(null)}
+        />
+      )}
+
       {/* Fullscreen Image Lightbox */}
       {lightboxUrl && (
         <div
@@ -1229,6 +1244,8 @@ export default function SubjectGroupChat() {
                 theme={theme}
                 onReply={setReplyTo}
                 onImageTap={setLightboxUrl}
+                onAction={handleMsgAction}
+                isAdmin={user?.role === 'admin' || user?.role === 'teacher'}
               />
             )
           )}
