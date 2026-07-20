@@ -578,6 +578,9 @@ export default function SubjectGroupChat() {
   const t = THEMES[theme] || THEMES.classic;
   const isPrivileged = user?.role === 'admin' || user?.role === 'teacher';
 
+  // Guest redirect — guests can view but not send
+  const isGuest = !user?.id;
+
   const endRef      = useRef(null);
   const textareaRef = useRef(null);
   const menuRef     = useRef(null);
@@ -667,8 +670,23 @@ export default function SubjectGroupChat() {
     return members.filter(m => m.toLowerCase().includes(mentionQuery.toLowerCase()));
   }, [members, showMentions, mentionQuery]);
 
+  const prevLenRef = useRef(0);
+  const hasDoneInitialScroll = useRef(false);
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: messages.length < 4 ? 'instant' : 'smooth' });
+    if (!messages.length) return;
+    const isFirstLoad = !hasDoneInitialScroll.current;
+    const isNewMsg = messages.length > prevLenRef.current;
+    prevLenRef.current = messages.length;
+
+    if (isFirstLoad) {
+      // Jump instantly to bottom on first load
+      hasDoneInitialScroll.current = true;
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'instant' }), 50);
+    } else if (isNewMsg) {
+      // New message arrived — smooth scroll to bottom
+      endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages.length]);
 
   const grouped = useMemo(() => {
@@ -802,12 +820,13 @@ export default function SubjectGroupChat() {
     try {
       toast.loading('Uploading photo...', { id: 'upload' });
       const { file_url } = await db.integrations.Core.UploadFile({ file });
+      const isVideo = file.type.startsWith('video/');
       handleSend({
-        type: 'image',
+        type: isVideo ? 'video' : 'image',
         media_url: file_url,
-        body: '📷 Photo'
+        body: isVideo ? '🎥 Video' : '📷 Photo'
       });
-      toast.success('Photo shared!', { id: 'upload' });
+      toast.success(isVideo ? 'Video shared!' : 'Photo shared!', { id: 'upload' });
     } catch (err) {
       toast.error('Failed to upload image', { id: 'upload' });
     }
@@ -837,7 +856,12 @@ export default function SubjectGroupChat() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      // Pick best supported mimeType — webm/opus for Chrome/Android, mp4 for Safari/iOS
+      const mimeType = (() => {
+        const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+        return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+      })();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       audioChunks.current = [];
 
       recorder.ondataavailable = (e) => {
@@ -847,8 +871,10 @@ export default function SubjectGroupChat() {
       };
 
       recorder.onstop = async () => {
-        const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+        const recMime = recorder.mimeType || 'audio/webm';
+        const ext = recMime.includes('mp4') ? 'm4a' : recMime.includes('ogg') ? 'ogg' : 'webm';
+        const blob = new Blob(audioChunks.current, { type: recMime });
+        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: recMime });
         try {
           toast.loading('Sending voice note...', { id: 'voice' });
           const { file_url } = await db.integrations.Core.UploadFile({ file });
