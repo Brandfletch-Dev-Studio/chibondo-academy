@@ -265,108 +265,165 @@ function EditIconModal({ group, onClose, onSaved }) {
 }
 
 // ── Custom Audio Player for Voice Notes ───────────────────────────────────────
-function CustomAudioPlayer({ url }) {
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const audioRef = useRef(null);
+// Global registry so tapping play on one note pauses all others
+const audioRegistry = new Set();
 
-  useEffect(() => {
-    audioRef.current = new Audio(url);
-    const audio = audioRef.current;
-
-    const onTimeUpdate = () => {
-      if (audio.duration) {
-        setProgress((audio.currentTime / audio.duration) * 100);
-      }
-    };
-
-    const onLoadedMetadata = () => {
-      setDuration(audio.duration);
-    };
-
-    const onEnded = () => {
-      setPlaying(false);
-      setProgress(0);
-    };
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('ended', onEnded);
-    };
-  }, [url]);
-
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (playing) {
-      audioRef.current.pause();
-      setPlaying(false);
-    } else {
-      audioRef.current.play().catch(() => {});
-      setPlaying(true);
-    }
-  };
+function CustomAudioPlayer({ url, isMine }) {
+  const [playing,    setPlaying]    = useState(false);
+  const [progress,   setProgress]   = useState(0);
+  const [currentSec, setCurrentSec] = useState(0);
+  const [duration,   setDuration]   = useState(0);
+  const [loaded,     setLoaded]     = useState(false);
+  const audioRef  = useRef(null);
+  const rafRef    = useRef(null);
+  const pauseFnRef = useRef(null);
 
   const fmtDuration = (secs) => {
-    if (isNaN(secs)) return '0:00';
+    if (!secs || isNaN(secs)) return '0:00';
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // Tick RAF to update time display smoothly
+  const startTick = (audio) => {
+    const tick = () => {
+      if (!audio.paused) {
+        const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+        setProgress(pct);
+        setCurrentSec(audio.currentTime);
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
+  useEffect(() => {
+    const audio = new Audio(url);
+    audio.preload = 'metadata';
+    audioRef.current = audio;
+
+    // Pause function stored in registry
+    const pauseFn = () => {
+      audio.pause();
+      setPlaying(false);
+      cancelAnimationFrame(rafRef.current);
+    };
+    pauseFnRef.current = pauseFn;
+    audioRegistry.add(pauseFn);
+
+    audio.addEventListener('loadedmetadata', () => {
+      setDuration(audio.duration);
+      setLoaded(true);
+    });
+    audio.addEventListener('ended', () => {
+      setPlaying(false);
+      setProgress(0);
+      setCurrentSec(0);
+      cancelAnimationFrame(rafRef.current);
+    });
+    audio.addEventListener('error', () => {
+      setLoaded(false);
+    });
+
+    return () => {
+      audio.pause();
+      cancelAnimationFrame(rafRef.current);
+      audioRegistry.delete(pauseFn);
+    };
+  }, [url]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+      cancelAnimationFrame(rafRef.current);
+    } else {
+      // Pause all other playing audio
+      audioRegistry.forEach(fn => { if (fn !== pauseFnRef.current) fn(); });
+      audio.play().then(() => {
+        setPlaying(true);
+        startTick(audio);
+      }).catch(() => {});
+    }
+  };
+
+  // Scrub by tapping/clicking on the waveform
+  const handleScrub = (e) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const pct = Math.max(0, Math.min(1, x / rect.width));
+    audio.currentTime = pct * audio.duration;
+    setProgress(pct * 100);
+    setCurrentSec(audio.currentTime);
+  };
+
+  const BAR_HEIGHTS = [8, 14, 10, 18, 12, 16, 7, 15, 11, 17, 9, 14, 12, 16, 8];
+  const accentColor = isMine ? 'rgba(255,255,255,0.9)' : NAVY;
+  const trackColor  = isMine ? 'rgba(255,255,255,0.3)' : '#d0d0d0';
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0', minWidth: 200 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0', minWidth: 210 }}>
+      {/* Play / Pause button */}
       <button
         onClick={togglePlay}
         style={{
-          width: 36, height: 36, borderRadius: '50%', background: NAVY,
-          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: 'white', flexShrink: 0
+          width: 38, height: 38, borderRadius: '50%',
+          background: isMine ? 'rgba(255,255,255,0.25)' : NAVY,
+          border: isMine ? '1.5px solid rgba(255,255,255,0.5)' : 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', flexShrink: 0, transition: 'transform 0.15s',
         }}
+        onMouseDown={e => e.currentTarget.style.transform = 'scale(0.92)'}
+        onMouseUp={e   => e.currentTarget.style.transform = 'scale(1)'}
       >
-        {playing ? <Pause style={{ width: 16, height: 16, fill: 'white' }} /> : <Play style={{ width: 16, height: 16, fill: 'white', marginLeft: 2 }} />}
+        {playing
+          ? <Pause  style={{ width: 15, height: 15, fill: 'white', color: 'white' }} />
+          : <Play   style={{ width: 15, height: 15, fill: 'white', color: 'white', marginLeft: 2 }} />}
       </button>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {/* Waveform-style CSS animated visualizer */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: 18, position: 'relative' }}>
-          {[...Array(15)].map((_, i) => {
-            // Generate some pseudo heights for the bars
-            const baseHeight = [12, 16, 8, 14, 18, 10, 15, 6, 12, 16, 8, 14, 10, 15, 12][i];
-            const isPassed = (i / 15) * 100 <= progress;
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {/* Interactive waveform scrubber */}
+        <div
+          onClick={handleScrub}
+          onTouchEnd={handleScrub}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 2, height: 22,
+            cursor: 'pointer', paddingBottom: 2,
+          }}
+        >
+          {BAR_HEIGHTS.map((h, i) => {
+            const barPct = ((i + 1) / BAR_HEIGHTS.length) * 100;
+            const passed = barPct <= progress;
             return (
-              <div
-                key={i}
-                style={{
-                  width: 3,
-                  height: baseHeight,
-                  borderRadius: 2,
-                  background: isPassed ? NAVY : '#bbb',
-                  animation: playing && !isPassed ? 'pulseBar 1.2s infinite ease-in-out' : 'none',
-                  animationDelay: `${i * 0.08}s`,
-                }}
-              />
+              <div key={i} style={{
+                flex: 1, height: h, borderRadius: 2,
+                background: passed ? accentColor : trackColor,
+                transition: 'background 0.1s',
+                animation: playing && !passed ? `pulseBar 1.1s ${i * 0.07}s infinite ease-in-out` : 'none',
+              }} />
             );
           })}
-          <style>{`
-            @keyframes pulseBar {
-              0%, 100% { transform: scaleY(1); }
-              50% { transform: scaleY(1.4); }
-            }
-          `}</style>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#666' }}>
-          <span>{fmtDuration(audioRef.current ? audioRef.current.currentTime : 0)}</span>
-          <span>{fmtDuration(duration || 0)}</span>
+        {/* Time row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10,
+          color: isMine ? 'rgba(255,255,255,0.7)' : '#888' }}>
+          <span>{fmtDuration(currentSec)}</span>
+          <span>{fmtDuration(duration)}</span>
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulseBar {
+          0%, 100% { transform: scaleY(1);   }
+          50%       { transform: scaleY(1.5); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -376,6 +433,14 @@ function MessageActionSheet({ msg, isMine, isStaff, onReply, onCopy, onDelete, o
   const actions = [
     { icon: '↩️', label: 'Reply',        fn: () => { onReply(msg); onClose(); } },
     { icon: '📋', label: 'Copy Text',    fn: () => { onCopy(msg); onClose(); }, show: !!msg.body && msg.type !== 'image' && msg.type !== 'voice' },
+    { icon: '💾', label: 'Save Audio',   fn: () => {
+        const a = document.createElement('a');
+        a.href = msg.voice_url || msg.media_url;
+        a.download = `voice-note.webm`;
+        a.target = '_blank';
+        a.click();
+        onClose();
+      }, show: msg.type === 'voice' },
     { icon: '📌', label: 'Pin Message',  fn: () => { onPin(msg); onClose(); }, show: isStaff },
     { icon: '🗑️', label: 'Delete',       fn: () => { onDelete(msg); onClose(); }, show: isMine || isStaff, danger: true },
     { icon: '🚩', label: 'Report',       fn: () => { onReport(msg); onClose(); }, show: !isMine },
@@ -661,9 +726,11 @@ export default function SubjectGroupChat() {
   const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Voice Note states
-  const [recording, setRecording] = useState(false);
+  const [recording,    setRecording]    = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
-  const audioChunks = useRef([]);
+  const [recSeconds,   setRecSeconds]   = useState(0);
+  const audioChunks  = useRef([]);
+  const recTimerRef  = useRef(null);
 
   // Mentions / Tagging States
   const [showMentions, setShowMentions] = useState(false);
@@ -1045,17 +1112,26 @@ export default function SubjectGroupChat() {
       recorder.start();
       setMediaRecorder(recorder);
       setRecording(true);
+      setRecSeconds(0);
+      recTimerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000);
     } catch (err) {
       toast.error('Could not access microphone');
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (cancel = false) => {
+    clearInterval(recTimerRef.current);
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      if (cancel) {
+        // Override onstop to discard
+        mediaRecorder.onstop = () => {};
+        audioChunks.current = [];
+      }
       mediaRecorder.stop();
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
     setRecording(false);
+    setRecSeconds(0);
   };
 
   if (!group) {
@@ -1297,21 +1373,55 @@ export default function SubjectGroupChat() {
         {/* ── Recording Indicator ── */}
         {recording && (
           <div style={{
-            flexShrink: 0, background: 'rgba(255,255,255,0.95)',
-            borderTop: '1px solid rgba(0,0,0,0.06)', padding: '12px 16px',
-            display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center'
+            flexShrink: 0, background: 'rgba(255,255,255,0.97)',
+            borderTop: '1px solid rgba(0,0,0,0.08)', padding: '10px 16px',
+            display: 'flex', alignItems: 'center', gap: 12,
           }}>
-            <div style={{
-              width: 12, height: 12, borderRadius: '50%', background: 'red',
-              animation: 'pulseRed 1s infinite alternate'
-            }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>Recording Voice Note...</span>
-            <style>{`
-              @keyframes pulseRed {
-                from { opacity: 0.3; transform: scale(0.9); }
-                to { opacity: 1; transform: scale(1.1); }
-              }
-            `}</style>
+            {/* Cancel */}
+            <button
+              onClick={() => stopRecording(true)}
+              style={{
+                width: 36, height: 36, borderRadius: '50%', background: '#f5f5f5',
+                border: '1px solid #ddd', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'pointer', flexShrink: 0, color: '#e53935'
+              }}
+            >
+              <X style={{ width: 16, height: 16 }} />
+            </button>
+
+            {/* Animated waveform bars */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 3, height: 24 }}>
+              {[10,16,8,18,12,15,7,14,11,17,9,13,16,8,12].map((h, i) => (
+                <div key={i} style={{
+                  flex: 1, height: h, borderRadius: 2, background: 'red',
+                  animation: `recPulse 0.9s ${i * 0.06}s infinite ease-in-out`,
+                  opacity: 0.8,
+                }} />
+              ))}
+              <style>{`
+                @keyframes recPulse {
+                  0%,100% { transform: scaleY(0.5); }
+                  50%     { transform: scaleY(1.3); }
+                }
+              `}</style>
+            </div>
+
+            {/* Timer */}
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#e53935', fontVariantNumeric: 'tabular-nums', minWidth: 40 }}>
+              {String(Math.floor(recSeconds / 60)).padStart(2,'0')}:{String(recSeconds % 60).padStart(2,'0')}
+            </span>
+
+            {/* Send */}
+            <button
+              onClick={() => stopRecording(false)}
+              style={{
+                width: 40, height: 40, borderRadius: '50%', background: NAVY,
+                border: 'none', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <Send style={{ width: 18, height: 18, color: 'white' }} />
+            </button>
           </div>
         )}
 
