@@ -36,33 +36,7 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
 
-      // Flush pending_registration — phone/name stored during OTP flow before session existed
-      if (currentUser?.id) {
-        try {
-          const pending = localStorage.getItem('pending_registration');
-          if (pending) {
-            const { phone_number, full_name, email } = JSON.parse(pending);
-            const existing = await db.entities.StudentProfile.filter({ user_id: currentUser.id });
-            const profileData = {
-              user_id:      currentUser.id,
-              full_name:    full_name || currentUser.full_name || '',
-              phone_number: phone_number || '',
-              email:        email || currentUser.email || '',
-            };
-            if (existing.length > 0) {
-              // Only update if DB record is still missing phone
-              if (!existing[0].phone_number && phone_number) {
-                await db.entities.StudentProfile.update(existing[0].id, profileData);
-              }
-            } else {
-              await db.entities.StudentProfile.create(profileData);
-            }
-            localStorage.removeItem('pending_registration');
-          }
-        } catch (_) {
-          // Non-fatal — don't block auth
-        }
-      }
+      // No OTP flow — StudentProfile is saved directly in Register.jsx on signup
     } catch (error) {
       setIsAuthenticated(false);
       setUser(null);
