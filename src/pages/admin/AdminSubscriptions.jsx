@@ -861,22 +861,28 @@ export default function AdminSubscriptions() {
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
             <div
               className="relative bg-background w-full max-w-sm h-full overflow-y-auto shadow-2xl flex flex-col"
+              style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
               onClick={e => e.stopPropagation()}
             >
+              {/* Sticky drawer top bar — sits above hero, prevents clip under app TopBar */}
+              <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-sm border-b border-border">
+                <p className="text-sm font-semibold text-foreground truncate max-w-[220px]">
+                  {s._user?.full_name || 'Student'}
+                </p>
+                <button
+                  onClick={() => setSelectedSub(null)}
+                  className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               {/* Hero header */}
-              <div className={`relative px-5 pt-12 pb-6 border-b ${
+              <div className={`relative px-5 pt-6 pb-6 border-b ${
                 isActive  ? 'bg-gradient-to-br from-emerald-500/10 via-card to-card border-emerald-400/20' :
                 isExpired ? 'bg-gradient-to-br from-destructive/10 via-card to-card border-destructive/20' :
                             'bg-gradient-to-br from-amber-500/10 via-card to-card border-amber-400/20'
               }`}>
-                {/* Close button */}
-                <button
-                  onClick={() => setSelectedSub(null)}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted/80 hover:bg-muted flex items-center justify-center transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
                 {/* Avatar + name */}
                 <div className="flex flex-col items-center text-center gap-2">
                   <div className="w-16 h-16 rounded-2xl bg-primary/15 border-2 border-primary/25 flex items-center justify-center text-2xl font-bold text-primary shadow-lg">
