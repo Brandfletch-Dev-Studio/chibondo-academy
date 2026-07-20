@@ -172,6 +172,19 @@ async function activateSubscription(base44: any, payment: any) {
     });
   }
 
+  // ── Cancel any remaining pending payments for this student (no more nudges) ─
+  try {
+    const stillPending = await base44.asServiceRole.entities.Payment.filter({ student_id: studentId, status: 'pending' });
+    await Promise.all(
+      stillPending
+        .filter((p: any) => p.id !== payment.id)
+        .map((p: any) => base44.asServiceRole.entities.Payment.update(p.id, { status: 'cancelled' }))
+    );
+    if (stillPending.length > 0) console.log(`✅ Cancelled ${stillPending.length} pending payment(s) for student ${studentId}`);
+  } catch (e: any) {
+    console.warn('Could not cancel pending payments:', e.message);
+  }
+
   // ── Commission logic ──────────────────────────────────────────────────────
   try {
     const commSettings = await base44.asServiceRole.entities.PlatformSettings.filter({ key: 'affiliate_commission' });
