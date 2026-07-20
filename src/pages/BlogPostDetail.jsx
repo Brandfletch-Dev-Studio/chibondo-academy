@@ -199,9 +199,17 @@ export default function BlogPostDetail() {
 
   const post = posts[0];
 
-  // Increment view count once per visit
+  // Increment view count once per visit — uses backend function to bypass RLS
   const viewMutation = useMutation({
-    mutationFn: () => db.entities.BlogPost.update(post.id, { view_count: (post.view_count || 0) + 1 }),
+    mutationFn: async () => {
+      // Call trackBlogView backend function (service role — bypasses RLS so anyone can increment views)
+      const res = await fetch('/api/trackBlogView', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: post.id }),
+      });
+      if (!res.ok) throw new Error('view track failed');
+    },
   });
 
   useEffect(() => {
