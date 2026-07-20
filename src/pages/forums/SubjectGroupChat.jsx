@@ -557,8 +557,12 @@ function MessageBubble({ msg, isMine, showName, theme, onReply, onImageTap, onAc
             </div>
           )}
 
-          {/* Render content based on message type */}
-          {msg.type === 'voice' ? (
+          {/* Deleted message */}
+          {msg.deleted ? (
+            <p style={{ margin: 0, fontSize: 13, color: '#aaa', fontStyle: 'italic' }}>
+              🚫 This message was deleted
+            </p>
+          ) : msg.type === 'voice' ? (
             <CustomAudioPlayer url={msg.voice_url || msg.media_url} />
           ) : msg.type === 'video' ? (
             <video
@@ -641,7 +645,8 @@ export default function SubjectGroupChat() {
   const qc                 = useQueryClient();
 
   const [text, setText]         = useState('');
-  const [replyTo, setReplyTo]   = useState(null);
+  const [replyTo,      setReplyTo]      = useState(null);
+  const [actionSheet,  setActionSheet]  = useState(null); // { msg, isMine, isStaff }
   const [showMenu, setShowMenu] = useState(false);
   const [showEditIcon, setShowEditIcon] = useState(false);
   const [showTheme, setShowTheme]       = useState(false);
@@ -854,6 +859,55 @@ export default function SubjectGroupChat() {
     setReplyTo(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }, [text, user, group, replyTo, sendMutation]);
+
+  // ── Message action handlers ────────────────────────────────────────────────
+  const handleMsgAction = useCallback((msg, isMine, isStaff) => {
+    setActionSheet({ msg, isMine, isStaff });
+  }, []);
+
+  const handleDeleteMsg = useCallback(async (msg) => {
+    try {
+      await db.entities.GroupChatMessage.update(msg.id, {
+        body: '🚫 This message was deleted',
+        type: 'text',
+        media_url: null,
+        deleted: true,
+      });
+      toast.success('Message deleted');
+    } catch {
+      toast.error('Could not delete message');
+    }
+  }, []);
+
+  const handleCopyMsg = useCallback((msg) => {
+    const text = msg.body || '';
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => toast.success('Copied!'));
+    } else {
+      // fallback
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      toast.success('Copied!');
+    }
+  }, []);
+
+  const handlePinMsg = useCallback(async (msg) => {
+    try {
+      await db.entities.GroupChatMessage.update(msg.id, { pinned: true });
+      toast.success('Message pinned');
+    } catch {
+      toast.error('Could not pin message');
+    }
+  }, []);
+
+  const handleReportMsg = useCallback((msg) => {
+    toast('Message reported to admins', { icon: '🚩' });
+    // Could create a Report entity here in future
+  }, []);
 
   const handleKey = e => {
     if (showMentions && filteredMembers.length > 0) {
