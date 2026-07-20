@@ -105,6 +105,35 @@ function StudentHistoryPanel({ studentId, studentName, payments, onClose }) {
   );
 }
 
+// ── Live "nudged X ago" badge ─────────────────────────────────────────────────
+function NudgeBadge({ ts, count }) {
+  const [label, setLabel] = React.useState('');
+  React.useEffect(() => {
+    function update() {
+      const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+      if (diff < 60)        setLabel(`${diff}s ago`);
+      else if (diff < 3600) setLabel(`${Math.floor(diff/60)}m ago`);
+      else if (diff < 86400) setLabel(`${Math.floor(diff/3600)}h ago`);
+      else                  setLabel(`${Math.floor(diff/86400)}d ago`);
+    }
+    update();
+    const t = setInterval(update, 10000);
+    return () => clearInterval(t);
+  }, [ts]);
+  return (
+    <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full whitespace-nowrap" title={`Last nudged: ${new Date(ts).toLocaleString()}`}>
+      nudged {label}{count > 1 ? ` ×${count}` : ''}
+    </span>
+  );
+}
+
+// ── Prefilled nudge openers ───────────────────────────────────────────────────
+function buildNudgeMessage(name, amount) {
+  const firstName = (name || 'Student').split(' ')[0];
+  const amt = amount ? `MWK ${Number(amount).toLocaleString()}` : '';
+  return `Hi ${firstName}, your Chibondo Academy MSCE school fees${amt ? ` of ${amt}` : ''} are still pending. Please complete your payment to unlock full access to your lessons and past papers: https://chibondoacademy.com/subscription`;
+}
+
 export default function AdminSubscriptions() {
   const queryClient = useQueryClient();
   const [search, setSearch]             = useState('');
@@ -375,6 +404,35 @@ export default function AdminSubscriptions() {
     }
     setNudgingAll(false);
     toast.success(`Nudged ${sent}${skipped ? `, skipped ${skipped} (already paid)` : ''}${failed ? `, ${failed} failed` : ''}`);
+  };
+
+  // ── Prefilled nudge openers ──────────────────────────────────────────────
+  const openEmailNudge = (payment, { name, email, amount }) => {
+    if (!email) { toast.error('No email address for this student'); return; }
+    const subject = encodeURIComponent('Your Chibondo Academy MSCE Fees Are Pending');
+    const body    = encodeURIComponent(buildNudgeMessage(name, amount) + '\n\nThank you,\nChibondo Academy Team');
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+    // Log the nudge
+    updatePaymentMutation.mutate({ id: payment.id, data: { last_nudge_at: new Date().toISOString(), nudge_count: (payment.nudge_count || 0) + 1 } });
+  };
+
+  const openSmsNudge = (payment, { name, phone, amount }) => {
+    if (!phone) { toast.error('No phone number for this student'); return; }
+    const digits  = phone.replace(/\D/g,'');
+    const msg     = encodeURIComponent(buildNudgeMessage(name, amount));
+    // sms: URI — works on mobile; fallback opens compose on desktop apps
+    window.open(`sms:+${digits}?body=${msg}`, '_blank');
+    updatePaymentMutation.mutate({ id: payment.id, data: { last_nudge_at: new Date().toISOString(), nudge_count: (payment.nudge_count || 0) + 1 } });
+  };
+
+  const openWhatsAppNudge = (payment, { name, phone, amount }) => {
+    if (!phone) { toast.error('No phone number for this student'); return; }
+    const digits = phone.replace(/\D/g,'');
+    // Ensure international format (strip leading 0 and prepend 265 for Malawi)
+    const intl   = digits.startsWith('265') ? digits : digits.startsWith('0') ? '265' + digits.slice(1) : '265' + digits;
+    const msg    = encodeURIComponent(buildNudgeMessage(name, amount));
+    window.open(`https://wa.me/${intl}?text=${msg}`, '_blank');
+    updatePaymentMutation.mutate({ id: payment.id, data: { last_nudge_at: new Date().toISOString(), nudge_count: (payment.nudge_count || 0) + 1 } });
   };
 
   // ── CSV Export ────────────────────────────────────────────────────────────
@@ -710,7 +768,11 @@ export default function AdminSubscriptions() {
                         </td>
                         {/* Actions */}
                         <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1 flex-wrap">
+                            {/* Nudge timestamp badge */}
+                            {p.last_nudge_at && (
+                              <NudgeBadge ts={p.last_nudge_at} count={p.nudge_count} />
+                            )}
                             {/* Admin notes popover */}
                             <Popover>
                               <PopoverTrigger asChild>
@@ -733,19 +795,28 @@ export default function AdminSubscriptions() {
                             </Popover>
                             {p.status === 'pending' && !hasPaid && (
                               <>
+                                {/* Email — opens prefilled mailto */}
                                 <Button size="sm" variant="outline"
                                   className="h-7 text-[11px] gap-1 border-accent/40 text-accent hover:bg-accent/10 px-2"
-                                  onClick={() => handleSendRecovery(p)} disabled={sendingRecovery === p.id}
-                                  title="Send email nudge">
-                                  {sendingRecovery === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
-                                  {sendingRecovery === p.id ? '…' : 'Email'}
+                                  onClick={() => openEmailNudge(p, { name, email, amount: p.amount })}
+                                  title={email ? 'Open prefilled email' : 'No email on file'}>
+                                  <Mail className="w-3 h-3" /> Email
                                 </Button>
+                                {/* SMS — opens prefilled SMS */}
                                 <Button size="sm" variant="outline"
-                                  className="h-7 text-[11px] gap-1 border-primary/40 text-primary hover:bg-primary/10 px-2"
-                                  onClick={() => handleSendSms(p)} disabled={sendingSms === p.id || !phone}
-                                  title={phone ? 'Send SMS nudge' : 'No phone number on file'}>
-                                  {sendingSms === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Smartphone className="w-3 h-3" />}
-                                  {sendingSms === p.id ? '…' : 'SMS'}
+                                  className="h-7 text-[11px] gap-1 border-blue-500/40 text-blue-500 hover:bg-blue-500/10 px-2"
+                                  onClick={() => openSmsNudge(p, { name, phone, amount: p.amount })}
+                                  title={phone ? 'Open prefilled SMS' : 'No phone number on file'}
+                                  disabled={!phone}>
+                                  <Smartphone className="w-3 h-3" /> SMS
+                                </Button>
+                                {/* WhatsApp — opens prefilled wa.me */}
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-[11px] gap-1 border-green-500/40 text-green-600 hover:bg-green-500/10 px-2"
+                                  onClick={() => openWhatsAppNudge(p, { name, phone, amount: p.amount })}
+                                  title={phone ? 'Open WhatsApp message' : 'No phone number on file'}
+                                  disabled={!phone}>
+                                  <MessageSquare className="w-3 h-3" /> WA
                                 </Button>
                               </>
                             )}
