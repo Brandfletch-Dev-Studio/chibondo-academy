@@ -70,26 +70,55 @@ export default function Login() {
         return;
       }
 
-      // Phone login: first try StudentProfile lookup to find their registered email
+      // Phone login strategy:
+      // 1. Look up users.phone_number — covers people who set their phone in settings
+      // 2. Look up student_profiles.phone_number → join to users table for email
+      // 3. Fall back to placeholder email variants (original phone-registered accounts)
       let succeeded = false;
       const digits = phone.replace(/\D/g, '');
       const core = digits.startsWith('265') ? digits.slice(3) : digits.startsWith('0') ? digits.slice(1) : digits;
       const formatted = `+265${core}`;
 
-      // Step 1: look up their profile to get the exact email they registered with
+      // Step 1: users table phone_number lookup (email-registered users who added their phone)
       try {
-        const profiles = await db.entities.StudentProfile.filter({ phone_number: formatted });
-        const profileEmail = profiles[0]?.email;
-        if (profileEmail) {
+        const userRows = await db.entities.User.filter({ phone_number: formatted });
+        const userEmail = userRows[0]?.email;
+        if (userEmail && !userEmail.includes('@student.chibondoacademy.com')) {
+          // Real email — try it directly
           try {
-            await db.auth.loginViaEmailPassword(profileEmail, password);
+            await db.auth.loginViaEmailPassword(userEmail, password);
             window.location.href = "/";
             return;
-          } catch (_) {} // wrong password or account issue — fall through to variants
+          } catch (_) {} // wrong password — fall through
+        }
+        // Also try if it's a placeholder email (phone-registered, phone stored in users too)
+        if (userEmail) {
+          try {
+            await db.auth.loginViaEmailPassword(userEmail, password);
+            window.location.href = "/";
+            return;
+          } catch (_) {}
         }
       } catch (_) {}
 
-      // Step 2: try all placeholder email variants (covers all registration formats)
+      // Step 2: student_profiles phone_number → find their user_id → get email from users
+      try {
+        const profiles = await db.entities.StudentProfile.filter({ phone_number: formatted });
+        const userId = profiles[0]?.user_id;
+        if (userId) {
+          const userRows = await db.entities.User.filter({ id: userId });
+          const profileUserEmail = userRows[0]?.email;
+          if (profileUserEmail) {
+            try {
+              await db.auth.loginViaEmailPassword(profileUserEmail, password);
+              window.location.href = "/";
+              return;
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+
+      // Step 3: placeholder email variants (original phone-registered accounts)
       for (const variant of phoneEmailVariants(phone)) {
         try {
           await db.auth.loginViaEmailPassword(variant, password);
