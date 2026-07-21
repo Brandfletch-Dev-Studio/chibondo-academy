@@ -282,11 +282,66 @@ function AcademicPanel({ user }) {
 }
 
 function NotificationsPanel({ user }) {
-  const { permission, requestPermission, isSupported } = usePushNotifications?.() ?? {};
+  const { permission, subscribe, unsubscribe, isSupported, isSubscribing, error, isSubscribed } = usePushNotifications(user);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const granted = permission === 'granted';
+
+  // Load push_enabled or email_notifications_enabled on mount
+  useEffect(() => {
+    let active = true;
+    const loadSettings = async () => {
+      try {
+        // Try StudentProfile first
+        const profiles = await db.entities.StudentProfile.filter({ user_id: user.id });
+        if (active && profiles && profiles.length > 0) {
+          const prof = profiles[0];
+          if (prof.push_enabled !== undefined && prof.push_enabled !== null) {
+            setEmailNotifs(!!prof.push_enabled);
+            return;
+          }
+          if (prof.email_notifications_enabled !== undefined && prof.email_notifications_enabled !== null) {
+            setEmailNotifs(!!prof.email_notifications_enabled);
+            return;
+          }
+        }
+        
+        // Try User entity
+        const u = await db.entities.User.filter({ id: user.id });
+        if (active && u && u.length > 0) {
+          const usr = u[0];
+          if (usr.push_enabled !== undefined && usr.push_enabled !== null) {
+            setEmailNotifs(!!usr.push_enabled);
+            return;
+          }
+          if (usr.email_notifications_enabled !== undefined && usr.email_notifications_enabled !== null) {
+            setEmailNotifs(!!usr.email_notifications_enabled);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Error loading notification settings:', err);
+      }
+    };
+    loadSettings();
+    return () => { active = false; };
+  }, [user.id]);
+
+  const toggleEmailNotifs = async () => {
+    if (saving) return;
+    const newValue = !emailNotifs;
+    setSaving(true);
+    try {
+      await db.entities.User.update(user.id, { email_notifications_enabled: newValue });
+      setEmailNotifs(newValue);
+      toast.success('Email notifications updated');
+    } catch (err) {
+      toast.error(err?.message || 'Could not update email notifications');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -305,20 +360,32 @@ function NotificationsPanel({ user }) {
           </div>
         </div>
 
-        {!granted && isSupported && (
+        {!isSubscribed && isSupported && (
           <button
-            onClick={requestPermission}
-            className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2"
+            onClick={subscribe}
+            disabled={isSubscribing}
+            className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            <Bell className="w-4 h-4" /> Enable Notifications
+            {isSubscribing
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Enabling…</>
+              : <><Bell className="w-4 h-4" /> Enable Notifications</>}
           </button>
         )}
-        {granted && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
-            <Check className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Notifications are enabled</span>
+
+        {error && (
+          <p className="text-xs text-destructive px-1">{error}</p>
+        )}
+
+        {granted && isSubscribed && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex-1">Notifications are enabled</span>
+              <button onClick={unsubscribe} className="text-xs text-muted-foreground hover:text-destructive underline">Disable</button>
+            </div>
           </div>
         )}
+
         {!isSupported && (
           <p className="text-xs text-muted-foreground px-1">Push notifications are not supported on this device/browser.</p>
         )}
@@ -336,9 +403,11 @@ function NotificationsPanel({ user }) {
               <p className="text-xs text-muted-foreground mt-0.5">Payment reminders and platform updates</p>
             </div>
           </div>
+          {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
           <button
-            onClick={() => setEmailNotifs(v => !v)}
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${emailNotifs ? 'bg-primary' : 'bg-muted'}`}
+            onClick={toggleEmailNotifs}
+            disabled={saving}
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${emailNotifs ? 'bg-primary' : 'bg-muted'} ${saving ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${emailNotifs ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
