@@ -40,6 +40,10 @@ export function usePushNotifications(user) {
     if (!isSupported) return;
     navigator.serviceWorker.ready.then((reg) => {
       swRef.current = reg;
+      // Send VAPID key to SW so pushsubscriptionchange can auto-resubscribe
+      if (VAPID_PUBLIC_KEY) {
+        reg.active?.postMessage({ type: 'SET_VAPID_KEY', key: VAPID_PUBLIC_KEY });
+      }
       // Only read existing subscription — do NOT auto-subscribe
       reg.pushManager.getSubscription().then((sub) => {
         if (sub) setSubscription(sub);
