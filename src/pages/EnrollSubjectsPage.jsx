@@ -72,14 +72,12 @@ export default function EnrollSubjectsPage() {
     return match ? [match.id] : forms.map(f => f.id);
   }, [studentForm, forms, formsByName]);
 
-  /* ── Filter subjects ── */
+  /* ── Filter subjects — group by form_name on subject itself (no AcademicForm table needed) ── */
   const filteredSubjects = useMemo(() => {
     return subjects.filter(s => {
-      const formOk   = relevantFormIds.includes(s.form_id);
-      const searchOk = !search.trim() || s.name.toLowerCase().includes(search.toLowerCase());
-      return formOk && searchOk;
+      return !search.trim() || s.name.toLowerCase().includes(search.toLowerCase());
     });
-  }, [subjects, relevantFormIds, search]);
+  }, [subjects, search]);
 
   /* ── Selection state — start with currently enrolled ── */
   const [selected, setSelected] = useState(null); // null = not initialised yet
@@ -140,48 +138,44 @@ export default function EnrollSubjectsPage() {
     }
   };
 
-  // Group by form for display
-  const subjectsByForm = useMemo(() => {
+  // Group by form_name string on the subject (no AcademicForm table needed)
+  const formNames = useMemo(() => {
+    const names = [...new Set(filteredSubjects.map(s => s.form_name || s.form || 'Other').filter(Boolean))].sort();
+    return names;
+  }, [filteredSubjects]);
+
+  const subjectsByFormName = useMemo(() => {
     const map = {};
     filteredSubjects.forEach(s => {
-      const key = s.form_id || 'other';
+      const key = s.form_name || s.form || 'Other';
       if (!map[key]) map[key] = [];
       map[key].push(s);
     });
     return map;
   }, [filteredSubjects]);
 
-  const displayForms = forms.filter(f => relevantFormIds.includes(f.id) && subjectsByForm[f.id]?.length > 0);
-
-  const selectedCount = selected ? [...selected].filter(id => filteredSubjects.find(s => s.id === id)).length : 0;
+  const selectedCount = selected ? [...selected].filter(id => subjects.find(s => s.id === id)).length : 0;
 
   return (
     <>
       <SEO title="Choose Subjects | Chibondo Academy" />
       <div className="space-y-5 pb-32">
 
-        {/* Header */}
-        <div className="rounded-2xl p-6" style={{ background: 'hsl(var(--card))' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
-            <span className="text-sm" style={{ color: 'hsl(var(--primary) / 0.8)' }}>
-              {studentForm ? `Your subjects — ${studentForm}` : 'Choose your subjects'}
-            </span>
+        {/* Header — matches site gradient style */}
+        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+          <div className="flex items-center gap-2 mb-2 opacity-80">
+            <GraduationCap className="w-5 h-5" />
+            <span className="text-sm font-medium">Choose your subjects</span>
           </div>
-          <h1 className="text-xl font-display font-bold mb-1" style={{ color: 'hsl(var(--foreground))' }}>Enrol in Subjects</h1>
-          <p className="text-sm mb-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          <h1 className="text-2xl font-bold mb-1">Enrol in Subjects</h1>
+          <p className="text-sm opacity-80 mb-4">
             Tick all subjects you want to study. You'll be enrolled automatically.
-            {studentForm === 'Form 4' && (
-              <span className="block mt-1 text-xs" style={{ color: 'hsl(var(--primary))' }}>
-                As a Form 4 student, you can enrol in both Form 3 and Form 4 subjects.
-              </span>
-            )}
           </p>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/60" />
             <Input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search subjects…"
-              className="pl-9 bg-card/95 text-gray-900 placeholder:text-gray-400 border-0" />
+              className="pl-9 bg-white/15 border-white/20 text-primary-foreground placeholder:text-primary-foreground/50 focus:bg-white/20" />
           </div>
         </div>
 
@@ -205,19 +199,19 @@ export default function EnrollSubjectsPage() {
           <div className="space-y-3">
             {[1,2,3,4,5,6].map(i => <div key={i} className="h-16 bg-card rounded-xl border border-border animate-pulse" />)}
           </div>
-        ) : displayForms.length === 0 ? (
+        ) : filteredSubjects.length === 0 ? (
           <div className="text-center py-20">
             <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/20 mb-3" />
             <p className="text-muted-foreground">No subjects found</p>
           </div>
         ) : (
-          displayForms.map(form => (
-            <div key={form.id}>
+          formNames.map(formName => (
+            <div key={formName}>
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 px-1">
-                {form.name}
+                {formName}
               </p>
               <div className="space-y-2">
-                {(subjectsByForm[form.id] || []).map(subject => {
+                {(subjectsByFormName[formName] || []).map(subject => {
                   const isSelected = selected?.has(subject.id);
                   const isEnrolled = enrolledIds.has(subject.id);
                   return (
