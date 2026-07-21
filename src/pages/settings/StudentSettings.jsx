@@ -79,8 +79,13 @@ function ProfilePanel({ user, checkUserAuth }) {
     setFullName(user.full_name || '');
     db.entities.StudentProfile.filter({ user_id: user.id }).then(rows => {
       if (rows[0]) {
-        if (rows[0].phone_number) setPhone(rows[0].phone_number);
+        // Prefer StudentProfile phone, fall back to auth user.phone (set at registration)
+        const phoneVal = rows[0].phone_number || user?.phone || '';
+        if (phoneVal) setPhone(phoneVal);
         if (!isPlaceholderEmail(rows[0].email)) setEmail(rows[0].email || '');
+      } else {
+        // No profile yet — still pre-fill from auth user phone
+        if (user?.phone) setPhone(user.phone);
       }
     }).catch(() => {});
   }, [user?.id]);
@@ -517,3 +522,4 @@ export default function StudentSettings() {
     </div>
   );
 }
+
