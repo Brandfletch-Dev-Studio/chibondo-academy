@@ -96,7 +96,11 @@ function ProfilePanel({ user, checkUserAuth }) {
     const formattedPhone = phone.trim() ? formatPhone(phone) : '';
     setSaving(true);
     try {
+      // Update users table (full_name + phone) — always works, no schema issues
       await db.auth.updateMe({ full_name: fullName.trim() });
+      if (formattedPhone) {
+        await db.entities.User.update(user.id, { phone_number: formattedPhone }).catch(() => {});
+      }
       const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
       // Only update columns that actually exist in student_profiles table:
       // user_id, full_name, phone_number, email, form, avatar_url
@@ -104,13 +108,14 @@ function ProfilePanel({ user, checkUserAuth }) {
         user_id:      user.id,
         full_name:    fullName.trim(),
         phone_number: formattedPhone,
-        email:        hasPlaceholder ? (email.trim() || user.email) : user.email,
+        // Note: student_profiles has no email column — email is on users table only
       };
       if (rows[0]) await db.entities.StudentProfile.update(rows[0].id, profileData);
       else         await db.entities.StudentProfile.create(profileData);
 
       if (hasPlaceholder && email.trim()) {
-        try { await db.auth.updateMe({ email: email.trim() }); } catch (_) {}
+        // Email update in Supabase sends a confirmation — fire-and-forget, don't block save
+        db.auth.updateMe({ email: email.trim() }).catch(() => {});
       }
       await checkUserAuth();
       toast.success('Profile saved');
@@ -288,7 +293,7 @@ function NotificationsPanel({ user }) {
 
   const granted = permission === 'granted';
 
-  // Load push_enabled or email_notifications_enabled on mount
+  // Load push_enabled or email_notifications on mount
   useEffect(() => {
     let active = true;
     const loadSettings = async () => {
@@ -301,8 +306,8 @@ function NotificationsPanel({ user }) {
             setEmailNotifs(!!prof.push_enabled);
             return;
           }
-          if (prof.email_notifications_enabled !== undefined && prof.email_notifications_enabled !== null) {
-            setEmailNotifs(!!prof.email_notifications_enabled);
+          if (prof.email_notifications !== undefined && prof.email_notifications !== null) {
+            setEmailNotifs(!!prof.email_notifications);
             return;
           }
         }
@@ -315,8 +320,8 @@ function NotificationsPanel({ user }) {
             setEmailNotifs(!!usr.push_enabled);
             return;
           }
-          if (usr.email_notifications_enabled !== undefined && usr.email_notifications_enabled !== null) {
-            setEmailNotifs(!!usr.email_notifications_enabled);
+          if (usr.email_notifications !== undefined && usr.email_notifications !== null) {
+            setEmailNotifs(!!usr.email_notifications);
             return;
           }
         }
@@ -333,7 +338,7 @@ function NotificationsPanel({ user }) {
     const newValue = !emailNotifs;
     setSaving(true);
     try {
-      await db.entities.User.update(user.id, { email_notifications_enabled: newValue });
+      await db.entities.User.update(user.id, { email_notifications: newValue });
       setEmailNotifs(newValue);
       toast.success('Email notifications updated');
     } catch (err) {
