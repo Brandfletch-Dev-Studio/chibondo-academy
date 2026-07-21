@@ -34,10 +34,20 @@ export default function Login() {
   }, []);
 
   // Derive fallback placeholder email from phone digits (used only if no real email exists)
-  const derivePlaceholderEmail = (phoneStr) => {
-    const digits = phoneStr.replace(/\D/g, '');
-    const last9  = digits.slice(-9);
-    return `${last9}@student.chibondoacademy.com`;
+  // Generate every possible placeholder email for a phone number
+  // Covers all formats students may have used at registration
+  const phoneEmailVariants = (rawPhone) => {
+    const digits = rawPhone.replace(/\D/g, '');
+    // Normalise: strip leading 265 or 0 to get the core 9-digit number
+    const core = digits.startsWith('265') ? digits.slice(3)
+               : digits.startsWith('0')   ? digits.slice(1)
+               : digits;
+    const variants = new Set();
+    variants.add(`${core}@student.chibondoacademy.com`);           // 999817171@...
+    variants.add(`${digits}@student.chibondoacademy.com`);         // 265999817171@... or 0999817171@...
+    if (core.length >= 9) variants.add(`${core.slice(-9)}@student.chibondoacademy.com`);
+    if (digits.length >= 9) variants.add(`${digits.slice(-9)}@student.chibondoacademy.com`);
+    return [...variants];
   };
 
   const handleSubmit = async (e) => {
@@ -54,38 +64,43 @@ export default function Login() {
 
     setLoading(true);
     try {
-      let loginEmail;
-
       if (loginMethod === 'email') {
-        loginEmail = email.trim();
-      } else {
-        // Format phone to +265
-        const digits = phone.replace(/\D/g, '');
-        const formatted = phone.startsWith('+265') ? phone.replace(/\s/g,'')
-          : digits.startsWith('265') ? '+' + digits
-          : digits.startsWith('0')   ? '+265' + digits.slice(1)
-          : digits.length === 9      ? '+265' + digits
-          : phone;
-
-        // Look up StudentProfile by phone to find their real registered email
-        try {
-          const profiles = await db.entities.StudentProfile.filter({ phone_number: formatted });
-          const profile  = profiles[0];
-          if (profile?.email && !profile.email.includes('@student.chibondoacademy.com')) {
-            // Use their real email
-            loginEmail = profile.email;
-          } else {
-            // Fall back to derived placeholder (phone-only registration)
-            loginEmail = derivePlaceholderEmail(phone);
-          }
-        } catch (_) {
-          // DB lookup failed — fall back to placeholder
-          loginEmail = derivePlaceholderEmail(phone);
-        }
+        await db.auth.loginViaEmailPassword(email.trim(), password);
+        window.location.href = "/";
+        return;
       }
 
-      await db.auth.loginViaEmailPassword(loginEmail, password);
-      window.location.href = "/";
+      // Phone login: first try StudentProfile lookup to find their registered email
+      let succeeded = false;
+      const digits = phone.replace(/\D/g, '');
+      const core = digits.startsWith('265') ? digits.slice(3) : digits.startsWith('0') ? digits.slice(1) : digits;
+      const formatted = `+265${core}`;
+
+      // Step 1: look up their profile to get the exact email they registered with
+      try {
+        const profiles = await db.entities.StudentProfile.filter({ phone_number: formatted });
+        const profileEmail = profiles[0]?.email;
+        if (profileEmail) {
+          try {
+            await db.auth.loginViaEmailPassword(profileEmail, password);
+            window.location.href = "/";
+            return;
+          } catch (_) {} // wrong password or account issue — fall through to variants
+        }
+      } catch (_) {}
+
+      // Step 2: try all placeholder email variants (covers all registration formats)
+      for (const variant of phoneEmailVariants(phone)) {
+        try {
+          await db.auth.loginViaEmailPassword(variant, password);
+          window.location.href = "/";
+          succeeded = true;
+          break;
+        } catch (_) {}
+      }
+
+      if (!succeeded) throw new Error('auth_failed');
+
     } catch (err) {
       if (loginMethod === 'phone') {
         setError("Incorrect phone number or password. Please try again.");
