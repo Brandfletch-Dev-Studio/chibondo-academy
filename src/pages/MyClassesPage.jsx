@@ -149,22 +149,22 @@ export default function MyClassesPage() {
       <SEO title="My Classes | Chibondo Academy" description="Your enrolled courses and learning progress" />
       <div className="space-y-6">
 
-        {/* Header */}
-        <div className="rounded-2xl p-5" style={{ background:'hsl(var(--card))' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-5 h-5" style={{ color:'hsl(var(--primary))' }} />
-            <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Learning</span>
+        {/* Header — gradient matches site style */}
+        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+          <div className="flex items-center gap-2 mb-1 opacity-80">
+            <GraduationCap className="w-5 h-5" />
+            <span className="text-sm font-medium">Learning</span>
           </div>
-          <h1 className="text-xl font-display font-bold" style={{ color:'hsl(var(--foreground))' }}>My Classes</h1>
-          <div className="flex gap-5 mt-3">
+          <h1 className="text-2xl font-bold mb-4">My Classes</h1>
+          <div className="grid grid-cols-3 gap-2">
             {[
-              { label:'Enrolled', val: enrollments.length },
+              { label:'Enrolled',    val: enrollments.length },
               { label:'In Progress', val: inProgress.length },
-              { label:'Completed', val: completed.length },
+              { label:'Completed',   val: completed.length },
             ].map(({ label, val }) => (
-              <div key={label}>
-                <p className="font-bold text-lg" style={{ color:'hsl(var(--foreground))' }}>{val}</p>
-                <p className="text-[11px]" style={{ color:'hsl(var(--muted-foreground))' }}>{label}</p>
+              <div key={label} className="bg-white/15 rounded-xl px-3 py-2.5 text-center">
+                <p className="text-2xl font-bold">{val}</p>
+                <p className="text-[11px] opacity-80 mt-0.5">{label}</p>
               </div>
             ))}
           </div>
