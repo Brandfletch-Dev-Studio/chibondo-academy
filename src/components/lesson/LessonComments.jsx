@@ -92,7 +92,7 @@ function Comment({ comment, replies, user, onReply, onLike, onDelete, onPin, onM
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [showReplies, setShowReplies] = useState(true);
-  const isAuthor    = comment.author_id === user?.id;
+  const isAuthor    = comment.created_by === user?.id;
   const isTeacher   = comment.author_role === 'teacher' || comment.author_role === 'admin';
   const hasLiked    = (comment.liked_by || []).includes(user?.id);
   const replyCount  = replies.length;
@@ -107,7 +107,7 @@ function Comment({ comment, replies, user, onReply, onLike, onDelete, onPin, onM
 
   return (
     <div className="flex gap-3">
-      <Avatar name={comment.author_name} src={comment.author_avatar} size={8} />
+      <Avatar name={comment.author_name} src={comment.author_photo} size={8} />
 
       <div className="flex-1 min-w-0">
         {/* Header */}
@@ -234,13 +234,13 @@ function Comment({ comment, replies, user, onReply, onLike, onDelete, onPin, onM
 
 // ── Reply item (nested, no further nesting) ───────────────────────────────────
 function ReplyItem({ reply, user, parentAuthorName, onLike, onDelete, isTeacherOrAdmin }) {
-  const isAuthor  = reply.author_id === user?.id;
+  const isAuthor  = reply.created_by === user?.id;
   const isTeacher = reply.author_role === 'teacher' || reply.author_role === 'admin';
   const hasLiked  = (reply.liked_by || []).includes(user?.id);
 
   return (
     <div className="flex gap-2.5">
-      <Avatar name={reply.author_name} src={reply.author_avatar} size={7} />
+      <Avatar name={reply.author_name} src={reply.author_photo} size={7} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <span className="text-xs font-semibold text-foreground">{reply.author_name}</span>
@@ -338,14 +338,17 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
 
   const buildPayload = (commentContent, parentId = null) => ({
     lesson_id:    lessonId,
-    author_id:    user.id,
+    created_by:   user.id,
     author_name:  user.full_name || user.email?.split('@')[0] || 'Student',
-    author_avatar: user.avatar_url || null,
+    author_photo: user.avatar_url || null,
     author_role:  user.role || 'student',
     content:      commentContent,
     parent_id:    parentId,
     status:       'active',
     likes:        0,
+    liked_by:     [],
+    is_pinned:    false,
+    is_answer:    false,
   });
 
   const handlePost = () => {
