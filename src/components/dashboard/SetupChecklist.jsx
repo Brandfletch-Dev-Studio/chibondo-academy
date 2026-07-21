@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import {
-  GraduationCap, BookOpen, CreditCard,
+  BookOpen, CreditCard,
   CheckCircle2, Circle, ChevronDown, ChevronUp, X, ArrowRight, Sparkles
 } from 'lucide-react';
 
@@ -40,13 +40,6 @@ export default function SetupChecklist({ user }) {
   const [collapsed, setCollapsed] = useState(false);
 
   // ── Remote data ────────────────────────────────────────────────────────────
-  const { data: studentProfile } = useQuery({
-    queryKey: ['studentProfile', userId],
-    queryFn: async () => null,
-    enabled:  !!userId,
-    staleTime: 0,
-  });
-
   const { data: enrollments = [] } = useQuery({
     queryKey: ['enrollments', userId],
     queryFn:  () => db.entities.Enrollment.filter({ student_id: userId }, '-created_date', 100),
@@ -62,12 +55,10 @@ export default function SetupChecklist({ user }) {
   });
 
   // ── Derived checklist state ────────────────────────────────────────────────
-  const hasClass  = !!(studentProfile?.form);
   const hasEnroll = enrollments.length > 0;
   const hasFees   = !!(subscription);
 
   const items = [
-    { id: 'class',   done: hasClass,   label: 'Select your class',            icon: GraduationCap, action: () => navigate('/settings?tab=academic') },
     { id: 'enroll',  done: hasEnroll,  label: 'Choose subjects to enroll in', icon: BookOpen,      action: () => navigate('/enroll-subjects') },
     { id: 'fees',    done: hasFees,    label: 'Pay fees to start learning',   icon: CreditCard,    action: () => navigate('/subscription') },
   ];
