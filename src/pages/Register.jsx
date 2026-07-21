@@ -69,7 +69,10 @@ export default function Register() {
     setLoading(true);
     try {
       // Use phone as login identity if no email; generate a placeholder email
-      const loginEmail = email.trim() || `${phone.replace(/\D/g,'').slice(-9)}@student.chibondoacademy.com`;
+      // Generate placeholder email: strip to last 9 digits after removing country code
+      const digits = phone.replace(/\D/g,'');
+      const stripped = digits.startsWith('265') ? digits.slice(3) : digits.startsWith('0') ? digits.slice(1) : digits;
+      const loginEmail = email.trim() || `${stripped.slice(-9)}@student.chibondoacademy.com`;
       const formattedPhone = formatPhone(phone.trim());
 
       const result = await db.auth.register({
