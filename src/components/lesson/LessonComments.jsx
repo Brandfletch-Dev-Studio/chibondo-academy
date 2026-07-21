@@ -392,7 +392,7 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
         <MessageSquare className="w-4 h-4 text-muted-foreground" />
