@@ -93,6 +93,8 @@ function ProfilePanel({ user, checkUserAuth }) {
     try {
       await db.auth.updateMe({ full_name: fullName.trim() });
       const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
+      // Only update columns that actually exist in student_profiles table:
+      // user_id, full_name, phone_number, email, form, avatar_url
       const profileData = {
         user_id:      user.id,
         full_name:    fullName.trim(),
@@ -169,7 +171,6 @@ function ProfilePanel({ user, checkUserAuth }) {
 
 function AcademicPanel({ user }) {
   const [profile,  setProfile]   = useState(null);
-  const [school,   setSchool]    = useState('');
   const [form,     setForm]      = useState('');
   const [saving,   setSaving]    = useState(false);
   const [subjects, setSubjects]  = useState([]);
@@ -177,11 +178,12 @@ function AcademicPanel({ user }) {
 
   useEffect(() => {
     if (!user) return;
+    // student_profiles uses user_id and form (not class_name/school_name)
     db.entities.StudentProfile.filter({ user_id: user.id }).then(rows => {
       if (rows[0]) {
         setProfile(rows[0]);
-        setSchool(rows[0].school_name || '');
-        setForm(rows[0].class_name || rows[0].form || '');
+        // Column is 'form' — may be stored as "Form 3" or just "3"
+        setForm(rows[0].form || '');
       }
     }).catch(() => {});
     db.entities.Enrollment.filter({ student_id: user.id }).then(rows => {
@@ -191,14 +193,22 @@ function AcademicPanel({ user }) {
 
   const save = async (e) => {
     e.preventDefault();
+    if (!form) return toast.error('Please select your form');
     setSaving(true);
     try {
-      const data = { school_name: school.trim(), class_name: form.trim() };
-      if (profile) await db.entities.StudentProfile.update(profile.id, data);
-      else         await db.entities.StudentProfile.create({ ...data, user_id: user.id });
+      // Also sync to auth user_metadata so it survives token refresh
+      await db.auth.updateMe({ data: { form } }).catch(() => {});
+
+      // Save to StudentProfile — column name is 'form'
+      if (profile) {
+        await db.entities.StudentProfile.update(profile.id, { form });
+      } else {
+        const newProfile = await db.entities.StudentProfile.create({ user_id: user.id, form });
+        setProfile(newProfile);
+      }
       toast.success('Academic details saved');
     } catch (err) {
-      toast.error('Could not save');
+      toast.error(err?.message || 'Could not save');
     } finally { setSaving(false); }
   };
 
@@ -207,16 +217,7 @@ function AcademicPanel({ user }) {
   return (
     <div className="space-y-6">
       <form onSubmit={save} className="space-y-4">
-        <Field label="School Name">
-          <TextInput
-            value={school}
-            onChange={e => setSchool(e.target.value)}
-            placeholder="e.g. Blantyre Secondary School"
-            icon={School}
-          />
-        </Field>
-
-        <Field label="Form / Class">
+        <Field label="Form / Class" hint="Determines which subjects and content you see">
           <select
             value={form}
             onChange={e => setForm(e.target.value)}
