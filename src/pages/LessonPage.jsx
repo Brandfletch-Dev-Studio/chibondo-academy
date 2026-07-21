@@ -576,7 +576,7 @@ export default function LessonPage() {
         keywords={lesson.seo_keywords || `${lesson.title}, MSCE, Chibondo Academy`}
       />
 
-      <div className="flex flex-col lg:flex-row min-h-screen -mx-4 sm:-mx-6 lg:-mx-8 bg-background text-foreground relative pb-24 lg:pb-0">
+      <div className="flex flex-col lg:flex-row min-h-screen -mx-4 sm:-mx-6 lg:-mx-8 bg-background text-foreground relative pb-32 lg:pb-0">
         
         {/* 1. MOBILE TOP BAR (sticky) */}
         <div className="sticky top-0 z-40 w-full bg-card/95 backdrop-blur-md border-b border-border lg:hidden flex flex-col">
@@ -951,7 +951,7 @@ export default function LessonPage() {
             )}
 
             {/* 5. NEXT/PREV LESSON NAVIGATION CARD */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-border pb-24 sm:pb-28">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-border">
               {prevLesson ? (
                 <Link to={`/lesson/${prevLesson.id}`}>
                   <div className="flex items-center gap-3 p-5 rounded-2xl border border-border hover:bg-muted/30 transition-all group h-full min-h-[44px]">
