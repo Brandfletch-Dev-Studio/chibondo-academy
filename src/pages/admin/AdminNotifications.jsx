@@ -103,17 +103,17 @@ function EmailCampaignTab({ forms, subjects, students }) {
       // Build recipient list
       let recipients = [];
       if (audience === 'all_students') {
-        recipients = students.map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email);
+        recipients = students.map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email && !r.email.endsWith('@student.chibondoacademy.com'));
       } else if (audience === 'by_form') {
         if (!formId) { toast.error('Select a form'); setSending(false); return; }
         recipients = students.filter(s => s.form_id === formId || s.form === forms.find(f=>f.id===formId)?.name)
-          .map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email);
+          .map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email && !r.email.endsWith('@student.chibondoacademy.com'));
       } else if (audience === 'by_subject') {
         if (!subjectId) { toast.error('Select a subject'); setSending(false); return; }
         const enrolments = await db.entities.Enrollment.filter({ subject_id: subjectId });
         const userIds = new Set(enrolments.map(e => e.student_id));
         recipients = students.filter(s => userIds.has(s.user_id))
-          .map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email);
+          .map(s => ({ name: s.full_name, email: s.email })).filter(r => r.email && !r.email.endsWith('@student.chibondoacademy.com'));
       } else if (audience === 'specific') {
         const p = students.find(s => s.id === targetId);
         if (!p?.email) { toast.error('Student not found or no email'); setSending(false); return; }
@@ -141,7 +141,16 @@ function EmailCampaignTab({ forms, subjects, students }) {
         }),
       });
       const emailData = await emailRes.json().catch(() => ({}));
-      if (!emailRes.ok) throw new Error(emailData.error || 'Failed to send email');
+      if (!emailRes.ok) {
+        const errMsg = emailData.error || emailData.message || 'Failed to send email';
+        if (errMsg.toLowerCase().includes('api key')) {
+          throw new Error('Email service not configured — please contact admin to update the Resend API key.');
+        }
+        if (errMsg.toLowerCase().includes('domain') || errMsg.toLowerCase().includes('from')) {
+          throw new Error('Email domain not verified in Resend. Contact admin.');
+        }
+        throw new Error(errMsg);
+      }
 
       setHistory(h => [{ subject: subject_, audience, count: recipients.length, sent_at: new Date().toISOString() }, ...h.slice(0,9)]);
       toast.success(`Email sent to ${recipients.length} recipient${recipients.length !== 1 ? 's' : ''}!`);
