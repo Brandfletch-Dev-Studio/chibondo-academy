@@ -1,65 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { db } from '@/api/supabaseClient';
-import { Loader2, Mail, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Loader2, MessageCircle, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
-
-// Deep-link map: open the user's email app directly
-const EMAIL_PROVIDERS = {
-  "gmail.com":       { name: "Gmail",       deepLink: "googlegmail://", webUrl: "https://mail.google.com" },
-  "googlemail.com":  { name: "Gmail",       deepLink: "googlegmail://", webUrl: "https://mail.google.com" },
-  "outlook.com":     { name: "Outlook",     deepLink: "ms-outlook://",  webUrl: "https://outlook.live.com" },
-  "hotmail.com":     { name: "Outlook",     deepLink: "ms-outlook://",  webUrl: "https://outlook.live.com" },
-  "live.com":        { name: "Outlook",     deepLink: "ms-outlook://",  webUrl: "https://outlook.live.com" },
-  "yahoo.com":       { name: "Yahoo Mail",  deepLink: "ymail://",       webUrl: "https://mail.yahoo.com" },
-  "ymail.com":       { name: "Yahoo Mail",  deepLink: "ymail://",       webUrl: "https://mail.yahoo.com" },
-  "icloud.com":      { name: "Apple Mail",  deepLink: "message://",     webUrl: "https://www.icloud.com/mail" },
-  "me.com":          { name: "Apple Mail",  deepLink: "message://",     webUrl: "https://www.icloud.com/mail" },
-  "protonmail.com":  { name: "ProtonMail",  deepLink: "protonmail://",  webUrl: "https://mail.proton.me" },
-  "proton.me":       { name: "ProtonMail",  deepLink: "protonmail://",  webUrl: "https://mail.proton.me" },
-};
-
-function getProvider(email) {
-  const domain = email.split("@")[1]?.toLowerCase() || "";
-  return EMAIL_PROVIDERS[domain] || null;
-}
-
-function openMailApp(provider) {
-  if (!provider) return;
-  const tried = Date.now();
-  window.location.href = provider.deepLink;
-  setTimeout(() => {
-    if (Date.now() - tried < 2500) {
-      window.open(provider.webUrl, "_blank", "noopener,noreferrer");
-    }
-  }, 1500);
-}
+import { db } from "@/api/supabaseClient";
 
 export default function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const email   = location.state?.email   || "";
+  const phone = location.state?.phone || "";
+  const name = location.state?.name || "";
   const refCode = location.state?.refCode || null;
+  const isNew = location.state?.isNew || false;
 
-  const [code,      setCode]      = useState("");
-  const [error,     setError]     = useState("");
-  const [loading,   setLoading]   = useState(false);
-  const [success,   setSuccess]   = useState(false);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [resending, setResending] = useState(false);
-  const [cooldown,  setCooldown]  = useState(30);
+  const [cooldown, setCooldown] = useState(30);
 
-  const inputRef    = useRef(null);
+  const inputRef = useRef(null);
   const cooldownRef = useRef(null);
-  const verifying   = useRef(false);
+  const verifying = useRef(false);
 
-  const provider = getProvider(email);
-
-  // Guard: no email state → back to register
+  // Guard: no phone state → back to login
   useEffect(() => {
-    if (!email) navigate("/register", { replace: true });
-  }, [email]);
+    if (!phone) navigate("/login", { replace: true });
+  }, [phone]);
 
   // Auto-focus input
   useEffect(() => {
@@ -90,12 +59,12 @@ export default function VerifyOtp() {
     }
   }, [code]);
 
-  // SMS OTP Credential API (Android Chrome only — no clipboard involved)
+  // SMS OTP Credential API (Android Chrome)
   useEffect(() => {
     if (!("OTPCredential" in window)) return;
     const ac = new AbortController();
     navigator.credentials
-      .get({ otp: { transport: ["sms", "email"] }, signal: ac.signal })
+      .get({ otp: { transport: ["sms"] }, signal: ac.signal })
       .then(cred => {
         if (cred?.code) {
           const digits = cred.code.replace(/\D/g, "").slice(0, 6);
@@ -112,16 +81,42 @@ export default function VerifyOtp() {
     verifying.current = true;
     setError("");
     setLoading(true);
+
     try {
-      const result = await db.auth.verifyOtp({ email: email.trim(), otpCode });
-      const token  = result?.access_token ?? result?.token ?? result?.data?.access_token;
+      const res = await fetch("/api/wa-otp-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          code: otpCode,
+          name: name || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Invalid code. Please check and try again.");
+        setCode("");
+        verifying.current = false;
+        setLoading(false);
+        setTimeout(() => inputRef.current?.focus(), 50);
+        return;
+      }
+
+      // Success — save token and redirect
+      const token = data.access_token;
       if (token) {
         setSuccess(true);
         db.auth.setToken(token);
-        try { await db.auth.updateMe({ role: "user" }); } catch (_) {}
-        // trackReferral is handled by the dashboard on first load
+
+        // Track referral if code exists (fire and forget)
+        if (refCode) {
+          db.functions?.invoke?.("trackReferral", { refCode }).catch(() => {});
+        }
+
         setTimeout(() => {
-          window.location.replace("/dashboard");
+          window.location.replace(`/dashboard?access_token=${encodeURIComponent(token)}`);
         }, 900);
       } else {
         setError("No token returned. Please try logging in.");
@@ -129,7 +124,7 @@ export default function VerifyOtp() {
         setLoading(false);
       }
     } catch (err) {
-      setError(err.message || "Invalid code. Please check and try again.");
+      setError("Something went wrong. Please try again.");
       setCode("");
       verifying.current = false;
       setLoading(false);
@@ -143,21 +138,33 @@ export default function VerifyOtp() {
     setError("");
     setCode("");
     try {
-      await db.auth.resendOtp(email.trim());
-      startCooldown(30);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const res = await fetch("/api/wa-otp-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Could not resend code. Please try again.");
+      } else {
+        startCooldown(30);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
     } catch {
       setError("Could not resend code. Please try again.");
-    } finally { setResending(false); }
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
     <>
-      <SEO title="Verify Email" description="Verify your email to activate your Chibondo Academy account." />
-      <AuthLayout title="Verify your email" subtitle="Enter the 6-digit code sent to your inbox">
+      <SEO title="Verify WhatsApp" description="Verify your WhatsApp number to activate your Chibondo Academy account." />
+      <AuthLayout title="Verify your WhatsApp" subtitle="Enter the 6-digit code sent to your WhatsApp">
         <div className="space-y-6">
 
-          {/* Status icon + email */}
+          {/* Status icon + phone */}
           <div className="flex flex-col items-center gap-3 text-center">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
               success ? "bg-green-100" : "bg-accent/10"
@@ -166,25 +173,13 @@ export default function VerifyOtp() {
                 ? <CheckCircle2 className="w-8 h-8 text-green-500" />
                 : loading
                   ? <Loader2 className="w-8 h-8 text-accent animate-spin" />
-                  : <Mail className="w-8 h-8 text-accent" />}
+                  : <MessageCircle className="w-8 h-8 text-accent" />}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">A 6-digit code was sent to</p>
-              <p className="font-bold text-foreground mt-0.5 break-all">{email}</p>
+              <p className="text-sm text-muted-foreground">A 6-digit code was sent via WhatsApp to</p>
+              <p className="font-bold text-foreground mt-0.5">+{phone}</p>
             </div>
           </div>
-
-          {/* Open email app shortcut */}
-          {provider && !success && (
-            <button
-              type="button"
-              onClick={() => openMailApp(provider)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border bg-muted/40 text-sm font-medium hover:bg-muted transition-colors"
-            >
-              <Mail className="w-4 h-4" />
-              Open {provider.name}
-            </button>
-          )}
 
           {/* Error */}
           {error && (
@@ -255,13 +250,12 @@ export default function VerifyOtp() {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => navigate("/register")}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => navigate("/login", { replace: true })}
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="w-3 h-3" /> Wrong email? Go back
+              <ArrowLeft className="w-3.5 h-3.5" /> Change number
             </button>
           </div>
-
         </div>
       </AuthLayout>
     </>

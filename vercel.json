@@ -11,6 +11,12 @@
     },
     "api/wa-register.js": {
       "maxDuration": 30
+    },
+    "api/wa-otp-send.js": {
+      "maxDuration": 30
+    },
+    "api/wa-otp-verify.js": {
+      "maxDuration": 30
     }
   }
 }

@@ -1,152 +1,63 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { db } from '@/api/supabaseClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2, Eye, EyeOff, User as UserIcon, Phone } from "lucide-react";
+import { Phone, User, Loader2, MessageCircle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
 
 export default function Register() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const refCode  = searchParams.get("ref");
+  const refCode = searchParams.get("ref");
+
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (refCode) localStorage.setItem("pending_referral_code", refCode);
   }, [refCode]);
 
-  const [fullName,        setFullName]        = useState("");
-  const [phone,           setPhone]           = useState("");
-  const [email,           setEmail]           = useState("");
-  const [password,        setPassword]        = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword,    setShowPassword]    = useState(false);
-  const [error,           setError]           = useState("");
-  const [loading,         setLoading]         = useState(false);
-
-  // Remove platform-injected social/OAuth buttons
-  useEffect(() => {
-    const SELECTORS = [
-      '[data-provider="google"]','[data-provider="facebook"]',
-      'button[aria-label*="Google"]','button[aria-label*="google"]',
-      '.social-login','.oauth-buttons','[class*="google-login"]',
-      '[class*="social-auth"]','[class*="GoogleLogin"]',
-      '.aca-social-login','[data-testid*="social"]','[data-testid*="google"]',
-    ];
-    function remove() { SELECTORS.forEach(s => document.querySelectorAll(s).forEach(el => el.remove())); }
-    remove();
-    const obs = new MutationObserver(remove);
-    obs.observe(document.body, { childList: true, subtree: true });
-    return () => obs.disconnect();
-  }, []);
-
-  // Format phone: ensure +265 prefix for Malawi
-  const formatPhone = (val) => {
-    const digits = val.replace(/\D/g, '');
-    if (digits.startsWith('265')) return '+' + digits;
-    if (digits.startsWith('0')) return '+265' + digits.slice(1);
-    if (digits.length > 0 && !digits.startsWith('265')) return '+265' + digits;
-    return val;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!fullName.trim())               { setError("Please enter your full name"); return; }
-    if (!phone.trim())                  { setError("Please enter your phone number"); return; }
-    if (phone.replace(/\D/g,'').length < 9) { setError("Please enter a valid phone number"); return; }
-    if (password !== confirmPassword)   { setError("Passwords do not match"); return; }
-    if (password.length < 6)            { setError("Password must be at least 6 characters"); return; }
+    if (!fullName.trim()) {
+      setError("Please enter your name");
+      return;
+    }
 
-    // Email is optional but if provided must be valid
-    if (email.trim() && !/\S+@\S+\.\S+/.test(email.trim())) {
-      setError("Please enter a valid email address"); return;
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 9) {
+      setError("Please enter a valid phone number");
+      return;
     }
 
     setLoading(true);
     try {
-      // Use phone as login identity if no email; generate a placeholder email
-      // Generate placeholder email: strip to last 9 digits after removing country code
-      const digits = phone.replace(/\D/g,'');
-      const stripped = digits.startsWith('265') ? digits.slice(3) : digits.startsWith('0') ? digits.slice(1) : digits;
-      const loginEmail = email.trim() || `${stripped.slice(-9)}@student.chibondoacademy.com`;
-      const formattedPhone = formatPhone(phone.trim());
-
-      const result = await db.auth.register({
-        email: loginEmail,
-        password,
-        full_name: fullName.trim(),
-        phone_number: formattedPhone,  // saved into user_metadata by supabaseClient
-        data: {
-          full_name: fullName.trim(),
-          phone_number: formattedPhone,
-        },
+      const res = await fetch("/api/wa-otp-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: digits }),
       });
 
-      const token = result?.access_token ?? result?.token ?? result?.data?.access_token;
+      const data = await res.json();
 
-      // No OTP — session is always live immediately after registration
-      if (token) db.auth.setToken(token);
-
-      // Save StudentProfile immediately so phone is available for admin nudges
-      try {
-        const me = await db.auth.me();
-        if (me?.id) {
-          const existing = await db.entities.StudentProfile.filter({ user_id: me.id });
-          const profileData = {
-            user_id:      me.id,
-            full_name:    fullName.trim(),
-            phone_number: formattedPhone,
-            email:        loginEmail,
-          };
-          if (existing.length > 0) {
-            await db.entities.StudentProfile.update(existing[0].id, profileData);
-          } else {
-            await db.entities.StudentProfile.create(profileData);
-          }
-        }
-      } catch (_) {}
-
-      // ── Affiliate referral tracking ─────────────────────────────────
-      try {
-        const pendingRef = localStorage.getItem('pending_referral_code');
-        if (pendingRef && me?.id) {
-          // Find the affiliate who owns this code
-          const affiliates = await db.entities.User.filter({ referral_code: pendingRef });
-          const affiliate = affiliates?.[0];
-          if (affiliate && affiliate.id !== me.id) {
-            // Create the referral record — status 'registered', becomes 'paid' on payment
-            await db.entities.Referral.create({
-              referrer_id:   affiliate.id,
-              referrer_name: affiliate.full_name || affiliate.email || 'Affiliate',
-              referred_user_id: me.id,
-              referred_name: fullName.trim(),
-              referred_email: loginEmail,
-              referral_code: pendingRef,
-              status:        'registered',
-              reward_status: 'pending',
-              reward_amount: 10000,
-              notes:         'Auto-created on registration',
-            });
-            localStorage.removeItem('pending_referral_code');
-          }
-        }
-      } catch (_) {
-        // Non-fatal — don't block registration flow
+      if (!res.ok) {
+        setError(data.error || "Failed to send. Please try again.");
+        setLoading(false);
+        return;
       }
-      // ──────────────────────────────────────────────────────────────────
 
-      window.location.replace("/dashboard");
+      navigate("/verify-otp", {
+        replace: true,
+        state: { phone: data.phone || digits, name: fullName.trim(), refCode: refCode || null, isNew: true },
+      });
     } catch (err) {
-      const msg = err.message || "";
-      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists") || msg.toLowerCase().includes("user already")) {
-        setError("An account with this phone number already exists. Please sign in instead.");
-      } else {
-        setError(msg || "Registration failed. Please try again.");
-      }
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };
@@ -155,12 +66,12 @@ export default function Register() {
     <>
       <SEO
         title="Register"
-        description="Create your free Chibondo Academy account. Join today and get access to MSCE lessons, quizzes, and past papers."
+        description="Create your free Chibondo Academy account. Join today and get access to quality online secondary education with MSCE lessons, quizzes, and past papers."
         canonical={`${window.location.origin}/register`}
       />
       <AuthLayout
-        title="Create Your Account"
-        subtitle="Join Chibondo Academy and start your MSCE journey"
+        title="Welcome to The Chibondo Academy"
+        subtitle="Create your account with WhatsApp verification"
         footer={
           <div className="space-y-3">
             <div>
@@ -177,6 +88,7 @@ export default function Register() {
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm">{error}</div>
         )}
+
         {refCode && (
           <div className="mb-4 p-3 rounded-lg bg-accent/10 border border-accent/20 text-sm">
             <p className="font-semibold text-accent">Referral Code Applied</p>
@@ -185,86 +97,47 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Full Name */}
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
+            <Label htmlFor="fullName">Full Name <span className="text-red-500">*</span></Label>
             <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                id="fullName" type="text" autoFocus autoComplete="name"
-                placeholder="Your full name" value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                className="pl-10 h-12" required
-              />
-            </div>
-          </div>
-
-          {/* Phone — primary, required */}
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="phone" type="tel" autoComplete="tel"
-                placeholder="e.g. 0881234567 or +265881234567"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="pl-10 h-12" required
-              />
-            </div>
-            <p className="text-[11px] text-muted-foreground">Used for account recovery and important updates</p>
-          </div>
-
-          {/* Email — secondary, not labelled optional */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="email" type="email" autoComplete="email"
-                placeholder="you@example.com" value={email}
-                onChange={e => setEmail(e.target.value)}
+                id="fullName"
+                type="text"
+                autoFocus
+                placeholder="John Banda"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 className="pl-10 h-12"
+                required
               />
             </div>
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="phone">WhatsApp Number <span className="text-red-500">*</span></Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                id="password" type={showPassword ? "text" : "password"}
-                autoComplete="new-password" placeholder="At least 6 characters"
-                value={password} onChange={e => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-12" required
-              />
-              <button type="button" onClick={() => setShowPassword(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="confirmPassword" type={showPassword ? "text" : "password"}
-                autoComplete="new-password" placeholder="Repeat your password"
-                value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                className="pl-10 h-12" required
+                id="phone"
+                type="tel"
+                autoComplete="tel"
+                placeholder="0991234567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="pl-10 h-12"
+                required
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              We'll send a verification link to your WhatsApp. Just tap it to confirm.
+            </p>
           </div>
 
           <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
             {loading
-              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating account…</>
-              : "Create Account"}
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
+              : <><MessageCircle className="w-4 h-4 mr-2" />Create Account</>}
           </Button>
 
           <p className="text-center text-xs text-gray-500">

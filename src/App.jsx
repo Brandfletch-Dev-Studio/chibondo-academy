@@ -48,10 +48,9 @@ function RoleHome() {
 // ── Lazy-loaded pages (code splitting) ─────────────────────────────────
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const TeacherRegister = lazy(() => import('@/pages/TeacherRegister'));
 const VerifyOtp = lazy(() => import('@/pages/VerifyOtp'));
+const VerifyLink = lazy(() => import('@/pages/VerifyLink'));
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const TutorProfilePage = lazy(() => import('@/pages/tutors/TutorProfile'));
 const TutorsPage = lazy(() => import('@/pages/tutors/TutorsPage'));
@@ -164,10 +163,9 @@ const AppRoutes = () => {
       {/* ── Auth pages (standalone, no layout) ── */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
       <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/verify-link" element={<VerifyLink />} />
       <Route path="/welcome" element={<LandingPage />} />
 
       {/* ═══════════════════════════════════════════════════════════════
