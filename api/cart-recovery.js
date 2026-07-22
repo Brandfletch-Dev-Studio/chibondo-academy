@@ -8,6 +8,8 @@ const SUPABASE_URL     = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_U
 const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const FROM_EMAIL       = 'noreply@chibondoacademy.com';
 const APP_URL          = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
+const INTERNAL_SECRET  = process.env.INTERNAL_API_SECRET;
+const SUPABASE_SRK_CR  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const FEES_URL         = `${APP_URL}/fees`;
 
 const NAVY = '#1e2d5c';
@@ -79,11 +81,38 @@ function buildHtmlFromText(bodyText) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://chibondoacademy.com');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // ── Auth guard: internal secret OR admin JWT ──────────────────────────
+  const internalSecret = req.headers['x-internal-secret'];
+  const authToken      = (req.headers.authorization || '').replace('Bearer ', '').trim();
+  let authorized = false;
+  if (internalSecret && internalSecret === INTERNAL_SECRET) {
+    authorized = true;
+  } else if (authToken) {
+    try {
+      const authCheck = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { apikey: SUPABASE_SRK_CR, Authorization: `Bearer ${authToken}` },
+      });
+      if (authCheck.ok) {
+        const authUser = await authCheck.json();
+        const sub = authUser?.id;
+        if (sub) {
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(sub)}&select=role&limit=1`, {
+            headers: { apikey: SUPABASE_SRK_CR, Authorization: `Bearer ${SUPABASE_SRK_CR}` },
+          });
+          const rows = await r.json();
+          if (rows?.[0]?.role === 'admin') authorized = true;
+        }
+      }
+    } catch (_) {}
+  }
+  if (!authorized) return res.status(401).json({ error: 'Unauthorized' });
+  // ────────────────────────────────────────────────────────────────────────
 
   const { force_student_id, force_email, payment_id, amount, description, student_name } = req.body ?? {};
   if (!force_email && !force_student_id) {
