@@ -1,18 +1,21 @@
 // usePWA.js — PWA install prompt + update handler for Chibondo Academy
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+// Stable key used across accounts — install state is per-device, not per-user
+const INSTALLED_KEY = 'chibondo_pwa_installed';
+
 export function usePWA() {
   const [installPrompt, setInstallPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isInstalling, setIsInstalling] = useState(false);
+  const [isInstalled, setIsInstalled]     = useState(false);
+  const [isInstalling, setIsInstalling]   = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [registration, setRegistration] = useState(null);
+  const [isOnline, setIsOnline]           = useState(navigator.onLine);
+  const [registration, setRegistration]   = useState(null);
   const newWorkerRef = useRef(null);
 
   // Online/offline detection
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline  = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -22,37 +25,74 @@ export function usePWA() {
     };
   }, []);
 
-  // Detect if already installed (standalone mode)
+  // Detect installed state robustly:
+  // 1. Standalone display mode (already running as PWA)
+  // 2. getInstalledRelatedApps() — Chrome Android API to check if PWA is on home screen
+  // 3. Persistent localStorage flag set on install
   useEffect(() => {
+    // Check 1: running in standalone mode already
     const standalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true;
-    setIsInstalled(standalone);
+
+    if (standalone) {
+      setIsInstalled(true);
+      localStorage.setItem(INSTALLED_KEY, '1');
+      return;
+    }
+
+    // Check 2: localStorage flag from a previous install
+    if (localStorage.getItem(INSTALLED_KEY) === '1') {
+      setIsInstalled(true);
+      return;
+    }
+
+    // Check 3: getInstalledRelatedApps (Chrome 73+, Android only)
+    if ('getInstalledRelatedApps' in navigator) {
+      navigator.getInstalledRelatedApps().then((apps) => {
+        if (apps && apps.length > 0) {
+          setIsInstalled(true);
+          localStorage.setItem(INSTALLED_KEY, '1');
+        }
+      }).catch(() => {});
+    }
   }, []);
 
-  // Capture install prompt
+  // Capture beforeinstallprompt — only fires if not already installed
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
-      setInstallPrompt(e);
+      // Double-check we're not already installed before storing the prompt
+      const alreadyInstalled =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true ||
+        localStorage.getItem(INSTALLED_KEY) === '1';
+      if (!alreadyInstalled) {
+        setInstallPrompt(e);
+      }
     };
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => {
+
+    const onInstalled = () => {
       setIsInstalled(true);
       setInstallPrompt(null);
-    });
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+      localStorage.setItem(INSTALLED_KEY, '1');
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
   }, []);
 
-  // Listen for SW updates — registration is handled by main.jsx
+  // Listen for SW updates
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    // Use existing registration from main.jsx
     navigator.serviceWorker.ready.then((reg) => {
       setRegistration(reg);
 
-      // Check for updates every hour
       const checkUpdate = () => reg.update().catch(() => {});
       const interval = setInterval(checkUpdate, 60 * 60 * 1000);
 
@@ -70,7 +110,6 @@ export function usePWA() {
       return () => clearInterval(interval);
     });
 
-    // Handle controller change (after skipWaiting)
     const handleControllerChange = () => window.location.reload();
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
@@ -86,6 +125,7 @@ export function usePWA() {
       if (outcome === 'accepted') {
         setIsInstalled(true);
         setInstallPrompt(null);
+        localStorage.setItem(INSTALLED_KEY, '1');
       }
     } finally {
       setIsInstalling(false);
