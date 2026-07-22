@@ -27,12 +27,12 @@ function RoleHome() {
   const { user } = useOutletContext() ?? {};
 
   // Supabase sends password-reset links to site_url (homepage).
-  // Detect the #type=recovery hash and silently forward to /reset-password.
+  // Legacy Supabase recovery links — redirect to login (WhatsApp OTP replaces password recovery)
   if (typeof window !== 'undefined') {
     const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
     if (params.get('type') === 'recovery' && params.get('access_token')) {
-      return <Navigate to={`/reset-password${window.location.hash}`} replace />;
+      return <Navigate to="/login" replace />;
     }
   }
 
