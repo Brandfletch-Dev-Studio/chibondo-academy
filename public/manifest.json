@@ -2,8 +2,8 @@
   "name": "Chibondo Academy",
   "short_name": "Chibondo",
   "description": "Quality online secondary education for Form 3 and Form 4 students in Malawi.",
-  "start_url": "/",
-  "id": "/",
+  "start_url": "/?source=pwa",
+  "id": "chibondo-academy-app-v1",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "background_color": "#f8fafc",
@@ -13,6 +13,7 @@
   "scope": "/",
   "categories": ["education"],
   "prefer_related_applications": false,
+  "related_applications": [],
   "icons": [
     {
       "src": "/icon-192.png",
