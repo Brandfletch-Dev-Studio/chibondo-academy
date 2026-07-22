@@ -1,14 +1,17 @@
 // api/wa-register.js  [Chibondo Academy]
 // Receives a register_student tool call from NyasaDesk's AI agent.
-// Creates a Supabase auth user with email + password, then returns
-// a direct login link the agent sends back to the student on WhatsApp.
+// Creates a Supabase auth user + public.users row, then returns a
+// magic login link the agent sends back to the student on WhatsApp.
+//
+// Uses CHIBONDO_SUPABASE_URL + CHIBONDO_SERVICE_ROLE_KEY env vars
+// so it always hits the correct Supabase project regardless of VITE_ defaults.
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL  = process.env.VITE_SUPABASE_URL  || process.env.SUPABASE_URL;
-const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SHARED_SECRET = process.env.WA_REGISTER_SECRET;
-const APP_URL       = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
+const SUPABASE_URL   = 'https://nckjjfxlmmsnmnexcgzg.supabase.co';
+const SERVICE_KEY    = process.env.CHIBONDO_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SHARED_SECRET  = process.env.WA_REGISTER_SECRET;
+const APP_URL        = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -40,34 +43,36 @@ export default async function handler(req, res) {
     const normPhone = normalisePhone(phone);
 
     // Check if user already exists by email or phone
-    let existingName = null;
+    let existingRow = null;
 
-    const { data: existingByEmail } = await sb
+    const { data: byEmail } = await sb
       .from('users')
       .select('id, full_name')
       .eq('email', email)
       .maybeSingle();
 
-    if (existingByEmail) {
-      existingName = existingByEmail.full_name;
+    if (byEmail) {
+      existingRow = byEmail;
     } else {
-      const { data: existingByPhone } = await sb
+      const { data: byPhone } = await sb
         .from('users')
         .select('id, full_name')
         .or(`phone.eq.${normPhone},phone_number.eq.${normPhone}`)
         .maybeSingle();
-      if (existingByPhone) existingName = existingByPhone.full_name;
+      if (byPhone) existingRow = byPhone;
     }
 
-    if (existingName) {
+    if (existingRow) {
+      // Generate a fresh magic link for the existing user
+      const link = await generateMagicLink(sb, email, APP_URL);
       return res.status(200).json({
         ok: true,
         already_registered: true,
-        message: `Welcome back, ${existingName}! Your account already exists. Log in here:\n${APP_URL}/login\n\nIf you forgot your password, tap "Forgot password" on the login page.`,
+        message: `Welcome back, ${existingRow.full_name}! Your account already exists. Here's your login link (valid for 1 hour):\n${link}`,
       });
     }
 
-    // Create auth user with email + password
+    // --- Create new auth user with email + password ---
     const { data: authData, error: signUpErr } = await sb.auth.admin.createUser({
       email,
       password,
@@ -91,13 +96,13 @@ export default async function handler(req, res) {
 
     // Create public.users row
     await sb.from('users').insert({
-      id:           userId,
+      id:            userId,
       full_name,
       email,
-      phone:        normPhone,
-      phone_number: normPhone,
-      role:         'student',
-      created_by:   userId,
+      phone:         normPhone,
+      phone_number:  normPhone,
+      role:          'student',
+      created_by:    userId,
       referral_code: referral_code || 'AGENT',
     });
 
@@ -109,10 +114,13 @@ export default async function handler(req, res) {
       form_level:   form_level || null,
     }, { onConflict: 'user_id' });
 
+    // Generate magic link — user now has a confirmed email in this project
+    const loginLink = await generateMagicLink(sb, email, APP_URL);
+
     return res.status(200).json({
       ok: true,
       already_registered: false,
-      message: `Your Chibondo Academy account has been created! 🎉\n\nLog in here:\n${APP_URL}/login\n\nUse your email *${email}* and the password you just set.\n\nAfter logging in, choose a plan to unlock your lessons. Welcome aboard!`,
+      message: `Your Chibondo Academy account has been created! 🎉\n\nTap this link to log in (valid for 1 hour):\n${loginLink}\n\nAfter logging in, choose a plan to unlock your lessons. Welcome aboard!`,
     });
 
   } catch (err) {
@@ -121,9 +129,29 @@ export default async function handler(req, res) {
   }
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 function normalisePhone(raw) {
   let p = String(raw).replace(/\D/g, '');
   if (p.startsWith('0')) p = '265' + p.slice(1);
   if (!p.startsWith('265')) p = '265' + p;
   return p;
+}
+
+async function generateMagicLink(sb, email, appUrl) {
+  try {
+    const { data, error } = await sb.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: `${appUrl}/dashboard` },
+    });
+    if (!error && data?.properties?.action_link) {
+      return data.properties.action_link;
+    }
+    console.warn('[wa-register] generateLink error:', error?.message);
+  } catch (e) {
+    console.warn('[wa-register] generateLink threw:', e.message);
+  }
+  // Fallback — should never be needed since email is now confirmed in auth.users
+  return `${appUrl}/login`;
 }
