@@ -13,6 +13,13 @@ const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SHARED_SECRET = process.env.WA_REGISTER_SECRET;
 const APP_URL       = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
 
+// Maps agent-friendly form label → DB form_name value used in the subjects table
+const FORM_NAME_MAP = {
+  'Form 3': 'Form 3',
+  'Form 4': 'Form 4',
+  'MSCE':   'MSCE',
+};
+
 export default async function handler(req, res) {
   // Only POST
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -88,6 +95,7 @@ export default async function handler(req, res) {
     });
 
     // Create student_profiles row
+    // form_level stored as-is for profile; form_name used only for subject lookup
     await sb.from('student_profiles').upsert({
       user_id:      userId,
       full_name,
@@ -95,12 +103,23 @@ export default async function handler(req, res) {
       form_level,
     }, { onConflict: 'user_id' });
 
-    // Enroll in subjects — look up subject IDs by name (case-insensitive)
+    // Enroll in subjects — subjects table uses 'form_name' (e.g. "Form 3", "Form 4", "MSCE")
+    // and 'name' for the subject name. Match on name only (a student picks specific subjects,
+    // not all subjects for their form), with a form_name guard to avoid cross-form collisions
+    // (e.g. Biology Book 3 vs Biology Book 4 have the same short name pattern).
     if (subjects?.length) {
-      const { data: subjectRows } = await sb
+      const dbFormName = FORM_NAME_MAP[form_level] || form_level;
+
+      // Fetch matching subjects: name must be in the agent's list AND form_name must match
+      // the student's form (or MSCE, which is available to all).
+      const { data: subjectRows, error: subErr } = await sb
         .from('subjects')
-        .select('id, name')
-        .in('name', subjects);
+        .select('id, name, form_name')
+        .in('name', subjects)
+        .in('form_name', [dbFormName, 'MSCE'])
+        .eq('status', 'published');
+
+      if (subErr) console.error('[wa-register] subject lookup failed:', subErr);
 
       if (subjectRows?.length) {
         const enrollments = subjectRows.map(s => ({
@@ -108,7 +127,10 @@ export default async function handler(req, res) {
           subject_id: s.id,
           status: 'active',
         }));
-        await sb.from('enrollments').upsert(enrollments, { onConflict: 'student_id,subject_id' });
+        const { error: enrollErr } = await sb
+          .from('enrollments')
+          .upsert(enrollments, { onConflict: 'student_id,subject_id' });
+        if (enrollErr) console.error('[wa-register] enrollment upsert failed:', enrollErr);
       }
     }
 
@@ -137,21 +159,23 @@ function normalisePhone(raw) {
 }
 
 async function generateMagicLink(sb, userId, phone, appUrl) {
-  // Generate a magic OTP link via Supabase admin API.
-  // type 'magiclink' requires an email; for phone-only users we use
-  // the 'phone_change' trick via a short-lived session instead.
-  // Simplest reliable approach: create a short-lived sign-in token.
+  // Generate a short-lived magic link via Supabase admin API.
+  // Phone-only users have no email in auth.users, so we use a synthetic
+  // address scoped to this app — it is never used for actual email delivery.
   try {
     const { data, error } = await sb.auth.admin.generateLink({
       type: 'magiclink',
-      email: `${phone}@wa.chibondoacademy.com`, // synthetic email for link generation
+      email: `${phone}@wa.chibondoacademy.com`,
       options: { redirectTo: `${appUrl}/dashboard` },
     });
     if (!error && data?.properties?.action_link) {
       return data.properties.action_link;
     }
-  } catch (_) { /* fallback below */ }
+    if (error) console.warn('[wa-register] generateLink error:', error.message);
+  } catch (e) {
+    console.warn('[wa-register] generateLink threw:', e.message);
+  }
 
-  // Fallback: direct dashboard URL with a note to use phone login
+  // Fallback: direct login page with phone pre-filled
   return `${appUrl}/login?hint=${phone}`;
 }
