@@ -110,6 +110,35 @@ export default function Register() {
         }
       } catch (_) {}
 
+      // ── Affiliate referral tracking ─────────────────────────────────
+      try {
+        const pendingRef = localStorage.getItem('pending_referral_code');
+        if (pendingRef && me?.id) {
+          // Find the affiliate who owns this code
+          const affiliates = await db.entities.User.filter({ referral_code: pendingRef });
+          const affiliate = affiliates?.[0];
+          if (affiliate && affiliate.id !== me.id) {
+            // Create the referral record — status 'registered', becomes 'paid' on payment
+            await db.entities.Referral.create({
+              referrer_id:   affiliate.id,
+              referrer_name: affiliate.full_name || affiliate.email || 'Affiliate',
+              referred_user_id: me.id,
+              referred_name: fullName.trim(),
+              referred_email: loginEmail,
+              referral_code: pendingRef,
+              status:        'registered',
+              reward_status: 'pending',
+              reward_amount: 10000,
+              notes:         'Auto-created on registration',
+            });
+            localStorage.removeItem('pending_referral_code');
+          }
+        }
+      } catch (_) {
+        // Non-fatal — don't block registration flow
+      }
+      // ──────────────────────────────────────────────────────────────────
+
       window.location.replace("/dashboard");
     } catch (err) {
       const msg = err.message || "";
