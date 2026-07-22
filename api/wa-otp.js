@@ -251,14 +251,18 @@ async function verifyOTP(req, res) {
         console.log(`Created users table row for ${cleanPhone} (id: ${usersTableId})`);
       }
     } else {
-      // Update phone_number if it was NULL (fix legacy users)
-      if (!existingUser.phone_number) {
+      // Update phone_number and name for legacy users if needed
+      const updates = {};
+      if (!existingUser.phone_number) updates.phone_number = cleanPhone;
+      if (name && !existingUser.full_name) updates.full_name = name;
+      if (Object.keys(updates).length > 0) {
+        updates.updated_date = new Date().toISOString();
         await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${existingUser.id}`, {
           method: 'PATCH',
           headers: { ...headers, Prefer: 'return=minimal' },
-          body: JSON.stringify({ phone_number: cleanPhone, updated_date: new Date().toISOString() }),
+          body: JSON.stringify(updates),
         });
-        console.log(`Updated phone_number for existing user ${existingUser.id}`);
+        console.log(`Updated ${Object.keys(updates).join(', ')} for existing user ${existingUser.id}`);
       }
     }
 
