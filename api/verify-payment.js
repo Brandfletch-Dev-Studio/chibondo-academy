@@ -1,17 +1,25 @@
 // Vercel serverless function — POST /api/verify-payment
 // Verifies a Paychangu payment by tx_ref and creates/activates a subscription.
+// Also handles affiliate referral commission tracking.
 // Body: { tx_ref, user_id }
 
 const PAYCHANGU_SECRET = process.env.PAYCHANGU_SECRET_KEY;
 const SUPABASE_URL     = process.env.SUPABASE_URL;
 const SUPABASE_SRK     = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// subscriptions table has: id, student_id, plan, status, amount, currency,
-//                          starts_at, expires_at, created_date, updated_date, created_by
-// users table has: id, email, full_name, role, avatar_url, referral_code, created_date, updated_date
-// payments table has: id, student_id, amount, currency, method, reference, status, description
+const PLAN_MONTHS      = { monthly: 1, annual: 12, biannual: 24 };
+const COMMISSION_AMOUNT = 10000; // MWK per paid referral
 
-const PLAN_MONTHS = { monthly: 1, annual: 12, biannual: 24 };
+async function supabaseGet(path) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+    headers: {
+      apikey: SUPABASE_SRK,
+      Authorization: `Bearer ${SUPABASE_SRK}`,
+      Accept: 'application/json',
+    },
+  });
+  return r.json();
+}
 
 async function supabasePost(path, body) {
   return fetch(`${SUPABASE_URL}/rest/v1${path}`, {
@@ -20,7 +28,7 @@ async function supabasePost(path, body) {
       apikey: SUPABASE_SRK,
       Authorization: `Bearer ${SUPABASE_SRK}`,
       'Content-Type': 'application/json',
-      Prefer: 'return=minimal',
+      Prefer: 'return=minimal,resolution=ignore-duplicates',
     },
     body: JSON.stringify(body),
   });
@@ -37,6 +45,63 @@ async function supabasePatch(path, body) {
     },
     body: JSON.stringify(body),
   });
+}
+
+// ── Referral commission logic ─────────────────────────────────────────────────
+// Called after payment is confirmed. 
+// Looks up whether uid was referred by someone, then marks the referral as 'paid'
+// and sets the reward_amount so the affiliate dashboard shows live numbers.
+async function processReferralCommission(uid, amount, txRef) {
+  try {
+    // 1. Find this user's record to get their referral_code (how they joined)
+    const users = await supabaseGet(`/users?id=eq.${encodeURIComponent(uid)}&limit=1`);
+    const user  = Array.isArray(users) ? users[0] : null;
+    if (!user) { console.log('[referral] user not found:', uid); return; }
+
+    // 2. Find open referral record for this user (status: registered or pending)
+    const refs = await supabaseGet(
+      `/referrals?referred_user_id=eq.${encodeURIComponent(uid)}&status=neq.paid&limit=1`
+    );
+    const ref = Array.isArray(refs) ? refs[0] : null;
+
+    if (!ref) {
+      console.log('[referral] no open referral found for user:', uid);
+      return;
+    }
+
+    const commissionAmt = ref.reward_amount || COMMISSION_AMOUNT;
+    const now = new Date().toISOString();
+
+    // 3. Mark referral as paid + set reward_amount
+    const patchRes = await supabasePatch(
+      `/referrals?id=eq.${encodeURIComponent(ref.id)}`,
+      {
+        status:        'paid',
+        reward_status: 'earned',
+        reward_amount: commissionAmt,
+        notes:         `Payment confirmed via tx_ref: ${txRef}`,
+        updated_date:  now,
+      }
+    );
+    console.log('[referral] marked as paid:', ref.id, 'status:', patchRes.status);
+
+    // 4. Send notification to affiliate (best-effort)
+    try {
+      await supabasePost('/notifications', {
+        user_id:    ref.referrer_id,
+        type:       'affiliate_commission',
+        title:      '💰 Commission Earned!',
+        message:    `${ref.referred_name || 'Your referral'} has subscribed. You earned MWK ${commissionAmt.toLocaleString()}!`,
+        is_read:    false,
+        created_date: now,
+        updated_date: now,
+      });
+    } catch (_) {}
+
+  } catch (err) {
+    console.error('[referral] processReferralCommission error:', err.message);
+    // Non-fatal — don't let referral errors block subscription activation
+  }
 }
 
 export default async function handler(req, res) {
@@ -56,14 +121,10 @@ export default async function handler(req, res) {
     const pcData = await pcRes.json();
     console.log('[verify-payment] Paychangu response:', JSON.stringify(pcData).slice(0, 300));
 
-    // Paychangu status logic:
-    // PAID:    pcData.status='success' AND pcData.data.status='success'
-    // PENDING: pcData.data.status='pending' (top-level may be 'failed' — ignore it)
-    // FAILED:  pcData.data.status='failed' OR pcData.data.status='cancelled'
     const dataStatus = pcData?.data?.status;
     const isPaid     = pcData.status === 'success' && dataStatus === 'success';
     const isFailed   = (dataStatus === 'failed' || dataStatus === 'cancelled');
-    const isPending  = !isPaid && !isFailed; // covers 'pending' and unknown states
+    const isPending  = !isPaid && !isFailed;
 
     if (isPending) {
       return res.status(200).json({ pending: true, status: dataStatus || 'pending' });
@@ -86,7 +147,6 @@ export default async function handler(req, res) {
     const amount     = pcData?.data?.amount || 0;
     const uid        = user_id || meta.user_id;
 
-    // Dates
     const now      = new Date();
     const startsAt = now.toISOString();
     const endsAt   = new Date(new Date().setMonth(new Date().getMonth() + months)).toISOString();
@@ -98,17 +158,16 @@ export default async function handler(req, res) {
         { status: 'expired', updated_date: new Date().toISOString() }
       );
 
-      // 3. Create new subscription — only use confirmed existing columns
-      const subId = `sub-${tx_ref}`;
+      // 3. Create new subscription
       const subRes = await supabasePost('/subscriptions', {
-        id:           subId,
+        id:           `sub-${tx_ref}`,
         student_id:   uid,
         plan,
         status:       'active',
         amount,
         currency:     'MWK',
         starts_at:    startsAt,
-        expires_at:   endsAt,      // ✅ correct column name
+        expires_at:   endsAt,
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString(),
       });
@@ -117,22 +176,18 @@ export default async function handler(req, res) {
         console.error('[verify] subscription insert error:', err);
       }
 
-      // 4. Update payment record to completed
+      // 4. Mark payment as completed
       await supabasePatch(
         `/payments?reference=eq.${encodeURIComponent(tx_ref)}`,
         { status: 'completed', updated_date: new Date().toISOString() }
       );
 
-      // NOTE: users table has no subscription_plan column — subscription status
-      // is derived at runtime from the subscriptions table. No user patch needed.
+      // 5. ✅ Process referral commission (new — was missing)
+      await processReferralCommission(uid, amount, tx_ref);
     }
 
-    return res.status(200).json({
-      success: true,
-      plan,
-      ends_at: endsAt,
-      amount,
-    });
+    return res.status(200).json({ success: true, plan, ends_at: endsAt, amount });
+
   } catch (err) {
     console.error('verify-payment error:', err);
     return res.status(500).json({ error: err.message || 'Internal error' });
