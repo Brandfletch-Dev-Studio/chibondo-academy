@@ -185,6 +185,15 @@ export default function StudentDashboard() {
     },
   ];
 
+  // Show a loading state while the user data loads from the auth context
+  if (!user?.id) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <WelcomeCard user={user} />

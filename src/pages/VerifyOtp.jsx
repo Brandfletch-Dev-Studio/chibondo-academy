@@ -117,7 +117,7 @@ export default function VerifyOtp() {
         }
 
         setTimeout(() => {
-          window.location.replace(`/dashboard?access_token=${encodeURIComponent(token)}`);
+          window.location.replace(`/dashboard`);
         }, 900);
       } else {
         setError("No token returned. Please try logging in.");

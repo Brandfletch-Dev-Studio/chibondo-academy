@@ -42,7 +42,7 @@ export default function VerifyLink() {
         db.auth.setToken(data.access_token);
         setStatus("success");
         setTimeout(() => {
-          window.location.replace(`/dashboard?access_token=${encodeURIComponent(data.access_token)}`);
+          window.location.replace(`/dashboard`);
         }, 1000);
       } else {
         setError("No token returned. Please try logging in again.");
