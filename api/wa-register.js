@@ -2,21 +2,17 @@
 // Receives a register_student tool call from NyasaDesk's AI agent.
 // Creates a Supabase auth user + public.users row, then returns a
 // magic login link the agent sends back to the student on WhatsApp.
-//
-// Uses CHIBONDO_SUPABASE_URL + CHIBONDO_SERVICE_ROLE_KEY env vars
-// so it always hits the correct Supabase project regardless of VITE_ defaults.
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL   = 'https://nckjjfxlmmsnmnexcgzg.supabase.co';
-const SERVICE_KEY    = process.env.CHIBONDO_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SHARED_SECRET  = process.env.WA_REGISTER_SECRET;
-const APP_URL        = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
+const SUPABASE_URL  = 'https://nckjjfxlmmsnmnexcgzg.supabase.co';
+const SERVICE_KEY   = process.env.CHIBONDO_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SHARED_SECRET = process.env.WA_REGISTER_SECRET;
+const APP_URL       = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Verify shared secret
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
   if (!SHARED_SECRET || token !== SHARED_SECRET) {
@@ -57,13 +53,12 @@ export default async function handler(req, res) {
       const { data: byPhone } = await sb
         .from('users')
         .select('id, full_name')
-        .or(`phone.eq.${normPhone},phone_number.eq.${normPhone}`)
+        .or(`phone_number.eq.${normPhone},phone.eq.${normPhone}`)
         .maybeSingle();
       if (byPhone) existingRow = byPhone;
     }
 
     if (existingRow) {
-      // Generate a fresh magic link for the existing user
       const link = await generateMagicLink(sb, email, APP_URL);
       return res.status(200).json({
         ok: true,
@@ -72,7 +67,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // --- Create new auth user with email + password ---
+    // Create auth user with email + password (both confirmed immediately)
     const { data: authData, error: signUpErr } = await sb.auth.admin.createUser({
       email,
       password,
@@ -94,27 +89,35 @@ export default async function handler(req, res) {
 
     const userId = authData.user.id;
 
-    // Create public.users row
-    await sb.from('users').insert({
+    // Insert into public.users — using correct column names
+    const { error: userInsertErr } = await sb.from('users').insert({
       id:            userId,
       full_name,
       email,
-      phone:         normPhone,
-      phone_number:  normPhone,
+      phone_number:  normPhone,   // correct column name
+      phone:         normPhone,   // also fill phone column
       role:          'student',
       created_by:    userId,
       referral_code: referral_code || 'AGENT',
     });
 
+    if (userInsertErr) {
+      console.error('[wa-register] users insert failed:', userInsertErr);
+    }
+
     // Create student_profiles row
-    await sb.from('student_profiles').upsert({
+    const { error: profileErr } = await sb.from('student_profiles').upsert({
       user_id:      userId,
       full_name,
       phone_number: normPhone,
       form_level:   form_level || null,
     }, { onConflict: 'user_id' });
 
-    // Generate magic link — user now has a confirmed email in this project
+    if (profileErr) {
+      console.error('[wa-register] student_profiles upsert failed:', profileErr);
+    }
+
+    // Generate magic link using the confirmed email
     const loginLink = await generateMagicLink(sb, email, APP_URL);
 
     return res.status(200).json({
@@ -128,8 +131,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message || 'Registration failed' });
   }
 }
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalisePhone(raw) {
   let p = String(raw).replace(/\D/g, '');
@@ -152,6 +153,5 @@ async function generateMagicLink(sb, email, appUrl) {
   } catch (e) {
     console.warn('[wa-register] generateLink threw:', e.message);
   }
-  // Fallback — should never be needed since email is now confirmed in auth.users
   return `${appUrl}/login`;
 }
