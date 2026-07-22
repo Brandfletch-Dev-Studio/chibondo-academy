@@ -1,13 +1,25 @@
 // Vercel serverless function — POST /api/paychangu-webhook
 // Paychangu server-to-server webhook — fires after payment confirmation.
 // Register this URL in your Paychangu dashboard as the webhook endpoint.
-// Validates the payload and activates the subscription in Supabase.
+// Validates the payload, activates the subscription, and tracks affiliate commissions.
 
-const PAYCHANGU_SECRET = process.env.PAYCHANGU_SECRET_KEY;
-const SUPABASE_URL     = process.env.SUPABASE_URL;
-const SUPABASE_SRK     = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PAYCHANGU_SECRET  = process.env.PAYCHANGU_SECRET_KEY;
+const SUPABASE_URL      = process.env.SUPABASE_URL;
+const SUPABASE_SRK      = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const PLAN_MONTHS = { monthly: 1, annual: 12, biannual: 24 };
+const PLAN_MONTHS       = { monthly: 1, annual: 12, biannual: 24 };
+const COMMISSION_AMOUNT = 10000; // MWK
+
+async function supabaseGet(path) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+    headers: {
+      apikey: SUPABASE_SRK,
+      Authorization: `Bearer ${SUPABASE_SRK}`,
+      Accept: 'application/json',
+    },
+  });
+  return r.json();
+}
 
 async function supabasePost(path, body) {
   return fetch(`${SUPABASE_URL}/rest/v1${path}`, {
@@ -35,42 +47,73 @@ async function supabasePatch(path, body) {
   });
 }
 
+async function processReferralCommission(uid, txRef) {
+  try {
+    const refs = await supabaseGet(
+      `/referrals?referred_user_id=eq.${encodeURIComponent(uid)}&status=neq.paid&limit=1`
+    );
+    const ref = Array.isArray(refs) ? refs[0] : null;
+    if (!ref) { console.log('[webhook/referral] no open referral for user:', uid); return; }
+
+    const commissionAmt = ref.reward_amount || COMMISSION_AMOUNT;
+    const now = new Date().toISOString();
+
+    await supabasePatch(`/referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+      status:        'paid',
+      reward_status: 'earned',
+      reward_amount: commissionAmt,
+      notes:         `Confirmed via webhook tx_ref: ${txRef}`,
+      updated_date:  now,
+    });
+    console.log('[webhook/referral] commission marked paid for referral:', ref.id);
+
+    // Notify affiliate
+    try {
+      await supabasePost('/notifications', {
+        user_id:      ref.referrer_id,
+        type:         'affiliate_commission',
+        title:        '💰 Commission Earned!',
+        message:      `${ref.referred_name || 'Your referral'} just subscribed. You earned MWK ${commissionAmt.toLocaleString()}!`,
+        is_read:      false,
+        created_date: now,
+        updated_date: now,
+      });
+    } catch (_) {}
+  } catch (err) {
+    console.error('[webhook/referral] error:', err.message);
+  }
+}
+
 export default async function handler(req, res) {
-  // Paychangu sends POST webhooks
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
     const payload = req.body;
     console.log('[paychangu-webhook] payload:', JSON.stringify(payload).slice(0, 400));
 
-    // Paychangu webhook payload shape:
-    // { event: 'charge.success', data: { tx_ref, status, amount, currency, meta: { user_id, plan } } }
-    const event    = payload?.event;
-    const data     = payload?.data || payload; // some versions send data at root
-    const tx_ref   = data?.tx_ref;
-    const status   = data?.status;
+    const event  = payload?.event;
+    const data   = payload?.data || payload;
+    const tx_ref = data?.tx_ref;
+    const status = data?.status;
 
-    // Only process successful payments
     if (event !== 'charge.success' && status !== 'success') {
-      console.log('[paychangu-webhook] not a success event — skipping');
       return res.status(200).json({ received: true });
     }
-
     if (!tx_ref) {
-      console.warn('[paychangu-webhook] no tx_ref in payload');
+      console.warn('[paychangu-webhook] no tx_ref');
       return res.status(200).json({ received: true });
     }
 
-    const meta     = data?.meta || {};
+    const meta       = data?.meta || {};
     const planPrefix = tx_ref.split('-')[1]?.toUpperCase();
     const prefixMap  = { MON: 'monthly', ANN: 'annual', BIA: 'biannual' };
-    const plan     = meta.plan || prefixMap[planPrefix] || 'monthly';
-    const months   = PLAN_MONTHS[plan] || 1;
-    const amount   = data?.amount || 0;
-    const uid      = meta.user_id;
+    const plan       = meta.plan || prefixMap[planPrefix] || 'monthly';
+    const months     = PLAN_MONTHS[plan] || 1;
+    const amount     = data?.amount || 0;
+    const uid        = meta.user_id;
 
     if (!uid) {
-      console.warn('[paychangu-webhook] no user_id in meta — cannot activate subscription');
+      console.warn('[paychangu-webhook] no user_id in meta');
       return res.status(200).json({ received: true });
     }
 
@@ -84,7 +127,7 @@ export default async function handler(req, res) {
       { status: 'expired', updated_date: now.toISOString() }
     );
 
-    // Create subscription (ignore duplicate if verify already ran)
+    // Create subscription
     const subRes = await supabasePost('/subscriptions', {
       id:           `sub-${tx_ref}`,
       student_id:   uid,
@@ -99,18 +142,20 @@ export default async function handler(req, res) {
     });
     console.log('[paychangu-webhook] subscription insert:', subRes.status);
 
-    // Mark payment as completed
+    // Mark payment completed
     await supabasePatch(
       `/payments?reference=eq.${encodeURIComponent(tx_ref)}`,
       { status: 'completed', updated_date: now.toISOString() }
     );
 
-    console.log('[paychangu-webhook] ✅ subscription activated for', uid, 'plan:', plan);
+    // ✅ Process referral commission
+    await processReferralCommission(uid, tx_ref);
+
+    console.log('[paychangu-webhook] ✅ done for', uid, 'plan:', plan);
     return res.status(200).json({ received: true, activated: true });
 
   } catch (err) {
     console.error('[paychangu-webhook] error:', err);
-    // Always return 200 to Paychangu so it doesn't retry endlessly
     return res.status(200).json({ received: true, error: err.message });
   }
 }
