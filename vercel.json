@@ -8,6 +8,9 @@
   "functions": {
     "api/bunny-upload.js": {
       "maxDuration": 60
+    },
+    "api/wa-register.js": {
+      "maxDuration": 30
     }
   }
 }
