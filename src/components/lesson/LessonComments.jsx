@@ -5,6 +5,7 @@
  * Has NO connection to subject forums — no subject_id routing, no forum links.
  */
 
+import { toast } from 'sonner';
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
@@ -323,6 +324,10 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
     },
     onError: (err) => {
       console.error('[LessonComments] save error:', err);
+      toast.error('Failed to post comment: ' + (err?.message || 'Unknown error'));
+    },
+    onSuccess: () => {
+      toast.success('Comment posted!');
     },
   });
 
@@ -337,22 +342,22 @@ export default function LessonComments({ lessonId, lessonTitle, lessonUrl, user,
   });
 
   const buildPayload = (commentContent, parentId = null) => ({
-    lesson_id:    lessonId,
-    created_by:   user.id,
-    author_name:  user.full_name || user.email?.split('@')[0] || 'Student',
+    lesson_id:   lessonId,
+    created_by:  user.id,
+    author_name: user.full_name || user.email?.split('@')[0] || 'Student',
     author_photo: user.avatar_url || null,
-    author_role:  user.role || 'student',
-    content:      commentContent,
-    parent_id:    parentId,
-    status:       'active',
-    likes:        0,
-    liked_by:     [],
-    is_pinned:    false,
-    is_answer:    false,
+    author_role: user.role || 'student',
+    content:     commentContent,
+    parent_id:   parentId || null,
+    status:      'active',
   });
 
   const handlePost = () => {
-    if (!newComment.trim() || !user?.id) return;
+    if (!newComment.trim()) return;
+    if (!user?.id) {
+      toast.error('Please log in to post a comment.');
+      return;
+    }
     createMutation.mutate(buildPayload(newComment.trim()));
   };
 
