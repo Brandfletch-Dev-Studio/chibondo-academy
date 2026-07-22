@@ -54,8 +54,12 @@ function getClient() {
 // ── REST helpers ──────────────────────────────────────────────────────────────
 const API = `${SUPABASE_URL}/rest/v1`;
 
-async function _req(method, path, body, extra = {}) {
-  const token = getToken();
+async function _req(method, path, body, extra = {}, _retry = true) {
+  let token = getToken();
+  // Auto-refresh if token is about to expire
+  if (token && isTokenExpiring()) {
+    token = await refreshAccessToken();
+  }
   const res = await fetch(`${API}${path}`, {
     method,
     headers: {
@@ -67,6 +71,13 @@ async function _req(method, path, body, extra = {}) {
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
+  // If 401 and we have a refresh token, try to refresh and retry once
+  if (res.status === 401 && _retry && getRefreshToken()) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      return _req(method, path, body, extra, false);
+    }
+  }
   if (!res.ok && res.status !== 204) {
     const err = await res.json().catch(() => ({}));
     throw Object.assign(new Error(err.message || err.error_description || `HTTP ${res.status}`), { status: res.status });
@@ -248,6 +259,7 @@ function entityAPI(entityName) {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 const AUTH = `${SUPABASE_URL}/auth/v1`;
+const AUTH_URL = AUTH; // alias used by refresh function
 
 async function authFetch(path, body, method = 'POST') {
   const res = await fetch(`${AUTH}${path}`, {
@@ -262,7 +274,12 @@ async function authFetch(path, body, method = 'POST') {
 
 const auth = {
   async me() {
-    const token = getToken();
+    let token = getToken();
+    // Try to refresh if token is expiring
+    if (token && isTokenExpiring() && getRefreshToken()) {
+      token = await refreshAccessToken();
+      if (!token) throw Object.assign(new Error('Session expired'), { status: 401 });
+    }
     if (!token) throw Object.assign(new Error('Not authenticated'), { status: 401 });
     const sub = parseJwt(token)?.sub;
     if (!sub) throw Object.assign(new Error('Invalid token'), { status: 401 });
@@ -290,13 +307,12 @@ const auth = {
     }
   },
 
-  setToken: saveToken,
+  setToken: (token, refreshToken) => saveToken(token, refreshToken),
 
   async loginViaEmailPassword(email, password) {
     const data = await authFetch('/token?grant_type=password', { email, password });
-    const token = data.access_token;
-    if (!token) throw new Error('No token returned');
-    saveToken(token);
+    if (!data.access_token) throw new Error('No token returned');
+    saveToken(data.access_token, data.refresh_token);
     return data;
   },
 
@@ -318,7 +334,7 @@ const auth = {
 
   async verifyOtp({ email, otpCode }) {
     const data = await authFetch('/verify', { type: 'email', email, token: otpCode });
-    if (data.access_token) saveToken(data.access_token);
+    if (data.access_token) saveToken(data.access_token, data.refresh_token);
     return data;
   },
 

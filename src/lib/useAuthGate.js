@@ -15,10 +15,11 @@ export function useAuthGate() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check Supabase JWT in localStorage
+  // Check Supabase JWT + refresh token in localStorage
   const isAuthenticated = !!(
     localStorage.getItem('aca_access_token') ||
-    localStorage.getItem('token')
+    localStorage.getItem('token') ||
+    localStorage.getItem('aca_refresh_token')
   );
 
   const requireAuth = useCallback((callback, options = {}) => {

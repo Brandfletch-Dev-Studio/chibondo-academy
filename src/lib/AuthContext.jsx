@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     try {
       localStorage.removeItem('aca_access_token');
+      localStorage.removeItem('aca_refresh_token');
       localStorage.removeItem('token');
     } catch (_) {}
     if (shouldRedirect) window.location.href = '/login';

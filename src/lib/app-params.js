@@ -37,6 +37,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 const getAppParams = () => {
 	if (getAppParamValue("clear_access_token") === 'true') {
 		storage.removeItem('aca_access_token');
+		storage.removeItem('aca_refresh_token');
 		storage.removeItem('token');
 	}
 	return {
