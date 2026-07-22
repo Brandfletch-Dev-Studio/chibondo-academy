@@ -13,6 +13,7 @@ export default function VerifyOtp() {
   const name = location.state?.name || "";
   const refCode = location.state?.refCode || null;
   const isNew = location.state?.isNew || false;
+  const isReset = location.state?.isReset || false;
 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -161,7 +162,7 @@ export default function VerifyOtp() {
   return (
     <>
       <SEO title="Verify WhatsApp" description="Verify your WhatsApp number to activate your Chibondo Academy account." />
-      <AuthLayout title="Verify your WhatsApp" subtitle="Enter the 6-digit code sent to your WhatsApp">
+      <AuthLayout title={isReset ? "Verify to reset access" : "Verify your WhatsApp"} subtitle={isReset ? "Enter the code sent to your WhatsApp to regain access" : "Enter the 6-digit code sent to your WhatsApp"}>
         <div className="space-y-6">
 
           {/* Status icon + phone */}

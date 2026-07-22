@@ -7,7 +7,7 @@ import { Phone, Loader2, MessageCircle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
 
-export default function Login() {
+export default function ForgotPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const refCode = searchParams.get("ref");
@@ -50,7 +50,7 @@ export default function Login() {
       setSent(true);
       setTimeout(() => {
         navigate("/verify-otp", {
-          state: { phone: data.phone || digits, refCode: refCode || null },
+          state: { phone: data.phone || digits, refCode: refCode || null, isReset: true },
         });
       }, 600);
     } catch (err) {
@@ -62,17 +62,17 @@ export default function Login() {
   return (
     <>
       <SEO
-        title="Login"
-        description="Sign in to your Chibondo Academy account with WhatsApp verification."
-        canonical={`${window.location.origin}/login`}
+        title="Reset Access"
+        description="Reset your Chibondo Academy access with WhatsApp verification."
+        canonical={`${window.location.origin}/forgot-password`}
       />
       <AuthLayout
-        title="Welcome Back"
-        subtitle="Sign in with your WhatsApp number"
+        title="Reset your access"
+        subtitle="Verify your WhatsApp number to regain access"
         footer={
           <>
-            New to the academy?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">Join us</Link>
+            Remembered your login?{" "}
+            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
           </>
         }
       >
@@ -105,7 +105,7 @@ export default function Login() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              We'll send a verification link to your WhatsApp. Just tap it to log in.
+              We'll send a verification link to your WhatsApp. Tap it to regain access to your account.
             </p>
           </div>
 
@@ -117,19 +117,6 @@ export default function Login() {
             )}
           </Button>
         </form>
-
-        <div className="text-center mt-4">
-          <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-            Forgot your password?
-          </Link>
-        </div>
-
-        {refCode && (
-          <div className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20 text-sm">
-            <p className="font-semibold text-accent">Referral Code Applied</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Code: <span className="font-mono">{refCode}</span></p>
-          </div>
-        )}
       </AuthLayout>
     </>
   );

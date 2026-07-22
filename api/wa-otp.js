@@ -127,6 +127,7 @@ async function verifyOTP(req, res) {
 
   let cleanPhone = phone ? normalisePhone(phone) : '';
 
+  // 1. Verify the OTP code or token
   try {
     let verifyRes;
     if (token) {
@@ -159,63 +160,138 @@ async function verifyOTP(req, res) {
     });
   } catch (err) { console.error('OTP verify error:', err.message); return res.status(500).json({ error: 'Verification failed' }); }
 
-  // Find or create user
+  // 2. Find or create user
   try {
     const autoEmail = `${cleanPhone}@chibondoacademy.com`;
+    const waPrefixEmail = `wa_${cleanPhone}@chibondoacademy.com`;
     const password = await derivePassword(cleanPhone, OTP_SECRET);
 
-    // Check if user exists in users table
-    const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?phone_number=eq.${cleanPhone}&limit=1`,
-      { headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } });
+    const headers = {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+    };
+
+    // Look up by phone_number OR by any auto-generated email format
+    const userRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?or=(phone_number.eq.${cleanPhone},email.eq.${autoEmail},email.eq.${waPrefixEmail})&limit=1`,
+      { headers }
+    );
     const userRows = userRes.ok ? await userRes.json() : [];
     const existingUser = userRows[0];
 
+    // Also check auth.users by phone (catches users created by wa-register.js)
+    let authUserId = null;
     if (!existingUser) {
-      // Create auth user
-      const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        method: 'POST',
-        headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: autoEmail, password, email_confirm: true, phone: `+${cleanPhone}`,
-          user_metadata: { phone_number: cleanPhone, full_name: name || '', auth_method: 'whatsapp_otp' } }),
-      });
-      if (!createRes.ok) {
-        const createErr = await createRes.json().catch(() => ({}));
-        if (!createErr.msg?.includes('already')) { console.error('User creation failed:', JSON.stringify(createErr)); return res.status(500).json({ error: 'Failed to create account' }); }
-      }
-
-      // Create users table row
-      await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-        method: 'POST',
-        headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-        body: JSON.stringify({ id: (await createRes.json().catch(() => ({}))).id || undefined, email: autoEmail, full_name: name || '', role: 'user', phone_number: cleanPhone, created_date: new Date().toISOString(), updated_date: new Date().toISOString() }),
-      });
+      try {
+        const authListRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, { headers });
+        if (authListRes.ok) {
+          const authData = await authListRes.json();
+          const authUsers = authData.users || authData;
+          const match = authUsers.find(u => u.phone === `+${cleanPhone}` || u.phone === cleanPhone);
+          if (match) {
+            authUserId = match.id;
+            console.log(`Found existing auth user ${authUserId} for phone ${cleanPhone}, email: ${match.email}`);
+          }
+        }
+      } catch (e) { console.warn('Auth lookup failed:', e.message); }
     }
 
-    // Sign in to get token
-    const signInRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: autoEmail, password }),
-    });
-
-    if (!signInRes.ok) {
-      if (existingUser?.email) {
-        const altSignIn = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    if (!existingUser) {
+      // Create auth user — only if one doesn't already exist
+      if (!authUserId) {
+        const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
           method: 'POST',
-          headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: existingUser.email, password }),
+          headers,
+          body: JSON.stringify({
+            email: autoEmail, password, email_confirm: true, phone: `+${cleanPhone}`,
+            user_metadata: { phone_number: cleanPhone, full_name: name || '', auth_method: 'whatsapp_otp' },
+          }),
         });
-        if (altSignIn.ok) {
-          const altData = await altSignIn.json();
-          return res.status(200).json({ ok: true, access_token: altData.access_token, refresh_token: altData.refresh_token, user: { phone: cleanPhone, isNew: !existingUser } });
+
+        // Read the body ONCE and store it
+        const createBody = await createRes.json().catch(() => ({}));
+
+        if (!createRes.ok) {
+          const errMsg = createBody?.msg || '';
+          if (!errMsg.toLowerCase().includes('already')) {
+            console.error('User creation failed:', JSON.stringify(createBody));
+            return res.status(500).json({ error: 'Failed to create account' });
+          }
+          // "already exists" — try to find the existing auth user by email
+          console.log('Auth user already exists, attempting lookup...');
+        } else {
+          authUserId = createBody.id;
         }
       }
-      return res.status(500).json({ error: 'Authentication failed. Please try again.' });
+
+      // Generate a UUID for the users table row
+      const usersTableId = authUserId || crypto.randomUUID();
+
+      // Create the users table row with a guaranteed non-null id
+      const newUserRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+        method: 'POST',
+        headers: { ...headers, Prefer: 'return=representation' },
+        body: JSON.stringify({
+          id: usersTableId,
+          email: autoEmail,
+          full_name: name || '',
+          role: 'user',
+          phone_number: cleanPhone,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString(),
+        }),
+      });
+
+      if (!newUserRes.ok) {
+        const errText = await newUserRes.text();
+        console.error('users table insert failed:', errText);
+        // Non-fatal — the auth user exists, sign-in can still work
+      } else {
+        console.log(`Created users table row for ${cleanPhone} (id: ${usersTableId})`);
+      }
+    } else {
+      // Update phone_number if it was NULL (fix legacy users)
+      if (!existingUser.phone_number) {
+        await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${existingUser.id}`, {
+          method: 'PATCH',
+          headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({ phone_number: cleanPhone, updated_date: new Date().toISOString() }),
+        });
+        console.log(`Updated phone_number for existing user ${existingUser.id}`);
+      }
     }
 
-    const authData = await signInRes.json();
-    return res.status(200).json({ ok: true, access_token: authData.access_token, refresh_token: authData.refresh_token, user: { phone: cleanPhone, isNew: !existingUser } });
-  } catch (err) { console.error('Auth flow error:', err.message); return res.status(500).json({ error: 'Authentication failed' }); }
+    // 3. Sign in — try with autoEmail, then wa_ prefix, then existing user's email
+    const emailsToTry = [autoEmail];
+    if (existingUser?.email && !emailsToTry.includes(existingUser.email)) emailsToTry.push(existingUser.email);
+    if (!emailsToTry.includes(waPrefixEmail)) emailsToTry.push(waPrefixEmail);
+
+    for (const tryEmail of emailsToTry) {
+      const signInRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: tryEmail, password }),
+      });
+
+      if (signInRes.ok) {
+        const authData = await signInRes.json();
+        return res.status(200).json({
+          ok: true,
+          access_token: authData.access_token,
+          refresh_token: authData.refresh_token,
+          user: { phone: cleanPhone, isNew: !existingUser },
+        });
+      }
+    }
+
+    // All sign-in attempts failed
+    console.error('All sign-in attempts failed for phone:', cleanPhone);
+    return res.status(500).json({ error: 'Authentication failed. Please try again.' });
+  } catch (err) {
+    console.error('Auth flow error:', err.message);
+    return res.status(500).json({ error: 'Authentication failed' });
+  }
 }
 
 // ─── ROUTER ──────────────────────────────────────────────────────────────────

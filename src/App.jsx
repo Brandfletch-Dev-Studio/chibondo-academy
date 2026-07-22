@@ -32,7 +32,7 @@ function RoleHome() {
     const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
     if (params.get('type') === 'recovery' && params.get('access_token')) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/forgot-password" replace />;
     }
   }
 
@@ -51,6 +51,7 @@ const Register = lazy(() => import('@/pages/Register'));
 const TeacherRegister = lazy(() => import('@/pages/TeacherRegister'));
 const VerifyOtp = lazy(() => import('@/pages/VerifyOtp'));
 const VerifyLink = lazy(() => import('@/pages/VerifyLink'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const TutorProfilePage = lazy(() => import('@/pages/tutors/TutorProfile'));
 const TutorsPage = lazy(() => import('@/pages/tutors/TutorsPage'));
@@ -165,6 +166,7 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/register/teacher" element={<TeacherRegister />} />
       <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-link" element={<VerifyLink />} />
       <Route path="/welcome" element={<LandingPage />} />
 
