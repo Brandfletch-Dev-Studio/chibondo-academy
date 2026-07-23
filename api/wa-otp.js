@@ -393,14 +393,19 @@ async function checkUniqueness(req, res) {
   const result = { phoneAvailable: true, emailAvailable: true, referralCodeAvailable: true };
 
   try {
-    // Check phone uniqueness
+    // Check phone uniqueness (try both with and without + prefix)
     if (phone) {
       const cleanPhone = phone.replace(/\D/g, '');
-      let query = `phone_number=eq.${cleanPhone}`;
-      if (excludeUserId) query += `&id=neq.${excludeUserId}`;
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?${query}&select=id&limit=1`, { headers });
-      const data = await res.json().catch(() => []);
-      result.phoneAvailable = !data || data.length === 0;
+      const phoneVariants = [cleanPhone, `+${cleanPhone}`];
+      let found = false;
+      for (const p of phoneVariants) {
+        let query = `phone_number=eq.${encodeURIComponent(p)}`;
+        if (excludeUserId) query += `&id=neq.${excludeUserId}`;
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?${query}&select=id&limit=1`, { headers });
+        const data = await res.json().catch(() => []);
+        if (data && data.length > 0) { found = true; break; }
+      }
+      result.phoneAvailable = !found;
     }
 
     // Check email uniqueness
