@@ -255,7 +255,6 @@ function entityAPI(entityName) {
           qs += `&${encodeURIComponent(COL_REMAP[k] || k)}=eq.${encodeURIComponent(v)}`;
       }
       const token = getToken();
-      const token = getToken();
       const res = await fetch(`${API}/${table}${qs}`, {
         method: 'HEAD',
         headers: {
