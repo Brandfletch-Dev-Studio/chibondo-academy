@@ -22,6 +22,26 @@ function normalisePhone(phone) {
   return clean;
 }
 
+// Generate a unique referral code from the user's name (4 chars + 4 digits)
+async function generateReferralCode(SUPABASE_URL, headers, name) {
+  const cleanName = (name || 'USER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || 'USER';
+  for (let i = 0; i < 20; i++) {
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    const code = `${cleanName}${suffix}`;
+    // Check if it already exists
+    const checkRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(code)}&select=id&limit=1`,
+      { headers }
+    );
+    if (checkRes.ok) {
+      const rows = await checkRes.json();
+      if (!rows || rows.length === 0) return code;
+    }
+  }
+  // Fallback: longer random
+  return `USER${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 // ─── SEND ────────────────────────────────────────────────────────────────────
 
 async function sendOTP(req, res) {
@@ -413,6 +433,7 @@ async function verifyOTP(req, res) {
           full_name: name || '',
           role: 'user',
           phone_number: cleanPhone,
+          referral_code: await generateReferralCode(SUPABASE_URL, headers, name),
           created_date: new Date().toISOString(),
           updated_date: new Date().toISOString(),
         }),
@@ -440,6 +461,7 @@ await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: n
       const updates = {};
       if (!existingUser.phone_number) updates.phone_number = cleanPhone;
       if (name && !existingUser.full_name) updates.full_name = name;
+      if (!existingUser.referral_code) updates.referral_code = await generateReferralCode(SUPABASE_URL, headers, name || existingUser.full_name);
       if (Object.keys(updates).length > 0) {
         updates.updated_date = new Date().toISOString();
         await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${existingUser.id}`, {
@@ -503,7 +525,7 @@ await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name
 
 // ─── CHECK UNIQUENESS ────────────────────────────────────────────────────────
 async function checkUniqueness(req, res) {
-  const { phone, email, excludeUserId } = req.query;
+  const { phone, email, referralCode, excludeUserId } = req.query;
   const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -516,7 +538,7 @@ async function checkUniqueness(req, res) {
     Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
   };
 
-  const result = { phoneAvailable: true, emailAvailable: true };
+  const result = { phoneAvailable: true, emailAvailable: true, referralCodeAvailable: true };
 
   try {
     if (phone) {
@@ -543,6 +565,20 @@ async function checkUniqueness(req, res) {
         const rows = await emailRes.json();
         if (rows && rows.length > 0 && rows[0].id !== excludeUserId) {
           result.emailAvailable = false;
+        }
+      }
+    }
+
+    if (referralCode) {
+      const cleanCode = String(referralCode).trim().toUpperCase();
+      const codeRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(cleanCode)}&select=id&limit=1`,
+        { headers }
+      );
+      if (codeRes.ok) {
+        const rows = await codeRes.json();
+        if (rows && rows.length > 0 && rows[0].id !== excludeUserId) {
+          result.referralCodeAvailable = false;
         }
       }
     }
