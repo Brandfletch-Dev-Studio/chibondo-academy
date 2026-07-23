@@ -44,6 +44,34 @@
       "type": "string",
       "format": "date",
       "description": "ISO date of the last day the student completed a lesson — used to compute streak"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "WhatsApp phone number in international format (e.g. 265995663949)"
+    },
+    "whatsapp_notifications": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the user wants to receive WhatsApp notifications"
+    },
+    "push_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether push notifications are enabled for this user"
+    },
+    "inapp_notifications": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether in-app notifications are enabled"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full name of the user"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email address (may be a placeholder for WhatsApp-only users)"
     }
   },
   "rls": {

@@ -5,7 +5,7 @@ import { db } from '@/api/supabaseClient';
 import { toast } from 'sonner';
 import {
   User, Lock, Bell, LogOut, GraduationCap, ChevronRight,
-  Loader2, Eye, EyeOff, Phone, Mail, Check, BookOpen,
+  Loader2, Eye, EyeOff, Phone, Mail, Check, MessageCircle, BookOpen,
   Shield, Smartphone, X, School, Info,
 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -288,12 +288,12 @@ function AcademicPanel({ user }) {
 
 function NotificationsPanel({ user }) {
   const { permission, subscribe, unsubscribe, isSupported, isSubscribing, error, isSubscribed } = usePushNotifications(user);
-  const [emailNotifs, setEmailNotifs] = useState(true);
+  const [whatsappNotifs, setWhatsappNotifs] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const granted = permission === 'granted';
 
-  // Load push_enabled or email_notifications on mount
+  // Load push_enabled or whatsapp_notifications on mount
   useEffect(() => {
     let active = true;
     const loadSettings = async () => {
@@ -303,11 +303,11 @@ function NotificationsPanel({ user }) {
         if (active && profiles && profiles.length > 0) {
           const prof = profiles[0];
           if (prof.push_enabled !== undefined && prof.push_enabled !== null) {
-            setEmailNotifs(!!prof.push_enabled);
+            setWhatsappNotifs(!!prof.push_enabled);
             return;
           }
-          if (prof.email_notifications !== undefined && prof.email_notifications !== null) {
-            setEmailNotifs(!!prof.email_notifications);
+          if (prof.whatsapp_notifications !== undefined && prof.whatsapp_notifications !== null) {
+            setWhatsappNotifs(!!prof.whatsapp_notifications);
             return;
           }
         }
@@ -317,11 +317,11 @@ function NotificationsPanel({ user }) {
         if (active && u && u.length > 0) {
           const usr = u[0];
           if (usr.push_enabled !== undefined && usr.push_enabled !== null) {
-            setEmailNotifs(!!usr.push_enabled);
+            setWhatsappNotifs(!!usr.push_enabled);
             return;
           }
-          if (usr.email_notifications !== undefined && usr.email_notifications !== null) {
-            setEmailNotifs(!!usr.email_notifications);
+          if (usr.whatsapp_notifications !== undefined && usr.whatsapp_notifications !== null) {
+            setWhatsappNotifs(!!usr.whatsapp_notifications);
             return;
           }
         }
@@ -333,16 +333,16 @@ function NotificationsPanel({ user }) {
     return () => { active = false; };
   }, [user.id]);
 
-  const toggleEmailNotifs = async () => {
+  const toggleWhatsappNotifs = async () => {
     if (saving) return;
-    const newValue = !emailNotifs;
+    const newValue = !whatsappNotifs;
     setSaving(true);
     try {
-      await db.entities.User.update(user.id, { email_notifications: newValue });
-      setEmailNotifs(newValue);
-      toast.success('Email notifications updated');
+      await db.entities.User.update(user.id, { whatsapp_notifications: newValue });
+      setWhatsappNotifs(newValue);
+      toast.success('WhatsApp notifications updated');
     } catch (err) {
-      toast.error(err?.message || 'Could not update email notifications');
+      toast.error(err?.message || 'Could not update WhatsApp notifications');
     } finally {
       setSaving(false);
     }
@@ -401,20 +401,20 @@ function NotificationsPanel({ user }) {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Mail className="w-4 h-4 text-primary" />
+              <MessageCircle className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold">Email Notifications</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Payment reminders and platform updates</p>
+              <p className="text-sm font-semibold">WhatsApp Notifications</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Get payment reminders and platform updates via WhatsApp</p>
             </div>
           </div>
           {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
           <button
-            onClick={toggleEmailNotifs}
+            onClick={toggleWhatsappNotifs}
             disabled={saving}
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${emailNotifs ? 'bg-primary' : 'bg-muted'} ${saving ? 'opacity-60 cursor-not-allowed' : ''}`}
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${whatsappNotifs ? 'bg-primary' : 'bg-muted'} ${saving ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${emailNotifs ? 'translate-x-5' : 'translate-x-0'}`} />
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${whatsappNotifs ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>

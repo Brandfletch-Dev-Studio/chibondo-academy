@@ -1,81 +1,80 @@
 /**
  * cartRecoveryEmails — Deno.cron hourly + manual Nudge via POST
- * Inline HTML, dynamic APP_URL, no buildBrandedEmail dependency.
+ * Updated to send WhatsApp notifications via the WhatsApp Cloud API.
  */
 import { createClient } from 'npm:@base44/sdk@0.8.31';
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const FROM_ADDRESS   = 'Chibondo Academy <noreply@chibondoacademy.com>';
-const APP_URL        = Deno.env.get('APP_URL') || 'https://chibondoacademy.com';
+const APP_URL = Deno.env.get('APP_URL') || 'https://chibondoacademy.com';
 
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const res = await fetch('https://api.resend.com/emails', {
+function normalizePhoneNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  let normalized = digits;
+  if (normalized.startsWith('0')) {
+    normalized = '265' + normalized.slice(1);
+  }
+  if (!normalized.startsWith('265')) {
+    normalized = '265' + normalized;
+  }
+  return normalized;
+}
+
+async function sendWhatsApp(phone: string, message: string): Promise<void> {
+  const token = Deno.env.get('WA_ACCESS_TOKEN');
+  const phoneNumberId = Deno.env.get('WA_PHONE_NUMBER_ID');
+  
+  if (!token || !phoneNumberId) {
+    console.error('WhatsApp credentials missing (WA_ACCESS_TOKEN / WA_PHONE_NUMBER_ID)');
+    return;
+  }
+
+  const normalizedPhone = normalizePhoneNumber(phone);
+  const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
+  
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: normalizedPhone,
+      type: 'text',
+      text: { body: message }
+    })
   });
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+
+  if (!res.ok) {
+    throw new Error(`WhatsApp API ${res.status}: ${await res.text()}`);
+  }
+  
   const d = await res.json();
-  console.log(`✅ Email sent to ${to} — Resend ID: ${d.id}`);
+  console.log(`✅ WhatsApp sent to ${normalizedPhone} — Message ID: ${d.messages?.[0]?.id}`);
 }
 
-function emailShell(bodyHtml: string): string {
-  return `<!DOCTYPE html><html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f5f6f9;font-family:Arial,sans-serif;">
-<div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-  <div style="background:#1e2d5c;padding:28px 32px;border-radius:12px 12px 0 0;text-align:center;">
-    <h1 style="color:#c9961a;margin:0;font-size:24px;font-weight:bold;">Chibondo Academy</h1>
-    <p style="color:#fff;margin:6px 0 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Excellence in Malawian Secondary Education</p>
-  </div>
-  <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;">
-    ${bodyHtml}
-    <p style="color:#888;font-size:13px;line-height:1.6;margin:24px 0 0;">
-      Questions? <a href="mailto:support@chibondoacademy.com" style="color:#1e2d5c;">support@chibondoacademy.com</a>
-    </p>
-  </div>
-  <p style="text-align:center;color:#aaa;font-size:11px;margin:20px 0 0;">
-    &copy; 2026 Chibondo Academy &middot; <a href="${APP_URL}" style="color:#aaa;">chibondoacademy.com</a>
-  </p>
-</div></body></html>`;
-}
-
-function buildCartHtml(name: string, amount: string, plan: string): string {
-  const fmt = amount ? `MWK ${Number(amount).toLocaleString()}` : 'MWK 10,000';
-  return emailShell(`
-    <h2 style="color:#1e2d5c;margin:0 0 12px;font-size:20px;">Complete your registration, ${name}!</h2>
-    <p style="color:#444;line-height:1.7;margin:0 0 16px;">
-      You started registering for the <strong>${plan}</strong> plan but haven't completed your payment of <strong>${fmt}</strong> yet.
-    </p>
-    <p style="color:#444;line-height:1.7;margin:0 0 24px;">
-      Don't miss out — complete your payment now and get instant access to all lessons, quizzes, past papers, and expert tutors.
-    </p>
-    <div style="text-align:center;margin:28px 0;">
-      <a href="${APP_URL}/subscription"
-         style="background:#c9961a;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block;">
-        Complete Payment Now
-      </a>
-    </div>
-  `);
-}
-
-async function sendRecovery(base44: any, user: { id: string; email: string; full_name?: string }, payment: any) {
+async function sendRecovery(base44: any, user: { id: string; phone_number: string; full_name?: string }, payment: any) {
   try {
-    const name = user.full_name || user.email.split('@')[0];
+    const name = user.full_name || 'Student';
     const plan = payment.description?.split(' ')[0] || 'Monthly';
-    await sendEmail(user.email, `Complete your Chibondo Academy payment, ${name}`, buildCartHtml(name, String(payment.amount || ''), plan));
+    const amountVal = payment.amount ? `MWK ${Number(payment.amount).toLocaleString()}` : 'MWK 10,000';
+    
+    const msg = `Hi ${name}, you started registering for the *${plan}* plan on Chibondo Academy but haven't completed your payment of *${amountVal}* yet.\n\nDon't miss out — complete your payment here: ${APP_URL}/subscription`;
+    
+    await sendWhatsApp(user.phone_number, msg);
+    
     await base44.asServiceRole.entities.Notification.create({
-      user_id: user.id, title: 'Complete your payment', message: 'Cart recovery email sent', type: 'cart_recovery', is_read: true,
+      user_id: user.id, title: 'Complete your payment', message: 'Cart recovery WhatsApp sent', type: 'cart_recovery', is_read: true,
     });
     return true;
   } catch (e: any) { console.error('[cartRecovery]', e.message); return false; }
 }
 
-async function run(forceId?: string, forceEmail?: string, forcePay?: any) {
+async function run(forceId?: string, forcePhone?: string, forcePay?: any) {
   const base44 = createClient({ appId: '6a2115bb078a7219b5cbd8b0' });
 
-  if (forceId && forceEmail) {
-    const ok = await sendRecovery(base44, { id: forceId, email: forceEmail, full_name: forcePay?.student_name }, forcePay || {});
+  if (forceId && forcePhone) {
+    const ok = await sendRecovery(base44, { id: forceId, phone_number: forcePhone, full_name: forcePay?.student_name }, forcePay || {});
     return { sent: ok ? 1 : 0, skipped: 0, mode: 'manual' };
   }
 
@@ -97,7 +96,7 @@ async function run(forceId?: string, forceEmail?: string, forcePay?: any) {
     const sub = await base44.asServiceRole.entities.Subscription.filter({ student_id: p.student_id, status: 'active' });
     if (sub.length) { sk++; continue; }
     const u = await base44.asServiceRole.entities.User.filter({ id: p.student_id });
-    if (!u[0]?.email) { sk++; continue; }
+    if (!u[0]?.phone_number) { sk++; continue; }
     (await sendRecovery(base44, u[0], p)) ? sent++ : sk++;
   }
   return { sent, skipped: sk, eligible: eligible.length };
@@ -112,7 +111,9 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
   try {
     const b = await req.json().catch(() => ({}));
-    const r = await run(b.force_student_id, b.force_email, { amount: b.amount, description: b.description, student_name: b.student_name });
+    // Accept either force_phone or force_email as phone to be compatible with potential manual triggers
+    const phone = b.force_phone || b.force_email;
+    const r = await run(b.force_student_id, phone, { amount: b.amount, description: b.description, student_name: b.student_name });
     return Response.json({ success: true, ...r });
   } catch (e: any) {
     return Response.json({ error: e.message }, { status: 500 });

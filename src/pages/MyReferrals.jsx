@@ -400,7 +400,7 @@ function AffiliateSettings() {
 
       <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
         <div>
-          <p className="font-semibold text-sm">Email Notifications</p>
+          <p className="font-semibold text-sm">WhatsApp Notifications</p>
           <p className="text-xs text-muted-foreground">Get notified when referrals pay fees</p>
         </div>
         <Switch checked={notifications} onCheckedChange={setNotifications} />
@@ -676,7 +676,7 @@ function ProfileTab({ user }) {
     bank_holder: user?.bank_holder || '',
   });
   const [notifs, setNotifs] = React.useState({
-    email_notifications: user?.email_notifications !== false,
+    whatsapp_notifications: user?.whatsapp_notifications !== false,
     inapp_notifications: user?.inapp_notifications !== false,
   });
 
@@ -684,7 +684,7 @@ function ProfileTab({ user }) {
     if (user) {
       setProfile({ full_name: user.full_name || '', email: user.email || '', phone: user.phone || '', whatsapp: user.whatsapp || '' });
       setPayment({ airtel_number: user.airtel_number || '', tnm_number: user.tnm_number || '', bank_name: user.bank_name || '', bank_account: user.bank_account || '', bank_holder: user.bank_holder || '' });
-      setNotifs({ email_notifications: user.email_notifications !== false, inapp_notifications: user.inapp_notifications !== false });
+      setNotifs({ whatsapp_notifications: user.whatsapp_notifications !== false, inapp_notifications: user.inapp_notifications !== false });
     }
   }, [user?.id]);
 
@@ -737,7 +737,7 @@ function ProfileTab({ user }) {
 
       <SectionBox title="Notification Preferences" icon={Bell}>
         {[
-          { key: 'email_notifications', label: 'Email Notifications', sub: 'Get notified via email when referrals register or pay fees' },
+          { key: 'whatsapp_notifications', label: 'WhatsApp Notifications', sub: 'Get notified via WhatsApp when referrals register or pay fees' },
           { key: 'inapp_notifications', label: 'In-App Notifications', sub: 'Receive notifications inside the platform' },
         ].map(({ key, label, sub }) => (
           <div key={key} className="flex items-center justify-between gap-3">

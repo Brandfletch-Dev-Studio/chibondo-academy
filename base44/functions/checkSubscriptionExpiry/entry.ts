@@ -1,15 +1,52 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// ── Branded email helper ────────────────────────────────────────────────────
-async function sendBrandedEmail(base44: any, to: string, type: string, variables: Record<string, string | number>) {
-  try {
-    const built = await base44.asServiceRole.functions.invoke('buildBrandedEmail', { type, variables });
-    if (!built || built.error) throw new Error(built?.error || 'buildBrandedEmail failed');
-    await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: built.subject, body: built.html });
-    console.log(`✅ Branded email (${type}) sent to ${to}`);
-  } catch (err: any) {
-    console.error(`sendBrandedEmail(${type}) failed:`, err.message);
+const APP_URL = Deno.env.get('APP_URL') || 'https://chibondoacademy.com';
+
+function normalizePhoneNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  let normalized = digits;
+  if (normalized.startsWith('0')) {
+    normalized = '265' + normalized.slice(1);
   }
+  if (!normalized.startsWith('265')) {
+    normalized = '265' + normalized;
+  }
+  return normalized;
+}
+
+async function sendWhatsApp(phone: string, message: string): Promise<void> {
+  const token = Deno.env.get('WA_ACCESS_TOKEN');
+  const phoneNumberId = Deno.env.get('WA_PHONE_NUMBER_ID');
+  
+  if (!token || !phoneNumberId) {
+    console.error('WhatsApp credentials missing (WA_ACCESS_TOKEN / WA_PHONE_NUMBER_ID)');
+    return;
+  }
+
+  const normalizedPhone = normalizePhoneNumber(phone);
+  const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
+  
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: normalizedPhone,
+      type: 'text',
+      text: { body: message }
+    })
+  });
+
+  if (!res.ok) {
+    throw new Error(`WhatsApp API ${res.status}: ${await res.text()}`);
+  }
+  
+  const d = await res.json();
+  console.log(`✅ WhatsApp sent to ${normalizedPhone} — Message ID: ${d.messages?.[0]?.id}`);
 }
 
 Deno.serve(async (req) => {
@@ -41,11 +78,10 @@ Deno.serve(async (req) => {
         });
 
         const users = await base44.asServiceRole.entities.User.filter({ id: sub.student_id });
-        if (users[0]?.email) {
-          await sendBrandedEmail(base44, users[0].email, 'subscription_expired', {
-            student_name: users[0].full_name || 'Student',
-            end_date: endDateFormatted,
-          });
+        if (users[0]?.phone_number) {
+          const name = users[0].full_name || 'Student';
+          const msg = `Hi ${name}, your Chibondo Academy subscription has expired. Pay your fees to continue accessing lessons: ${APP_URL}/subscription`;
+          await sendWhatsApp(users[0].phone_number, msg).catch(err => console.error('WhatsApp expiry alert failed:', err.message));
         }
         continue;
       }
@@ -73,12 +109,10 @@ Deno.serve(async (req) => {
         });
 
         const users = await base44.asServiceRole.entities.User.filter({ id: sub.student_id });
-        if (users[0]?.email) {
-          await sendBrandedEmail(base44, users[0].email, 'subscription_expiring', {
-            student_name: users[0].full_name || 'Student',
-            end_date: endDateFormatted,
-            days_left: daysLeft,
-          });
+        if (users[0]?.phone_number) {
+          const name = users[0].full_name || 'Student';
+          const msg = `Hi ${name}, your subscription expires in ${daysLeft} day(s). Renew before ${endDateFormatted} to avoid losing access: ${APP_URL}/subscription`;
+          await sendWhatsApp(users[0].phone_number, msg).catch(err => console.error('WhatsApp expiry-soon alert failed:', err.message));
         }
       }
     }

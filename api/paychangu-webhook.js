@@ -2,10 +2,13 @@
 // Paychangu server-to-server webhook — fires after payment confirmation.
 // Register this URL in your Paychangu dashboard as the webhook endpoint.
 // Validates the payload, activates the subscription, and tracks affiliate commissions.
+// Sends WhatsApp payment confirmation to the student.
 
 const PAYCHANGU_SECRET  = process.env.PAYCHANGU_SECRET_KEY;
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_SRK      = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const WA_TOKEN          = process.env.WA_ACCESS_TOKEN;
+const WA_PHONE_ID       = process.env.WA_PHONE_NUMBER_ID;
 
 const PLAN_MONTHS       = { monthly: 1, annual: 12, biannual: 24 };
 const COMMISSION_AMOUNT = 10000; // MWK
@@ -47,6 +50,28 @@ async function supabasePatch(path, body) {
   });
 }
 
+async function sendWhatsAppMessage(phone, message) {
+  if (!WA_TOKEN || !WA_PHONE_ID) return;
+  let cleanPhone = phone.replace(/\D/g, '');
+  if (cleanPhone.startsWith('0')) cleanPhone = '265' + cleanPhone.slice(1);
+  if (!cleanPhone.startsWith('265')) cleanPhone = '265' + cleanPhone;
+  try {
+    await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanPhone,
+        type: 'text',
+        text: { body: message },
+      }),
+    });
+  } catch (err) {
+    console.error('[webhook/whatsapp] send error:', err.message);
+  }
+}
+
 async function processReferralCommission(uid, txRef) {
   try {
     const refs = await supabaseGet(
@@ -67,7 +92,7 @@ async function processReferralCommission(uid, txRef) {
     });
     console.log('[webhook/referral] commission marked paid for referral:', ref.id);
 
-    // Notify affiliate
+    // Notify affiliate via in-app notification
     try {
       await supabasePost('/notifications', {
         user_id:      ref.referrer_id,
@@ -78,6 +103,22 @@ async function processReferralCommission(uid, txRef) {
         created_date: now,
         updated_date: now,
       });
+    } catch (_) {}
+
+    // Notify affiliate via WhatsApp
+    try {
+      const affiliateUsers = await supabaseGet(`/users?id=eq.${encodeURIComponent(ref.referrer_id)}&select=phone_number,full_name&limit=1`);
+      const affUser = Array.isArray(affiliateUsers) ? affiliateUsers[0] : null;
+      if (affUser?.phone_number) {
+        await sendWhatsAppMessage(affUser.phone_number,
+          `*Chibondo Academy*
+
+💰 Commission Earned!
+
+${ref.referred_name || 'Your referral'} just subscribed. You earned MWK ${commissionAmt.toLocaleString()}!
+
+Login: chibondoacademy.com`);
+      }
     } catch (_) {}
   } catch (err) {
     console.error('[webhook/referral] error:', err.message);
@@ -150,6 +191,29 @@ export default async function handler(req, res) {
 
     // ✅ Process referral commission
     await processReferralCommission(uid, tx_ref);
+
+    // ✅ Send WhatsApp payment confirmation to student
+    try {
+      const userRows = await supabaseGet(`/users?id=eq.${encodeURIComponent(uid)}&select=phone_number,full_name&limit=1`);
+      const user = Array.isArray(userRows) ? userRows[0] : null;
+      if (user?.phone_number) {
+        const expiryDate = new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        await sendWhatsAppMessage(user.phone_number,
+          `*Chibondo Academy*
+
+✅ Payment Confirmed!
+
+Plan: ${plan}
+Amount: MWK ${amount.toLocaleString()}
+Status: Active
+Expires: ${expiryDate}
+
+Your lessons are now unlocked. Login:
+chibondoacademy.com`);
+      }
+    } catch (err) {
+      console.error('[webhook/whatsapp] student notification error:', err.message);
+    }
 
     console.log('[paychangu-webhook] ✅ done for', uid, 'plan:', plan);
     return res.status(200).json({ received: true, activated: true });

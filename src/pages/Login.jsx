@@ -150,7 +150,7 @@ export default function Login() {
         {/* ── WhatsApp login ── */}
         {mode === "whatsapp" && (
           <form onSubmit={handleWhatsApp} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="phone">WhatsApp Number</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -184,7 +184,7 @@ export default function Login() {
         {/* ── Email login (for existing students) ── */}
         {mode === "email" && (
           <form onSubmit={handleEmail} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -202,7 +202,7 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -226,14 +226,14 @@ export default function Login() {
                 <><Lock className="w-4 h-4 mr-2" />Sign In</>
               )}
             </Button>
+
+            <div className="text-center">
+              <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Forgot your password?
+              </Link>
+            </div>
           </form>
         )}
-
-        <div className="text-center mt-4">
-          <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-            Forgot your password?
-          </Link>
-        </div>
 
         {refCode && (
           <div className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20 text-sm">

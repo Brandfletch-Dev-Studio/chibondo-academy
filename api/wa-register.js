@@ -1,14 +1,115 @@
 // api/wa-register.js  [Chibondo Academy]
-// Receives a register_student tool call from NyasaDesk's AI agent.
-// Creates a Supabase auth user + public.users row, then returns a
-// magic login link the agent sends back to the student on WhatsApp.
+// Receives a register_student tool call from the AI agent.
+// Creates a Supabase auth user + public.users row, then sends a WhatsApp
+// verification link to the student's phone for one-tap login.
+// No email or password is shared with the student — authentication is WhatsApp-based.
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL  = 'https://nckjjfxlmmsnmnexcgzg.supabase.co';
+const SUPABASE_URL  = process.env.SUPABASE_URL || 'https://nckjjfxlmmsnmnexcgzg.supabase.co';
 const SERVICE_KEY   = process.env.CHIBONDO_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SHARED_SECRET = process.env.WA_REGISTER_SECRET;
-const APP_URL       = process.env.VITE_APP_URL || 'https://chibondoacademy.com';
+const APP_URL       = process.env.VITE_APP_URL || process.env.APP_URL || 'https://chibondoacademy.com';
+const WA_TOKEN      = process.env.WA_ACCESS_TOKEN;
+const WA_PHONE_ID   = process.env.WA_PHONE_NUMBER_ID;
+const GRAPH_VERSION  = 'v21.0';
+
+function normalisePhone(raw) {
+  let p = String(raw).replace(/\D/g, '');
+  if (p.startsWith('0')) p = '265' + p.slice(1);
+  if (!p.startsWith('265')) p = '265' + p;
+  return p;
+}
+
+function generateToken() {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sendWhatsAppOTP(phone, name) {
+  const cleanPhone = normalisePhone(phone);
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const token = generateToken();
+  const verifyLink = `${APP_URL}/verify-link?t=${token}`;
+
+  // Store OTP in otp_codes table (5-min expiry)
+  const storeRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_codes`, {
+    method: 'POST',
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      phone: cleanPhone,
+      code,
+      token,
+      expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      used: false,
+    }),
+  });
+
+  if (!storeRes.ok) {
+    console.error('[wa-register] OTP store failed:', await storeRes.text());
+    return { ok: false, error: 'Failed to generate verification link' };
+  }
+
+  // Send WhatsApp message with verification link + code
+  const firstName = name ? name.split(' ')[0] : '';
+  const greeting = firstName ? `Hi ${firstName}! ` : '';
+
+  const messageBody =
+    `${greeting}Welcome to *Chibondo Academy*! 🎉\n\n` +
+    `Tap this link to verify and log in:\n${verifyLink}\n\n` +
+    `Or enter code: *${code}*\n\n` +
+    `Expires in 5 minutes. Don't share it with anyone.`;
+
+  // Try template first, fall back to text
+  try {
+    const templateRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_ID}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanPhone,
+        type: 'template',
+        template: {
+          name: 'otp_verification',
+          language: { code: 'en_US' },
+          components: [{ type: 'body', parameters: [{ type: 'text', text: code }] }],
+        },
+      }),
+    });
+
+    if (!templateRes.ok) {
+      console.warn('[wa-register] Template send failed, using text fallback');
+      const textRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_ID}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: cleanPhone,
+          type: 'text',
+          text: { body: messageBody },
+        }),
+      });
+
+      if (!textRes.ok) {
+        console.error('[wa-register] WhatsApp text send failed:', JSON.stringify(await textRes.json().catch(() => ({}))));
+        return { ok: false, error: 'Failed to send WhatsApp message' };
+      }
+    }
+  } catch (err) {
+    console.error('[wa-register] WhatsApp send error:', err.message);
+    return { ok: false, error: 'Failed to send WhatsApp message' };
+  }
+
+  return { ok: true, verifyLink };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -25,26 +126,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown tool: ' + tool });
   }
 
-  const { full_name, phone, email, password, form_level, referral_code } = args || {};
+  const { full_name, phone } = args || {};
 
-  if (!full_name || !phone || !email || !password) {
-    return res.status(400).json({ error: 'Missing required fields: full_name, phone, email, password' });
+  if (!full_name || !phone) {
+    return res.status(400).json({ error: 'Missing required fields: full_name, phone' });
   }
+
+  const normPhone = normalisePhone(phone);
+  const autoEmail = `${normPhone}@chibondoacademy.com`;
 
   try {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const normPhone = normalisePhone(phone);
-
-    // Check if user already exists by email or phone
+    // Check if user already exists by phone or email
     let existingRow = null;
 
     const { data: byEmail } = await sb
       .from('users')
-      .select('id, full_name')
-      .eq('email', email)
+      .select('id, full_name, phone_number')
+      .eq('email', autoEmail)
       .maybeSingle();
 
     if (byEmail) {
@@ -52,33 +154,43 @@ export default async function handler(req, res) {
     } else {
       const { data: byPhone } = await sb
         .from('users')
-        .select('id, full_name')
+        .select('id, full_name, phone_number')
         .or(`phone_number.eq.${normPhone},phone.eq.${normPhone}`)
         .maybeSingle();
       if (byPhone) existingRow = byPhone;
     }
 
     if (existingRow) {
-      const link = await generateMagicLink(sb, email, APP_URL);
+      // Existing account — send WhatsApp verification link
+      const waResult = await sendWhatsAppOTP(normPhone, existingRow.full_name || full_name);
+      if (waResult.ok) {
+        return res.status(200).json({
+          ok: true,
+          already_registered: true,
+          message: `Welcome back, ${existingRow.full_name || full_name}! I've sent a login link to your WhatsApp. Check your messages and tap the link to log in. 📲`,
+        });
+      }
+      // Fallback: direct them to login page
       return res.status(200).json({
         ok: true,
         already_registered: true,
-        message: `Welcome back, ${existingRow.full_name}! Your account already exists. Here's your login link (valid for 1 hour):\n${link}`,
+        message: `Welcome back, ${existingRow.full_name || full_name}! You already have an account. Log in here: ${APP_URL}/login?ref=AGENT — just enter your phone number and we'll send you a WhatsApp link.`,
       });
     }
 
-    // Create auth user with email + password (both confirmed immediately)
+    // Create new auth user
+    const password = normPhone + '_chibondo_2026';
     const { data: authData, error: signUpErr } = await sb.auth.admin.createUser({
-      email,
+      email: autoEmail,
       password,
       email_confirm: true,
-      phone: normPhone,
+      phone: `+${normPhone}`,
       phone_confirm: true,
       user_metadata: {
         full_name,
-        form_level: form_level || null,
         source: 'whatsapp_registration',
-        referral_code: referral_code || 'AGENT',
+        referral_code: args?.referral_code || 'AGENT',
+        auth_method: 'whatsapp_otp',
       },
     });
 
@@ -89,16 +201,15 @@ export default async function handler(req, res) {
 
     const userId = authData.user.id;
 
-    // Insert into public.users — using correct column names
+    // Insert into public.users
     const { error: userInsertErr } = await sb.from('users').insert({
       id:            userId,
       full_name,
-      email,
-      phone_number:  normPhone,   // correct column name
-      phone:         normPhone,   // also fill phone column
-      role:          'student',
+      email:         autoEmail,
+      phone_number:  normPhone,
+      role:          'user',
       created_by:    userId,
-      referral_code: referral_code || 'AGENT',
+      referral_code: args?.referral_code || 'AGENT',
     });
 
     if (userInsertErr) {
@@ -110,48 +221,32 @@ export default async function handler(req, res) {
       user_id:      userId,
       full_name,
       phone_number: normPhone,
-      form_level:   form_level || null,
     }, { onConflict: 'user_id' });
 
     if (profileErr) {
       console.error('[wa-register] student_profiles upsert failed:', profileErr);
     }
 
-    // Generate magic link using the confirmed email
-    const loginLink = await generateMagicLink(sb, email, APP_URL);
+    // Send WhatsApp verification link to the student
+    const waResult = await sendWhatsAppOTP(normPhone, full_name);
 
+    if (waResult.ok) {
+      return res.status(200).json({
+        ok: true,
+        already_registered: false,
+        message: `You're now a student at *The Chibondo Academy*! 🎉\n\nI've sent a verification link to your WhatsApp. Tap it to log in — no password needed!\n\nAfter logging in, choose a plan to unlock your lessons — fees start at *MK10,000 per month*. Welcome aboard! 📲`,
+      });
+    }
+
+    // Fallback if WhatsApp send failed
     return res.status(200).json({
       ok: true,
       already_registered: false,
-      message: `Your Chibondo Academy account has been created! 🎉\n\nTap this link to log in (valid for 1 hour):\n${loginLink}\n\nAfter logging in, choose a plan to unlock your lessons. Welcome aboard!`,
+      message: `You're now a student at *The Chibondo Academy*! 🎉\n\nLog in here: ${APP_URL}/login?ref=AGENT — enter your phone number and we'll send you a WhatsApp link.\n\nAfter logging in, choose a plan to unlock your lessons. Welcome aboard!`,
     });
 
   } catch (err) {
     console.error('[wa-register] unexpected error:', err);
     return res.status(500).json({ error: err.message || 'Registration failed' });
   }
-}
-
-function normalisePhone(raw) {
-  let p = String(raw).replace(/\D/g, '');
-  if (p.startsWith('0')) p = '265' + p.slice(1);
-  if (!p.startsWith('265')) p = '265' + p;
-  return p;
-}
-
-async function generateMagicLink(sb, email, appUrl) {
-  try {
-    const { data, error } = await sb.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-      options: { redirectTo: `${appUrl}/dashboard` },
-    });
-    if (!error && data?.properties?.action_link) {
-      return data.properties.action_link;
-    }
-    console.warn('[wa-register] generateLink error:', error?.message);
-  } catch (e) {
-    console.warn('[wa-register] generateLink threw:', e.message);
-  }
-  return `${appUrl}/login`;
 }

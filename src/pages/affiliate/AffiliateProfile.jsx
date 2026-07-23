@@ -69,7 +69,7 @@ export default function AffiliateProfile() {
   });
 
   const [notifs, setNotifs] = useState({
-    email_notifications:    user?.email_notifications    !== false,
+    whatsapp_notifications:    user?.whatsapp_notifications    !== false,
     inapp_notifications:    user?.inapp_notifications    !== false,
   });
 
@@ -84,7 +84,7 @@ export default function AffiliateProfile() {
         bank_account: user.bank_account || '',
         bank_holder: user.bank_holder || '',
       });
-      setNotifs({ email_notifications: user.email_notifications !== false, inapp_notifications: user.inapp_notifications !== false });
+      setNotifs({ whatsapp_notifications: user.whatsapp_notifications !== false, inapp_notifications: user.inapp_notifications !== false });
     }
   }, [user?.id]);
 
@@ -103,7 +103,7 @@ export default function AffiliateProfile() {
     [profile.full_name, profile.phone, profile.whatsapp,
      payment.preferred_method, payment.airtel_number, payment.tnm_number,
      payment.bank_name, payment.bank_account, payment.bank_holder,
-     notifs.email_notifications, notifs.inapp_notifications],
+     notifs.whatsapp_notifications, notifs.inapp_notifications],
     { delay: 1500 }
   );
 
@@ -172,7 +172,7 @@ export default function AffiliateProfile() {
       {/* Notifications */}
       <Section title="Notification Preferences" icon={Bell}>
         {[
-          { key: 'email_notifications', label: 'Email Notifications', sub: 'Get notified via email when referrals register or pay fees' },
+          { key: 'whatsapp_notifications', label: 'WhatsApp Notifications', sub: 'Get notified via WhatsApp when referrals register or pay fees' },
           { key: 'inapp_notifications', label: 'In-App Notifications', sub: 'Receive notifications inside the platform' },
         ].map(({ key, label, sub }) => (
           <div key={key} className="flex items-center justify-between gap-3">

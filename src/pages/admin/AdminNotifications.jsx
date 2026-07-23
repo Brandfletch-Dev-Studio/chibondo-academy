@@ -165,7 +165,7 @@ Login: chibondoacademy.com`,
       }
 
       if (!emailRes.ok) {
-        const errMsg = emailData.error || emailData.message || 'Failed to send email';
+        const errMsg = emailData.error || emailData.message || 'Failed to send notification';
         if (errMsg.toLowerCase().includes('api key')) {
           throw new Error('Email service not configured — please contact admin to update the Resend API key.');
         }
@@ -179,7 +179,7 @@ Login: chibondoacademy.com`,
       toast.success(`Email sent to ${recipients.length} recipient${recipients.length !== 1 ? 's' : ''}!`);
       setSubject_(''); setBody('');
     } catch (err) {
-      toast.error('Failed to send email: ' + (err?.message || 'Unknown error'));
+      toast.error('Failed to send notification: ' + (err?.message || 'Unknown error'));
     } finally {
       setSending(false);
     }

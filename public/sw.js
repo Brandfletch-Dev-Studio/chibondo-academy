@@ -1,9 +1,9 @@
 // Chibondo Academy — Service Worker
 // Robust PWA: caching, offline support, push notifications
 
-const CACHE_NAME = 'chibondo-v5';
-const STATIC_CACHE = 'chibondo-static-v5';
-const API_CACHE = 'chibondo-api-v5';
+const CACHE_NAME = 'chibondo-v6';
+const STATIC_CACHE = 'chibondo-static-v6';
+const API_CACHE = 'chibondo-api-v6';
 
 // Assets to precache on install
 const PRECACHE_URLS = [
@@ -26,16 +26,27 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// ─── Activate ───────────────────────────────────────────────────────────────
+// ─── Activate — clean ALL old caches ─────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      // Delete every cache that doesn't match the current version
       return Promise.all(
         cacheNames
-          .filter((name) => name !== STATIC_CACHE && name !== API_CACHE)
-          .map((name) => caches.delete(name))
+          .filter((name) => name !== STATIC_CACHE && name !== API_CACHE && name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()).then(() => {
+      // Tell all clients to reload so they pick up the new chunks
+      return self.clients.matchAll({ type: 'window' }).then((clientList) => {
+        clientList.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED' });
+        });
+      });
+    })
   );
 });
 
@@ -59,7 +70,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache successful navigations
           if (response.ok) {
             const clone = response.clone();
             caches.open(STATIC_CACHE).then(c => c.put(request, clone));
@@ -73,10 +83,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets — Cache first, fallback to network
-  if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|ttf)$/)
-  ) {
+  // JS and CSS chunks — stale-while-revalidate (NOT cache-first!)
+  // This prevents ChunkLoadError when a new deployment changes chunk filenames.
+  // Vite chunks have content hashes in filenames, so cached versions are always
+  // safe to serve — and if a chunk doesn't exist in cache, we fetch from network.
+  if (url.pathname.match(/\.(js|css)$/)) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
+    return;
+  }
+
+  // Images and fonts — Cache first (these rarely change)
+  if (url.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|woff2?|ttf)$/)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
@@ -120,7 +137,11 @@ async function staleWhileRevalidate(request, cacheName) {
     if (response.ok) cache.put(request, response.clone());
     return response;
   }).catch(() => null);
-  return cached || fetchPromise;
+
+  // If we have a cached version, return it immediately and revalidate in background
+  if (cached) return cached;
+  // No cached version — wait for the network fetch
+  return fetchPromise || new Response('Offline', { status: 503 });
 }
 
 // ─── Push Notifications ─────────────────────────────────────────────────────
@@ -166,7 +187,6 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if open
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.focus();
@@ -174,7 +194,6 @@ self.addEventListener('notificationclick', (event) => {
           return;
         }
       }
-      // Open new window
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
@@ -187,7 +206,6 @@ self.addEventListener('pushsubscriptionchange', (event) => {
       userVisibleOnly: true,
       applicationServerKey: self.VAPID_PUBLIC_KEY,
     }).then((subscription) => {
-      // Notify app to re-save subscription
       return clients.matchAll().then((clientList) => {
         clientList.forEach((client) =>
           client.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED', subscription })
