@@ -350,6 +350,7 @@ export default function UserManagement() {
     if (!confirmDialog) return;
     setConfirmLoading(true);
     try { await confirmDialog.action(); }
+    catch (e) { toast.error(e?.message || 'Action failed. Some items may not have been updated.'); }
     finally { setConfirmLoading(false); setConfirmDialog(null); }
   };
 

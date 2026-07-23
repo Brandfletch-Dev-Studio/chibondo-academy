@@ -854,61 +854,7 @@ function DataPanel() {
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-// ── Maintenance tool — run once after deploy ──────────────────────────────
-function BackfillButton() {
-  const [status, setStatus] = React.useState('idle'); // idle | running | done | error
-  const [result, setResult] = React.useState(null);
-
-  const run = async () => {
-    setStatus('running');
-    try {
-      // Backfill: create StudentProfile for any user without one
-      const allUsers = await db.entities.User.list('-created_date', 2000);
-      const existingProfiles = await db.entities.StudentProfile.list('-created_date', 2000).catch(() => []);
-      const profileUserIds = new Set(existingProfiles.map(p => p.user_id));
-      const missing = allUsers.filter(u => !profileUserIds.has(u.id) && u.role === 'user');
-      await Promise.all(missing.map(u => db.entities.StudentProfile.create({
-        user_id: u.id, bio: '', education_level: '', subjects_of_interest: [], avatar_url: '',
-      }).catch(() => {})));
-      const res = { created: missing.length, message: missing.length + ' profiles created' };
-      setResult(res);
-      setStatus('done');
-    } catch (e) {
-      setStatus('error');
-    }
-  };
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-sm">Fix Missing Student Profiles</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Creates StudentProfile + referral codes for users registered before the auto-creation fix. Safe to run multiple times.
-          </p>
-        </div>
-        <button
-          onClick={run}
-          disabled={status === 'running'}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground disabled:opacity-50 transition-opacity"
-        >
-          {status === 'running' ? '⏳ Running…' : status === 'done' ? '✅ Done' : 'Run Backfill'}
-        </button>
-      </div>
-      {result && (
-        <div className="text-xs bg-muted/40 rounded-lg p-3 font-mono space-y-0.5">
-          <p>👥 Total users: <strong>{result.total_users}</strong></p>
-          <p>✅ Profiles created: <strong>{result.profiles_created}</strong></p>
-          <p>🏷️ Codes set: <strong>{result.codes_set}</strong></p>
-          {result.errors?.length > 0 && <p className="text-destructive">⚠️ {result.errors.length} errors</p>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// ── PWA & App Settings Panel ──────────────────────────────────────────────────
+// ── Maintenance tool — run once after deploy ──────────────────────────────// ── PWA & App Settings Panel ──────────────────────────────────────────────────
 function PWAPanel() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({

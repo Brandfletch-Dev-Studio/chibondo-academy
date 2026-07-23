@@ -60,7 +60,7 @@ export default function AffiliateProfile() {
   });
 
   const [payment, setPayment] = useState({
-    preferred_method: user?.preferred_payment_method || 'airtel_money',
+    preferred_payment_method: user?.preferred_payment_method || 'airtel_money',
     airtel_number:    user?.airtel_number    || '',
     tnm_number:       user?.tnm_number       || '',
     bank_name:        user?.bank_name        || '',
@@ -77,7 +77,7 @@ export default function AffiliateProfile() {
     if (user) {
       setProfile({ full_name: user.full_name || '', email: user.email || '', phone: user.phone || '', whatsapp: user.whatsapp || '' });
       setPayment({
-        preferred_method: user.preferred_payment_method || 'airtel_money',
+        preferred_payment_method: user.preferred_payment_method || 'airtel_money',
         airtel_number: user.airtel_number || '',
         tnm_number: user.tnm_number || '',
         bank_name: user.bank_name || '',
@@ -101,7 +101,7 @@ export default function AffiliateProfile() {
   const { saveStatus: profileAS } = useAutosave(
     () => saveMut.mutateAsync(),
     [profile.full_name, profile.phone, profile.whatsapp,
-     payment.preferred_method, payment.airtel_number, payment.tnm_number,
+     payment.preferred_payment_method, payment.airtel_number, payment.tnm_number,
      payment.bank_name, payment.bank_account, payment.bank_holder,
      notifs.whatsapp_notifications, notifs.inapp_notifications],
     { delay: 1500 }

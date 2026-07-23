@@ -188,7 +188,7 @@ export default function Login() {
         )}
 
         {sent && (
-          <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-600 text-sm text-center">
+          <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 text-sm text-center">
             <Loader2 className="w-4 h-4 inline mr-1 animate-spin" />
             Sending verification via WhatsApp…
           </div>

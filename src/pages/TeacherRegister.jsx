@@ -76,7 +76,7 @@ export default function TeacherRegister() {
       <AuthLayout title="Application Submitted!" subtitle="We'll review your application soon">
         <div className="text-center space-y-6 py-6">
           <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center">
               <CheckCircle2 className="w-10 h-10 text-green-500" />
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function TeacherRegister() {
       }
     >
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm">{error}</div>
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">

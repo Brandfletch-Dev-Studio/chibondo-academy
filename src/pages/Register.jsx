@@ -86,6 +86,9 @@ export default function Register() {
               Already have an account?{" "}
               <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
             </div>
+            <div className="text-xs text-muted-foreground">
+              You can sign in with WhatsApp or email
+            </div>
             <div className="pt-2 border-t border-gray-200">
               Interested in teaching?{" "}
               <Link to="/register/teacher" className="text-primary font-medium hover:underline">Apply as Teacher</Link>
@@ -94,7 +97,7 @@ export default function Register() {
         }
       >
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm">{error}</div>
+          <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">{error}</div>
         )}
 
         {refCode && (

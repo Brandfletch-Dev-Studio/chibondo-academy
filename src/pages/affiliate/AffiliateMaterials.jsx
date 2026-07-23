@@ -33,7 +33,8 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
           <img
             src={item.thumbnail_url || item.file_url}
             alt={item.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-zoom-in"
+            onClick={() => setLightboxUrl(item.thumbnail_url || item.file_url)}
             onError={e => { e.target.style.display = 'none'; }}
           />
         </div>
@@ -83,6 +84,28 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
           )}
         </div>
       </div>
+      {/* Image Lightbox */}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.95)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: 16
+          }}
+        >
+          <img src={lightboxUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, objectFit: 'contain' }} />
+          <button
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.2)',
+              border: 'none', color: 'white', padding: 8, borderRadius: '50%', cursor: 'pointer'
+            }}
+          >
+            <X style={{ width: 24, height: 24 }} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -96,6 +119,7 @@ export default function AffiliateMaterials() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [form, setForm] = useState({ title: '', description: '', type: 'banner', file_url: '', thumbnail_url: '', content: '' });
   const [uploading, setUploading] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
   const [uploadProgress, setUploadProgress] = useState('');
   const fileInputRef = React.useRef(null);
 
@@ -322,6 +346,28 @@ export default function AffiliateMaterials() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Image Lightbox */}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.95)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: 16
+          }}
+        >
+          <img src={lightboxUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, objectFit: 'contain' }} />
+          <button
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.2)',
+              border: 'none', color: 'white', padding: 8, borderRadius: '50%', cursor: 'pointer'
+            }}
+          >
+            <X style={{ width: 24, height: 24 }} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

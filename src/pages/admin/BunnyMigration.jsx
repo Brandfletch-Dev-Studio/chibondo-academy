@@ -1003,14 +1003,14 @@ function HealthCheckTab({ lessons, setLessons, apiKey, libraryId }) {
   );
 
   const STATUS_COLOR = {
-    ready:      'text-green-600 bg-green-50',
-    encoding:   'text-blue-600 bg-blue-50',
-    processing: 'text-blue-600 bg-blue-50',
-    queued:     'text-yellow-600 bg-yellow-50',
-    failed:     'text-red-600 bg-red-50',
+    ready:      'text-green-600 bg-green-500/10',
+    encoding:   'text-blue-600 bg-blue-500/10',
+    processing: 'text-blue-600 bg-blue-500/10',
+    queued:     'text-yellow-600 bg-yellow-500/10',
+    failed:     'text-red-600 bg-red-500/10',
     not_found:  'text-red-700 bg-red-100',
     timeout:    'text-orange-600 bg-orange-50',
-    error:      'text-red-600 bg-red-50',
+    error:      'text-red-600 bg-red-500/10',
     unknown:    'text-muted-foreground bg-muted',
   };
 
