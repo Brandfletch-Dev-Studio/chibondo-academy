@@ -22,6 +22,27 @@ function normalisePhone(phone) {
   return clean;
 }
 
+/**
+ * Returns an array of all phone variants to check in the DB.
+ * Settings saves as +265..., OTP system stores as 265... — we must match both.
+ */
+function phoneVariants(cleanPhone) {
+  const withPlus = '+' + cleanPhone;
+  const withoutPlus = cleanPhone;
+  return [withPlus, withoutPlus];
+}
+
+/**
+ * Build a PostgREST OR filter that matches phone_number in any format.
+ * e.g. or=(phone_number.eq.+265893454156,phone_number.eq.265893454156,email.eq....)
+ */
+function buildPhoneOrQuery(cleanPhone, extraFields = []) {
+  const variants = phoneVariants(cleanPhone);
+  const phoneConds = variants.map(v => `phone_number.eq.${encodeURIComponent(v)}`);
+  const allConds = [...phoneConds, ...extraFields];
+  return `or=(${allConds.join(',')})`;
+}
+
 // ─── SEND ────────────────────────────────────────────────────────────────────
 
 async function sendOTP(req, res) {
@@ -51,9 +72,10 @@ async function sendOTP(req, res) {
         Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
       };
 
-      // Check users table by phone_number or auto-generated emails
+      // Check users table by phone_number (both +265... and 265... variants) or auto-generated emails
+      const phoneQuery = buildPhoneOrQuery(cleanPhone, [`email.eq.${autoEmail}`, `email.eq.${waPrefixEmail}`]);
       const userRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/users?or=(phone_number.eq.${cleanPhone},email.eq.${autoEmail},email.eq.${waPrefixEmail})&limit=1`,
+        `${SUPABASE_URL}/rest/v1/users?${phoneQuery}&limit=1`,
         { headers }
       );
       const userRows = userRes.ok ? await userRes.json() : [];
@@ -214,9 +236,11 @@ async function verifyOTP(req, res) {
       'Content-Type': 'application/json',
     };
 
-    // Look up by phone_number OR by any auto-generated email format
+    // Look up by phone_number (both +265... and 265... formats) OR auto-generated emails
+    // Settings saves phone as +265..., OTP system uses 265... — must check both
+    const phoneQuery = buildPhoneOrQuery(cleanPhone, [`email.eq.${autoEmail}`, `email.eq.${waPrefixEmail}`]);
     const userRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?or=(phone_number.eq.${cleanPhone},email.eq.${autoEmail},email.eq.${waPrefixEmail})&limit=1`,
+      `${SUPABASE_URL}/rest/v1/users?${phoneQuery}&limit=1`,
       { headers }
     );
     const userRows = userRes.ok ? await userRes.json() : [];
@@ -306,7 +330,10 @@ async function verifyOTP(req, res) {
     } else {
       // Update phone_number and name for legacy users if needed
       const updates = {};
-      if (!existingUser.phone_number) updates.phone_number = cleanPhone;
+      // Normalise stored phone to no-plus format if it was saved with +
+      const storedPhone = existingUser.phone_number || '';
+      const storedPhoneClean = storedPhone.replace(/^\+/, '');
+      if (!storedPhone || storedPhoneClean !== cleanPhone) updates.phone_number = '+' + cleanPhone;
       if (name && !existingUser.full_name) updates.full_name = name;
       if (Object.keys(updates).length > 0) {
         updates.updated_date = new Date().toISOString();
@@ -319,10 +346,19 @@ async function verifyOTP(req, res) {
       }
     }
 
-    // 3. Sign in — try with autoEmail, then wa_ prefix, then existing user's email
-    const emailsToTry = [autoEmail];
-    if (existingUser?.email && !emailsToTry.includes(existingUser.email)) emailsToTry.push(existingUser.email);
+    // 3. Sign in
+    // Priority: for existing users found via linked phone_number, their auth credential
+    // is keyed to the email they REGISTERED with — try that first, then phone-derived emails.
+    const emailsToTry = [];
+    if (existingUser?.email && !isPlaceholderEmail(existingUser.email)) {
+      // Real email-registered user — their password matches their real email
+      emailsToTry.push(existingUser.email);
+    }
+    // Always also try the phone-derived emails (for WA-registered users)
+    if (!emailsToTry.includes(autoEmail)) emailsToTry.push(autoEmail);
     if (!emailsToTry.includes(waPrefixEmail)) emailsToTry.push(waPrefixEmail);
+    // Fallback: if existingUser.email wasn't already tried
+    if (existingUser?.email && !emailsToTry.includes(existingUser.email)) emailsToTry.push(existingUser.email);
 
     for (const tryEmail of emailsToTry) {
       const signInRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -333,6 +369,7 @@ async function verifyOTP(req, res) {
 
       if (signInRes.ok) {
         const authData = await signInRes.json();
+        console.log(`Signed in ${cleanPhone} via email: ${tryEmail}`);
         return res.status(200).json({
           ok: true,
           access_token: authData.access_token,
@@ -340,6 +377,7 @@ async function verifyOTP(req, res) {
           user: { phone: cleanPhone, isNew: !existingUser },
         });
       }
+      console.log(`Sign-in attempt failed for ${tryEmail}`);
     }
 
     // All sign-in attempts failed
@@ -353,6 +391,15 @@ async function verifyOTP(req, res) {
 
 
 // ─── Generate a unique referral code from a user's name ────────────────────────
+function isPlaceholderEmail(email) {
+  if (!email) return true;
+  return (
+    email.includes('@student.chibondoacademy.com') ||
+    /^\d+@chibondoacademy\.com$/.test(email) ||
+    /^wa_\d+@chibondoacademy\.com$/.test(email)
+  );
+}
+
 async function generateUniqueReferralCode(SUPABASE_URL, headers, fullName) {
   // Extract first 4 letters of first name (alpha only)
   const base = (fullName || 'USER')
