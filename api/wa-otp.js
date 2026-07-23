@@ -354,6 +354,7 @@ async function verifyOTP(req, res) {
 
     // Also check auth.users by phone (catches users created by wa-register.js)
     let authUserId = null;
+    let _referralResult = null;
     if (!existingUser) {
       try {
         const authListRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, { headers });
@@ -426,7 +427,6 @@ async function verifyOTP(req, res) {
       // (the handle_new_user trigger may have already created the row)
       await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
       // Track affiliate referral if code provided
-      let _referralResult = null;
       if (referral_code) {
         _referralResult = await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
       }
@@ -445,7 +445,6 @@ async function verifyOTP(req, res) {
         console.log(`Updated ${Object.keys(updates).join(', ')} for existing user ${existingUser.id}`);
       }
       // Track affiliate referral for existing users who login with a referral code
-      let _referralResult = null;
       if (referral_code) {
         _referralResult = await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name: existingUser.full_name || '', email: existingUser.email || autoEmail }, referral_code);
       }
