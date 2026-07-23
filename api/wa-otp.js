@@ -183,7 +183,11 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
 // 'paid' when the referred student pays their subscription.
 async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) {
   try {
-    if (!referralCode || !newUser?.id) return;
+    console.log(`[referral] maybeTrackReferral called: code=${referralCode}, newUser=${newUser?.id}, name=${newUser?.full_name}`);
+    if (!referralCode || !newUser?.id) {
+      console.log('[referral] Skipping: missing referralCode or newUser.id');
+      return;
+    }
     const code = String(referralCode).trim().toUpperCase();
 
     // Look up the referrer by their referral_code
@@ -191,13 +195,17 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
       `${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(code)}&limit=1`,
       { headers }
     );
-    if (!refRes.ok) return;
+    if (!refRes.ok) {
+      console.log(`[referral] Referrer lookup failed: ${refRes.status} ${await refRes.text()}`);
+      return;
+    }
     const refRows = await refRes.json();
     const referrer = refRows?.[0];
     if (!referrer) {
       console.log(`[referral] No referrer found for code: ${code}`);
       return;
     }
+    console.log(`[referral] Found referrer: ${referrer.full_name} (${referrer.id})`);
 
     // Don't create self-referrals
     if (referrer.id === newUser.id) {
@@ -267,9 +275,10 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
     });
 
     if (refInsertRes.ok) {
-      console.log(`[referral] Created referral: ${referrer.full_name} (${code}) -> ${newUser.full_name || newUser.id}`);
+      console.log(`[referral] ✅ Created referral: ${referrer.full_name} (${code}) -> ${newUser.full_name || newUser.id}`);
     } else {
-      console.error('[referral] Failed to create referral:', await refInsertRes.text());
+      const errText = await refInsertRes.text();
+      console.error(`[referral] ❌ Failed to create referral: ${refInsertRes.status} ${errText}`);
     }
   } catch (err) {
     console.error('[referral] Error tracking referral:', err.message);
@@ -417,7 +426,10 @@ async function verifyOTP(req, res) {
       await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
       // Track affiliate referral if code provided
       if (referral_code) {
+        console.log(`[referral] Calling maybeTrackReferral for new user ${usersTableId} with code ${referral_code}`);
         await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
+      } else {
+        console.log('[referral] No referral_code provided for new user');
       }
     } else {
       // Update phone_number and name for legacy users if needed
