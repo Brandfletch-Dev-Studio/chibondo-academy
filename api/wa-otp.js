@@ -344,6 +344,47 @@ async function verifyOTP(req, res) {
         });
         console.log(`Updated ${Object.keys(updates).join(', ')} for existing user ${existingUser.id}`);
       }
+
+      // ── Link WA phone to existing auth account ──────────────────────────
+      // OTP already proved the user owns this phone number.
+      // If their auth account doesn't already use a phone-derived email
+      // (i.e. they registered with a real email), we update their auth
+      // password to the derived one so WhatsApp login works going forward.
+      // Their real email login is unaffected — only the password changes.
+      if (existingUser.email && !isPlaceholderEmail(existingUser.email)) {
+        try {
+          // Find their auth user id — it may differ from users table id
+          let authUserId = existingUser.id;
+          // Verify the auth user exists with this id
+          const authCheck = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${existingUser.id}`, { headers });
+          if (!authCheck.ok) {
+            // Try finding by email instead
+            const authListRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, { headers });
+            if (authListRes.ok) {
+              const authData = await authListRes.json();
+              const authUsers = authData.users || authData;
+              const match = authUsers.find(u => u.email === existingUser.email);
+              if (match) authUserId = match.id;
+            }
+          }
+
+          // Update their auth password to the derived one
+          const updateRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${authUserId}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ password }),
+          });
+          if (updateRes.ok) {
+            console.log(`Linked WA phone ${cleanPhone} to auth user ${authUserId} (${existingUser.email})`);
+          } else {
+            const errBody = await updateRes.text();
+            console.warn(`Auth password update failed for ${authUserId}:`, errBody);
+          }
+        } catch (linkErr) {
+          console.warn('WA phone link error (non-fatal):', linkErr.message);
+          // Non-fatal — fall through to sign-in attempt
+        }
+      }
     }
 
     // 3. Sign in
