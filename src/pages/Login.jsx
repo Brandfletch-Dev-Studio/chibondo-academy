@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Phone, Loader2, MessageCircle } from "lucide-react";
+import { Phone, Mail, Loader2, MessageCircle, Lock } from "lucide-react";
+import { db } from "@/api/supabaseClient";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
 
@@ -12,7 +13,10 @@ export default function Login() {
   const navigate = useNavigate();
   const refCode = searchParams.get("ref");
 
+  const [mode, setMode] = useState("whatsapp"); // "whatsapp" | "email"
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -21,7 +25,8 @@ export default function Login() {
     if (refCode) localStorage.setItem("pending_referral_code", refCode);
   }, [refCode]);
 
-  const handleSubmit = async (e) => {
+  // ── WhatsApp login ──
+  const handleWhatsApp = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -59,16 +64,41 @@ export default function Login() {
     }
   };
 
+  // ── Email login (for existing students) ──
+  const handleEmail = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim() || !password) {
+      setError("Please enter your email and password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await db.auth.loginViaEmailPassword(email.trim(), password);
+      if (data.access_token) {
+        window.location.replace("/dashboard");
+      } else {
+        setError("Login failed. Please check your credentials.");
+        setLoading(false);
+      }
+    } catch (err) {
+      setError(err?.message || "Invalid email or password.");
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <SEO
         title="Login"
-        description="Sign in to your Chibondo Academy account with WhatsApp verification."
+        description="Sign in to your Chibondo Academy account with WhatsApp verification or email."
         canonical={`${window.location.origin}/login`}
       />
       <AuthLayout
         title="Welcome Back"
-        subtitle="Sign in with your WhatsApp number"
+        subtitle="Sign in to your account"
         footer={
           <>
             New to the academy?{" "}
@@ -87,36 +117,109 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone">WhatsApp Number</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="phone"
-                type="tel"
-                autoFocus
-                autoComplete="tel"
-                placeholder="0991234567"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="pl-10 h-12"
-                required
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              We'll send a verification link to your WhatsApp. Just tap it to log in.
-            </p>
-          </div>
+        {/* ── Mode toggle ── */}
+        <div className="flex gap-2 mb-5 p-1 rounded-xl bg-muted/50">
+          <button
+            type="button"
+            onClick={() => { setMode("whatsapp"); setError(""); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              mode === "whatsapp" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" /> WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode("email"); setError(""); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              mode === "email" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            <Mail className="w-4 h-4" /> Email
+          </button>
+        </div>
 
-          <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
-            {loading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
-            ) : (
-              <><MessageCircle className="w-4 h-4 mr-2" />Send WhatsApp Link</>
-            )}
-          </Button>
-        </form>
+        {/* ── WhatsApp login ── */}
+        {mode === "whatsapp" && (
+          <form onSubmit={handleWhatsApp} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">WhatsApp Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  autoFocus
+                  autoComplete="tel"
+                  placeholder="0991234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="pl-10 h-12"
+                  required
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                We'll send a verification link to your WhatsApp. Just tap it to log in.
+              </p>
+            </div>
+
+            <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
+              {loading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
+              ) : (
+                <><MessageCircle className="w-4 h-4 mr-2" />Send WhatsApp Link</>
+              )}
+            </Button>
+          </form>
+        )}
+
+        {/* ── Email login (for existing students) ── */}
+        {mode === "email" && (
+          <form onSubmit={handleEmail} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  autoFocus
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-12"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 h-12"
+                  required
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
+              {loading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in…</>
+              ) : (
+                <><Lock className="w-4 h-4 mr-2" />Sign In</>
+              )}
+            </Button>
+          </form>
+        )}
 
         <div className="text-center mt-4">
           <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">

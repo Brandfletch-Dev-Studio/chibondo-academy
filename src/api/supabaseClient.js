@@ -29,7 +29,13 @@ function getToken() {
   );
 }
 
-function saveToken(token) {
+const REFRESH_KEY = 'aca_refresh_token';
+
+function getRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY) || null;
+}
+
+function saveToken(token, refreshToken) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);
     // Clean up legacy keys from pre-migration sessions
@@ -39,6 +45,47 @@ function saveToken(token) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem('base44_access_token');
     localStorage.removeItem('token');
+  }
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_KEY, refreshToken);
+  }
+}
+
+function clearTokens() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem('base44_access_token');
+  localStorage.removeItem('token');
+}
+
+function isTokenExpiring() {
+  const token = getToken();
+  if (!token) return false;
+  const payload = parseJwt(token);
+  if (!payload?.exp) return false;
+  const expMs = payload.exp * 1000;
+  const now = Date.now();
+  return expMs - now < 5 * 60 * 1000; // within 5 min of expiry
+}
+
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+  try {
+    const res = await fetch(`${AUTH_URL}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.access_token) {
+      saveToken(data.access_token, data.refresh_token || refreshToken);
+      return data.access_token;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -409,7 +456,7 @@ const auth = {
   },
 
   logout() {
-    saveToken(null);
+    clearTokens();
   },
 };
 
