@@ -284,6 +284,7 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
   } catch (err) {
     result.steps.push(`error: ${err.message}`);
   }
+  return result;
 }
 
 async function verifyOTP(req, res) {
