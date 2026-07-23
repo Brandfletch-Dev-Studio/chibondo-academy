@@ -356,7 +356,6 @@ async function verifyOTP(req, res) {
 
     // Also check auth.users by phone (catches users created by wa-register.js)
     let authUserId = null;
-    let _referralResult = null;
     if (!existingUser) {
       try {
         const authListRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, { headers });
@@ -422,6 +421,10 @@ async function verifyOTP(req, res) {
       if (!newUserRes.ok) {
         const errText = await newUserRes.text();
         console.error('users table upsert failed:', errText);
+        // If it's a unique violation on phone_number, the phone is linked to a different account
+        if (errText.includes('23505') && errText.includes('phone_number')) {
+          return res.status(409).json({ error: 'This phone number is already linked to another account.' });
+        }
       } else {
         console.log(`Upserted users table row for ${cleanPhone} (id: ${usersTableId})`);
       }
@@ -430,7 +433,7 @@ async function verifyOTP(req, res) {
       await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
       // Track affiliate referral if code provided
       if (referral_code) {
-        _referralResult = await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
+await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
       }
     } else {
       // Update phone_number and name for legacy users if needed
@@ -448,7 +451,7 @@ async function verifyOTP(req, res) {
       }
       // Track affiliate referral for existing users who login with a referral code
       if (referral_code) {
-        _referralResult = await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name: existingUser.full_name || '', email: existingUser.email || autoEmail }, referral_code);
+await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name: existingUser.full_name || '', email: existingUser.email || autoEmail }, referral_code);
       }
     }
 
@@ -485,7 +488,6 @@ async function verifyOTP(req, res) {
           access_token: authData.access_token,
           refresh_token: authData.refresh_token,
           user: { phone: cleanPhone, isNew: !existingUser, profile: userProfile },
-          _debug_referral: typeof _referralResult !== 'undefined' ? _referralResult : 'not set',
         });
       }
     }

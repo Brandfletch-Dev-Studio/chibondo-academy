@@ -27,7 +27,10 @@ const formatPhone = (val) => {
 };
 
 const isPlaceholderEmail = (email) =>
-  !email || email.includes('@student.chibondoacademy.com');
+  !email ||
+  email.includes('@student.chibondoacademy.com') ||
+  /^\d+@chibondoacademy\.com$/.test(email) ||
+  /^wa_\d+@chibondoacademy\.com$/.test(email);
 
 // ── tiny reusables ─────────────────────────────────────────────────────────────
 function Field({ label, hint, children }) {
@@ -72,7 +75,47 @@ function ProfilePanel({ user, checkUserAuth }) {
   const [phone,     setPhone]     = useState('');
   const [email,     setEmail]     = useState('');
   const [saving,    setSaving]    = useState(false);
+  const [phoneCheck, setPhoneCheck] = useState(null);  // null = unchecked, true = available, false = taken
+  const [emailCheck, setEmailCheck] = useState(null);
   const hasPlaceholder = isPlaceholderEmail(user?.email);
+
+  // Debounced phone uniqueness check
+  useEffect(() => {
+    if (!phone.trim()) { setPhoneCheck(null); return; }
+    const formatted = formatPhone(phone);
+    const normalized = formatted.replace(/\D/g, '');
+    if (normalized === (user?.phone_number || user?.phone || '').replace(/\D/g, '')) {
+      setPhoneCheck(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/check-uniqueness?phone=${encodeURIComponent(normalized)}&excludeUserId=${user?.id || ''}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPhoneCheck(data.phoneAvailable);
+        }
+      } catch (_) {}
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [phone, user?.id]);
+
+  // Debounced email uniqueness check
+  useEffect(() => {
+    const trimmed = email.trim();
+    if (!trimmed || !trimmed.includes('@')) { setEmailCheck(null); return; }
+    if (trimmed === user?.email) { setEmailCheck(null); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/check-uniqueness?email=${encodeURIComponent(trimmed)}&excludeUserId=${user?.id || ''}`);
+        if (res.ok) {
+          const data = await res.json();
+          setEmailCheck(data.emailAvailable);
+        }
+      } catch (_) {}
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [email, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -82,10 +125,11 @@ function ProfilePanel({ user, checkUserAuth }) {
         // Prefer StudentProfile phone, fall back to auth user.phone (set at registration)
         const phoneVal = rows[0].phone_number || user?.phone || '';
         if (phoneVal) setPhone(phoneVal);
-        if (!isPlaceholderEmail(rows[0].email)) setEmail(rows[0].email || '');
+        if (!isPlaceholderEmail(rows[0].email)) setEmail(rows[0].email || user?.email || '');
       } else {
-        // No profile yet — still pre-fill from auth user phone
+        // No profile yet — still pre-fill from auth user
         if (user?.phone) setPhone(user.phone);
+        if (!isPlaceholderEmail(user?.email)) setEmail(user.email);
       }
     }).catch(() => {});
   }, [user?.id]);
@@ -96,6 +140,17 @@ function ProfilePanel({ user, checkUserAuth }) {
     const formattedPhone = phone.trim() ? formatPhone(phone) : '';
     setSaving(true);
     try {
+      // Block if real-time check found a conflict
+      if (phoneCheck === false) {
+        toast.error('This phone number is already linked to another account.');
+        setSaving(false);
+        return;
+      }
+      if (emailCheck === false) {
+        toast.error('This email is already linked to another account.');
+        setSaving(false);
+        return;
+      }
       // ── Validate phone uniqueness (if changed) ──
       if (formattedPhone) {
         const normalizedPhone = formattedPhone.replace(/\D/g, '');
@@ -107,9 +162,13 @@ function ProfilePanel({ user, checkUserAuth }) {
         }
       }
 
-      // ── Validate email uniqueness (if user is adding a real email) ──
-      if (hasPlaceholder && email.trim()) {
-        const existingEmail = await db.entities.User.filter({ email: email.trim() });
+      // ── Validate email uniqueness (if changed or adding a real email) ──
+      const currentEmail = user?.email || '';
+      const newEmail = email.trim();
+      const emailChanged = newEmail && newEmail !== currentEmail && !isPlaceholderEmail(currentEmail);
+      const emailBeingAdded = hasPlaceholder && newEmail;
+      if (emailChanged || emailBeingAdded) {
+        const existingEmail = await db.entities.User.filter({ email: newEmail });
         if (existingEmail && existingEmail.length > 0 && existingEmail[0].id !== user.id) {
           toast.error('This email is already linked to another account.');
           setSaving(false);
@@ -131,9 +190,11 @@ function ProfilePanel({ user, checkUserAuth }) {
       if (rows[0]) await db.entities.StudentProfile.update(rows[0].id, profileData);
       else         await db.entities.StudentProfile.create(profileData);
 
-      if (hasPlaceholder && email.trim()) {
+      if (newEmail && newEmail !== currentEmail) {
         // Email update in Supabase sends a confirmation — fire-and-forget, don't block save
-        db.auth.updateMe({ email: email.trim() }).catch(() => {});
+        db.auth.updateMe({ email: newEmail }).catch(() => {});
+        // Also update the users table directly for immediate effect
+        db.entities.User.update(user.id, { email: newEmail }).catch(() => {});
       }
       await checkUserAuth();
       toast.success('Profile saved');
@@ -174,34 +235,41 @@ function ProfilePanel({ user, checkUserAuth }) {
           placeholder="e.g. 0881234567"
           icon={Phone}
         />
+        {phoneCheck === false && (
+          <p className="text-xs text-destructive font-medium">⚠ This phone number is already linked to another account.</p>
+        )}
+        {phoneCheck === true && (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Phone number is available.</p>
+        )}
       </Field>
 
       <Field
         label="Email Address"
-        hint={hasPlaceholder ? 'Add a real email — it must be unique and will be linked to your account' : undefined}
+        hint={hasPlaceholder ? 'Add a real email — it must be unique and will be linked to your account' : 'You can update your email — it must be unique'}
       >
-        {hasPlaceholder ? (
-          <div className="space-y-2">
+        <div className="space-y-2">
+          {hasPlaceholder && (
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl border border-amber-300/70 bg-amber-50/60 dark:bg-amber-900/10">
               <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
                 No email linked yet. Adding one lets you reset your password via email.
               </p>
             </div>
-            <TextInput
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              icon={Mail}
-            />
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 h-11 px-3 rounded-xl border bg-muted/40 text-sm text-muted-foreground">
-            <Mail className="w-4 h-4 shrink-0" />
-            <span className="truncate">{user?.email}</span>
-          </div>
-        )}
+          )}
+          <TextInput
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            icon={Mail}
+          />
+          {emailCheck === false && (
+            <p className="text-xs text-destructive font-medium">⚠ This email is already linked to another account.</p>
+          )}
+          {emailCheck === true && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Email is available.</p>
+          )}
+        </div>
       </Field>
 
       <SaveBtn loading={saving} label="Save Profile" />

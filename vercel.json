@@ -23,6 +23,9 @@
     },
     "api/notify.js": {
       "maxDuration": 30
+    },
+    "api/check-uniqueness.js": {
+      "maxDuration": 10
     }
   }
 }
