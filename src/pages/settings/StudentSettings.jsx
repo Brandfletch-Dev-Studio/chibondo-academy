@@ -90,7 +90,7 @@ function ProfilePanel({ user, checkUserAuth }) {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/check-uniqueness?phone=${encodeURIComponent(normalized)}&excludeUserId=${user?.id || ''}`);
+        const res = await fetch(`/api/wa-otp?action=check-uniqueness&phone=${encodeURIComponent(normalized)}&excludeUserId=${user?.id || ''}`);
         if (res.ok) {
           const data = await res.json();
           setPhoneCheck(data.phoneAvailable);
@@ -107,7 +107,7 @@ function ProfilePanel({ user, checkUserAuth }) {
     if (trimmed === user?.email) { setEmailCheck(null); return; }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/check-uniqueness?email=${encodeURIComponent(trimmed)}&excludeUserId=${user?.id || ''}`);
+        const res = await fetch(`/api/wa-otp?action=check-uniqueness&email=${encodeURIComponent(trimmed)}&excludeUserId=${user?.id || ''}`);
         if (res.ok) {
           const data = await res.json();
           setEmailCheck(data.emailAvailable);
