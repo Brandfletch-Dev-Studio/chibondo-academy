@@ -390,10 +390,11 @@ async function verifyOTP(req, res) {
       // Generate a UUID for the users table row
       const usersTableId = authUserId || crypto.randomUUID();
 
-      // Create the users table row with a guaranteed non-null id
+      // Upsert the users table row (trigger may have already created it from auth.user)
+      // Using merge-duplicates resolution turns INSERT into UPSERT
       const newUserRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
         method: 'POST',
-        headers: { ...headers, Prefer: 'return=representation' },
+        headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
         body: JSON.stringify({
           id: usersTableId,
           email: autoEmail,
@@ -407,16 +408,16 @@ async function verifyOTP(req, res) {
 
       if (!newUserRes.ok) {
         const errText = await newUserRes.text();
-        console.error('users table insert failed:', errText);
-        // Non-fatal — the auth user exists, sign-in can still work
+        console.error('users table upsert failed:', errText);
       } else {
-        console.log(`Created users table row for ${cleanPhone} (id: ${usersTableId})`);
-        // Auto-create free trial subscription for new users
-        await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
-        // Track affiliate referral if code provided
-        if (referral_code) {
-          await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
-        }
+        console.log(`Upserted users table row for ${cleanPhone} (id: ${usersTableId})`);
+      }
+      // Always run trial + referral tracking for new users, regardless of insert result
+      // (the handle_new_user trigger may have already created the row)
+      await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
+      // Track affiliate referral if code provided
+      if (referral_code) {
+        await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
       }
     } else {
       // Update phone_number and name for legacy users if needed
