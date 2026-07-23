@@ -520,6 +520,7 @@ const functions = {
             await post('/referrals', {
               id: generateId(), referrer_id: refs[0].id, referred_id: sub,
               referral_code: referralCode, status: 'pending',
+              tracking_active: true,
               created_date: new Date().toISOString(), updated_date: new Date().toISOString(),
             }).catch(() => {});
           }

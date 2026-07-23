@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Phone, Mail, Loader2, MessageCircle, Lock, Eye, EyeOff } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
+import { getReferralCode } from "@/lib/referralCookie";
 import { db } from "@/api/supabaseClient";
 
 export default function Login() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const refCode = searchParams.get("ref");
+  const refCode = searchParams.get("ref") || getReferralCode();
 
   const [loginMethod, setLoginMethod] = useState("whatsapp"); // whatsapp | email
   const [phone, setPhone] = useState("");
@@ -26,7 +27,7 @@ export default function Login() {
   );
 
   useEffect(() => {
-    if (refCode) localStorage.setItem("pending_referral_code", refCode);
+    if (refCode) localStorage.setItem("pending_referral_code", refCode.toUpperCase());
   }, [refCode]);
 
   const recordFailure = () => {

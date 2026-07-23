@@ -7,11 +7,12 @@ import { Phone, User, Loader2, MessageCircle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { useAuth } from "@/lib/AuthContext";
 import SEO from "@/components/SEO";
+import { getReferralCode } from "@/lib/referralCookie";
 
 export default function Register() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const refCode = searchParams.get("ref") || localStorage.getItem("pending_referral_code");
+  const refCode = searchParams.get("ref") || getReferralCode();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -21,7 +22,7 @@ export default function Register() {
   const { isAuthenticated, authChecked } = useAuth();
 
   useEffect(() => {
-    if (refCode) localStorage.setItem("pending_referral_code", refCode);
+    if (refCode) localStorage.setItem("pending_referral_code", refCode.toUpperCase());
   }, [refCode]);
 
   // Redirect authenticated users to dashboard

@@ -75,7 +75,7 @@ async function sendWhatsAppMessage(phone, message) {
 async function processReferralCommission(uid, txRef) {
   try {
     const refs = await supabaseGet(
-      `/referrals?referred_user_id=eq.${encodeURIComponent(uid)}&status=neq.paid&limit=1`
+      `/referrals?referred_user_id=eq.${encodeURIComponent(uid)}&tracking_active=eq.true&limit=1`
     );
     const ref = Array.isArray(refs) ? refs[0] : null;
     if (!ref) { console.log('[webhook/referral] no open referral for user:', uid); return; }
@@ -84,11 +84,12 @@ async function processReferralCommission(uid, txRef) {
     const now = new Date().toISOString();
 
     await supabasePatch(`/referrals?id=eq.${encodeURIComponent(ref.id)}`, {
-      status:        'paid',
-      reward_status: 'earned',
-      reward_amount: commissionAmt,
-      notes:         `Confirmed via webhook tx_ref: ${txRef}`,
-      updated_date:  now,
+      status:          'paid',
+      reward_status:   'earned',
+      reward_amount:   commissionAmt,
+      tracking_active: false,  // Stop tracking after first commission payout
+      notes:           `Confirmed via webhook tx_ref: ${txRef}`,
+      updated_date:    now,
     });
     console.log('[webhook/referral] commission marked paid for referral:', ref.id);
 

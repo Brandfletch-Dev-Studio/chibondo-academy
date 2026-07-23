@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, MessageCircle, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
+import { getReferralCode, clearReferralTracking } from "@/lib/referralCookie";
 import { db } from "@/api/supabaseClient";
 
 export default function VerifyOtp() {
@@ -11,7 +12,7 @@ export default function VerifyOtp() {
 
   const phone = location.state?.phone || "";
   const name = location.state?.name || "";
-  const refCode = location.state?.refCode || null;
+  const refCode = location.state?.refCode || getReferralCode();
   const isNew = location.state?.isNew || false;
   const isReset = location.state?.isReset || false;
   const mode = location.state?.mode || null;
@@ -142,6 +143,8 @@ export default function VerifyOtp() {
         // Track referral if code exists (fire and forget)
         if (refCode) {
           db.functions?.invoke?.("trackReferral", { refCode }).catch(() => {});
+          // Clear the referral cookie now that it's been consumed
+          clearReferralTracking();
         }
 
         setTimeout(() => {

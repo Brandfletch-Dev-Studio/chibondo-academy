@@ -11,6 +11,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { UploadProvider } from '@/lib/UploadContext';
 import RoleGuard from '@/components/RoleGuard';
 import { useOutletContext } from 'react-router-dom';
+import { captureReferralFromURL } from '@/lib/referralCookie';
 
 // Default theme is LIGHT. Only switch to dark if the user has explicitly chosen it.
 // System preference is intentionally ignored — the app ships light by default.
@@ -21,6 +22,9 @@ if (typeof window !== 'undefined') {
   } else {
     document.documentElement.classList.remove('dark');
   }
+
+  // Capture referral code from ?ref= URL param on any page (cookie + localStorage)
+  captureReferralFromURL();
 }
 
 function RoleHome() {
