@@ -39,7 +39,7 @@ export default function VerifyLink() {
 
       // Success — save token and redirect
       if (data.access_token) {
-        db.auth.setToken(data.access_token);
+        db.auth.setToken(data.access_token, data.refresh_token);
         setStatus("success");
         setTimeout(() => {
           window.location.replace(`/dashboard`);

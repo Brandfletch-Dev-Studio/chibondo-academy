@@ -109,7 +109,7 @@ export default function VerifyOtp() {
       const token = data.access_token;
       if (token) {
         setSuccess(true);
-        db.auth.setToken(token);
+        db.auth.setToken(token, data.refresh_token);
 
         // Track referral if code exists (fire and forget)
         if (refCode) {
