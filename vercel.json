@@ -14,6 +14,9 @@
     },
     "api/wa-otp.js": {
       "maxDuration": 30
+    },
+    "api/auth-me.js": {
+      "maxDuration": 30
     }
   }
 }
