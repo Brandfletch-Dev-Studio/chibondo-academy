@@ -300,9 +300,13 @@ function AffiliateSettings() {
     setCheckStatus('checking');
     debounceRef.current = setTimeout(async () => {
       try {
-        const existing = await db.entities.User.filter({ referral_code: val });
-        const taken = existing.find(u => u.id !== user.id);
-        setCheckStatus(taken ? 'taken' : 'available');
+        const res = await fetch(`/api/wa-otp?action=check-uniqueness&referralCode=${encodeURIComponent(val)}&excludeUserId=${user?.id || ''}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCheckStatus(data.referralCodeAvailable ? 'available' : 'taken');
+        } else {
+          setCheckStatus(null);
+        }
       } catch { setCheckStatus(null); }
     }, 500);
   };

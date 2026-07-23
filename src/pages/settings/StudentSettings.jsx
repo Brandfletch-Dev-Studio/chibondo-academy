@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   User, Lock, Bell, LogOut, GraduationCap, ChevronRight,
   Loader2, Eye, EyeOff, Phone, Mail, Check, MessageCircle, BookOpen,
-  Shield, Smartphone, X, School, Info, Gift, Copy,
+  Shield, Smartphone, X, School, Info,
 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
@@ -77,8 +77,6 @@ function ProfilePanel({ user, checkUserAuth }) {
   const [saving,    setSaving]    = useState(false);
   const [phoneCheck, setPhoneCheck] = useState(null);
   const [emailCheck, setEmailCheck] = useState(null);
-  const [refCode, setRefCode] = useState('');
-  const [refCheck, setRefCheck] = useState(null);
   const hasPlaceholder = isPlaceholderEmail(user?.email);
 
   // Debounced phone uniqueness check
@@ -151,8 +149,6 @@ function ProfilePanel({ user, checkUserAuth }) {
         if (!isPlaceholderEmail(user?.email)) setEmail(user.email);
       }
     }).catch(() => {});
-    // Pre-fill referral code from user profile
-    if (user?.referral_code) setRefCode(user.referral_code);
   }, [user?.id]);
 
   const save = async (e) => {
@@ -172,18 +168,7 @@ function ProfilePanel({ user, checkUserAuth }) {
         setSaving(false);
         return;
       }
-      if (refCheck === false) {
-        toast.error('This referral code is already taken. Try another one.');
-        setSaving(false);
-        return;
-      }
-      // Validate referral code format
-      const cleanRefCode = refCode.trim().toUpperCase();
-      if (cleanRefCode && !/^[A-Z0-9-]{3,20}$/.test(cleanRefCode)) {
-        toast.error('Referral code must be 3-20 characters: letters, numbers, and hyphens only.');
-        setSaving(false);
-        return;
-      }
+
       // ── Validate phone uniqueness (if changed) ──
       if (formattedPhone) {
         const normalizedPhone = formattedPhone.replace(/\D/g, '');
@@ -213,10 +198,6 @@ function ProfilePanel({ user, checkUserAuth }) {
       await db.auth.updateMe({ full_name: fullName.trim() });
       if (formattedPhone) {
         await db.entities.User.update(user.id, { phone_number: formattedPhone });
-      }
-      // Update referral code if changed
-      if (cleanRefCode && cleanRefCode !== (user?.referral_code || '').toUpperCase()) {
-        await db.entities.User.update(user.id, { referral_code: cleanRefCode });
       }
       const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
       const profileData = {
@@ -309,39 +290,6 @@ function ProfilePanel({ user, checkUserAuth }) {
         </div>
       </Field>
 
-      <Field
-        label="Your Referral Code"
-        hint="Share this code — when someone registers with it, you earn a commission. 3-20 chars: letters, numbers, hyphens."
-      >
-        <div className="flex gap-2">
-          <TextInput
-            value={refCode}
-            onChange={e => setRefCode(e.target.value.toUpperCase())}
-            placeholder="e.g. MYCODE123"
-            icon={Gift}
-          />
-          {refCode.trim() && (
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(refCode.trim());
-                toast.success('Referral code copied!');
-              }}
-              className="shrink-0 h-11 px-3 rounded-xl border bg-muted/40 text-sm font-medium hover:bg-muted transition-colors flex items-center gap-1.5"
-            >
-              <Copy className="w-4 h-4" />
-              Copy
-            </button>
-          )}
-        </div>
-        {refCheck === false && (
-          <p className="text-xs text-destructive font-medium">⚠ This referral code is already taken.</p>
-        )}
-        {refCheck === true && (
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Referral code is available.</p>
-        )}
-      </Field>
-
       <SaveBtn loading={saving} label="Save Profile" />
     </form>
   );
@@ -367,8 +315,6 @@ function AcademicPanel({ user }) {
     db.entities.Enrollment.filter({ student_id: user.id }).then(rows => {
       setSubjects(rows);
     }).catch(() => {});
-    // Pre-fill referral code from user profile
-    if (user?.referral_code) setRefCode(user.referral_code);
   }, [user?.id]);
 
   const save = async (e) => {
