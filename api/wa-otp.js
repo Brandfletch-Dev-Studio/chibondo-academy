@@ -142,12 +142,12 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
   try {
     // Fetch pricing settings to check if trial is enabled
     const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/platform_settings?key=eq.pricing&limit=1`, { headers });
-    if (!settingsRes.ok) return result;
+    if (!settingsRes.ok) return;
     const settingsRows = await settingsRes.json();
-    if (!settingsRows?.[0]?.value) return result;
+    if (!settingsRows?.[0]?.value) return;
 
     const pricing = settingsRows[0].value;
-    if (!pricing.trial_enabled) return result;
+    if (!pricing.trial_enabled) return;
 
     const trialDays = Math.max(1, Math.min(30, pricing.trial_days || 7));
     const now = new Date();
@@ -162,7 +162,7 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
       const existing = await existingSubRes.json();
       if (existing?.length > 0) {
         console.log(`[trial] User ${userId} already has a subscription, skipping trial`);
-        return result;
+        return;
       }
     }
 
