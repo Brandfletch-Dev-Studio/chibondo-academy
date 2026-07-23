@@ -280,11 +280,25 @@ async function verifyOTP(req, res) {
 
       if (signInRes.ok) {
         const authData = await signInRes.json();
+
+        // Fetch user profile from users table (service role bypasses RLS)
+        let userProfile = null;
+        try {
+          const profileRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(authData.user?.id || authUserId || '')}&limit=1`,
+            { headers }
+          );
+          if (profileRes.ok) {
+            const profileRows = await profileRes.json();
+            if (profileRows && profileRows.length > 0) userProfile = profileRows[0];
+          }
+        } catch (_) {}
+
         return res.status(200).json({
           ok: true,
           access_token: authData.access_token,
           refresh_token: authData.refresh_token,
-          user: { phone: cleanPhone, isNew: !existingUser },
+          user: { phone: cleanPhone, isNew: !existingUser, profile: userProfile },
         });
       }
     }

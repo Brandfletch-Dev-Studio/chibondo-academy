@@ -329,43 +329,34 @@ const auth = {
     }
     if (!token) throw Object.assign(new Error('Not authenticated'), { status: 401 });
 
-    // Verify token via Auth API (supports ES256 JWTs)
-    // PostgREST cannot verify ES256 JWTs, so we use /auth/v1/user instead
-    let authUser;
+    // Use /api/auth-me serverless function to fetch user profile.
+    // PostgREST can't verify ES256 JWTs (Supabase migrated to asymmetric
+    // signing), so we proxy through a serverless function that uses the
+    // service role key to bypass RLS and fetch the user's profile.
+    const refreshToken = getRefreshToken();
     try {
-      const authRes = await fetch(`${AUTH}/user`, {
-        headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}` },
+      const res = await fetch('/api/auth-me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: token, refresh_token: refreshToken }),
       });
-      if (!authRes.ok) throw Object.assign(new Error('Session expired'), { status: 401 });
-      authUser = await authRes.json();
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw Object.assign(new Error(data.error || 'Session expired'), { status: 401 });
+      }
+
+      const data = await res.json();
+
+      // If the server refreshed the token, save the new one
+      if (data.access_token && data.access_token !== token) {
+        saveToken(data.access_token, data.refresh_token || refreshToken);
+      }
+
+      return data.user;
     } catch (e) {
       if (e?.status === 401) throw e;
       throw Object.assign(new Error('Auth check failed'), { status: 500 });
-    }
-
-    const sub = authUser.id;
-    if (!sub) throw Object.assign(new Error('Invalid token'), { status: 401 });
-
-    // Query users table with anon key (PostgREST can't verify ES256 JWTs)
-    const rows = await get(`/users?id=eq.${encodeURIComponent(sub)}&limit=1`);
-    if (rows?.length) return rows[0];
-
-    // Auto-create user row on first login
-    const now = new Date().toISOString();
-    const newUser = {
-      id:           sub,
-      email:        authUser.email || '',
-      full_name:    authUser.user_metadata?.full_name || '',
-      role:         authUser.app_metadata?.role || authUser.user_metadata?.role || 'user',
-      referral_code: 'ACA-' + sub.slice(-6).toUpperCase(),
-      created_date: now,
-      updated_date: now,
-    };
-    try {
-      const created = await post('/users', newUser);
-      return Array.isArray(created) ? created[0] : created;
-    } catch (_) {
-      return newUser;
     }
   },
 
