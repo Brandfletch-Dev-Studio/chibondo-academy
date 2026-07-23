@@ -123,7 +123,7 @@ function EmailCampaignTab({ forms, subjects, students }) {
       if (recipients.length === 0) { toast.error('No valid recipients found'); setSending(false); return; }
 
       // Send via Resend through Vercel serverless API
-      const emailRes = await fetch('/api/send-email', {
+      const emailRes = await fetch('/api/notify?channel=email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,6 +141,29 @@ function EmailCampaignTab({ forms, subjects, students }) {
         }),
       });
       const emailData = await emailRes.json().catch(() => ({}));
+
+      // ── Send WhatsApp notifications (replaces email as primary channel) ──
+      try {
+        const waRes = await fetch('/api/send-whatsapp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            users: userIds,
+            message: `*Chibondo Academy*
+
+${subject_.trim()}
+
+${body.trim()}
+
+Login: chibondoacademy.com`,
+          }),
+        });
+        const waData = await waRes.json().catch(() => ({}));
+        if (waData?.sent) toast.success(`WhatsApp sent to ${waData.sent} user${waData.sent !== 1 ? 's' : ''}`);
+      } catch (waErr) {
+        console.error('WhatsApp notification error:', waErr);
+      }
+
       if (!emailRes.ok) {
         const errMsg = emailData.error || emailData.message || 'Failed to send email';
         if (errMsg.toLowerCase().includes('api key')) {
@@ -404,7 +427,7 @@ export default function AdminNotifications() {
         }).filter(Boolean);
 
         if (pushSubs.length > 0) {
-          await fetch('/api/send-push', {
+          await fetch('/api/notify?channel=push', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

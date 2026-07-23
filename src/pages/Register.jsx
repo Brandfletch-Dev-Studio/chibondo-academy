@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Phone, User, Loader2, MessageCircle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import { useAuth } from "@/lib/AuthContext";
 import SEO from "@/components/SEO";
 
 export default function Register() {
@@ -17,9 +18,16 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const { isAuthenticated, authChecked } = useAuth();
+
   useEffect(() => {
     if (refCode) localStorage.setItem("pending_referral_code", refCode);
   }, [refCode]);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (authChecked && isAuthenticated) window.location.replace("/dashboard");
+  }, [authChecked, isAuthenticated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

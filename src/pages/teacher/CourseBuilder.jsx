@@ -935,16 +935,27 @@ function LessonEditor({ lesson, subjectId, subjectName, onSaved }) {
     const contentChanged = lesson.status === 'published' && clean.status === 'published' &&
       (lesson.title !== clean.title || lesson.content !== clean.content || lesson.video_url !== clean.video_url);
     if (wasPublished || contentChanged) {
-      // Notify enrolled students (fire-and-forget via /api/send-email)
-      fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: [],
-          subject: 'New Lesson Available',
-          html: '<p>A new lesson has been published on Chibondo Academy. Log in to view it.</p>',
-        }),
-      }).catch(() => {});
+      // Notify enrolled students via WhatsApp (fire-and-forget)
+      try {
+        // Fetch enrolled student IDs for this subject
+        const enrollments = await db.entities.Enrollment.filter({ subject_id: subjectId });
+        const studentIds = enrollments.map(e => e.student_id || e.user_id).filter(Boolean);
+        if (studentIds.length > 0) {
+          fetch('/api/send-whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              users: studentIds,
+              message: `*Chibondo Academy*
+
+📚 New Lesson: ${clean.title}
+
+A new lesson has been published. Log in to view it:
+chibondoacademy.com`,
+            }),
+          }).catch(() => {});
+        }
+      } catch (_) {}
     }
   }, [lesson.id, lesson.status, lesson.title, lesson.content, lesson.video_url, subjectId]);
 

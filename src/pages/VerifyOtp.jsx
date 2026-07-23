@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, MessageCircle, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
 import { db } from "@/api/supabaseClient";
@@ -25,6 +26,13 @@ export default function VerifyOtp() {
   const inputRef = useRef(null);
   const cooldownRef = useRef(null);
   const verifying = useRef(false);
+
+  const { isAuthenticated, authChecked } = useAuth();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (authChecked && isAuthenticated) window.location.replace("/dashboard");
+  }, [authChecked, isAuthenticated]);
 
   // Guard: no phone state → back to login
   useEffect(() => {

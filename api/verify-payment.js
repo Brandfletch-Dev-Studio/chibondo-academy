@@ -184,6 +184,42 @@ export default async function handler(req, res) {
 
       // 5. ✅ Process referral commission (new — was missing)
       await processReferralCommission(uid, amount, tx_ref);
+
+      // 6. ✅ Send WhatsApp payment confirmation
+      try {
+        const userRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(uid)}&select=phone_number,phone,whatsapp,full_name&limit=1`,
+          { headers: { apikey: SUPABASE_SRK, Authorization: `Bearer ${SUPABASE_SRK}` } }
+        );
+        if (userRes.ok) {
+          const userRows = await userRes.json();
+          const u = userRows[0];
+          const phone = u?.phone_number || u?.phone || u?.whatsapp;
+          if (phone) {
+            let cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.startsWith('0')) cleanPhone = '265' + cleanPhone.slice(1);
+            if (!cleanPhone.startsWith('265')) cleanPhone = '265' + cleanPhone;
+            const WA_TOKEN = process.env.WA_ACCESS_TOKEN;
+            const WA_PHONE_ID = process.env.WA_PHONE_NUMBER_ID;
+            await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp', recipient_type: 'individual',
+                to: cleanPhone, type: 'text',
+                text: { body: `*Chibondo Academy*
+
+✅ Payment Confirmed!
+
+Plan: ${plan}\nAmount: MWK ${amount.toLocaleString()}\nStatus: Active\nExpires: ${new Date(endsAt).toLocaleDateString()}
+
+Your lessons are now unlocked. Login:
+chibondoacademy.com` },
+              }),
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {}
     }
 
     return res.status(200).json({ success: true, plan, ends_at: endsAt, amount });

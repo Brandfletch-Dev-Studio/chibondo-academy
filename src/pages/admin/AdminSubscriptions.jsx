@@ -356,7 +356,7 @@ export default function AdminSubscriptions() {
     if (!phone) { toast.error('No phone number for this student'); return; }
     setSendingSms(payment.id);
     try {
-      const smsRes = await fetch('/api/send-sms', {
+      const smsRes = await fetch('/api/notify?channel=sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

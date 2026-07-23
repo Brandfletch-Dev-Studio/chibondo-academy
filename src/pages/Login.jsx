@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Phone, Mail, Loader2, MessageCircle, Lock } from "lucide-react";
 import { db } from "@/api/supabaseClient";
 import AuthLayout from "@/components/AuthLayout";
+import { useAuth } from "@/lib/AuthContext";
 import SEO from "@/components/SEO";
 
 export default function Login() {
@@ -21,9 +22,16 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const { isAuthenticated, authChecked } = useAuth();
+
   useEffect(() => {
     if (refCode) localStorage.setItem("pending_referral_code", refCode);
   }, [refCode]);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (authChecked && isAuthenticated) window.location.replace("/dashboard");
+  }, [authChecked, isAuthenticated]);
 
   // ── WhatsApp login ──
   const handleWhatsApp = async (e) => {

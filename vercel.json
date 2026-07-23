@@ -17,6 +17,12 @@
     },
     "api/auth-me.js": {
       "maxDuration": 30
+    },
+    "api/send-whatsapp.js": {
+      "maxDuration": 30
+    },
+    "api/notify.js": {
+      "maxDuration": 30
     }
   }
 }

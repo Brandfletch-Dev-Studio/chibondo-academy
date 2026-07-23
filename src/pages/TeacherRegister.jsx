@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, Lock, Phone, Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import AuthLayout from "@/components/AuthLayout";
 
 const SUBJECTS = [
