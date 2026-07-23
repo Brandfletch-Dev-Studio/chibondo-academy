@@ -128,8 +128,10 @@ export default function StudentDashboard() {
   }, [activeSub]);
 
   // Show renewal banner when: active sub with ≤7 days left, OR no active sub at all
+  // Also show for trial users (always visible so they can upgrade)
+  const isTrial = activeSub?.plan === 'trial';
   const showRenewalBanner = userId && activeSub !== undefined && (
-    !activeSub || (subDaysLeft !== null && subDaysLeft <= 7)
+    !activeSub || isTrial || (subDaysLeft !== null && subDaysLeft <= 7)
   );
 
   const [phoneBannerDismissed, setPhoneBannerDismissed] = React.useState(
@@ -238,6 +240,13 @@ export default function StudentDashboard() {
                 <p className="font-semibold text-destructive text-xs">No active subscription</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Pay school fees to access lessons, quizzes and past papers.</p>
               </>
+            ) : isTrial ? (
+              <>
+                <p className="font-semibold text-primary text-xs">
+                  {subDaysLeft === 0 ? 'Trial ends today!' : `Free Trial: ${subDaysLeft} day${subDaysLeft !== 1 ? 's' : ''} left`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Upgrade to keep full access after your trial ends.</p>
+              </>
             ) : (
               <>
                 <p className={`font-semibold text-xs ${subDaysLeft <= 3 ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'}`}>
@@ -254,7 +263,7 @@ export default function StudentDashboard() {
               ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
               : 'bg-amber-500 text-white hover:bg-amber-600'
           }`}>
-            {!activeSub ? 'Pay Fees' : 'Renew Now'}
+            {!activeSub ? 'Pay Fees' : isTrial ? 'Upgrade' : 'Renew Now'}
           </a>
         </div>
       )}

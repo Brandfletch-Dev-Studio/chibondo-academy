@@ -111,6 +111,47 @@ async function sendWhatsAppOTP(phone, name) {
   return { ok: true, verifyLink };
 }
 
+
+// ─── Free Trial Auto-Activation ──────────────────────────────────────────────
+async function maybeCreateTrialSubscription(sb, userId, fullName) {
+  try {
+    const { data: settings } = await sb.from('platform_settings').select('value').eq('key', 'pricing').maybeSingle();
+    if (!settings?.value?.trial_enabled) return;
+
+    const trialDays = Math.max(1, Math.min(30, settings.value.trial_days || 7));
+    const now = new Date();
+    const expires = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+
+    // Check for existing subscription
+    const { data: existing } = await sb.from('subscriptions')
+      .select('id').eq('student_id', userId).limit(1);
+    if (existing?.length > 0) return;
+
+    const { error } = await sb.from('subscriptions').insert({
+      student_id: userId,
+      student_name: fullName || '',
+      plan: 'trial',
+      status: 'active',
+      amount: 0,
+      currency: settings.value.currency || 'MWK',
+      starts_at: now.toISOString(),
+      expires_at: expires.toISOString(),
+      pachangu_ref: 'TRIAL',
+      created_by: userId,
+      created_date: now.toISOString(),
+      updated_date: now.toISOString(),
+    });
+
+    if (error) {
+      console.error('[wa-register] Trial subscription failed:', error);
+    } else {
+      console.log(`[wa-register] Created ${trialDays}-day trial for ${userId}`);
+    }
+  } catch (err) {
+    console.error('[wa-register] Trial error:', err.message);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -226,6 +267,9 @@ export default async function handler(req, res) {
     if (profileErr) {
       console.error('[wa-register] student_profiles upsert failed:', profileErr);
     }
+
+    // Auto-create free trial subscription
+    await maybeCreateTrialSubscription(sb, userId, full_name);
 
     // Send WhatsApp verification link to the student
     const waResult = await sendWhatsAppOTP(normPhone, full_name);

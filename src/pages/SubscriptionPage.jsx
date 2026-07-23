@@ -55,6 +55,7 @@ export default function SubscriptionPage() {
   });
 
   const hasPaidFees = subscription && subscription.status === 'active';
+  const isTrial = hasPaidFees && subscription?.plan === 'trial';
 
   const subDaysLeft = (() => {
     const expiry = subscription?.expires_at || subscription?.end_date;
@@ -249,6 +250,7 @@ export default function SubscriptionPage() {
       {/* ── Active subscription status card ── */}
       {hasPaidFees && (
         <div className={`rounded-2xl border p-5 ${
+          isTrial ? 'bg-primary/8 border-primary/25' :
           isExpiring3 ? 'bg-destructive/8 border-destructive/25' :
           isExpiringSoon ? 'bg-amber-500/8 border-amber-400/25' :
           'bg-emerald-500/8 border-emerald-400/25'
@@ -256,11 +258,14 @@ export default function SubscriptionPage() {
           <div className="flex items-start gap-4">
             {/* Status icon */}
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+              isTrial ? 'bg-primary/15' :
               isExpiring3 ? 'bg-destructive/15' :
               isExpiringSoon ? 'bg-amber-500/15' :
               'bg-emerald-500/15'
             }`}>
-              {isExpiringSoon
+              {isTrial
+                ? <Zap className="w-6 h-6 text-primary" />
+                : isExpiringSoon
                 ? <Calendar className={`w-6 h-6 ${isExpiring3 ? 'text-destructive' : 'text-amber-600'}`} />
                 : <Check className="w-6 h-6 text-emerald-600" />
               }
@@ -270,6 +275,7 @@ export default function SubscriptionPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className={`font-bold text-base ${
+                  isTrial ? 'text-primary' :
                   isExpiring3 ? 'text-destructive' :
                   isExpiringSoon ? 'text-amber-700 dark:text-amber-400' :
                   'text-emerald-700 dark:text-emerald-400'
@@ -279,6 +285,7 @@ export default function SubscriptionPage() {
                    'Fees Paid ✓'}
                 </p>
                 <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${
+                  isTrial ? 'bg-primary/15 text-primary' :
                   isExpiring3 ? 'bg-destructive/15 text-destructive' :
                   isExpiringSoon ? 'bg-amber-500/15 text-amber-600' :
                   'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
@@ -302,11 +309,12 @@ export default function SubscriptionPage() {
                   </div>
                   {/* Progress bar */}
                   {(() => {
-                    const totalDays = { monthly: 30, quarterly: 90, annual: 365, biannual: 730 }[subscription.plan] || 30;
+                    const totalDays = { trial: 7, monthly: 30, quarterly: 90, annual: 365, biannual: 730 }[subscription.plan] || 30;
                     const pct = Math.max(0, Math.min(100, (subDaysLeft / totalDays) * 100));
                     return (
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all ${
+                          isTrial ? 'bg-primary' :
                           isExpiring3 ? 'bg-destructive' :
                           isExpiringSoon ? 'bg-amber-500' :
                           'bg-emerald-500'
@@ -326,12 +334,13 @@ export default function SubscriptionPage() {
                 <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Go to Lessons
               </Button>
             </Link>
-            {isExpiringSoon && (
+            {(isExpiringSoon || isTrial) && (
               <Button size="sm" className={`flex-1 font-semibold ${
+                isTrial ? 'bg-primary hover:bg-primary/90' :
                 isExpiring3 ? 'bg-destructive hover:bg-destructive/90' : 'bg-amber-500 hover:bg-amber-600'
               } text-white border-0`}
                 onClick={() => document.getElementById('pricing-cards')?.scrollIntoView({ behavior: 'smooth' })}>
-                <Zap className="w-3.5 h-3.5 mr-1.5" /> Renew Now
+                <Zap className="w-3.5 h-3.5 mr-1.5" /> {isTrial ? 'Upgrade Now' : 'Renew Now'}
               </Button>
             )}
           </div>

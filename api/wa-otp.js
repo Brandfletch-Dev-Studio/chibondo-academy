@@ -114,6 +114,68 @@ async function derivePassword(phone, secret) {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
 }
 
+
+// ─── Free Trial Auto-Activation ──────────────────────────────────────────────
+// When a new user registers and the admin has enabled free trial,
+// automatically create a trial subscription so they can access lessons immediately.
+async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullName) {
+  try {
+    // Fetch pricing settings to check if trial is enabled
+    const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/platform_settings?key=eq.pricing&limit=1`, { headers });
+    if (!settingsRes.ok) return;
+    const settingsRows = await settingsRes.json();
+    if (!settingsRows?.[0]?.value) return;
+
+    const pricing = settingsRows[0].value;
+    if (!pricing.trial_enabled) return;
+
+    const trialDays = Math.max(1, Math.min(30, pricing.trial_days || 7));
+    const now = new Date();
+    const expires = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+
+    // Check if user already has any subscription (active or otherwise)
+    const existingSubRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/subscriptions?student_id=eq.${encodeURIComponent(userId)}&limit=1`,
+      { headers }
+    );
+    if (existingSubRes.ok) {
+      const existing = await existingSubRes.json();
+      if (existing?.length > 0) {
+        console.log(`[trial] User ${userId} already has a subscription, skipping trial`);
+        return;
+      }
+    }
+
+    // Create trial subscription
+    const trialRes = await fetch(`${SUPABASE_URL}/rest/v1/subscriptions`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify({
+        student_id: userId,
+        student_name: fullName || '',
+        plan: 'trial',
+        status: 'active',
+        amount: 0,
+        currency: pricing.currency || 'MWK',
+        starts_at: now.toISOString(),
+        expires_at: expires.toISOString(),
+        pachangu_ref: 'TRIAL',
+        created_by: userId,
+        created_date: now.toISOString(),
+        updated_date: now.toISOString(),
+      }),
+    });
+
+    if (trialRes.ok) {
+      console.log(`[trial] Created ${trialDays}-day trial subscription for ${userId}, expires ${expires.toISOString()}`);
+    } else {
+      console.error('[trial] Failed to create trial subscription:', await trialRes.text());
+    }
+  } catch (err) {
+    console.error('[trial] Error creating trial subscription:', err.message);
+  }
+}
+
 async function verifyOTP(req, res) {
   const { phone, code, token, name } = req.body || {};
   if (!code && !token) return res.status(400).json({ error: 'Verification code or token is required' });
@@ -249,6 +311,8 @@ async function verifyOTP(req, res) {
         // Non-fatal — the auth user exists, sign-in can still work
       } else {
         console.log(`Created users table row for ${cleanPhone} (id: ${usersTableId})`);
+        // Auto-create free trial subscription for new users
+        await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
       }
     } else {
       // Update phone_number and name for legacy users if needed
