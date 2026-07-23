@@ -277,6 +277,9 @@ async function verifyOTP(req, res) {
       // Generate a UUID for the users table row
       const usersTableId = authUserId || crypto.randomUUID();
 
+      // Generate a unique referral code for the new user
+      const referralCode = await generateUniqueReferralCode(SUPABASE_URL, headers, name || cleanPhone);
+
       // Create the users table row with a guaranteed non-null id
       const newUserRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
         method: 'POST',
@@ -287,6 +290,7 @@ async function verifyOTP(req, res) {
           full_name: name || '',
           role: 'user',
           phone_number: cleanPhone,
+          referral_code: referralCode,
           created_date: new Date().toISOString(),
           updated_date: new Date().toISOString(),
         }),
@@ -347,15 +351,98 @@ async function verifyOTP(req, res) {
   }
 }
 
+
+// ─── Generate a unique referral code from a user's name ────────────────────────
+async function generateUniqueReferralCode(SUPABASE_URL, headers, fullName) {
+  // Extract first 4 letters of first name (alpha only)
+  const base = (fullName || 'USER')
+    .trim()
+    .split(/\s+/)[0]
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .slice(0, 4)
+    .padEnd(4, 'X'); // pad if name is too short
+
+  // Try up to 10 times with different random suffixes
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    const code = `${base}${suffix}`;
+
+    const checkRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(code)}&select=id&limit=1`,
+      { headers }
+    );
+    const checkData = await checkRes.json().catch(() => []);
+    if (!checkData || checkData.length === 0) return code; // available!
+  }
+
+  // Fallback: use a longer random code
+  return `USER${Date.now().toString().slice(-6)}`;
+}
+
+// ─── Check uniqueness (phone, email, referral code) ────────────────────────────
+async function checkUniqueness(req, res) {
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const headers = {
+    'apikey': SERVICE_KEY,
+    'Authorization': `Bearer ${SERVICE_KEY}`,
+  };
+
+  const { phone, email, referralCode, excludeUserId } = req.query;
+  const result = { phoneAvailable: true, emailAvailable: true, referralCodeAvailable: true };
+
+  try {
+    // Check phone uniqueness
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      let query = `phone_number=eq.${cleanPhone}`;
+      if (excludeUserId) query += `&id=neq.${excludeUserId}`;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?${query}&select=id&limit=1`, { headers });
+      const data = await res.json().catch(() => []);
+      result.phoneAvailable = !data || data.length === 0;
+    }
+
+    // Check email uniqueness
+    if (email) {
+      const cleanEmail = email.trim().toLowerCase();
+      let query = `email=eq.${encodeURIComponent(cleanEmail)}`;
+      if (excludeUserId) query += `&id=neq.${excludeUserId}`;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?${query}&select=id&limit=1`, { headers });
+      const data = await res.json().catch(() => []);
+      result.emailAvailable = !data || data.length === 0;
+    }
+
+    // Check referral code uniqueness
+    if (referralCode) {
+      const cleanCode = referralCode.trim().toUpperCase();
+      let query = `referral_code=eq.${encodeURIComponent(cleanCode)}`;
+      if (excludeUserId) query += `&id=neq.${excludeUserId}`;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?${query}&select=id&limit=1`, { headers });
+      const data = await res.json().catch(() => []);
+      result.referralCodeAvailable = !data || data.length === 0;
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[check-uniqueness] Error:', err.message);
+    return res.status(500).json({ error: 'Uniqueness check failed' });
+  }
+}
+
 // ─── ROUTER ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
   const action = req.query.action || req.body?.action;
+
+  // check-uniqueness is a GET endpoint
+  if (action === 'check-uniqueness') return checkUniqueness(req, res);
+
+  // All other actions require POST
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (action === 'send') return sendOTP(req, res);
   if (action === 'verify') return verifyOTP(req, res);
 
-  return res.status(400).json({ error: 'Invalid action. Use ?action=send or ?action=verify' });
+  return res.status(400).json({ error: 'Invalid action. Use ?action=send, ?action=verify, or ?action=check-uniqueness' });
 }

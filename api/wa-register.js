@@ -154,6 +154,31 @@ async function maybeCreateTrialSubscription(sb, userId, fullName) {
 
 
 // ─── Affiliate Referral Tracking ─────────────────────────────────────────────
+
+// ─── Generate a unique referral code from a user's name ────────────────────────
+async function generateUniqueReferralCode(sb, fullName) {
+  const base = (fullName || 'USER')
+    .trim()
+    .split(/\s+/)[0]
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .slice(0, 4)
+    .padEnd(4, 'X');
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    const code = `${base}${suffix}`;
+
+    const { data } = await sb.from('users')
+      .select('id')
+      .eq('referral_code', code)
+      .limit(1);
+    if (!data || data.length === 0) return code;
+  }
+
+  return `USER${Date.now().toString().slice(-6)}`;
+}
+
 async function maybeTrackReferral(sb, newUser, referralCode) {
   try {
     if (!referralCode || !newUser?.id) return;
@@ -290,7 +315,6 @@ export default async function handler(req, res) {
       user_metadata: {
         full_name,
         source: 'whatsapp_registration',
-        referral_code: args?.referral_code || 'AGENT',
         auth_method: 'whatsapp_otp',
       },
     });
