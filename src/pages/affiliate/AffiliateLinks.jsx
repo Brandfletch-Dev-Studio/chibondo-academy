@@ -15,7 +15,6 @@ function CopyField({ label, value, sub }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <SEO title="Affiliate Links" description="Get your referral links and QR codes to share Chibondo Academy with your network." />
     <div className="bg-card border border-border rounded-xl p-4 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
@@ -95,6 +94,8 @@ export default function AffiliateLinks() {
   };
 
   return (
+    <>
+    <SEO title="Affiliate Links" description="Get your referral links and QR codes to share Chibondo Academy with your network." />
     <div className="space-y-6">
       {qrUrl && <QRModal url={qrUrl} onClose={() => setQrUrl(null)} />}
 
@@ -158,5 +159,6 @@ export default function AffiliateLinks() {
         </div>
       )}
     </div>
+    </>
   );
 }

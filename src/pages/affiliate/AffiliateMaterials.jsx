@@ -27,7 +27,6 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
   const isText = item.type === 'whatsapp_msg';
 
   return (
-    <SEO title="Marketing Materials" description="Download banners, social graphics, and WhatsApp messages to promote Chibondo Academy." />
     <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/30 transition-all">
       {/* Preview */}
       {item.thumbnail_url || item.file_url ? (
@@ -214,6 +213,8 @@ export default function AffiliateMaterials() {
   const filtered = typeFilter === 'all' ? materials : materials.filter(m => m.type === typeFilter);
 
   return (
+    <>
+    <SEO title="Marketing Materials" description="Download banners, social graphics, and WhatsApp messages to promote Chibondo Academy." />
     <div className="space-y-5">
       {/* Header row */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -371,5 +372,6 @@ export default function AffiliateMaterials() {
         </div>
       )}
     </div>
+    </>
   );
 }

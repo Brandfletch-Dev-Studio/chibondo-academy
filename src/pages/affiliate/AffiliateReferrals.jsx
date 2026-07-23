@@ -44,6 +44,7 @@ export default function AffiliateReferrals() {
   const convRate  = referrals.length > 0 ? Math.round((paidCount / referrals.length) * 100) : 0;
 
   return (
+    <>
     <SEO title="My Referrals" description="View all your referrals and their subscription status." />
     <div className="space-y-5">
       {/* Summary row */}
@@ -152,5 +153,6 @@ export default function AffiliateReferrals() {
         )}
       </div>
     </div>
+    </>
   );
 }

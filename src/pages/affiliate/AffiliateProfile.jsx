@@ -15,7 +15,6 @@ import SEO from '@/components/SEO';
 /* ── Tiny layout helpers ─────────────────────────────────────────────────── */
 function Section({ title, icon: Icon, children }) {
   return (
-    <SEO title="Affiliate Profile" description="Manage your affiliate profile, payment details, and notification preferences." />
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-muted/30">
         {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
@@ -112,6 +111,8 @@ export default function AffiliateProfile() {
 
 
   return (
+    <>
+    <SEO title="Affiliate Profile" description="Manage your affiliate profile, payment details, and notification preferences." />
     <div className="space-y-5 max-w-xl">
       {/* Personal info */}
       <Section title="Personal Information" icon={UserCog}>
@@ -200,5 +201,6 @@ export default function AffiliateProfile() {
         }
       </Button>
     </div>
+    </>
   );
 }

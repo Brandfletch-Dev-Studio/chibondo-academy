@@ -36,7 +36,6 @@ const isPlaceholderEmail = (email) =>
 // ── tiny reusables ─────────────────────────────────────────────────────────────
 function Field({ label, hint, children }) {
   return (
-    <SEO title="Settings" description="Manage your Chibondo Academy account settings." />
     <div className="space-y-1.5">
       <p className="text-sm font-medium">{label}</p>
       {children}
@@ -647,6 +646,8 @@ export default function StudentSettings() {
   }[tab];
 
   return (
+    <>
+    <SEO title="Settings" description="Manage your Chibondo Academy account settings." />
     <div className="min-h-screen bg-background pb-28">
       {/* ── Hero header ── */}
       <div className="bg-gradient-to-br from-primary to-primary/80 px-4 pt-5 pb-0">
@@ -702,6 +703,7 @@ export default function StudentSettings() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

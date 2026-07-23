@@ -62,6 +62,7 @@ export default function AffiliateCommissions() {
   };
 
   return (
+    <>
     <SEO title="Commissions" description="Track your affiliate commissions and earning history." />
     <div className="space-y-5">
       {/* Summary */}
@@ -147,5 +148,6 @@ export default function AffiliateCommissions() {
         )}
       </div>
     </div>
+    </>
   );
 }

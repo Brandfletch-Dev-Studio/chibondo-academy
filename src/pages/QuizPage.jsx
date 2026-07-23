@@ -36,7 +36,6 @@ export default function QuizPage() {
         });
       }, 1000);
       return () => clearInterval(timer);
-    <SEO title="Quiz" description="Take interactive quizzes on Chibondo Academy." />
     }
   }, [quiz?.id]);
 
@@ -129,6 +128,8 @@ export default function QuizPage() {
   if (!question) return <p className="text-center py-8 text-muted-foreground">No questions in this quiz</p>;
 
   return (
+    <>
+    <SEO title="Quiz" description="Take interactive quizzes on Chibondo Academy." />
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -186,5 +187,6 @@ export default function QuizPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

@@ -12,7 +12,6 @@ import SEO from '@/components/SEO';
 
 function StatCard({ label, value, icon: Icon, color, sub }) {
   return (
-    <SEO title="Affiliate Dashboard" description="Track your referrals, commissions, and payouts as a Chibondo Academy affiliate partner." />
     <div className="bg-card border border-border rounded-2xl p-5">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${color}`}>
         <Icon className="w-5 h-5" />
@@ -117,6 +116,8 @@ export default function AffiliateDashboard() {
   const convRate         = totalReferrals > 0 ? Math.round((paidReferrals.length / totalReferrals) * 100) : 0;
 
   return (
+    <>
+    <SEO title="Affiliate Dashboard" description="Track your referrals, commissions, and payouts as a Chibondo Academy affiliate partner." />
     <div className="space-y-6">
       {/* ── Hero banner — on-brand, consistent with site ── */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -311,5 +312,6 @@ export default function AffiliateDashboard() {
         </div>
       )}
     </div>
+    </>
   );
 }

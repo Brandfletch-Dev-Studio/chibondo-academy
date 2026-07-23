@@ -77,6 +77,7 @@ export default function AffiliatePayouts() {
   });
 
   return (
+    <>
     <SEO title="Payouts" description="Request and track your affiliate payout payments." />
     <div className="space-y-6">
       {/* Balance cards */}
@@ -208,5 +209,6 @@ export default function AffiliatePayouts() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
