@@ -152,6 +152,66 @@ async function maybeCreateTrialSubscription(sb, userId, fullName) {
   }
 }
 
+
+// ─── Affiliate Referral Tracking ─────────────────────────────────────────────
+async function maybeTrackReferral(sb, newUser, referralCode) {
+  try {
+    if (!referralCode || !newUser?.id) return;
+    const code = String(referralCode).trim().toUpperCase();
+
+    const { data: referrer } = await sb.from('users')
+      .select('id, full_name')
+      .eq('referral_code', code)
+      .maybeSingle();
+
+    if (!referrer) { console.log('[wa-register] No referrer for code:', code); return; }
+    if (referrer.id === newUser.id) { console.log('[wa-register] Self-referral skipped'); return; }
+
+    // Check existing referral
+    const { data: existing } = await sb.from('referrals')
+      .select('id')
+      .eq('referrer_id', referrer.id)
+      .eq('referred_user_id', newUser.id)
+      .limit(1);
+    if (existing?.length > 0) { console.log('[wa-register] Referral already exists'); return; }
+
+    // Get commission settings
+    let rewardAmount = 5000;
+    const { data: affSettings } = await sb.from('platform_settings')
+      .select('value').eq('key', 'affiliate_commission').maybeSingle();
+    if (affSettings?.value) {
+      if (affSettings.value.commission_type === 'fixed') {
+        rewardAmount = affSettings.value.fixed_amount || affSettings.value.commission_amount || 5000;
+      }
+    }
+
+    const { error } = await sb.from('referrals').insert({
+      referrer_id: referrer.id,
+      referrer_name: referrer.full_name || '',
+      referred_user_id: newUser.id,
+      referred_name: newUser.full_name || '',
+      referred_email: newUser.email || '',
+      referral_code: code,
+      status: 'pending',
+      reward_amount: rewardAmount,
+      reward_status: 'pending',
+      recurring_reward_amount: affSettings?.value?.recurring_commission ? rewardAmount : 0,
+      recurring_count: 0,
+      created_by: newUser.id,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error('[wa-register] Referral creation failed:', error);
+    } else {
+      console.log(`[wa-register] Created referral: ${referrer.full_name} (${code}) -> ${newUser.full_name || newUser.id}`);
+    }
+  } catch (err) {
+    console.error('[wa-register] Referral tracking error:', err.message);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -270,6 +330,9 @@ export default async function handler(req, res) {
 
     // Auto-create free trial subscription
     await maybeCreateTrialSubscription(sb, userId, full_name);
+
+    // Track affiliate referral
+    await maybeTrackReferral(sb, { id: userId, full_name, email: autoEmail }, args?.referral_code);
 
     // Send WhatsApp verification link to the student
     const waResult = await sendWhatsAppOTP(normPhone, full_name);

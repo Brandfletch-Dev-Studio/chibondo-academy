@@ -24,10 +24,11 @@ export default function VerifyLink() {
 
   const verifyToken = async () => {
     try {
+      const refCode = localStorage.getItem("pending_referral_code");
       const res = await fetch("/api/wa-otp?action=verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, referral_code: refCode || undefined }),
       });
 
       const data = await res.json();
@@ -41,6 +42,9 @@ export default function VerifyLink() {
       // Success — save token and redirect
       if (data.access_token) {
         db.auth.setToken(data.access_token, data.refresh_token);
+        if (localStorage.getItem("pending_referral_code")) {
+          localStorage.removeItem("pending_referral_code");
+        }
         setStatus("success");
         setTimeout(() => {
           window.location.replace(`/dashboard`);

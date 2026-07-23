@@ -176,8 +176,108 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
   }
 }
 
+
+// ─── Affiliate Referral Tracking ─────────────────────────────────────────────
+// When a new user registers with a referral code, look up the referrer
+// and create a referral record. The referral starts as 'pending' and becomes
+// 'paid' when the referred student pays their subscription.
+async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) {
+  try {
+    if (!referralCode || !newUser?.id) return;
+    const code = String(referralCode).trim().toUpperCase();
+
+    // Look up the referrer by their referral_code
+    const refRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(code)}&limit=1`,
+      { headers }
+    );
+    if (!refRes.ok) return;
+    const refRows = await refRes.json();
+    const referrer = refRows?.[0];
+    if (!referrer) {
+      console.log(`[referral] No referrer found for code: ${code}`);
+      return;
+    }
+
+    // Don't create self-referrals
+    if (referrer.id === newUser.id) {
+      console.log('[referral] Self-referral detected, skipping');
+      return;
+    }
+
+    // Check if a referral record already exists for this pair
+    const existingRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/referrals?referrer_id=eq.${encodeURIComponent(referrer.id)}&referred_user_id=eq.${encodeURIComponent(newUser.id)}&limit=1`,
+      { headers }
+    );
+    if (existingRes.ok) {
+      const existing = await existingRes.json();
+      if (existing?.length > 0) {
+        console.log(`[referral] Referral already exists for ${referrer.id} -> ${newUser.id}`);
+        return;
+      }
+    }
+
+    // Fetch affiliate commission settings for the reward amount
+    let rewardAmount = 5000; // default
+    let recurringReward = 0;
+    try {
+      const affRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/platform_settings?key=eq.affiliate_commission&limit=1`,
+        { headers }
+      );
+      if (affRes.ok) {
+        const affRows = await affRes.json();
+        const aff = affRows?.[0]?.value;
+        if (aff) {
+          if (aff.commission_type === 'fixed') {
+            rewardAmount = aff.fixed_amount || aff.commission_amount || 5000;
+          } else if (aff.commission_type === 'percentage') {
+            // For percentage, we'll calculate based on the referred student's payment amount later
+            rewardAmount = 0; // will be set when payment is confirmed
+            recurringReward = 0;
+          }
+          if (aff.recurring_commission) {
+            recurringReward = rewardAmount; // same as initial for now
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Create the referral record
+    const refInsertRes = await fetch(`${SUPABASE_URL}/rest/v1/referrals`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify({
+        referrer_id: referrer.id,
+        referrer_name: referrer.full_name || '',
+        referred_user_id: newUser.id,
+        referred_name: newUser.full_name || '',
+        referred_email: newUser.email || '',
+        referral_code: code,
+        status: 'pending',
+        reward_amount: rewardAmount,
+        reward_status: 'pending',
+        recurring_reward_amount: recurringReward,
+        recurring_count: 0,
+        created_by: newUser.id,
+        created_date: new Date().toISOString(),
+        updated_date: new Date().toISOString(),
+      }),
+    });
+
+    if (refInsertRes.ok) {
+      console.log(`[referral] Created referral: ${referrer.full_name} (${code}) -> ${newUser.full_name || newUser.id}`);
+    } else {
+      console.error('[referral] Failed to create referral:', await refInsertRes.text());
+    }
+  } catch (err) {
+    console.error('[referral] Error tracking referral:', err.message);
+  }
+}
+
 async function verifyOTP(req, res) {
-  const { phone, code, token, name } = req.body || {};
+  const { phone, code, token, name, referral_code } = req.body || {};
   if (!code && !token) return res.status(400).json({ error: 'Verification code or token is required' });
 
   const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -313,6 +413,10 @@ async function verifyOTP(req, res) {
         console.log(`Created users table row for ${cleanPhone} (id: ${usersTableId})`);
         // Auto-create free trial subscription for new users
         await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
+        // Track affiliate referral if code provided
+        if (referral_code) {
+          await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
+        }
       }
     } else {
       // Update phone_number and name for legacy users if needed
@@ -327,6 +431,10 @@ async function verifyOTP(req, res) {
           body: JSON.stringify(updates),
         });
         console.log(`Updated ${Object.keys(updates).join(', ')} for existing user ${existingUser.id}`);
+      }
+      // Track affiliate referral for existing users who login with a referral code
+      if (referral_code) {
+        await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name: existingUser.full_name || '', email: existingUser.email || autoEmail }, referral_code);
       }
     }
 

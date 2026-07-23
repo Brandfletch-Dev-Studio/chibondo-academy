@@ -12,7 +12,7 @@ export default function VerifyOtp() {
 
   const phone = location.state?.phone || "";
   const name = location.state?.name || "";
-  const refCode = location.state?.refCode || null;
+  const refCode = location.state?.refCode || localStorage.getItem("pending_referral_code") || null;
   const isNew = location.state?.isNew || false;
   const isReset = location.state?.isReset || false;
 
@@ -99,6 +99,7 @@ export default function VerifyOtp() {
           phone,
           code: otpCode,
           name: name || undefined,
+          referral_code: refCode || undefined,
         }),
       });
 
@@ -119,9 +120,9 @@ export default function VerifyOtp() {
         setSuccess(true);
         db.auth.setToken(token, data.refresh_token);
 
-        // Track referral if code exists (fire and forget)
+        // Referral tracking is now handled server-side in the verify endpoint
         if (refCode) {
-          db.functions?.invoke?.("trackReferral", { refCode }).catch(() => {});
+          localStorage.removeItem("pending_referral_code");
         }
 
         setTimeout(() => {
