@@ -1011,7 +1011,7 @@ function HealthCheckTab({ lessons, setLessons, apiKey, libraryId }) {
     not_found:  'text-red-700 bg-red-100',
     timeout:    'text-orange-600 bg-orange-50',
     error:      'text-red-600 bg-red-50',
-    unknown:    'text-gray-500 bg-gray-100',
+    unknown:    'text-muted-foreground bg-muted',
   };
 
   const STATUS_LABEL = {
