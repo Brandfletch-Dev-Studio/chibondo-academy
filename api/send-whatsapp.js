@@ -5,7 +5,15 @@
  * Body: { to: string | string[], message: string, type?: 'text' | 'template', template?: {...} }
  *
  * Uses WhatsApp Business Cloud API (same credentials as OTP).
- * Falls back to text message if template fails.
+ *
+ * 24-hour window handling:
+ * - If type='text' (default), tries free-form text first. If it fails with error
+ *   code 131047 (24h window expired), automatically retries with a template.
+ * - If type='template', sends using the provided template config.
+ * - Template format: { name: 'template_name', language: { code: 'en' }, components: [...] }
+ *
+ * For proactive notifications (payment reminders, lesson updates), use type='template'
+ * with a pre-approved Meta template to bypass the 24-hour window.
  */
 
 const WA_TOKEN    = process.env.WA_ACCESS_TOKEN;
@@ -15,6 +23,22 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SRK = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const MAX_BATCH = 50;
+
+// Default template for payment reminders (pre-registered with Meta)
+// This template should be approved in Meta Business Manager
+const DEFAULT_REMINDER_TEMPLATE = {
+  name: 'payment_reminder',
+  language: { code: 'en' },
+  components: [
+    {
+      type: 'body',
+      parameters: [
+        { type: 'text', text: 'student' },      // {{1}} student name
+        { type: 'text', text: 'Chibondo Academy' }, // {{2}} academy name
+      ],
+    },
+  ],
+};
 
 function decodeJwt(token) {
   try {
@@ -47,34 +71,111 @@ async function isAuthorized(req) {
   } catch { return false; }
 }
 
-async function sendSingleWhatsApp(phone, message) {
-  // Normalize phone: strip + and non-digits, ensure starts with country code
+function normalizePhone(phone) {
   let cleanPhone = phone.replace(/\D/g, '');
   if (cleanPhone.startsWith('0')) cleanPhone = '265' + cleanPhone.slice(1);
   if (!cleanPhone.startsWith('265')) cleanPhone = '265' + cleanPhone;
+  return cleanPhone;
+}
 
+async function sendTextMessage(phone, message) {
+  const cleanPhone = normalizePhone(phone);
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_ID}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'text',
+      text: { body: message },
+    }),
+  });
+  return { res, cleanPhone };
+}
+
+async function sendTemplateMessage(phone, template) {
+  const cleanPhone = normalizePhone(phone);
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_ID}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'template',
+      template,
+    }),
+  });
+  return { res, cleanPhone };
+}
+
+async function sendSingleWhatsApp(phone, message, opts = {}) {
   try {
-    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_ID}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: cleanPhone,
-        type: 'text',
-        text: { body: message },
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.error('WhatsApp send failed:', JSON.stringify(err));
-      return { ok: false, phone: cleanPhone, error: err?.error?.message || 'Failed' };
+    // If template is explicitly requested, use it directly
+    if (opts.template) {
+      const { res, cleanPhone } = await sendTemplateMessage(phone, opts.template);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('WhatsApp template send failed:', JSON.stringify(err));
+        return { ok: false, phone: cleanPhone, error: err?.error?.message || 'Template failed' };
+      }
+      return { ok: true, phone: cleanPhone, method: 'template' };
     }
-    return { ok: true, phone: cleanPhone };
+
+    // Try free-form text first (works within 24h window)
+    const { res, cleanPhone } = await sendTextMessage(phone, message);
+
+    if (res.ok) {
+      return { ok: true, phone: cleanPhone, method: 'text' };
+    }
+
+    // Check if it failed due to 24h window expiry
+    const err = await res.json().catch(() => ({}));
+    const errorCode = err?.error?.code;
+    const errorMsg = err?.error?.message || 'Failed';
+
+    console.error('WhatsApp text send failed:', JSON.stringify(err));
+
+    // Error 131047 = 24-hour window expired, or 131030 = re-engagement message
+    if (errorCode === 131047 || errorCode === 131030 || errorMsg.includes('24-hour')) {
+      console.log('24h window expired, falling back to template...');
+
+      // Fall back to template
+      const template = opts.fallbackTemplate || {
+        ...DEFAULT_REMINDER_TEMPLATE,
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: opts.studentName || 'Student' },
+              { type: 'text', text: 'Chibondo Academy' },
+            ],
+          },
+        ],
+      };
+
+      const { res: tplRes, cleanPhone: tplPhone } = await sendTemplateMessage(phone, template);
+
+      if (tplRes.ok) {
+        return { ok: true, phone: tplPhone, method: 'template_fallback' };
+      }
+
+      const tplErr = await tplRes.json().catch(() => ({}));
+      console.error('WhatsApp template fallback also failed:', JSON.stringify(tplErr));
+      return {
+        ok: false,
+        phone: tplPhone,
+        error: tplErr?.error?.message || errorMsg,
+        window_expired: true,
+        template_failed: true,
+      };
+    }
+
+    return { ok: false, phone: cleanPhone, error: errorMsg };
   } catch (err) {
     console.error('WhatsApp send error:', err.message);
-    return { ok: false, phone: cleanPhone, error: err.message };
+    return { ok: false, phone: normalizePhone(phone), error: err.message };
   }
 }
 
@@ -89,14 +190,19 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'WhatsApp credentials not configured' });
   }
 
-  const { to, message, users } = req.body ?? {};
+  const { to, message, users, template, studentName } = req.body ?? {};
+
+  const opts = {};
+  if (template) opts.template = template;
+  if (studentName) opts.studentName = studentName;
 
   // Mode 1: Direct phone numbers
   if (to && message) {
     const phones = Array.isArray(to) ? to : [to];
-    const results = await Promise.all(phones.map(p => sendSingleWhatsApp(p, message)));
+    const results = await Promise.all(phones.map(p => sendSingleWhatsApp(p, message, opts)));
     const sent = results.filter(r => r.ok).length;
-    return res.status(200).json({ ok: true, sent, total: phones.length, results });
+    const method = results[0]?.method || 'text';
+    return res.status(200).json({ ok: true, sent, total: phones.length, results, method });
   }
 
   // Mode 2: User IDs — fetch phone numbers from users table
@@ -104,7 +210,6 @@ export default async function handler(req, res) {
     const userIds = Array.isArray(users) ? users : [users];
     if (userIds.length === 0) return res.status(400).json({ error: 'No user IDs provided' });
 
-    // Fetch phone numbers from users table using service role key
     const headers = {
       apikey: SUPABASE_SRK,
       Authorization: `Bearer ${SUPABASE_SRK}`,
@@ -115,10 +220,8 @@ export default async function handler(req, res) {
     let allUsers = [];
     for (let i = 0; i < userIds.length; i += MAX_BATCH) {
       const batch = userIds.slice(i, i + MAX_BATCH);
-      const idFilter = batch.map(id => `id=eq.${encodeURIComponent(id)}`).join('&or=');
-      // Actually use the OR syntax properly
       const orFilter = `or=(${batch.map(id => `id.eq.${encodeURIComponent(id)}`).join(',')})`;
-      const url = `${SUPABASE_URL}/rest/v1/users?${orFilter}&select=id,phone_number,phone,whatsapp&limit=${MAX_BATCH}`;
+      const url = `${SUPABASE_URL}/rest/v1/users?${orFilter}&select=id,phone_number,phone,whatsapp,full_name&limit=${MAX_BATCH}`;
       const r = await fetch(url, { headers });
       if (r.ok) {
         const rows = await r.json();
@@ -126,12 +229,14 @@ export default async function handler(req, res) {
       }
     }
 
-    // Extract phone numbers
+    // Extract phone numbers and names
     const phoneMap = {};
+    const nameMap = {};
     for (const u of allUsers) {
       const phone = u.phone_number || u.phone || u.whatsapp;
       if (phone && phone.replace(/\D/g, '').length >= 9) {
         phoneMap[u.id] = phone;
+        nameMap[u.id] = u.full_name || 'Student';
       }
     }
 
@@ -144,13 +249,17 @@ export default async function handler(req, res) {
     const results = [];
     for (let i = 0; i < phones.length; i += 5) {
       const batch = phones.slice(i, i + 5);
-      const batchResults = await Promise.all(batch.map(p => sendSingleWhatsApp(p, message)));
+      const batchResults = await Promise.all(batch.map((p, idx) => {
+        const userId = Object.keys(phoneMap).find(k => phoneMap[k] === p);
+        return sendSingleWhatsApp(p, message, { ...opts, studentName: nameMap[userId] });
+      }));
       results.push(...batchResults);
       if (i + 5 < phones.length) await new Promise(r => setTimeout(r, 500));
     }
 
     const sent = results.filter(r => r.ok).length;
-    return res.status(200).json({ ok: true, sent, total: phones.length, results });
+    const usedFallback = results.some(r => r.method === 'template_fallback');
+    return res.status(200).json({ ok: true, sent, total: phones.length, results, used_fallback: usedFallback });
   }
 
   return res.status(400).json({ error: 'Missing required fields: (to OR users) and message' });

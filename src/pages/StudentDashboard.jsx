@@ -135,7 +135,7 @@ export default function StudentDashboard() {
   const [phoneBannerDismissed, setPhoneBannerDismissed] = React.useState(
     () => !!localStorage.getItem('phone_banner_dismissed')
   );
-  const showPhoneBanner = !phoneBannerDismissed && !!userId && studentProfile !== undefined && !studentProfile?.phone_number;
+  const showPhoneBanner = !phoneBannerDismissed && !!userId && studentProfile !== undefined && !studentProfile?.phone_number && !user?.phone_number && !user?.phone;
 
   const dismissPhoneBanner = () => {
     localStorage.setItem('phone_banner_dismissed', '1');

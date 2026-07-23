@@ -96,19 +96,37 @@ function ProfilePanel({ user, checkUserAuth }) {
     const formattedPhone = phone.trim() ? formatPhone(phone) : '';
     setSaving(true);
     try {
-      // Update users table (full_name + phone) — always works, no schema issues
+      // ── Validate phone uniqueness (if changed) ──
+      if (formattedPhone) {
+        const normalizedPhone = formattedPhone.replace(/\D/g, '');
+        const existing = await db.entities.User.filter({ phone_number: normalizedPhone });
+        if (existing && existing.length > 0 && existing[0].id !== user.id) {
+          toast.error('This phone number is already linked to another account.');
+          setSaving(false);
+          return;
+        }
+      }
+
+      // ── Validate email uniqueness (if user is adding a real email) ──
+      if (hasPlaceholder && email.trim()) {
+        const existingEmail = await db.entities.User.filter({ email: email.trim() });
+        if (existingEmail && existingEmail.length > 0 && existingEmail[0].id !== user.id) {
+          toast.error('This email is already linked to another account.');
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Update users table (full_name + phone)
       await db.auth.updateMe({ full_name: fullName.trim() });
       if (formattedPhone) {
-        await db.entities.User.update(user.id, { phone_number: formattedPhone }).catch(() => {});
+        await db.entities.User.update(user.id, { phone_number: formattedPhone });
       }
       const rows = await db.entities.StudentProfile.filter({ user_id: user.id });
-      // Only update columns that actually exist in student_profiles table:
-      // user_id, full_name, phone_number, email, form, avatar_url
       const profileData = {
         user_id:      user.id,
         full_name:    fullName.trim(),
         phone_number: formattedPhone,
-        // Note: student_profiles has no email column — email is on users table only
       };
       if (rows[0]) await db.entities.StudentProfile.update(rows[0].id, profileData);
       else         await db.entities.StudentProfile.create(profileData);
@@ -120,7 +138,19 @@ function ProfilePanel({ user, checkUserAuth }) {
       await checkUserAuth();
       toast.success('Profile saved');
     } catch (err) {
-      toast.error(err?.message || 'Could not save');
+      // Handle DB unique constraint violations gracefully
+      const msg = err?.message || '';
+      if (msg.includes('duplicate key') || msg.includes('unique') || msg.includes('23505')) {
+        if (msg.toLowerCase().includes('phone')) {
+          toast.error('This phone number is already linked to another account.');
+        } else if (msg.toLowerCase().includes('email')) {
+          toast.error('This email is already linked to another account.');
+        } else {
+          toast.error('Phone number or email already in use by another account.');
+        }
+      } else {
+        toast.error(msg || 'Could not save');
+      }
     } finally { setSaving(false); }
   };
 
@@ -135,7 +165,7 @@ function ProfilePanel({ user, checkUserAuth }) {
         />
       </Field>
 
-      <Field label="Phone Number" hint="Your Malawi mobile number (auto-formatted to +265)">
+      <Field label="Phone Number" hint="Your number must be unique — one phone per account">
         <TextInput
           type="tel"
           value={phone}
@@ -148,7 +178,7 @@ function ProfilePanel({ user, checkUserAuth }) {
 
       <Field
         label="Email Address"
-        hint={hasPlaceholder ? 'Add a real email to recover your account if you lose access' : undefined}
+        hint={hasPlaceholder ? 'Add a real email — it must be unique and will be linked to your account' : undefined}
       >
         {hasPlaceholder ? (
           <div className="space-y-2">
@@ -336,12 +366,19 @@ function NotificationsPanel({ user }) {
   const toggleWhatsappNotifs = async () => {
     if (saving) return;
     const newValue = !whatsappNotifs;
+    setWhatsappNotifs(newValue); // optimistic update
     setSaving(true);
     try {
+      // Save to users table (whatsapp_notifications column now exists)
       await db.entities.User.update(user.id, { whatsapp_notifications: newValue });
-      setWhatsappNotifs(newValue);
-      toast.success('WhatsApp notifications updated');
+      // Also sync to StudentProfile if it exists
+      const profiles = await db.entities.StudentProfile.filter({ user_id: user.id });
+      if (profiles?.length > 0) {
+        await db.entities.StudentProfile.update(profiles[0].id, { whatsapp_notifications: newValue }).catch(() => {});
+      }
+      toast.success(newValue ? 'WhatsApp notifications enabled' : 'WhatsApp notifications disabled');
     } catch (err) {
+      setWhatsappNotifs(!newValue); // revert on error
       toast.error(err?.message || 'Could not update WhatsApp notifications');
     } finally {
       setSaving(false);
