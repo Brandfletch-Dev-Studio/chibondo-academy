@@ -258,6 +258,7 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json', Prefer: 'return=representation' },
       body: JSON.stringify({
+        id: crypto.randomUUID(),
         referrer_id: referrer.id,
         referrer_name: referrer.full_name || '',
         referred_user_id: newUser.id,
