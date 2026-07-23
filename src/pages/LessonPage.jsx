@@ -446,7 +446,7 @@ export default function LessonPage() {
       const results = await db.entities.Subscription.filter({ student_id: user.id, status: 'active' });
       if (!results[0]) return null;
       const sub = results[0];
-      if (sub.end_date && new Date(sub.end_date) < new Date()) return null;
+      if ((sub.expires_at || sub.end_date) && new Date(sub.expires_at || sub.end_date) < new Date()) return null;
       return sub;
     },
     enabled: !!user?.id,

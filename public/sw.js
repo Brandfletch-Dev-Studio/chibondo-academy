@@ -1,9 +1,9 @@
 // Chibondo Academy — Service Worker
 // Robust PWA: caching, offline support, push notifications
 
-const CACHE_NAME = 'chibondo-v6';
-const STATIC_CACHE = 'chibondo-static-v6';
-const API_CACHE = 'chibondo-api-v6';
+const CACHE_NAME = 'chibondo-v7';
+const STATIC_CACHE = 'chibondo-static-v7';
+const API_CACHE = 'chibondo-api-v7';
 
 // Assets to precache on install
 const PRECACHE_URLS = [

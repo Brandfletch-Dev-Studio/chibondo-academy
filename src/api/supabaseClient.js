@@ -107,13 +107,16 @@ async function _req(method, path, body, extra = {}, _retry = true) {
   if (token && isTokenExpiring()) {
     token = await refreshAccessToken();
   }
+  // Use the user's JWT when available so RLS policies (auth.uid()) work.
+  // Fall back to the anon key for public reads (lessons, subjects, etc.).
+  const authHeader = `Bearer ${token || SUPABASE_ANON}`;
   const res = await fetch(`${API}${path}`, {
     method,
     headers: {
       apikey: SUPABASE_ANON,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
-      Authorization: `Bearer ${SUPABASE_ANON}`,
+      Authorization: authHeader,
       ...extra,
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -122,7 +125,7 @@ async function _req(method, path, body, extra = {}, _retry = true) {
   if (res.status === 401 && _retry && getRefreshToken()) {
     const newToken = await refreshAccessToken();
     if (newToken) {
-      return _req(method, path, body, extra, false);
+      return _req(method, path, body, { ...extra, Authorization: `Bearer ${newToken}` }, false);
     }
   }
   if (!res.ok && res.status !== 204) {
@@ -252,12 +255,13 @@ function entityAPI(entityName) {
           qs += `&${encodeURIComponent(COL_REMAP[k] || k)}=eq.${encodeURIComponent(v)}`;
       }
       const token = getToken();
+      const token = getToken();
       const res = await fetch(`${API}/${table}${qs}`, {
         method: 'HEAD',
         headers: {
           apikey: SUPABASE_ANON,
           Prefer: 'count=exact',
-          Authorization: `Bearer ${SUPABASE_ANON}`,
+          Authorization: `Bearer ${token || SUPABASE_ANON}`,
         },
       });
       const range = res.headers.get('content-range'); // e.g. "0-24/270"
@@ -604,7 +608,7 @@ const storage = {
         apikey: SUPABASE_ANON,
         'Content-Type': file.type || 'application/octet-stream',
         'x-upsert': 'true',
-        Authorization: `Bearer ${SUPABASE_ANON}`,
+        Authorization: `Bearer ${token || SUPABASE_ANON}`,
       },
       body: file,
     });
