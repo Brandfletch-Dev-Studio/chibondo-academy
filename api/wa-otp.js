@@ -122,12 +122,12 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
   try {
     // Fetch pricing settings to check if trial is enabled
     const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/platform_settings?key=eq.pricing&limit=1`, { headers });
-    if (!settingsRes.ok) return;
+    if (!settingsRes.ok) return result;
     const settingsRows = await settingsRes.json();
-    if (!settingsRows?.[0]?.value) return;
+    if (!settingsRows?.[0]?.value) return result;
 
     const pricing = settingsRows[0].value;
-    if (!pricing.trial_enabled) return;
+    if (!pricing.trial_enabled) return result;
 
     const trialDays = Math.max(1, Math.min(30, pricing.trial_days || 7));
     const now = new Date();
@@ -142,7 +142,7 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
       const existing = await existingSubRes.json();
       if (existing?.length > 0) {
         console.log(`[trial] User ${userId} already has a subscription, skipping trial`);
-        return;
+        return result;
       }
     }
 
@@ -182,11 +182,12 @@ async function maybeCreateTrialSubscription(SUPABASE_URL, headers, userId, fullN
 // and create a referral record. The referral starts as 'pending' and becomes
 // 'paid' when the referred student pays their subscription.
 async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) {
+  const result = { called: true, code: referralCode, userId: newUser?.id, steps: [] };
   try {
-    console.log(`[referral] maybeTrackReferral called: code=${referralCode}, newUser=${newUser?.id}, name=${newUser?.full_name}`);
+    result.steps.push('function entered');
     if (!referralCode || !newUser?.id) {
-      console.log('[referral] Skipping: missing referralCode or newUser.id');
-      return;
+      result.steps.push('skipped: missing code or userId');
+      return result;
     }
     const code = String(referralCode).trim().toUpperCase();
 
@@ -196,21 +197,21 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
       { headers }
     );
     if (!refRes.ok) {
-      console.log(`[referral] Referrer lookup failed: ${refRes.status} ${await refRes.text()}`);
-      return;
+      result.steps.push(`referrer lookup failed: ${refRes.status}`);
+      return result;
     }
     const refRows = await refRes.json();
     const referrer = refRows?.[0];
     if (!referrer) {
-      console.log(`[referral] No referrer found for code: ${code}`);
-      return;
+      result.steps.push(`no referrer found for code: ${code}`);
+      return result;
     }
-    console.log(`[referral] Found referrer: ${referrer.full_name} (${referrer.id})`);
+    result.steps.push(`found referrer: ${referrer.full_name} (${referrer.id})`);
 
     // Don't create self-referrals
     if (referrer.id === newUser.id) {
-      console.log('[referral] Self-referral detected, skipping');
-      return;
+      result.steps.push('self-referral skipped');
+      return result;
     }
 
     // Check if a referral record already exists for this pair
@@ -221,8 +222,8 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
     if (existingRes.ok) {
       const existing = await existingRes.json();
       if (existing?.length > 0) {
-        console.log(`[referral] Referral already exists for ${referrer.id} -> ${newUser.id}`);
-        return;
+        result.steps.push(`referral already exists`);
+        return result;
       }
     }
 
@@ -275,13 +276,13 @@ async function maybeTrackReferral(SUPABASE_URL, headers, newUser, referralCode) 
     });
 
     if (refInsertRes.ok) {
-      console.log(`[referral] ✅ Created referral: ${referrer.full_name} (${code}) -> ${newUser.full_name || newUser.id}`);
+      result.steps.push(`created referral: ${referrer.full_name} -> ${newUser.full_name || newUser.id}`);
     } else {
       const errText = await refInsertRes.text();
-      console.error(`[referral] ❌ Failed to create referral: ${refInsertRes.status} ${errText}`);
+      result.steps.push(`insert FAILED: ${refInsertRes.status} ${errText}`);
     }
   } catch (err) {
-    console.error('[referral] Error tracking referral:', err.message);
+    result.steps.push(`error: ${err.message}`);
   }
 }
 
@@ -425,11 +426,9 @@ async function verifyOTP(req, res) {
       // (the handle_new_user trigger may have already created the row)
       await maybeCreateTrialSubscription(SUPABASE_URL, headers, usersTableId, name || '');
       // Track affiliate referral if code provided
+      let _referralResult = null;
       if (referral_code) {
-        console.log(`[referral] Calling maybeTrackReferral for new user ${usersTableId} with code ${referral_code}`);
-        await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
-      } else {
-        console.log('[referral] No referral_code provided for new user');
+        _referralResult = await maybeTrackReferral(SUPABASE_URL, headers, { id: usersTableId, full_name: name || '', email: autoEmail }, referral_code);
       }
     } else {
       // Update phone_number and name for legacy users if needed
@@ -446,8 +445,9 @@ async function verifyOTP(req, res) {
         console.log(`Updated ${Object.keys(updates).join(', ')} for existing user ${existingUser.id}`);
       }
       // Track affiliate referral for existing users who login with a referral code
+      let _referralResult = null;
       if (referral_code) {
-        await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name: existingUser.full_name || '', email: existingUser.email || autoEmail }, referral_code);
+        _referralResult = await maybeTrackReferral(SUPABASE_URL, headers, { id: existingUser.id, full_name: existingUser.full_name || '', email: existingUser.email || autoEmail }, referral_code);
       }
     }
 
@@ -484,6 +484,7 @@ async function verifyOTP(req, res) {
           access_token: authData.access_token,
           refresh_token: authData.refresh_token,
           user: { phone: cleanPhone, isNew: !existingUser, profile: userProfile },
+          _debug_referral: typeof _referralResult !== 'undefined' ? _referralResult : 'not set',
         });
       }
     }
