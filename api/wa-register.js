@@ -335,6 +335,9 @@ export default async function handler(req, res) {
       role:          'user',
       created_by:    userId,
       referral_code: args?.referral_code || 'AGENT',
+      whatsapp_notifications: true,
+      email_notifications: true,
+      inapp_notifications: true,
     });
 
     if (userInsertErr) {
