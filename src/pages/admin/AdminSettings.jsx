@@ -20,7 +20,6 @@ import { db } from '@/api/supabaseClient';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import EmailTemplateSettings from '@/components/admin/EmailTemplateSettings';
 import { cn } from '@/lib/utils';
-import { appParams } from '@/lib/app-params';
 
 // ─── Gold accent helpers ──────────────────────────────────────────────────────
 const GOLD = 'hsl(var(--primary))';

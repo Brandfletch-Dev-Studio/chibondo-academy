@@ -5,7 +5,7 @@ import { db } from '@/api/supabaseClient';
 import { Input } from '@/components/ui/input';
 import {
   DollarSign, Clock, CheckCircle2, Wallet,
-  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save, Info
+  Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save, Info, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,9 +35,36 @@ export default function AffiliateDashboard() {
   const [editingCode, setEditingCode] = useState(false);
   const [draftCode, setDraftCode]     = useState('');
   const [copied, setCopied]           = useState(false);
+  const [codeStatus, setCodeStatus]   = useState(null); // null | 'checking' | 'available' | 'taken' | 'yours'
+  const debounceRef = React.useRef(null);
+
+  // Real-time availability check — debounced
+  const handleDraftChange = (val) => {
+    const clean = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    setDraftCode(clean);
+    setCodeStatus(null);
+    clearTimeout(debounceRef.current);
+    if (clean.length < 4) return;
+    if (clean === referralCode) { setCodeStatus('yours'); return; }
+    setCodeStatus('checking');
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/wa-otp?action=check-uniqueness&referralCode=${encodeURIComponent(clean)}&excludeUserId=${user?.id || ''}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCodeStatus(data.referralCodeAvailable ? 'available' : 'taken');
+        } else { setCodeStatus(null); }
+      } catch { setCodeStatus(null); }
+    }, 500);
+  };
 
   const saveCodeMut = useMutation({
-    mutationFn: (code) => db.auth.updateMe({ referral_code: code.trim().toUpperCase() }),
+    mutationFn: async (code) => {
+      const clean = code.trim().toUpperCase();
+      if (clean.length < 4) throw new Error('Code must be at least 4 characters');
+      if (codeStatus === 'taken') throw new Error('This code is already taken');
+      return db.auth.updateMe({ referral_code: clean });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['currentUser'] });
       setEditingCode(false);
@@ -109,27 +136,43 @@ export default function AffiliateDashboard() {
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your referral code</p>
               {editingCode ? (
-                <div className="flex items-center gap-2 max-w-xs">
-                  <Input
-                    className="h-9 font-mono text-sm uppercase"
-                    value={draftCode}
-                    onChange={e => setDraftCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
-                    placeholder={referralCode}
-                    maxLength={20}
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => saveCodeMut.mutate(draftCode)}
-                    disabled={!draftCode.trim() || saveCodeMut.isPending}
-                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
-                    <Save className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setEditingCode(false)}
-                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 transition-colors text-muted-foreground">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                <div className="space-y-1.5 max-w-xs">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      className={`h-9 font-mono text-sm uppercase pr-9 transition-colors ${
+                        codeStatus === 'available' ? 'border-green-500 focus-visible:ring-green-500' :
+                        codeStatus === 'taken' ? 'border-red-500 focus-visible:ring-red-500' : ''
+                      }`}
+                      value={draftCode}
+                      onChange={e => handleDraftChange(e.target.value)}
+                      placeholder={referralCode}
+                      maxLength={20}
+                      autoFocus
+                    />
+                    {codeStatus === 'checking' && (
+                      <Loader2 className="absolute right-3 w-4 h-4 animate-spin text-muted-foreground" />
+                    )}
+                    {codeStatus === 'available' && (
+                      <Check className="absolute right-3 w-4 h-4 text-green-600" />
+                    )}
+                    <button
+                      onClick={() => saveCodeMut.mutate(draftCode)}
+                      disabled={!draftCode.trim() || draftCode.length < 4 || codeStatus === 'taken' || codeStatus === 'checking' || saveCodeMut.isPending}
+                      className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
+                      style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
+                      {saveCodeMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => { setEditingCode(false); setCodeStatus(null); }}
+                      className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 transition-colors text-muted-foreground">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {codeStatus === 'checking' && <p className="text-xs text-muted-foreground">⏳ Checking availability…</p>}
+                  {codeStatus === 'available' && <p className="text-xs text-green-600 font-medium">✓ Available! This code is yours.</p>}
+                  {codeStatus === 'taken' && <p className="text-xs text-red-500 font-medium">✕ Already taken — try another.</p>}
+                  {codeStatus === 'yours' && <p className="text-xs text-blue-500 font-medium">✓ This is your current code.</p>}
+                  {!codeStatus && draftCode.length > 0 && draftCode.length < 4 && <p className="text-xs text-muted-foreground">Min. 4 characters</p>}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">

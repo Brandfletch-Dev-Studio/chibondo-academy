@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, Clock, Mail, Phone, School, BookOpen } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Phone, School, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TeacherApplications() {
