@@ -5,6 +5,7 @@ import { db } from '@/api/supabaseClient';
 import { Users, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import SEO from '@/components/SEO';
 
 const STATUS_CONFIG = {
   pending:    { label: 'Pending',     color: 'bg-muted text-muted-foreground',       payStatus: 'Pending',          commStatus: '—' },
@@ -43,6 +44,7 @@ export default function AffiliateReferrals() {
   const convRate  = referrals.length > 0 ? Math.round((paidCount / referrals.length) * 100) : 0;
 
   return (
+    <SEO title="My Referrals" description="View all your referrals and their subscription status." />
     <div className="space-y-5">
       {/* Summary row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

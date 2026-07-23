@@ -9,6 +9,7 @@ import {
   Shield, Smartphone, X, Info,
 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import SEO from '@/components/SEO';
 
 // ── constants ─────────────────────────────────────────────────────────────────
 const TABS = [
@@ -35,6 +36,7 @@ const isPlaceholderEmail = (email) =>
 // ── tiny reusables ─────────────────────────────────────────────────────────────
 function Field({ label, hint, children }) {
   return (
+    <SEO title="Settings" description="Manage your Chibondo Academy account settings." />
     <div className="space-y-1.5">
       <p className="text-sm font-medium">{label}</p>
       {children}

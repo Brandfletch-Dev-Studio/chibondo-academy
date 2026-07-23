@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, ArrowRight, Clock, CheckCircle2, XCircle, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
+import SEO from '@/components/SEO';
 
 export default function QuizPage() {
   const { quizId } = useParams();
@@ -35,6 +36,7 @@ export default function QuizPage() {
         });
       }, 1000);
       return () => clearInterval(timer);
+    <SEO title="Quiz" description="Take interactive quizzes on Chibondo Academy." />
     }
   }, [quiz?.id]);
 

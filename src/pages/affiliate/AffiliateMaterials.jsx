@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import SEO from '@/components/SEO';
 
 const TYPE_CONFIG = {
   banner:         { label: 'Banner',             icon: Image,          color: 'bg-blue-500/10 text-blue-600' },
@@ -26,6 +27,7 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
   const isText = item.type === 'whatsapp_msg';
 
   return (
+    <SEO title="Marketing Materials" description="Download banners, social graphics, and WhatsApp messages to promote Chibondo Academy." />
     <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/30 transition-all">
       {/* Preview */}
       {item.thumbnail_url || item.file_url ? (

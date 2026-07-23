@@ -9,11 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useAutosave, AutosaveIndicator } from '@/hooks/useAutosave.jsx';
+import SEO from '@/components/SEO';
 
 
 /* ── Tiny layout helpers ─────────────────────────────────────────────────── */
 function Section({ title, icon: Icon, children }) {
   return (
+    <SEO title="Affiliate Profile" description="Manage your affiliate profile, payment details, and notification preferences." />
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-muted/30">
         {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}

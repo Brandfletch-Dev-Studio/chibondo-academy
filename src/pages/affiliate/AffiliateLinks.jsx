@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import { Copy, Check, Share2, QrCode, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import SEO from '@/components/SEO';
 
 function CopyField({ label, value, sub }) {
   const [copied, setCopied] = useState(false);
@@ -14,6 +15,7 @@ function CopyField({ label, value, sub }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
+    <SEO title="Affiliate Links" description="Get your referral links and QR codes to share Chibondo Academy with your network." />
     <div className="bg-card border border-border rounded-xl p-4 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
@@ -72,7 +74,7 @@ export default function AffiliateLinks() {
   const referralCode = user?.referral_code || (user?.id ? `CHIB-${user.id.slice(-6).toUpperCase()}` : '');
   const baseRef = `${window.location.origin}/register?ref=${referralCode}`;
 
-  const { data: subjects = [] } = useQuery({queryKey: ['subjects-for-links'],
+  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({queryKey: ['subjects-for-links'],
     queryFn: async () => { try { return await db.entities.Subject.filter({ status: 'published' }, 'name', 50); } catch(e) { console.error(e); return []; } },
     placeholderData: [],
   });

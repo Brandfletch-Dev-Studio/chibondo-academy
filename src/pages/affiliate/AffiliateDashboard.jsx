@@ -8,9 +8,11 @@ import {
   Users, TrendingUp, ArrowRight, Gift, Copy, Check, Edit2, X, Save, Info, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import SEO from '@/components/SEO';
 
 function StatCard({ label, value, icon: Icon, color, sub }) {
   return (
+    <SEO title="Affiliate Dashboard" description="Track your referrals, commissions, and payouts as a Chibondo Academy affiliate partner." />
     <div className="bg-card border border-border rounded-2xl p-5">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${color}`}>
         <Icon className="w-5 h-5" />

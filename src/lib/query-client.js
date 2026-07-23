@@ -1,4 +1,5 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, MutationCache } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export const queryClientInstance = new QueryClient({
   defaultOptions: {
@@ -23,5 +24,21 @@ export const queryClientInstance = new QueryClient({
       // before the staleTime window has elapsed.
       gcTime: 60 * 60_000,
     },
+    mutations: {
+      // Retry mutations once on network failure — not on 4xx errors.
+      retry: (failureCount, error) => {
+        if (error?.status >= 400 && error?.status < 500) return false;
+        return failureCount < 1;
+      },
+    },
   },
+  mutationCache: new MutationCache({
+    // Global fallback — only shows a toast if the mutation itself
+    // doesn't have its own onError handler.
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.options.onError) return; // mutation handles its own errors
+      const msg = error?.message || 'Something went wrong. Please try again.';
+      toast.error(msg);
+    },
+  }),
 });

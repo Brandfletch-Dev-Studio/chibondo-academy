@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/supabaseClient';
 import { DollarSign } from 'lucide-react';
+import SEO from '@/components/SEO';
 
 const STATUS_CONFIG = {
   pending:  { label: 'Pending',  color: 'bg-yellow-500/10 text-yellow-600',  dot: 'bg-yellow-500' },
@@ -61,6 +62,7 @@ export default function AffiliateCommissions() {
   };
 
   return (
+    <SEO title="Commissions" description="Track your affiliate commissions and earning history." />
     <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">

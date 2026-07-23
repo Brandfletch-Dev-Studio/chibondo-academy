@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import SEO from '@/components/SEO';
 
 const PAYOUT_STATUS = {
   pending:    { label: 'Pending',    icon: Clock,        color: 'bg-yellow-500/10 text-yellow-600' },
@@ -76,6 +77,7 @@ export default function AffiliatePayouts() {
   });
 
   return (
+    <SEO title="Payouts" description="Request and track your affiliate payout payments." />
     <div className="space-y-6">
       {/* Balance cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
