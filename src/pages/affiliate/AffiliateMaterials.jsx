@@ -21,7 +21,7 @@ const TYPE_CONFIG = {
   other:          { label: 'Other',              icon: Download,       color: 'bg-muted text-muted-foreground' },
 };
 
-function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
+function MaterialCard({ item, isAdmin, onEdit, onDelete, onImageClick }) {
   const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.other;
   const Icon = cfg.icon;
   const isText = item.type === 'whatsapp_msg';
@@ -35,7 +35,7 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
             src={item.thumbnail_url || item.file_url}
             alt={item.title}
             className="w-full h-full object-cover cursor-zoom-in"
-            onClick={() => setLightboxUrl(item.thumbnail_url || item.file_url)}
+            onClick={() => onImageClick?.(item.thumbnail_url || item.file_url)}
             onError={e => { e.target.style.display = 'none'; }}
           />
         </div>
@@ -85,28 +85,6 @@ function MaterialCard({ item, isAdmin, onEdit, onDelete }) {
           )}
         </div>
       </div>
-      {/* Image Lightbox */}
-      {lightboxUrl && (
-        <div
-          onClick={() => setLightboxUrl(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.95)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', padding: 16
-          }}
-        >
-          <img src={lightboxUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, objectFit: 'contain' }} />
-          <button
-            onClick={() => setLightboxUrl(null)}
-            style={{
-              position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.2)',
-              border: 'none', color: 'white', padding: 8, borderRadius: '50%', cursor: 'pointer'
-            }}
-          >
-            <X style={{ width: 24, height: 24 }} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -251,7 +229,7 @@ export default function AffiliateMaterials() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(m => (
             <MaterialCard key={m.id} item={m} isAdmin={isAdmin}
-              onEdit={openEdit} onDelete={id => deleteMut.mutate(id)} />
+              onEdit={openEdit} onDelete={id => deleteMut.mutate(id)} onImageClick={setLightboxUrl} />
           ))}
         </div>
       )}
