@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, MessageCircle, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
-import { useAuth } from "@/lib/AuthContext";
 import AuthLayout from "@/components/AuthLayout";
 import SEO from "@/components/SEO";
 import { db } from "@/api/supabaseClient";
@@ -12,9 +11,11 @@ export default function VerifyOtp() {
 
   const phone = location.state?.phone || "";
   const name = location.state?.name || "";
-  const refCode = location.state?.refCode || localStorage.getItem("pending_referral_code") || null;
+  const refCode = location.state?.refCode || null;
   const isNew = location.state?.isNew || false;
   const isReset = location.state?.isReset || false;
+  const mode = location.state?.mode || null;
+  const [failCount, setFailCount] = useState(parseInt(localStorage.getItem("otp_fail_count") || "0", 10));
 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -26,13 +27,6 @@ export default function VerifyOtp() {
   const inputRef = useRef(null);
   const cooldownRef = useRef(null);
   const verifying = useRef(false);
-
-  const { isAuthenticated, authChecked } = useAuth();
-
-  // Redirect authenticated users to dashboard
-  useEffect(() => {
-    if (authChecked && isAuthenticated) window.location.replace("/dashboard");
-  }, [authChecked, isAuthenticated]);
 
   // Guard: no phone state → back to login
   useEffect(() => {
@@ -84,6 +78,17 @@ export default function VerifyOtp() {
     return () => ac.abort();
   }, []);
 
+  const recordOtpFailure = () => {
+    const count = failCount + 1;
+    setFailCount(count);
+    localStorage.setItem("otp_fail_count", String(count));
+    if (count >= 3) {
+      localStorage.removeItem("otp_fail_count");
+      setTimeout(() => navigate("/register", { replace: true }), 1200);
+    }
+    return count;
+  };
+
   const handleVerify = async (otp) => {
     const otpCode = (otp || code).replace(/\D/g, "");
     if (otpCode.length !== 6 || verifying.current) return;
@@ -99,14 +104,27 @@ export default function VerifyOtp() {
           phone,
           code: otpCode,
           name: name || undefined,
-          referral_code: refCode || undefined,
+          mode: mode || undefined,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Invalid code. Please check and try again.");
+        if (data.needsRegistration) {
+          const count = recordOtpFailure();
+          const remaining = 3 - count;
+          setError(
+            `No account found with this number. ${remaining > 0 ? `${remaining} attempt${remaining !== 1 ? "s" : ""} left.` : "Redirecting to registration…"}`
+          );
+        } else {
+          const count = recordOtpFailure();
+          if (count >= 3) {
+            setError("Too many failed attempts. Redirecting to registration…");
+          } else {
+            setError(data.error || "Invalid code. Please check and try again.");
+          }
+        }
         setCode("");
         verifying.current = false;
         setLoading(false);
@@ -114,15 +132,16 @@ export default function VerifyOtp() {
         return;
       }
 
-      // Success — save token and redirect
+      // Success — reset fail counter and save token
+      localStorage.removeItem("otp_fail_count");
       const token = data.access_token;
       if (token) {
         setSuccess(true);
-        db.auth.setToken(token, data.refresh_token);
+        db.auth.setToken(token);
 
-        // Referral tracking is now handled server-side in the verify endpoint
+        // Track referral if code exists (fire and forget)
         if (refCode) {
-          localStorage.removeItem("pending_referral_code");
+          db.functions?.invoke?.("trackReferral", { refCode }).catch(() => {});
         }
 
         setTimeout(() => {
@@ -171,7 +190,7 @@ export default function VerifyOtp() {
   return (
     <>
       <SEO title="Verify WhatsApp" description="Verify your WhatsApp number to activate your Chibondo Academy account." />
-      <AuthLayout title={isReset ? "Verify to reset access" : "Verify your WhatsApp"} subtitle={isReset ? "Enter the code sent to your WhatsApp to regain access" : "Enter the 6-digit code — or tap the link in your WhatsApp message"}>
+      <AuthLayout title={isReset ? "Verify to reset access" : "Verify your WhatsApp"} subtitle={isReset ? "Enter the code sent to your WhatsApp to regain access" : "Enter the 6-digit code sent to your WhatsApp"}>
         <div className="space-y-6">
 
           {/* Status icon + phone */}
@@ -186,7 +205,7 @@ export default function VerifyOtp() {
                   : <MessageCircle className="w-8 h-8 text-accent" />}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">A verification link and 6-digit code were sent via WhatsApp to</p>
+              <p className="text-sm text-muted-foreground">A 6-digit code was sent via WhatsApp to</p>
               <p className="font-bold text-foreground mt-0.5">+{phone}</p>
             </div>
           </div>

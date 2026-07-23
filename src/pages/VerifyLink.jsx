@@ -33,6 +33,12 @@ export default function VerifyLink() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.needsRegistration) {
+          setError("No account found. Redirecting to registration…");
+          setStatus("error");
+          setTimeout(() => navigate("/register", { replace: true }), 1500);
+          return;
+        }
         setError(data.error || "Verification link is invalid or has expired.");
         setStatus("error");
         return;
