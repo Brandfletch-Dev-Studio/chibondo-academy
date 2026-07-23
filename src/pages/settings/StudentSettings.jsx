@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/api/supabaseClient';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   User, Lock, Bell, LogOut, GraduationCap, ChevronRight,
   Loader2, Eye, EyeOff, Phone, Mail, Check, MessageCircle, BookOpen,
-  Shield, Smartphone, X, School, Info,
+  Shield, Smartphone, X, Info,
 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
@@ -116,23 +116,6 @@ function ProfilePanel({ user, checkUserAuth }) {
     }, 500);
     return () => clearTimeout(timer);
   }, [email, user?.id]);
-
-  // Debounced referral code uniqueness check
-  useEffect(() => {
-    const trimmed = refCode.trim().toUpperCase();
-    if (!trimmed || trimmed === (user?.referral_code || '').toUpperCase()) { setRefCheck(null); return; }
-    if (trimmed.length < 3) { setRefCheck(null); return; }
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/wa-otp?action=check-uniqueness&referralCode=${encodeURIComponent(trimmed)}&excludeUserId=${user?.id || ''}`);
-        if (res.ok) {
-          const data = await res.json();
-          setRefCheck(data.referralCodeAvailable);
-        }
-      } catch (_) {}
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [refCode, user?.id]);
 
   useEffect(() => {
     if (!user) return;

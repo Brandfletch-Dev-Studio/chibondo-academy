@@ -11,7 +11,7 @@ import SEO from "@/components/SEO";
 export default function Register() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const refCode = searchParams.get("ref");
+  const refCode = searchParams.get("ref") || localStorage.getItem("pending_referral_code");
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");

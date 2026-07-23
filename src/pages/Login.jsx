@@ -121,7 +121,7 @@ export default function Login() {
         {sent && (
           <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-600 text-sm text-center">
             <Loader2 className="w-4 h-4 inline mr-1 animate-spin" />
-            Sending verification link via WhatsApp…
+            Sending verification via WhatsApp…
           </div>
         )}
 
@@ -167,7 +167,7 @@ export default function Login() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                We'll send a verification link to your WhatsApp. Just tap it to log in.
+                We'll send a verification link and code to your WhatsApp. Tap the link for instant login, or enter the code.
               </p>
             </div>
 

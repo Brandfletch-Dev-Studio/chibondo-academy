@@ -171,7 +171,7 @@ export default function VerifyOtp() {
   return (
     <>
       <SEO title="Verify WhatsApp" description="Verify your WhatsApp number to activate your Chibondo Academy account." />
-      <AuthLayout title={isReset ? "Verify to reset access" : "Verify your WhatsApp"} subtitle={isReset ? "Enter the code sent to your WhatsApp to regain access" : "Enter the 6-digit code sent to your WhatsApp"}>
+      <AuthLayout title={isReset ? "Verify to reset access" : "Verify your WhatsApp"} subtitle={isReset ? "Enter the code sent to your WhatsApp to regain access" : "Enter the 6-digit code — or tap the link in your WhatsApp message"}>
         <div className="space-y-6">
 
           {/* Status icon + phone */}
@@ -186,7 +186,7 @@ export default function VerifyOtp() {
                   : <MessageCircle className="w-8 h-8 text-accent" />}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">A 6-digit code was sent via WhatsApp to</p>
+              <p className="text-sm text-muted-foreground">A verification link and 6-digit code were sent via WhatsApp to</p>
               <p className="font-bold text-foreground mt-0.5">+{phone}</p>
             </div>
           </div>
