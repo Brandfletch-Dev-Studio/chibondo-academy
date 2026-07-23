@@ -93,7 +93,7 @@ async function refreshAccessToken() {
 function getClient() {
   const token = getToken();
   return createClient(SUPABASE_URL, SUPABASE_ANON, {
-    global: token ? { headers: { Authorization: `Bearer ${token}` } } : {},
+    global: { headers: { Authorization: `Bearer ${SUPABASE_ANON}` } },
     auth: { persistSession: false },
   });
 }
@@ -113,7 +113,7 @@ async function _req(method, path, body, extra = {}, _retry = true) {
       apikey: SUPABASE_ANON,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${SUPABASE_ANON}`,
       ...extra,
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -257,7 +257,7 @@ function entityAPI(entityName) {
         headers: {
           apikey: SUPABASE_ANON,
           Prefer: 'count=exact',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${SUPABASE_ANON}`,
         },
       });
       const range = res.headers.get('content-range'); // e.g. "0-24/270"
@@ -328,20 +328,35 @@ const auth = {
       if (!token) throw Object.assign(new Error('Session expired'), { status: 401 });
     }
     if (!token) throw Object.assign(new Error('Not authenticated'), { status: 401 });
-    const sub = parseJwt(token)?.sub;
+
+    // Verify token via Auth API (supports ES256 JWTs)
+    // PostgREST cannot verify ES256 JWTs, so we use /auth/v1/user instead
+    let authUser;
+    try {
+      const authRes = await fetch(`${AUTH}/user`, {
+        headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}` },
+      });
+      if (!authRes.ok) throw Object.assign(new Error('Session expired'), { status: 401 });
+      authUser = await authRes.json();
+    } catch (e) {
+      if (e?.status === 401) throw e;
+      throw Object.assign(new Error('Auth check failed'), { status: 500 });
+    }
+
+    const sub = authUser.id;
     if (!sub) throw Object.assign(new Error('Invalid token'), { status: 401 });
 
+    // Query users table with anon key (PostgREST can't verify ES256 JWTs)
     const rows = await get(`/users?id=eq.${encodeURIComponent(sub)}&limit=1`);
     if (rows?.length) return rows[0];
 
     // Auto-create user row on first login
-    const jwt = parseJwt(token);
     const now = new Date().toISOString();
     const newUser = {
       id:           sub,
-      email:        jwt?.email || '',
-      full_name:    jwt?.user_metadata?.full_name || '',
-      role:         jwt?.app_metadata?.role || jwt?.user_metadata?.role || 'user',
+      email:        authUser.email || '',
+      full_name:    authUser.user_metadata?.full_name || '',
+      role:         authUser.app_metadata?.role || authUser.user_metadata?.role || 'user',
       referral_code: 'ACA-' + sub.slice(-6).toUpperCase(),
       created_date: now,
       updated_date: now,
@@ -598,7 +613,7 @@ const storage = {
         apikey: SUPABASE_ANON,
         'Content-Type': file.type || 'application/octet-stream',
         'x-upsert': 'true',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${SUPABASE_ANON}`,
       },
       body: file,
     });
