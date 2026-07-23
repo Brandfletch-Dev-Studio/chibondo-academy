@@ -328,9 +328,8 @@ async function verifyOTP(req, res) {
         console.log(`Created users table row for ${cleanPhone} (id: ${usersTableId})`);
       }
     } else {
-      // Update phone_number and name for legacy users if needed
+      // ── Update phone_number and name for existing users ──
       const updates = {};
-      // Normalise stored phone to no-plus format if it was saved with +
       const storedPhone = existingUser.phone_number || '';
       const storedPhoneClean = storedPhone.replace(/^\+/, '');
       if (!storedPhone || storedPhoneClean !== cleanPhone) updates.phone_number = '+' + cleanPhone;
@@ -344,61 +343,99 @@ async function verifyOTP(req, res) {
         });
         console.log(`Updated ${Object.keys(updates).join(', ')} for existing user ${existingUser.id}`);
       }
+    }
 
-      // ── Link WA phone to existing auth account ──────────────────────────
-      // OTP already proved the user owns this phone number.
-      // If their auth account doesn't already use a phone-derived email
-      // (i.e. they registered with a real email), we update their auth
-      // password to the derived one so WhatsApp login works going forward.
-      // Their real email login is unaffected — only the password changes.
-      if (existingUser.email && !isPlaceholderEmail(existingUser.email)) {
-        try {
-          // Find their auth user id — it may differ from users table id
-          let authUserId = existingUser.id;
-          // Verify the auth user exists with this id
-          const authCheck = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${existingUser.id}`, { headers });
-          if (!authCheck.ok) {
-            // Try finding by email instead
-            const authListRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, { headers });
-            if (authListRes.ok) {
-              const authData = await authListRes.json();
-              const authUsers = authData.users || authData;
-              const match = authUsers.find(u => u.email === existingUser.email);
-              if (match) authUserId = match.id;
-            }
-          }
+    // ── 3. Sign in ──────────────────────────────────────────────────────────
+    //
+    // Two strategies depending on how the user registered:
+    //
+    // A) Email-registered user (has a real email, not a phone-derived placeholder):
+    //    Their auth password was set by THEM at registration. We must NOT change it.
+    //    Instead, use the admin API to generate a magic link for their account,
+    //    then exchange it for a session — no password needed, no password changed.
+    //    Their email password keeps working as before.
+    //
+    // B) WhatsApp-registered user (phone-derived placeholder email):
+    //    Their auth password was set by our derivePassword() function at registration.
+    //    Sign in with the derived password directly.
 
-          // Update their auth password to the derived one
-          const updateRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${authUserId}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ password }),
-          });
-          if (updateRes.ok) {
-            console.log(`Linked WA phone ${cleanPhone} to auth user ${authUserId} (${existingUser.email})`);
-          } else {
-            const errBody = await updateRes.text();
-            console.warn(`Auth password update failed for ${authUserId}:`, errBody);
-          }
-        } catch (linkErr) {
-          console.warn('WA phone link error (non-fatal):', linkErr.message);
-          // Non-fatal — fall through to sign-in attempt
+    const isEmailRegistered = existingUser?.email && !isPlaceholderEmail(existingUser.email);
+
+    if (existingUser && isEmailRegistered) {
+      // ── Strategy A: Magic link for email-registered users ──
+      try {
+        // Step 1: Generate a magic link via admin API
+        const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ type: 'magiclink', email: existingUser.email }),
+        });
+
+        if (!linkRes.ok) {
+          console.error('Magic link generation failed:', await linkRes.text());
+          throw new Error('Magic link generation failed');
         }
+
+        const linkData = await linkRes.json();
+        const actionLink = linkData.action_link;
+        if (!actionLink) throw new Error('No action_link in response');
+
+        // Step 2: Follow the verify URL to get session tokens
+        // The verify endpoint returns a 303 redirect with tokens in the URL fragment
+        const verifyUrl = new URL(actionLink);
+        const verifyResp = await fetch(verifyUrl, {
+          method: 'GET',
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          redirect: 'manual', // Don't follow the redirect — we want the Location header
+        });
+
+        // The redirect Location contains the tokens in a URL fragment: #access_token=...&refresh_token=...
+        const location = verifyResp.headers.get('location') || '';
+        if (!location || !location.includes('access_token=')) {
+          // Some Supabase versions return the tokens in the body instead
+          const body = await verifyResp.text();
+          const match = body.match(/access_token=([^&"']+)/);
+          if (!match) throw new Error('No access_token in verify response');
+          const accessToken = decodeURIComponent(match[1]);
+          const refreshMatch = body.match(/refresh_token=([^&"']+)/);
+          const refreshToken = refreshMatch ? decodeURIComponent(refreshMatch[1]) : undefined;
+
+          console.log(`Magic link sign-in successful for ${cleanPhone} via ${existingUser.email}`);
+          return res.status(200).json({
+            ok: true,
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            user: { phone: cleanPhone, isNew: false },
+          });
+        }
+
+        // Parse tokens from the Location header fragment
+        const fragment = location.split('#')[1] || '';
+        const params = new URLSearchParams(fragment);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (!accessToken) throw new Error('No access_token in redirect');
+
+        console.log(`Magic link sign-in successful for ${cleanPhone} via ${existingUser.email}`);
+        return res.status(200).json({
+          ok: true,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          user: { phone: cleanPhone, isNew: false },
+        });
+      } catch (magicErr) {
+        console.error('Magic link sign-in failed:', magicErr.message);
+        // Fall through to password-based sign-in as fallback
       }
     }
 
-    // 3. Sign in
-    // Priority: for existing users found via linked phone_number, their auth credential
-    // is keyed to the email they REGISTERED with — try that first, then phone-derived emails.
+    // ── Strategy B: Password-based sign-in (for WA-registered users) ──
     const emailsToTry = [];
-    if (existingUser?.email && !isPlaceholderEmail(existingUser.email)) {
-      // Real email-registered user — their password matches their real email
-      emailsToTry.push(existingUser.email);
-    }
-    // Always also try the phone-derived emails (for WA-registered users)
+    // WA-registered users have phone-derived emails
     if (!emailsToTry.includes(autoEmail)) emailsToTry.push(autoEmail);
     if (!emailsToTry.includes(waPrefixEmail)) emailsToTry.push(waPrefixEmail);
-    // Fallback: if existingUser.email wasn't already tried
+    // Also try existing user's email (might be a placeholder we can still use)
     if (existingUser?.email && !emailsToTry.includes(existingUser.email)) emailsToTry.push(existingUser.email);
 
     for (const tryEmail of emailsToTry) {
