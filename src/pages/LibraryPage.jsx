@@ -87,74 +87,67 @@ export default function LibraryPage() {
       />
       <div className="space-y-6">
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-display font-bold">Library</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Books, past papers, and exam tips</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card border border-border rounded-lg px-3 py-2 self-start sm:self-auto">
-            <Library className="w-4 h-4 text-primary" />
-            <span>{validResources.length} resources</span>
-          </div>
-        </div>
+        {/* ── Hero Header (matches site pattern) ── */}
+        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+          <h1 className="text-2xl font-display font-bold mb-1">Library</h1>
+          <p className="text-primary-foreground/70 text-sm mb-4">
+            {validResources.length} resources · Books, past papers & exam tips for MSCE
+          </p>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {stats.map(({ label, value, icon: Icon, bg, color }) => (
-            <div key={label} className="bg-card border border-border rounded-xl p-3 sm:p-4 text-center">
-              <div className={cn('w-8 h-8 rounded-lg mx-auto mb-2 flex items-center justify-center', bg)}>
-                <Icon className={cn('w-4 h-4', color)} />
-              </div>
-              <p className="text-xl font-bold font-display">{value}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          {/* Search integrated into hero */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by title, subject..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 h-10"
+              className="pl-9 h-10 bg-card text-foreground border-0 shadow-sm"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Category pill buttons */}
-            {[
-              { key: 'all',        label: 'All' },
-              { key: 'book',       label: 'Books' },
-              { key: 'past_paper', label: 'Past Papers' },
-              { key: 'exam_tips',  label: 'Exam Tips' },
-            ].map(({ key, label }) => (
-              <button key={key} onClick={() => setTypeFilter(key)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',
-                  typeFilter === key
-                    ? 'border-transparent text-[hsl(222_47%_8%)]'
-                    : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted'
-                )}
-                style={typeFilter === key ? { background: GOLD } : {}}>
-                {label}
-              </button>
+
+          {/* Stats inline */}
+          <div className="flex gap-4 mt-4">
+            {stats.map(({ label, value, icon: Icon }) => (
+              <div key={label} className="flex items-center gap-2">
+                <Icon className="w-4 h-4 opacity-60" />
+                <span className="text-sm font-semibold">{value}</span>
+                <span className="text-xs opacity-60">{label}</span>
+              </div>
             ))}
-            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-              <SelectTrigger className="h-8 text-xs w-auto min-w-[120px] max-w-[160px]">
-                <SelectValue placeholder="All Subjects" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Subjects</SelectItem>
-                {subjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
-        {/* Content */}
+        {/* ── Filter pills ── */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {[
+            { key: 'all',        label: 'All' },
+            { key: 'book',       label: 'Books' },
+            { key: 'past_paper', label: 'Past Papers' },
+            { key: 'exam_tips',  label: 'Exam Tips' },
+          ].map(({ key, label }) => (
+            <button key={key} onClick={() => setTypeFilter(key)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',
+                typeFilter === key
+                  ? 'border-transparent text-[hsl(222_47%_8%)]'
+                  : 'border-border bg-card text-muted-foreground hover:bg-muted'
+              )}
+              style={typeFilter === key ? { background: GOLD } : {}}>
+              {label}
+            </button>
+          ))}
+          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+            <SelectTrigger className="h-8 text-xs w-auto min-w-[120px] max-w-[160px]">
+              <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Subjects</SelectItem>
+              {subjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* ── Content ── */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {[1,2,3,4,5,6].map(i => (
@@ -276,15 +269,24 @@ function ResourceCard({ resource, hasPaidFees }) {
               >
                 <Eye className="w-3 h-3" /> Read
               </button>
-              <span className="text-muted-foreground/30">|</span>
-              <a
-                href={resource.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline flex-shrink-0"
-              >
-                <Download className="w-3 h-3" /> Download
-              </a>
+              {/* Download only for premium (paid) students */}
+              {hasPaidFees ? (
+                <>
+                  <span className="text-muted-foreground/30">|</span>
+                  <a
+                    href={resource.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline flex-shrink-0"
+                  >
+                    <Download className="w-3 h-3" /> Download
+                  </a>
+                </>
+              ) : (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground/50" title="Subscribe to download">
+                  <Lock className="w-3 h-3" /> Download
+                </span>
+              )}
             </div>
           ) : (
             <span className="text-xs text-muted-foreground italic">No file attached</span>

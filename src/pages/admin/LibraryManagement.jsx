@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import {
   BookOpen, FileText, Plus, Search, Upload, Trash2, Edit2,
   X, Download, Lock, Globe, Loader2, FolderOpen, Library,
-  ChevronDown, MoreVertical, Filter
+  ChevronDown, MoreVertical, Filter, Settings2, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BulkUploadDialog from '@/components/library/BulkUploadDialog';
 import { uploadFile } from '@/utils/uploadImage';
+import SEO from '@/components/SEO';
 
 const TYPE_META = {
   book:       { label: 'Book',       color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
@@ -23,6 +24,126 @@ const TYPE_META = {
 
 const TYPE_KEYS = Object.keys(TYPE_META);
 const TABS = ['all', ...TYPE_KEYS];
+const GOLD = 'hsl(var(--primary))';
+
+/* ── Form Manager (inline create/edit/delete academic forms) ──────────────── */
+function FormManager({ forms, onClose }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [orderNum, setOrderNum] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (f) => {
+    setEditing(f.id);
+    setName(f.name);
+    setDescription(f.description || '');
+    setOrderNum(f.order_num || 0);
+  };
+
+  const reset = () => { setEditing(null); setName(''); setDescription(''); setOrderNum(0); };
+
+  const handleSave = async () => {
+    if (!name.trim()) { toast.error('Form name is required'); return; }
+    setSaving(true);
+    try {
+      if (editing) {
+        await db.entities.AcademicForm.update(editing, {
+          name: name.trim(),
+          description: description.trim(),
+          order_num: orderNum,
+          status: 'active',
+          updated_date: new Date().toISOString(),
+        });
+        toast.success('Form updated');
+      } else {
+        await db.entities.AcademicForm.create({
+          name: name.trim(),
+          description: description.trim(),
+          order_num: orderNum,
+          status: 'active',
+        });
+        toast.success('Form created');
+      }
+      qc.invalidateQueries({ queryKey: ['academic-forms'] });
+      reset();
+    } catch (err) {
+      toast.error(err?.message || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (f) => {
+    if (!confirm(`Delete "${f.name}"? Resources linked to this form will keep their data but won't appear in filters.`)) return;
+    try {
+      await db.entities.AcademicForm.delete(f.id);
+      toast.success('Form deleted');
+      qc.invalidateQueries({ queryKey: ['academic-forms'] });
+    } catch (err) {
+      toast.error(err?.message || 'Delete failed');
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-5 h-5" style={{ color: GOLD }} />
+          <h3 className="font-display font-bold text-base">Manage Academic Forms</h3>
+        </div>
+        <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Create/Edit form */}
+      <div className="flex flex-col sm:flex-row gap-3 items-end">
+        <div className="flex-1">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {editing ? 'Edit Form Name' : 'New Form Name'}
+          </Label>
+          <Input value={name} onChange={e => setName(e.target.value)}
+            className="mt-1.5" placeholder="e.g. Form 1, Form 2, MSCE" />
+        </div>
+        <div className="w-full sm:w-20">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Order</Label>
+          <Input type="number" value={orderNum} onChange={e => setOrderNum(+e.target.value)}
+            className="mt-1.5" min="0" />
+        </div>
+        <Button onClick={handleSave} disabled={saving || !name.trim()}
+          style={{ background: GOLD, color: 'hsl(var(--primary-foreground))' }}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : editing ? 'Update' : 'Add Form'}
+        </Button>
+        {editing && (
+          <Button variant="outline" onClick={reset}>Cancel</Button>
+        )}
+      </div>
+
+      {/* Form list */}
+      <div className="space-y-2">
+        {forms.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No forms yet. Create one above.</p>
+        ) : forms.sort((a, b) => (a.order_num || 0) - (b.order_num || 0)).map(f => (
+          <div key={f.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-muted/30">
+            <div className="flex-1">
+              <p className="font-semibold text-sm">{f.name}</p>
+              {f.description && <p className="text-xs text-muted-foreground">{f.description}</p>}
+            </div>
+            <span className="text-xs text-muted-foreground">Order: {f.order_num || 0}</span>
+            <button onClick={() => startEdit(f)} className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => handleDelete(f)} className="w-7 h-7 rounded-lg hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ── Resource Form ─────────────────────────────────────────────────────────── */
 function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving }) {
@@ -107,6 +228,9 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
             <option value="">Select form…</option>
             {forms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
+          {forms.length === 0 && (
+            <p className="text-xs text-destructive mt-1">No forms yet — use "Manage Forms" to create some.</p>
+          )}
         </div>
         <div>
           <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Subject *</Label>
@@ -181,8 +305,8 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
       <div className="flex gap-3 pt-1">
         <Button variant="outline" onClick={onCancel} className="flex-1" disabled={isSaving}>Cancel</Button>
         <Button onClick={handleSubmit} disabled={isSaving || uploading} className="flex-1"
-          style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
-          {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : resource ? 'Save Changes' : 'Add Resource'}
+          style={{ background: GOLD, color: 'hsl(var(--primary-foreground))' }}>
+          {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : (resource ? 'Update Resource' : 'Add Resource')}
         </Button>
       </div>
     </div>
@@ -191,57 +315,27 @@ function ResourceForm({ resource, subjects, forms, onSave, onCancel, isSaving })
 
 /* ── Resource Row ──────────────────────────────────────────────────────────── */
 function ResourceRow({ resource, onEdit, onDelete }) {
-  const meta = TYPE_META[resource.type] || { label: resource.type, color: 'bg-muted text-muted-foreground' };
-  const [menuOpen, setMenuOpen] = useState(false);
-
+  const meta = TYPE_META[resource.type] || { label: resource.type, color: 'bg-muted text-muted-foreground border-muted' };
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group border-b border-border/50 last:border-b-0">
-      {/* Icon */}
-      <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0"
-        style={{ background:'hsl(var(--muted) / 0.08)' }}>
-        <FileText className="w-4 h-4 text-primary" />
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors">
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}>
+        {resource.type === 'book' ? <BookOpen className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
       </div>
-
-      {/* Main info */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm leading-snug truncate">{resource.title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-          {[resource.subject_name, resource.form_name, resource.year].filter(Boolean).join(' · ')}
-        </p>
+        <p className="font-semibold text-sm truncate">{resource.title}</p>
+        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+          <Badge className={`text-[10px] px-1.5 py-0.5 border ${meta.color}`}>{meta.label}</Badge>
+          {[resource.subject_name, resource.form_name, resource.year].filter(Boolean).map((item, i) => (
+            <span key={i} className="text-[11px] text-muted-foreground truncate">{item}</span>
+          )).reduce((acc, el, i) => i === 0 ? [el] : [...acc, <span key={`s${i}`} className="text-muted-foreground/30">·</span>, el], [])}
+          {resource.is_premium ? <Lock className="w-3 h-3 text-accent flex-shrink-0" /> : <Globe className="w-3 h-3 text-green-500 flex-shrink-0" />}
+        </div>
       </div>
-
-      {/* Badges — hidden on small screens, shown on md+ */}
-      <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.color}`}>{meta.label}</span>
-        {resource.is_premium
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground border border-accent/20 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />Premium</span>
-          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-200 flex items-center gap-0.5"><Globe className="w-2.5 h-2.5" />Free</span>
-        }
-      </div>
-
-      {/* Actions — always visible, no overflow */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        {resource.file_url && (
-          <button
-            onClick={() => window.open(resource.file_url, '_blank')}
-            title="Download / Preview"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
-            style={{ minWidth:'2rem' }}>
-            <Download className="w-3.5 h-3.5" />
-          </button>
-        )}
-        <button
-          onClick={() => onEdit(resource)}
-          title="Edit"
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          style={{ minWidth:'2rem' }}>
+        <button onClick={() => onEdit(resource)} className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
           <Edit2 className="w-3.5 h-3.5" />
         </button>
-        <button
-          onClick={() => { if (window.confirm(`Delete "${resource.title}"?`)) onDelete(resource.id); }}
-          title="Delete"
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors"
-          style={{ minWidth:'2rem' }}>
+        <button onClick={() => onDelete(resource.id)} className="w-8 h-8 rounded-lg hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -249,7 +343,7 @@ function ResourceRow({ resource, onEdit, onDelete }) {
   );
 }
 
-/* ── Main ──────────────────────────────────────────────────────────────────── */
+/* ── Main Component ────────────────────────────────────────────────────────── */
 export default function LibraryManagement() {
   const { user } = useOutletContext() ?? {};
   const qc       = useQueryClient();
@@ -260,6 +354,7 @@ export default function LibraryManagement() {
   const [editResource, setEdit]      = useState(null);
   const [showForm,     setShowForm]  = useState(false);
   const [showBulk,     setShowBulk]  = useState(false);
+  const [showFormManager, setShowFormManager] = useState(false);
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['library-resources'],
@@ -273,7 +368,7 @@ export default function LibraryManagement() {
   });
   const { data: forms = [] } = useQuery({
     queryKey: ['academic-forms'],
-    queryFn: () => (async () => [])(/* AcademicForm removed */),
+    queryFn: () => db.entities.AcademicForm.filter({ status: 'active' }, 'order_num', 100),
     staleTime: 300_000,
   });
 
@@ -315,102 +410,115 @@ export default function LibraryManagement() {
   };
 
   return (
-    <div className="space-y-5">
-      {/* ── Header ── */}
-      <div className="rounded-2xl p-5" style={{ background:'hsl(var(--card))' }}>
-        <div className="flex items-center gap-2 mb-2">
-          <Library className="w-5 h-5" style={{ color:'hsl(var(--primary))' }} />
-          <span className="text-sm font-medium" style={{ color:'hsl(var(--primary) / 0.8)' }}>Admin</span>
+    <>
+      <SEO title="Library Management — Admin" description="Manage library resources" />
+      <div className="space-y-5">
+
+        {/* ── Hero Header ── */}
+        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+          <div className="flex items-center gap-2 mb-2">
+            <Library className="w-5 h-5" />
+            <span className="text-sm font-medium opacity-80">Admin</span>
+          </div>
+          <h1 className="text-2xl font-display font-bold mb-1">Library Management</h1>
+          <p className="text-primary-foreground/70 text-sm mb-4">Upload and manage books, past papers, and exam tips</p>
+          <div className="flex gap-5">
+            {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
+              <div key={label}>
+                <p className="font-bold text-2xl font-display">{val}</p>
+                <p className="text-[11px] opacity-70">{label} resources</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 className="text-xl font-display font-bold mb-1" style={{ color:'hsl(var(--foreground))' }}>Library Management</h1>
-        <div className="flex gap-5">
-          {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
-            <div key={label}>
-              <p className="font-bold text-lg" style={{ color:'hsl(var(--foreground))' }}>{val}</p>
-              <p className="text-[11px]" style={{ color:'hsl(var(--muted-foreground))' }}>{label} resources</p>
-            </div>
+
+        {/* ── Action bar ── */}
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search resources…" className="pl-9" />
+          </div>
+          <select value={formFilter} onChange={e => setFormFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
+            <option value="">All Forms</option>
+            {forms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+          <Button variant="outline" onClick={() => setShowFormManager(v => !v)} className="gap-2">
+            <Settings2 className="w-4 h-4" /> Manage Forms
+          </Button>
+          <Button variant="outline" onClick={() => setShowBulk(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Bulk Upload
+          </Button>
+          <Button onClick={() => { setEdit(null); setShowForm(true); }} className="gap-2"
+            style={{ background: GOLD, color: 'hsl(var(--primary-foreground))' }}>
+            <Plus className="w-4 h-4" /> Add Resource
+          </Button>
+        </div>
+
+        {/* ── Form Manager (inline) ── */}
+        {showFormManager && (
+          <FormManager forms={forms} onClose={() => setShowFormManager(false)} />
+        )}
+
+        {/* ── Resource form (inline) ── */}
+        {showForm && (
+          <ResourceForm
+            resource={editResource}
+            subjects={subjects}
+            forms={forms}
+            onSave={saveMutation.mutate}
+            onCancel={handleClose}
+            isSaving={saveMutation.isPending}
+          />
+        )}
+
+        {/* ── Type filter tabs ── */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {TABS.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                activeTab === tab
+                  ? 'text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'
+              }`}
+              style={activeTab === tab ? { background: GOLD } : {}}>
+              {tab === 'all' ? `All (${resources.length})` : `${TYPE_META[tab].label} (${resources.filter(r=>r.type===tab).length})`}
+            </button>
           ))}
         </div>
-      </div>
 
-      {/* ── Action bar ── */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search resources…" className="pl-9" />
-        </div>
-        <select value={formFilter} onChange={e => setFormFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
-          <option value="">All Forms</option>
-          {forms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
-        <Button variant="outline" onClick={() => setShowBulk(true)} className="gap-2">
-          <Upload className="w-4 h-4" /> Bulk Upload
-        </Button>
-        <Button onClick={() => { setEdit(null); setShowForm(true); }} className="gap-2"
-          style={{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))' }}>
-          <Plus className="w-4 h-4" /> Add Resource
-        </Button>
-      </div>
-
-      {/* ── Resource form (inline) ── */}
-      {showForm && (
-        <ResourceForm
-          resource={editResource}
-          subjects={subjects}
-          forms={forms}
-          onSave={saveMutation.mutate}
-          onCancel={handleClose}
-          isSaving={saveMutation.isPending}
-        />
-      )}
-
-      {/* ── Type filter tabs ── */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {TABS.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-              activeTab === tab
-                ? 'text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'
-            }`}
-            style={activeTab === tab ? { background:'hsl(var(--muted))' } : {}}>
-            {tab === 'all' ? `All (${resources.length})` : `${TYPE_META[tab].label} (${resources.filter(r=>r.type===tab).length})`}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Resource list ── */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center space-y-2">
-            <FolderOpen className="w-10 h-10 mx-auto text-muted-foreground/20" />
-            <p className="text-sm font-medium text-muted-foreground">No resources found</p>
-            <p className="text-xs text-muted-foreground/60">Try adjusting your filters or add a new resource</p>
-          </div>
-        ) : (
-          <>
-            <div className="px-4 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">{filtered.length} resource{filtered.length!==1?'s':''}</p>
+        {/* ── Resource list ── */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          {isLoading ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-12 text-center space-y-2">
+              <FolderOpen className="w-10 h-10 mx-auto text-muted-foreground/20" />
+              <p className="text-sm font-medium text-muted-foreground">No resources found</p>
+              <p className="text-xs text-muted-foreground/60">Try adjusting your filters or add a new resource</p>
             </div>
-            {filtered.map(r => (
-              <ResourceRow key={r.id} resource={r} onEdit={handleEdit} onDelete={deleteMutation.mutate} />
-            ))}
-          </>
+          ) : (
+            <>
+              <div className="px-4 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground">{filtered.length} resource{filtered.length!==1?'s':''}</p>
+              </div>
+              {filtered.map(r => (
+                <ResourceRow key={r.id} resource={r} onEdit={handleEdit} onDelete={deleteMutation.mutate} />
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Bulk upload dialog */}
+        {showBulk && (
+          <BulkUploadDialog
+            subjects={subjects}
+            forms={forms}
+            onClose={() => setShowBulk(false)}
+            onSuccess={() => { setShowBulk(false); qc.invalidateQueries({ queryKey: ['library-resources'] }); }}
+          />
         )}
       </div>
-
-      {/* Bulk upload dialog */}
-      {showBulk && (
-        <BulkUploadDialog
-          subjects={subjects}
-          forms={forms}
-          onClose={() => setShowBulk(false)}
-          onSuccess={() => { setShowBulk(false); qc.invalidateQueries({ queryKey: ['library-resources'] }); }}
-        />
-      )}
-    </div>
+    </>
   );
 }
