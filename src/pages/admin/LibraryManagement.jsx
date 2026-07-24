@@ -422,7 +422,7 @@ export default function LibraryManagement() {
           </div>
           <h1 className="text-2xl font-display font-bold mb-1">Library Management</h1>
           <p className="text-primary-foreground/70 text-sm mb-4">Upload and manage books, past papers, and exam tips</p>
-          <div className="flex gap-5">
+          <div className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide pb-1">
             {[{ label:'Total',   val:stats.total },{ label:'Premium', val:stats.premium },{ label:'Free', val:stats.free }].map(({ label,val }) => (
               <div key={label}>
                 <p className="font-bold text-2xl font-display">{val}</p>

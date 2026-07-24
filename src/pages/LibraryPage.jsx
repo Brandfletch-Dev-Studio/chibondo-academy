@@ -89,7 +89,7 @@ export default function LibraryPage() {
 
         {/* ── Hero Header (matches site pattern) ── */}
         <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
-          <h1 className="text-2xl font-display font-bold mb-1">Library</h1>
+          <h1 className="text-xl sm:text-2xl font-display font-bold mb-1">Library</h1>
           <p className="text-primary-foreground/70 text-sm mb-4">
             {validResources.length} resources · Books, past papers & exam tips for MSCE
           </p>
@@ -106,12 +106,12 @@ export default function LibraryPage() {
           </div>
 
           {/* Stats inline */}
-          <div className="flex gap-4 mt-4">
+          <div className="flex gap-3 sm:gap-4 mt-4 overflow-x-auto scrollbar-hide pb-1">
             {stats.map(({ label, value, icon: Icon }) => (
               <div key={label} className="flex items-center gap-2">
                 <Icon className="w-4 h-4 opacity-60" />
-                <span className="text-sm font-semibold">{value}</span>
-                <span className="text-xs opacity-60">{label}</span>
+                <span className="text-sm font-semibold whitespace-nowrap">{value}</span>
+                <span className="text-xs opacity-60 whitespace-nowrap">{label}</span>
               </div>
             ))}
           </div>
