@@ -509,15 +509,14 @@ export default function LibraryManagement() {
           )}
         </div>
 
-        {/* Bulk upload dialog */}
-        {showBulk && (
-          <BulkUploadDialog
-            subjects={subjects}
-            forms={forms}
-            onClose={() => setShowBulk(false)}
-            onSuccess={() => { setShowBulk(false); qc.invalidateQueries({ queryKey: ['library-resources'] }); }}
-          />
-        )}
+        {/* Bulk upload dialog — always mounted so background uploads show progress after closing */}
+        <BulkUploadDialog
+          subjects={subjects}
+          forms={forms}
+          open={showBulk}
+          onClose={() => setShowBulk(false)}
+          onSuccess={() => { qc.invalidateQueries({ queryKey: ['library-resources'] }); }}
+        />
       </div>
     </>
   );
