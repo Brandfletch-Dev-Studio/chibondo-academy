@@ -3,6 +3,11 @@
  * - Images → 'avatars' bucket (5MB limit)
  * - Documents (PDF, DOCX, etc.) → 'library' bucket (100MB limit)
  * Returns the public CDN URL.
+ *
+ * Uses the anon key for storage uploads (not the user's auth token) because:
+ * 1. The anon key never expires (user tokens can expire mid-session)
+ * 2. Both buckets have anon RLS policies for INSERT
+ * 3. Storage uploads don't need user-level auth — RLS handles access control
  */
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -28,8 +33,6 @@ export async function uploadFile(file, { onProgress, maxMB } = {}) {
   const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const path = `public/${name}`;
 
-  const token = localStorage.getItem('aca_access_token') || localStorage.getItem('token') || SUPABASE_ANON;
-
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
@@ -41,24 +44,31 @@ export async function uploadFile(file, { onProgress, maxMB } = {}) {
 
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        // Public URL
         const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
         resolve(publicUrl);
       } else {
         let msg = `Upload failed (HTTP ${xhr.status})`;
-        try { const err = JSON.parse(xhr.responseText); if (err?.error || err?.message) msg = err.error || err.message; } catch {}
+        try {
+          const err = JSON.parse(xhr.responseText);
+          if (err?.error || err?.message) msg = err.error || err.message;
+        } catch {}
+        console.error('[uploadFile] Upload failed:', xhr.status, xhr.responseText);
         reject(new Error(msg));
       }
     });
 
-    xhr.addEventListener('error',   () => reject(new Error('Network error during upload')));
-    xhr.addEventListener('abort',   () => reject(new Error('Upload cancelled')));
-    xhr.addEventListener('timeout', () => reject(new Error('Upload timed out')));
+    xhr.addEventListener('error',   () => { console.error('[uploadFile] Network error'); reject(new Error('Network error during upload')); });
+    xhr.addEventListener('abort',   () => { console.error('[uploadFile] Aborted'); reject(new Error('Upload cancelled')); });
+    xhr.addEventListener('timeout', () => { console.error('[uploadFile] Timeout'); reject(new Error('Upload timed out')); });
     xhr.timeout = 5 * 60 * 1000;
 
+    // Always use the anon key for storage uploads — it never expires
+    // and both buckets have anon INSERT policies
     xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON}`);
+    xhr.setRequestHeader('apikey', SUPABASE_ANON);
     xhr.setRequestHeader('x-upsert', 'true');
+    if (file.type) xhr.setRequestHeader('Content-Type', file.type);
     xhr.send(file);
   });
 }
